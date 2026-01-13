@@ -1,0 +1,534 @@
+"use client";
+
+import { useState, useCallback, useEffect } from "react";
+import type {
+  TreeData,
+  FamilyNode,
+  TreeHistory,
+  StorageInfo,
+} from "../types/tree";
+import {
+  detectCycle,
+  calculateGeneration,
+  calculateHierarchicalLayout,
+  type LayoutNode,
+} from "../tree/layoutEngine";
+import { loadTrees, saveTrees, checkStorageQuota } from "../utils/storageUtils";
+
+const MAX_HISTORY = 50;
+
+// ---------- helpers ----------
+const uniq = (a: string[]) => Array.from(new Set((a || []).filter(Boolean)));
+
+function normalizeNode(n: any): FamilyNode {
+  const partners = uniq(Array.isArray(n.partners) ? n.partners : []);
+  const childrenIds = uniq(Array.isArray(n.childrenIds) ? n.childrenIds : []);
+  const parentIdsFromField = Array.isArray(n.parentIds) ? n.parentIds : [];
+  const parentIdsFromLegacy = n.parentId ? [n.parentId] : [];
+  const parentIds = uniq([...parentIdsFromField, ...parentIdsFromLegacy]);
+
+  return {
+    ...n,
+    partners,
+    childrenIds,
+    parentIds, // NEW
+    parentId: parentIds[0] ?? null, // keep legacy in sync
+  };
+}
+
+function sanitizeGraph(nodes: FamilyNode[]): FamilyNode[] {
+  // normalize first
+  const map = new Map<string, FamilyNode>();
+  for (const n of nodes) map.set(n.id, normalizeNode(n));
+
+  // partner sync (bidirectional)
+  for (const n of map.values()) {
+    for (const pid of n.partners) {
+      const p = map.get(pid);
+      if (!p) continue;
+      if (!p.partners.includes(n.id)) p.partners = uniq([...p.partners, n.id]);
+    }
+  }
+
+  // parent<->child sync (multi-parent)
+  // A) parent.childrenIds -> child.parentIds
+  for (const parent of map.values()) {
+    for (const cid of parent.childrenIds) {
+      const child = map.get(cid);
+      if (!child) continue;
+      const pids = child.parentIds || [];
+      if (!pids.includes(parent.id)) {
+        child.parentIds = uniq([...pids, parent.id]);
+      }
+    }
+  }
+
+  // B) child.parentIds -> parent.childrenIds
+  for (const child of map.values()) {
+    for (const pid of child.parentIds || []) {
+      const parent = map.get(pid);
+      if (!parent) continue;
+      if (!parent.childrenIds.includes(child.id)) {
+        parent.childrenIds = uniq([...parent.childrenIds, child.id]);
+      }
+    }
+    // legacy sync
+    child.parentId = (child.parentIds || [])[0] ?? null;
+  }
+
+  // return preserving original order
+  return nodes.map((n) => map.get(n.id)!).filter(Boolean);
+}
+
+function linkPartners(
+  nodes: FamilyNode[],
+  aId: string,
+  bId: string
+): FamilyNode[] {
+  const map = new Map(nodes.map((n) => [n.id, normalizeNode(n)]));
+  const a = map.get(aId);
+  const b = map.get(bId);
+  if (!a || !b) return nodes;
+
+  a.partners = uniq([...a.partners, bId]);
+  b.partners = uniq([...b.partners, aId]);
+
+  return sanitizeGraph(Array.from(map.values()));
+}
+
+function linkParentChild(
+  nodes: FamilyNode[],
+  parentId: string,
+  childId: string
+): FamilyNode[] {
+  const map = new Map(nodes.map((n) => [n.id, normalizeNode(n)]));
+  const parent = map.get(parentId);
+  const child = map.get(childId);
+  if (!parent || !child) return nodes;
+
+  parent.childrenIds = uniq([...parent.childrenIds, childId]);
+  child.parentIds = uniq([...(child.parentIds || []), parentId]);
+  child.parentId = child.parentIds[0] ?? null;
+
+  return sanitizeGraph(Array.from(map.values()));
+}
+
+function recomputeAllGenerations(nodes: FamilyNode[]) {
+  return nodes.map((n) => ({
+    ...n,
+    generation: calculateGeneration(nodes, n.id),
+  }));
+}
+
+// ----------------------------
+
+export function useTreeState(userId: string, userName: string) {
+  const [trees, setTrees] = useState<TreeData[]>([]);
+  const [currentTreeId, setCurrentTreeId] = useState<string | null>(null);
+  const [history, setHistory] = useState<TreeHistory>({
+    past: [],
+    present: [],
+    future: [],
+  });
+  const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Load from localStorage on mount + migrate
+  useEffect(() => {
+    const loaded = loadTrees();
+
+    // MIGRATION: ensure every node has parentIds + arrays normalized
+    const migrated = loaded.map((t: any) => {
+      const nodes = (t.nodes || []).map((n: any) => normalizeNode(n));
+      const sanitized = sanitizeGraph(nodes);
+      const withGen = recomputeAllGenerations(sanitized);
+      return { ...t, nodes: withGen };
+    });
+
+    setTrees(migrated);
+
+    const userTree = migrated.find((t) => t.ownerId === userId);
+    if (userTree) {
+      setCurrentTreeId(userTree.id);
+      setHistory({ past: [], present: userTree.nodes, future: [] });
+    }
+
+    setStorageInfo(checkStorageQuota());
+  }, [userId]);
+
+  // Save to localStorage whenever trees change
+  useEffect(() => {
+    if (trees.length > 0) {
+      const result = saveTrees(trees);
+      if (!result.success) setSaveError(result.error || null);
+      else setSaveError(null);
+
+      setStorageInfo(checkStorageQuota());
+    }
+  }, [trees]);
+
+  const currentTree = trees.find((t) => t.id === currentTreeId) || null;
+  const userTree = trees.find((t) => t.ownerId === userId) || null;
+
+  const layoutNodes: LayoutNode[] = currentTree
+    ? calculateHierarchicalLayout(currentTree.nodes)
+    : [];
+
+  const pushHistory = useCallback((nodes: FamilyNode[]) => {
+    setHistory((prev) => ({
+      past: [...prev.past.slice(-MAX_HISTORY + 1), prev.present],
+      present: nodes,
+      future: [],
+    }));
+  }, []);
+
+  // Create initial tree
+  const createTree = useCallback(() => {
+    const now = new Date().toISOString();
+    const treeId = `tree-${Date.now()}`;
+    const rootNode: FamilyNode = sanitizeGraph([
+      {
+        id: `node-${Date.now()}`,
+        label: userName,
+        year: null,
+        deathYear: null,
+
+        // NEW
+        parentIds: [],
+        parentId: null,
+
+        partners: [],
+        childrenIds: [],
+        generation: 0,
+        line: "self",
+        imageUrl: null,
+        content: { description: "", media: [] },
+      } as any,
+    ])[0];
+
+    const newTree: TreeData = {
+      id: treeId,
+      name: `Keluarga ${userName.split(" ")[0]}`,
+      ownerId: userId,
+      nodes: [rootNode],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    setTrees((prev) => [...prev, newTree]);
+    setCurrentTreeId(treeId);
+    setHistory({ past: [], present: [rootNode], future: [] });
+
+    return newTree;
+  }, [userId, userName, pushHistory]);
+
+  // Add node (fixed relationships)
+  const addNode = useCallback(
+    (
+      nodeData: Omit<FamilyNode, "id" | "generation" | "childrenIds"> & {
+        initialChildrenIds?: string[];
+      }
+    ): { success: boolean; error?: string; node?: FamilyNode } => {
+      if (!currentTree) return { success: false, error: "No tree selected" };
+
+      const { initialChildrenIds, ...rest } = nodeData as any;
+
+      const newNodeId = `node-${Date.now()}`;
+
+      // build new node normalized
+      const newNode: FamilyNode = normalizeNode({
+        ...rest,
+        id: newNodeId,
+        generation: 0,
+        childrenIds: initialChildrenIds || [],
+        parentIds: rest.parentIds || (rest.parentId ? [rest.parentId] : []),
+      });
+
+      // basic cycle detection (your detectCycle is stub now, ok)
+      if (detectCycle(currentTree.nodes, newNode)) {
+        return {
+          success: false,
+          error:
+            "Tidak bisa menambahkan: hubungan ini menyebabkan silsilah melingkar",
+        };
+      }
+
+      let updatedNodes: FamilyNode[] = sanitizeGraph([
+        ...currentTree.nodes.map((n) => normalizeNode(n)),
+        newNode,
+      ]);
+
+      // --------- infer add-mode based on payload ----------
+      const isAddParent =
+        Array.isArray(initialChildrenIds) && initialChildrenIds.length > 0; // parent added via initialChildrenIds
+      const isAddChild = !!newNode.parentId; // child added via parentId
+      const isAddPartner =
+        Array.isArray(newNode.partners) && newNode.partners.length > 0;
+
+      // DEBUG: trace partner linking
+      console.log("[addNode] Debug:", {
+        newNodeId,
+        partners: newNode.partners,
+        isAddPartner,
+        isAddParent,
+        isAddChild,
+      });
+
+      // 1) If added as PARENT (new node is parent of childId)
+      if (isAddParent) {
+        for (const childId of initialChildrenIds!) {
+          updatedNodes = linkParentChild(updatedNodes, newNodeId, childId);
+
+          // OPTIONAL: if child already has other parent, auto link them as partners (co-parents)
+          const child = updatedNodes.find((n) => n.id === childId);
+          const otherParentId = child?.parentIds?.find(
+            (pid) => pid !== newNodeId
+          );
+          if (otherParentId) {
+            updatedNodes = linkPartners(updatedNodes, newNodeId, otherParentId);
+          }
+        }
+      }
+
+      // 2) If added as CHILD (new node has parentId)
+      if (isAddChild) {
+        const parentId = newNode.parentId!;
+        updatedNodes = linkParentChild(updatedNodes, parentId, newNodeId);
+
+        // OPTIONAL: auto-add spouse of that parent as 2nd parent (makes “family unit” like reference)
+        const parent = updatedNodes.find((n) => n.id === parentId);
+        const spouseId = parent?.partners?.[0];
+        if (spouseId) {
+          updatedNodes = linkParentChild(updatedNodes, spouseId, newNodeId);
+        }
+      }
+
+      // 3) If added as PARTNER
+      if (isAddPartner) {
+        for (const partnerId of newNode.partners) {
+          updatedNodes = linkPartners(updatedNodes, newNodeId, partnerId);
+        }
+      }
+
+      // generation (your calculateGeneration stub returns 0, ok)
+      updatedNodes = sanitizeGraph(updatedNodes);
+      updatedNodes = recomputeAllGenerations(updatedNodes);
+
+      const finalNewNode = updatedNodes.find((n) => n.id === newNodeId)!;
+
+      pushHistory(updatedNodes);
+
+      setTrees((prev) =>
+        prev.map((t) =>
+          t.id === currentTreeId
+            ? { ...t, nodes: updatedNodes, updatedAt: new Date().toISOString() }
+            : t
+        )
+      );
+
+      return { success: true, node: finalNewNode };
+    },
+    [currentTree, currentTreeId, pushHistory]
+  );
+
+  const updateNode = useCallback(
+    (nodeId: string, updates: Partial<FamilyNode>) => {
+      if (!currentTree) return;
+
+      // keep safe: normalize + sanitize after update
+      let updatedNodes = sanitizeGraph(
+        currentTree.nodes.map((n) =>
+          n.id === nodeId
+            ? normalizeNode({ ...n, ...updates })
+            : normalizeNode(n)
+        )
+      );
+
+      updatedNodes = recomputeAllGenerations(updatedNodes);
+
+      pushHistory(updatedNodes);
+
+      setTrees((prev) =>
+        prev.map((t) =>
+          t.id === currentTreeId
+            ? { ...t, nodes: updatedNodes, updatedAt: new Date().toISOString() }
+            : t
+        )
+      );
+    },
+    [currentTree, currentTreeId, pushHistory]
+  );
+
+  const updateNodes = useCallback(
+    (updates: { nodeId: string; data: Partial<FamilyNode> }[]) => {
+      if (!currentTree) return;
+
+      let updated = currentTree.nodes.map((n) => normalizeNode(n));
+
+      for (const { nodeId, data } of updates) {
+        updated = updated.map((n) =>
+          n.id === nodeId ? normalizeNode({ ...n, ...data }) : n
+        );
+      }
+
+      let updatedNodes = sanitizeGraph(updated);
+      updatedNodes = recomputeAllGenerations(updatedNodes);
+
+      pushHistory(updatedNodes);
+
+      setTrees((prev) =>
+        prev.map((t) =>
+          t.id === currentTreeId
+            ? { ...t, nodes: updatedNodes, updatedAt: new Date().toISOString() }
+            : t
+        )
+      );
+    },
+    [currentTree, currentTreeId, pushHistory]
+  );
+
+  // Delete node (cleanup multi-parent + partners + children)
+  const deleteNode = useCallback(
+    (nodeId: string) => {
+      if (!currentTree) return;
+
+      const nodeToDelete = currentTree.nodes.find((n) => n.id === nodeId);
+      if (!nodeToDelete) return;
+
+      let updatedNodes = currentTree.nodes
+        .map((n) => normalizeNode(n))
+        .filter((n) => n.id !== nodeId);
+
+      // remove from ALL parents childrenIds (multi-parent)
+      const parentIds = uniq([
+        ...(nodeToDelete.parentIds || []),
+        ...(nodeToDelete.parentId ? [nodeToDelete.parentId] : []),
+      ]);
+
+      for (const pid of parentIds) {
+        updatedNodes = updatedNodes.map((n) =>
+          n.id === pid
+            ? {
+                ...n,
+                childrenIds: (n.childrenIds || []).filter(
+                  (id) => id !== nodeId
+                ),
+              }
+            : n
+        );
+      }
+
+      // remove from partners
+      for (const partnerId of nodeToDelete.partners || []) {
+        updatedNodes = updatedNodes.map((n) =>
+          n.id === partnerId
+            ? {
+                ...n,
+                partners: (n.partners || []).filter((id) => id !== nodeId),
+              }
+            : n
+        );
+      }
+
+      // remove from children parentIds
+      for (const childId of nodeToDelete.childrenIds || []) {
+        updatedNodes = updatedNodes.map((n) => {
+          if (n.id !== childId) return n;
+          const nextParentIds = (n.parentIds || []).filter(
+            (pid) => pid !== nodeId
+          );
+          return {
+            ...n,
+            parentIds: nextParentIds,
+            parentId: nextParentIds[0] ?? null,
+          };
+        });
+      }
+
+      updatedNodes = sanitizeGraph(updatedNodes);
+      updatedNodes = recomputeAllGenerations(updatedNodes);
+
+      pushHistory(updatedNodes);
+
+      setTrees((prev) =>
+        prev.map((t) =>
+          t.id === currentTreeId
+            ? { ...t, nodes: updatedNodes, updatedAt: new Date().toISOString() }
+            : t
+        )
+      );
+    },
+    [currentTree, currentTreeId, pushHistory]
+  );
+
+  const undo = useCallback(() => {
+    if (history.past.length === 0) return;
+
+    const previous = history.past[history.past.length - 1];
+    const newPast = history.past.slice(0, -1);
+
+    setHistory({
+      past: newPast,
+      present: previous,
+      future: [history.present, ...history.future],
+    });
+
+    setTrees((prev) =>
+      prev.map((t) =>
+        t.id === currentTreeId
+          ? { ...t, nodes: previous, updatedAt: new Date().toISOString() }
+          : t
+      )
+    );
+  }, [history, currentTreeId]);
+
+  const redo = useCallback(() => {
+    if (history.future.length === 0) return;
+
+    const next = history.future[0];
+    const newFuture = history.future.slice(1);
+
+    setHistory({
+      past: [...history.past, history.present],
+      present: next,
+      future: newFuture,
+    });
+
+    setTrees((prev) =>
+      prev.map((t) =>
+        t.id === currentTreeId
+          ? { ...t, nodes: next, updatedAt: new Date().toISOString() }
+          : t
+      )
+    );
+  }, [history, currentTreeId]);
+
+  const getNode = useCallback(
+    (nodeId: string): FamilyNode | null => {
+      return currentTree?.nodes.find((n) => n.id === nodeId) || null;
+    },
+    [currentTree]
+  );
+
+  return {
+    trees,
+    currentTree,
+    userTree,
+    currentTreeId,
+    setCurrentTreeId,
+    layoutNodes,
+    history,
+    storageInfo,
+    saveError,
+    canUndo: history.past.length > 0,
+    canRedo: history.future.length > 0,
+    createTree,
+    addNode,
+    updateNode,
+    updateNodes,
+    deleteNode,
+    getNode,
+    undo,
+    redo,
+  };
+}

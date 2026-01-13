@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+
+  /* Luxury Warm Palette - CSS Variables */
+  --color-bg: #f9f6f1;
+  --color-surface: #ffffff;
+  --color-border: #e6dbc7;
+  --color-text: #1d1a14;
+  --color-text-muted: #5b5346;
+  --color-accent: #1f6f62;
+  --color-gold: #b08e51;
+  --color-gold-700: #82693c;
+}
+
+body {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  overscroll-behavior: none;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    transform: translate(-50%, -50%) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes zoomOut {
+  from {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(0.95);
+    opacity: 0;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Custom Utilities */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  animation: zoomIn 0.2s ease-out forwards;
+}
+
+/* Scrollbar Styling - Luxury Warm */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f2ede3;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #b08e51;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #82693c;
+}
+
+.font-playfair {
+  font-family: var(--font-playfair), serif;
+}
+
+/* Focus Ring Styles - Luxury Warm */
+input:focus,
+button:focus,
+textarea:focus {
+  outline: none;
+}
