@@ -105,7 +105,8 @@ type Group = {
   id: string; // dsu root
   rank: number;
   memberIds: string[]; // spouse group members
-  width: number; // group width in px
+  selfWidth: number; // group width in px (just members)
+  layoutWidth: number; // width used for positioning (subtree-aware)
   xCenter: number; // group center x
   orderKey: number; // stable ordering
 };
@@ -231,13 +232,14 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
       .sort((a, b) => indexOf.get(a)! - indexOf.get(b)!);
 
     const count = memberIds.length;
-    const width = count * NODE_SIZE + (count - 1) * PARTNER_GAP;
+    const selfWidth = count * NODE_SIZE + (count - 1) * PARTNER_GAP;
 
     const g: Group = {
       id: `${entry.rank}::${dsu.find(memberIds[0])}`,
       rank: entry.rank,
       memberIds,
-      width,
+      selfWidth,
+      layoutWidth: selfWidth,
       xCenter: CANVAS_START_X, // init later
       orderKey: entry.orderKey,
     };
@@ -256,7 +258,7 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
   // 4) helper: compute nodeX based on current group centers
   const memberOffset = (g: Group, memberId: string) => {
     const i = g.memberIds.indexOf(memberId);
-    const left = g.xCenter - g.width / 2;
+    const left = g.xCenter - g.selfWidth / 2;
     return left + NODE_SIZE / 2 + i * (NODE_SIZE + PARTNER_GAP);
   };
 
@@ -275,10 +277,10 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
     let cursorRight = -Infinity;
     for (const item of scored) {
       const g = item.g;
-      let left = item.target - g.width / 2;
+      let left = item.target - g.layoutWidth / 2;
       if (left < cursorRight + SIBLING_GAP) left = cursorRight + SIBLING_GAP;
-      g.xCenter = left + g.width / 2;
-      cursorRight = left + g.width;
+      g.xCenter = left + g.layoutWidth / 2;
+      cursorRight = left + g.layoutWidth;
     }
   };
 
@@ -306,7 +308,38 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
     for (const g of list) g.xCenter += delta;
   };
 
-  // 5) init positions per rank (simple spread around focus)
+  // 5) compute subtree width per group (bottom-up)
+  const computeSubtreeWidths = () => {
+    for (let r = maxRank; r >= 0; r--) {
+      const list = groupsByRank.get(r) || [];
+      for (const g of list) {
+        const childGroups = new Map<string, Group>();
+        for (const mid of g.memberIds) {
+          for (const cid of childrenMap.get(mid) || []) {
+            if ((normRank.get(cid) ?? -1) !== r + 1) continue;
+            const cg = memberToGroup.get(cid);
+            if (cg) childGroups.set(cg.id, cg);
+          }
+        }
+
+        const children = Array.from(childGroups.values());
+        const childrenWidth = children.reduce(
+          (sum, child) => sum + child.layoutWidth,
+          0
+        );
+        const totalChildWidth =
+          children.length > 0
+            ? childrenWidth + (children.length - 1) * SIBLING_GAP
+            : 0;
+
+        g.layoutWidth = Math.max(g.selfWidth, totalChildWidth);
+      }
+    }
+  };
+
+  computeSubtreeWidths();
+
+  // 6) init positions per rank (simple spread around focus)
   for (let r = 0; r <= maxRank; r++) {
     const list = groupsByRank.get(r) || [];
     let cx = CANVAS_START_X;
@@ -319,13 +352,13 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
           continue;
         }
       }
-      list[i].xCenter = cx + list[i].width / 2;
-      cx += list[i].width + SIBLING_GAP;
+      list[i].xCenter = cx + list[i].layoutWidth / 2;
+      cx += list[i].layoutWidth + SIBLING_GAP;
     }
     shiftRankToFocus(r);
   }
 
-  // 5b) initial parent-based alignment (top-down)
+  // 6b) initial parent-based alignment (top-down)
   let nodeX = computeNodeX();
   for (let r = 1; r <= maxRank; r++) {
     const list = groupsByRank.get(r) || [];
@@ -338,7 +371,7 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
     nodeX = computeNodeX();
   }
 
-  // 6) iterative barycenter sweeps
+  // 7) iterative barycenter sweeps
   const ITER = 6;
   for (let it = 0; it < ITER; it++) {
     // recompute nodeX each iteration
@@ -386,7 +419,7 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
     }
   }
 
-  // 7) finalize node positions
+  // 8) finalize node positions
   const finalNodeX = computeNodeX();
   const nodeY = new Map<string, number>();
   for (const n of repaired) {
@@ -394,14 +427,14 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
     nodeY.set(n.id, CANVAS_START_Y + r * GENERATION_GAP);
   }
 
-  // 8) shift X to padding
+  // 9) shift X to padding
   let minX = Infinity;
   for (const [_id, x] of finalNodeX.entries()) {
     minX = Math.min(minX, x);
   }
   const shiftX = (minX === Infinity ? CANVAS_START_X : minX) - L.CANVAS_PADDING;
 
-  // 9) output in original order
+  // 10) output in original order
   const out: LayoutNode[] = [];
   for (const n of nodes
     .map((x) => nodeMap.get(x.id))
