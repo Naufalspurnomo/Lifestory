@@ -1,7 +1,7 @@
 "use client";
 // Force HMR update
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 
 import FamilyTreeCanvas from "../../components/tree/FamilyTreeCanvas";
@@ -48,6 +48,7 @@ export default function AppHome() {
   const [hasCreatedTree, setHasCreatedTree] = useState(false);
   const [viewMode, setViewMode] = useState<"tree" | "timeline">("tree");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const canvasWrapperRef = useRef<HTMLElement | null>(null);
 
   // Show notification
   const showNotification = useCallback((msg: string) => {
@@ -70,6 +71,31 @@ export default function AppHome() {
       setHasCreatedTree(true);
     }
   }, [userTree]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === canvasWrapperRef.current);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = isFullscreen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isFullscreen]);
+
+  const toggleFullscreen = async () => {
+    if (!canvasWrapperRef.current) return;
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else {
+      await canvasWrapperRef.current.requestFullscreen();
+    }
+  };
 
   const handleAddNode = (
     parentId: string,
@@ -315,9 +341,10 @@ export default function AppHome() {
 
             {/* Canvas Wrapper */}
             <main
+              ref={canvasWrapperRef}
               className={`w-full rounded-2xl shadow-xl bg-white overflow-hidden relative transition-all duration-300 ${
                 isFullscreen
-                  ? "fixed inset-0 z-40 rounded-none h-screen"
+                  ? "fixed inset-0 z-50 rounded-none h-screen w-screen"
                   : "h-[600px] border border-warm-200"
               }`}
             >
@@ -338,8 +365,9 @@ export default function AppHome() {
               )}
 
               <button
-                onClick={() => setIsFullscreen(!isFullscreen)}
+                onClick={toggleFullscreen}
                 className="absolute top-4 right-4 p-2.5 bg-white/80 backdrop-blur border border-warm-200 rounded-full shadow-sm hover:scale-110 hover:bg-white hover:border-gold-500 hover:text-gold-600 transition-all text-warmMuted z-10"
+                title={isFullscreen ? "Keluar layar penuh" : "Layar penuh"}
               >
                 <svg
                   width="20"
@@ -429,44 +457,46 @@ export default function AppHome() {
           )}
 
           {/* Footer Stats */}
-          <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-warm-200 z-40">
-            <div className="container mx-auto max-w-6xl">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-gold-500 to-gold-700">
-                    {stats.generations}
+          {!isFullscreen && (
+            <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-warm-200 z-40">
+              <div className="container mx-auto max-w-6xl">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-gold-500 to-gold-700">
+                      {stats.generations}
+                    </div>
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-warmMuted mt-1">
+                      Generations
+                    </p>
                   </div>
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-warmMuted mt-1">
-                    Generations
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-gold-500 to-gold-700">
-                    {stats.members}
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-gold-500 to-gold-700">
+                      {stats.members}
+                    </div>
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-warmMuted mt-1">
+                      Family Members
+                    </p>
                   </div>
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-warmMuted mt-1">
-                    Family Members
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-gold-500 to-gold-700">
-                    {stats.lines}
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-gold-500 to-gold-700">
+                      {stats.lines}
+                    </div>
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-warmMuted mt-1">
+                      Family Lines
+                    </p>
                   </div>
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-warmMuted mt-1">
-                    Family Lines
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-gold-500 to-gold-700">
-                    {stats.earliestRecord}
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-gold-500 to-gold-700">
+                      {stats.earliestRecord}
+                    </div>
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-warmMuted mt-1">
+                      Earliest Record
+                    </p>
                   </div>
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-warmMuted mt-1">
-                    Earliest Record
-                  </p>
                 </div>
               </div>
-            </div>
-          </footer>
+            </footer>
+          )}
 
           {/* Notifications */}
           {notification && (
