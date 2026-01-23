@@ -387,7 +387,7 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
   }
 
   // 7) finalize node positions
-  const nodeX = computeNodeX();
+  const finalNodeX = computeNodeX();
   const nodeY = new Map<string, number>();
   for (const n of repaired) {
     const r = normRank.get(n.id) ?? 0;
@@ -396,7 +396,7 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
 
   // 8) shift X to padding
   let minX = Infinity;
-  for (const [_id, x] of nodeX.entries()) {
+  for (const [_id, x] of finalNodeX.entries()) {
     minX = Math.min(minX, x);
   }
   const shiftX = (minX === Infinity ? CANVAS_START_X : minX) - L.CANVAS_PADDING;
@@ -408,7 +408,7 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
     .filter(Boolean) as FamilyNode[]) {
     out.push({
       ...n,
-      x: (nodeX.get(n.id) ?? L.CANVAS_PADDING) - shiftX,
+      x: (finalNodeX.get(n.id) ?? L.CANVAS_PADDING) - shiftX,
       y: nodeY.get(n.id) ?? 0,
       parentId: n.parentIds?.[0] ?? null, // legacy sync
       __rankRaw: ranks.get(n.id) ?? 0, // rank relative to focus (owner)
