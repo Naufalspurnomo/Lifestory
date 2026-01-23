@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lifestory Frontend Class Diagram</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .diagram-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: auto;
+            max-width: 100%;
+            width: 100%;
+        }
+
+        /* Allow the mermaid svg to scale */
+        svg {
+            max-width: none !important;
+            /* Override mermaid default */
+            width: 100% !important;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Lifestory Frontend Architecture</h1>
+    <p>Use <strong>Ctrl + Scroll</strong> to zoom in/out. Right-click to save as image.</p>
+
+    <div class="diagram-container">
+        <div class="mermaid">
+            classDiagram
+            %% Core Types
+            class FamilyNode {
+            +string id
+            +string label
+            +string? imageUrl
+            +string generation
+            +string[] partners
+            +string[] childrenIds
+            +string[] parentIds
+            }
+            class LayoutNode {
+            +number x
+            +number y
+            +mixed params
+            }
+            LayoutNode --|> FamilyNode : extends
+            %% Pages
+            class RootLayout {
+            +NavBar NavBar
+            +Footer Footer
+            +AuthProvider AuthProvider
+            +children ReactNode
+            }
+            class HomePage {
+            +Features features
+            +HeroSection hero
+            +LivePreview preview
+            }
+            class AppHome {
+            -string userId
+            -string userName
+            -useTreeState treeState
+            -string viewMode
+            +handleStartTree()
+            +handleAddNode()
+            +handleEditNode()
+            +handleDeleteNode()
+            }
+            %% Components - Site
+            class NavBar {
+            +Link[] links
+            +UserMenu menu
+            }
+            class Footer {
+            +SocialLinks social
+            }
+            %% Components - Tree
+            class FamilyTreeCanvas {
+            +LayoutNode[] nodes
+            +string selectedId
+            +onSelectNode()
+            +onAddNode()
+            +drawTree()
+            }
+            class NodeEditor {
+            +FamilyNode editingNode
+            +bool isOpen
+            +onSave()
+            +onClose()
+            }
+            class BioModal {
+            +FamilyNode node
+            +onEdit()
+            +onDelete()
+            +onAddRelative()
+            }
+            class WelcomeScreen {
+            +string userName
+            +onStart()
+            }
+            class TimelineView {
+            +FamilyNode[] nodes
+            +onSelectNode()
+            }
+            class InviteModal {
+            +string treeId
+            +string treeName
+            +bool isOpen
+            }
+            class GlobalStories {
+            +FamilyNode[] nodes
+            +onSelectNode()
+            }
+            class SearchBar {
+            +FamilyNode[] nodes
+            +onSelect()
+            }
+            %% Hooks / State
+            class useTreeState {
+            +FamilyNode userTree
+            +LayoutNode[] layoutNodes
+            +createTree()
+            +addNode()
+            +updateNode()
+            +deleteNode()
+            }
+            %% Relationships
+            RootLayout *-- NavBar
+            RootLayout *-- Footer
+            RootLayout *-- HomePage : renders (route /)
+            RootLayout *-- AppHome : renders (route /app)
+            AppHome ..> useTreeState : uses
+            AppHome *-- FamilyTreeCanvas : renders
+            AppHome *-- TimelineView : renders (conditional)
+            AppHome *-- NodeEditor : controls
+            AppHome *-- BioModal : controls
+            AppHome *-- InviteModal : controls
+            AppHome *-- SearchBar : renders
+            AppHome *-- WelcomeScreen : renders (if empty)
+            AppHome *-- GlobalStories : renders
+            FamilyTreeCanvas ..> LayoutNode : consumes
+            useTreeState ..> FamilyNode : manages
+        </div>
+    </div>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+
+</html>

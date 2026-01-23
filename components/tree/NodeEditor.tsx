@@ -16,7 +16,7 @@ type Props = {
   onClose: () => void;
   onSave: (node: Omit<FamilyNode, "id" | "generation" | "childrenIds">) => void;
   editingNode?: FamilyNode | null;
-  addType?: "parent" | "partner" | "child";
+  addType?: "parent" | "partner" | "child" | "sibling";
   parentId?: string | null;
 };
 
@@ -123,7 +123,11 @@ export default function NodeEditor({
       year: birthYear,
       deathYear: death,
       parentId:
-        addType === "child" ? parentId : addType === "parent" ? null : parentId,
+        addType === "child"
+          ? parentId
+          : addType === "parent" || addType === "sibling"
+            ? null
+            : parentId,
       partners: addType === "partner" && parentId ? [parentId] : [],
       line,
       imageUrl,
@@ -142,6 +146,7 @@ export default function NodeEditor({
     parent: "Tambah Orang Tua",
     partner: "Tambah Pasangan",
     child: "Tambah Anak",
+    sibling: "Tambah Saudara",
   };
 
   // Work type icons and labels
@@ -174,11 +179,10 @@ export default function NodeEditor({
               <button
                 type="button"
                 onClick={() => setShowGallery(!showGallery)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
-                  showGallery
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition ${showGallery
                     ? "bg-gold-100 text-gold-700"
                     : "bg-warm-100 text-warmMuted hover:bg-warm-200"
-                }`}
+                  }`}
               >
                 📷 Galeri {media.length > 0 && `(${media.length})`}
               </button>
@@ -302,11 +306,10 @@ export default function NodeEditor({
               <button
                 type="button"
                 onClick={() => setShowWorks(!showWorks)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition flex items-center gap-1 ${
-                  showWorks
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition flex items-center gap-1 ${showWorks
                     ? "bg-gold-100 text-gold-700"
                     : "bg-warm-100 text-warmMuted hover:bg-warm-200"
-                }`}
+                  }`}
               >
                 {showWorks ? (
                   "Tutup"

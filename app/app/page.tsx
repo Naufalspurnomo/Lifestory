@@ -9,6 +9,7 @@ import NodeEditor from "../../components/tree/NodeEditor";
 import BioModal from "../../components/tree/BioModal";
 import WelcomeScreen from "../../components/tree/WelcomeScreen";
 import InviteModal from "../../components/tree/InviteModal";
+import ImportModal from "../../components/tree/ImportModal";
 import SearchBar from "../../components/tree/SearchBar";
 import TimelineView from "../../components/tree/TimelineView";
 import GlobalStories from "../../components/tree/GlobalStories";
@@ -27,21 +28,28 @@ export default function AppHome() {
   const {
     userTree,
     currentTree,
-    layoutNodes,
+    layoutGraph,
     createTree,
     addNode,
     updateNode,
     deleteNode,
     getNode,
+    importNodes,
   } = useTreeState(userId, userName);
+
+  // DEBUG: Expose import for console testing
+  useEffect(() => {
+    (window as any).importNodes = importNodes;
+  }, [importNodes]);
 
   // UI State
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showNodeEditor, setShowNodeEditor] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [addType, setAddType] = useState<"parent" | "partner" | "child">(
-    "child"
-  );
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [addType, setAddType] = useState<
+    "parent" | "partner" | "child" | "sibling"
+  >("child");
   const [addParentId, setAddParentId] = useState<string | null>(null);
   const [editingNode, setEditingNode] = useState<FamilyNode | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
@@ -73,7 +81,7 @@ export default function AppHome() {
 
   const handleAddNode = (
     parentId: string,
-    type: "parent" | "partner" | "child"
+    type: "parent" | "partner" | "child" | "sibling"
   ) => {
     setAddType(type);
     setAddParentId(parentId);
@@ -88,6 +96,43 @@ export default function AppHome() {
       updateNode(editingNode.id, nodeData);
       showNotification("Profil diperbarui");
     } else {
+      // Logic for different add types & validation
+      let finalNodeData = { ...nodeData };
+      let updatedParentIds = nodeData.parentIds || [];
+
+      // SIBLING LOGIC: 
+      // If adding sibling, we need to check if reference node (addParentId) has parents.
+      // If yes, use them. If no, CREATE implicit parents first.
+      if (addType === "sibling" && addParentId) {
+        const sibling = getNode(addParentId);
+        if (sibling) {
+          const existingParentIds = sibling.parentIds || (sibling.parentId ? [sibling.parentId] : []);
+
+          if (existingParentIds.length > 0) {
+            // Inherit parents
+            updatedParentIds = existingParentIds;
+            finalNodeData.parentIds = updatedParentIds;
+            finalNodeData.parentId = updatedParentIds[0];
+          } else {
+            // Create placeholders
+            const fatherRes = addNode({ label: "Ayah (Unknown)", sex: "M", isPlaceholder: true } as any);
+            const motherRes = addNode({ label: "Ibu (Unknown)", sex: "F", isPlaceholder: true } as any);
+
+            if (fatherRes.success && motherRes.success && fatherRes.node && motherRes.node) {
+              // Link them as partners (if needed, or implicit)
+              // Link sibling to them
+              updateNode(sibling.id, { parentIds: [fatherRes.node.id, motherRes.node.id], parentId: fatherRes.node.id });
+
+              updatedParentIds = [fatherRes.node.id, motherRes.node.id];
+              finalNodeData.parentIds = updatedParentIds;
+              finalNodeData.parentId = updatedParentIds[0];
+
+              showNotification("Orang tua placeholder dibuat otomatis.");
+            }
+          }
+        }
+      }
+
       // Link types based on addType
       const initialChildrenIds =
         addType === "parent" && addParentId ? [addParentId] : [];
@@ -98,12 +143,14 @@ export default function AppHome() {
           ? [addParentId]
           : nodeData.partners || [];
 
-      // When adding partner, explicitly clear parentId to avoid treating as child
-      const parentIdToUse =
-        addType === "partner" ? null : nodeData.parentId || null;
+      // When adding partner/sibling, explicitly clear parentId to avoid treating as child (unless set above)
+      let parentIdToUse = nodeData.parentId || null;
+      if (addType === "partner") parentIdToUse = null;
+      if (addType === "sibling") parentIdToUse = finalNodeData.parentId || null;
+      if (addType === "child") parentIdToUse = nodeData.parentId || null;
 
       const result = addNode({
-        ...nodeData,
+        ...finalNodeData,
         parentId: parentIdToUse,
         partners: partnersToLink,
         initialChildrenIds,
@@ -217,11 +264,10 @@ export default function AppHome() {
                 <div className="inline-flex rounded-xl bg-white p-1 shadow-sm border border-warm-200">
                   <button
                     onClick={() => setViewMode("tree")}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${
-                      viewMode === "tree"
-                        ? "bg-gradient-to-br from-gold-500 to-gold-700 text-white shadow-md"
-                        : "text-warmMuted hover:bg-warm-100"
-                    }`}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${viewMode === "tree"
+                      ? "bg-gradient-to-br from-gold-500 to-gold-700 text-white shadow-md"
+                      : "text-warmMuted hover:bg-warm-100"
+                      }`}
                   >
                     <svg
                       className="w-5 h-5"
@@ -240,11 +286,10 @@ export default function AppHome() {
                   </button>
                   <button
                     onClick={() => setViewMode("timeline")}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${
-                      viewMode === "timeline"
-                        ? "bg-gradient-to-br from-gold-500 to-gold-700 text-white shadow-md"
-                        : "text-warmMuted hover:bg-warm-100"
-                    }`}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${viewMode === "timeline"
+                      ? "bg-gradient-to-br from-gold-500 to-gold-700 text-white shadow-md"
+                      : "text-warmMuted hover:bg-warm-100"
+                      }`}
                   >
                     <svg
                       className="w-5 h-5"
@@ -296,6 +341,24 @@ export default function AppHome() {
                   </svg>
                   Undang
                 </button>
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="px-4 py-2.5 bg-white border-2 border-gold-200 text-gold-700 rounded-xl font-semibold text-sm hover:bg-gold-50 transition-colors flex items-center gap-2"
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Import
+                </button>
                 <button className="px-4 py-2.5 bg-white border-2 border-gold-200 text-gold-700 rounded-xl font-semibold text-sm hover:bg-gold-50 transition-colors flex items-center gap-2">
                   <svg
                     width="18"
@@ -315,15 +378,14 @@ export default function AppHome() {
 
             {/* Canvas Wrapper */}
             <main
-              className={`w-full rounded-2xl shadow-xl bg-white overflow-hidden relative transition-all duration-300 ${
-                isFullscreen
-                  ? "fixed inset-0 z-40 rounded-none h-screen"
-                  : "h-[600px] border border-warm-200"
-              }`}
+              className={`w-full rounded-2xl shadow-xl bg-white overflow-hidden relative transition-all duration-300 ${isFullscreen
+                ? "fixed inset-0 z-40 rounded-none h-screen"
+                : "h-[600px] border border-warm-200"
+                }`}
             >
               {viewMode === "tree" ? (
                 <FamilyTreeCanvas
-                  nodes={layoutNodes}
+                  layout={layoutGraph}
                   selectedId={selectedId}
                   onSelectNode={setSelectedId}
                   onAddNode={handleAddNode}
@@ -427,6 +489,16 @@ export default function AppHome() {
               treeName={currentTree.name}
             />
           )}
+
+          {/* Import Modal */}
+          <ImportModal
+            isOpen={showImportModal}
+            onClose={() => setShowImportModal(false)}
+            onImport={(nodes) => {
+              importNodes(nodes);
+              showNotification(`${nodes.length} anggota keluarga berhasil diimport`);
+            }}
+          />
 
           {/* Footer Stats */}
           <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-warm-200 z-40">
