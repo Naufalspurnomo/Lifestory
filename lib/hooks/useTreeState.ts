@@ -6,6 +6,7 @@ import type {
   FamilyNode,
   TreeHistory,
   StorageInfo,
+  LayoutGraph,
 } from "../types/tree";
 import {
   detectCycle,
@@ -31,7 +32,7 @@ function normalizeNode(n: any): FamilyNode {
     ...n,
     partners,
     childrenIds,
-    parentIds, // NEW
+    parentIds,
     parentId: parentIds[0] ?? null, // keep legacy in sync
   };
 }
@@ -108,6 +109,8 @@ function linkParentChild(
 
   parent.childrenIds = uniq([...parent.childrenIds, childId]);
   child.parentIds = uniq([...(child.parentIds || []), parentId]);
+
+  // legacy
   child.parentId = child.parentIds[0] ?? null;
 
   return sanitizeGraph(Array.from(map.values()));
@@ -170,9 +173,9 @@ export function useTreeState(userId: string, userName: string) {
   const currentTree = trees.find((t) => t.id === currentTreeId) || null;
   const userTree = trees.find((t) => t.ownerId === userId) || null;
 
-  const layoutNodes: LayoutNode[] = currentTree
+  const layoutGraph: LayoutGraph = currentTree
     ? calculateHierarchicalLayout(currentTree.nodes)
-    : [];
+    : { nodes: [], edges: [], width: 0, height: 0 };
 
   const pushHistory = useCallback((nodes: FamilyNode[]) => {
     setHistory((prev) => ({
@@ -192,11 +195,8 @@ export function useTreeState(userId: string, userName: string) {
         label: userName,
         year: null,
         deathYear: null,
-
-        // NEW
         parentIds: [],
         parentId: null,
-
         partners: [],
         childrenIds: [],
         generation: 0,
@@ -244,7 +244,7 @@ export function useTreeState(userId: string, userName: string) {
         parentIds: rest.parentIds || (rest.parentId ? [rest.parentId] : []),
       });
 
-      // basic cycle detection (your detectCycle is stub now, ok)
+      // basic cycle detection
       if (detectCycle(currentTree.nodes, newNode)) {
         return {
           success: false,
@@ -258,28 +258,15 @@ export function useTreeState(userId: string, userName: string) {
         newNode,
       ]);
 
-      // --------- infer add-mode based on payload ----------
       const isAddParent =
-        Array.isArray(initialChildrenIds) && initialChildrenIds.length > 0; // parent added via initialChildrenIds
-      const isAddChild = !!newNode.parentId; // child added via parentId
+        Array.isArray(initialChildrenIds) && initialChildrenIds.length > 0;
+      const isAddChild = !!newNode.parentId;
       const isAddPartner =
         Array.isArray(newNode.partners) && newNode.partners.length > 0;
 
-      // DEBUG: trace partner linking
-      console.log("[addNode] Debug:", {
-        newNodeId,
-        partners: newNode.partners,
-        isAddPartner,
-        isAddParent,
-        isAddChild,
-      });
-
-      // 1) If added as PARENT (new node is parent of childId)
       if (isAddParent) {
         for (const childId of initialChildrenIds!) {
           updatedNodes = linkParentChild(updatedNodes, newNodeId, childId);
-
-          // OPTIONAL: if child already has other parent, auto link them as partners (co-parents)
           const child = updatedNodes.find((n) => n.id === childId);
           const otherParentId = child?.parentIds?.find(
             (pid) => pid !== newNodeId
@@ -290,12 +277,9 @@ export function useTreeState(userId: string, userName: string) {
         }
       }
 
-      // 2) If added as CHILD (new node has parentId)
       if (isAddChild) {
         const parentId = newNode.parentId!;
         updatedNodes = linkParentChild(updatedNodes, parentId, newNodeId);
-
-        // OPTIONAL: auto-add spouse of that parent as 2nd parent (makes “family unit” like reference)
         const parent = updatedNodes.find((n) => n.id === parentId);
         const spouseId = parent?.partners?.[0];
         if (spouseId) {
@@ -303,14 +287,12 @@ export function useTreeState(userId: string, userName: string) {
         }
       }
 
-      // 3) If added as PARTNER
       if (isAddPartner) {
         for (const partnerId of newNode.partners) {
           updatedNodes = linkPartners(updatedNodes, newNodeId, partnerId);
         }
       }
 
-      // generation (your calculateGeneration stub returns 0, ok)
       updatedNodes = sanitizeGraph(updatedNodes);
       updatedNodes = recomputeAllGenerations(updatedNodes);
 
@@ -335,7 +317,6 @@ export function useTreeState(userId: string, userName: string) {
     (nodeId: string, updates: Partial<FamilyNode>) => {
       if (!currentTree) return;
 
-      // keep safe: normalize + sanitize after update
       let updatedNodes = sanitizeGraph(
         currentTree.nodes.map((n) =>
           n.id === nodeId
@@ -387,7 +368,6 @@ export function useTreeState(userId: string, userName: string) {
     [currentTree, currentTreeId, pushHistory]
   );
 
-  // Delete node (cleanup multi-parent + partners + children)
   const deleteNode = useCallback(
     (nodeId: string) => {
       if (!currentTree) return;
@@ -399,7 +379,6 @@ export function useTreeState(userId: string, userName: string) {
         .map((n) => normalizeNode(n))
         .filter((n) => n.id !== nodeId);
 
-      // remove from ALL parents childrenIds (multi-parent)
       const parentIds = uniq([
         ...(nodeToDelete.parentIds || []),
         ...(nodeToDelete.parentId ? [nodeToDelete.parentId] : []),
@@ -409,28 +388,26 @@ export function useTreeState(userId: string, userName: string) {
         updatedNodes = updatedNodes.map((n) =>
           n.id === pid
             ? {
-                ...n,
-                childrenIds: (n.childrenIds || []).filter(
-                  (id) => id !== nodeId
-                ),
-              }
+              ...n,
+              childrenIds: (n.childrenIds || []).filter(
+                (id) => id !== nodeId
+              ),
+            }
             : n
         );
       }
 
-      // remove from partners
       for (const partnerId of nodeToDelete.partners || []) {
         updatedNodes = updatedNodes.map((n) =>
           n.id === partnerId
             ? {
-                ...n,
-                partners: (n.partners || []).filter((id) => id !== nodeId),
-              }
+              ...n,
+              partners: (n.partners || []).filter((id) => id !== nodeId),
+            }
             : n
         );
       }
 
-      // remove from children parentIds
       for (const childId of nodeToDelete.childrenIds || []) {
         updatedNodes = updatedNodes.map((n) => {
           if (n.id !== childId) return n;
@@ -503,6 +480,27 @@ export function useTreeState(userId: string, userName: string) {
     );
   }, [history, currentTreeId]);
 
+  const importNodes = useCallback(
+    (nodes: FamilyNode[]) => {
+      if (!currentTree) return;
+
+      let importedNodes = nodes.map((n) => normalizeNode(n));
+      importedNodes = sanitizeGraph(importedNodes);
+      importedNodes = recomputeAllGenerations(importedNodes);
+
+      pushHistory(importedNodes);
+
+      setTrees((prev) =>
+        prev.map((t) =>
+          t.id === currentTreeId
+            ? { ...t, nodes: importedNodes, updatedAt: new Date().toISOString() }
+            : t
+        )
+      );
+    },
+    [currentTree, currentTreeId, pushHistory]
+  );
+
   const getNode = useCallback(
     (nodeId: string): FamilyNode | null => {
       return currentTree?.nodes.find((n) => n.id === nodeId) || null;
@@ -516,7 +514,7 @@ export function useTreeState(userId: string, userName: string) {
     userTree,
     currentTreeId,
     setCurrentTreeId,
-    layoutNodes,
+    layoutGraph,
     history,
     storageInfo,
     saveError,
@@ -528,6 +526,7 @@ export function useTreeState(userId: string, userName: string) {
     updateNodes,
     deleteNode,
     getNode,
+    importNodes,
     undo,
     redo,
   };

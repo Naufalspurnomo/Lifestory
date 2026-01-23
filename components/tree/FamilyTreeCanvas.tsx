@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef, useEffect, useCallback, useState } from "react";
-import type { LayoutNode } from "../../lib/tree/layoutEngine";
+import type { LayoutGraph, FamilyNode } from "../../lib/types/tree";
 
 type Props = {
-  nodes: LayoutNode[];
+  layout: LayoutGraph;
   selectedId: string | null;
   onSelectNode: (id: string | null) => void;
-  onAddNode: (parentId: string, type: "parent" | "partner" | "child") => void;
+  onAddNode: (parentId: string, type: "parent" | "partner" | "child" | "sibling") => void;
 };
 
 // Luxury Warm Color Palette
@@ -49,34 +49,42 @@ const WORK_ICONS: Record<string, string> = {
   art: "🎨",
   other: "⭐",
 };
-const getQuickAddButtons = (node: LayoutNode) => [
+
+const getQuickAddButtons = (node: FamilyNode) => [
   {
     type: "parent" as const,
-    x: node.x,
-    y: node.y - NODE_CIRCLE_SIZE / 2 - 24,
+    x: (node.x || 0),
+    y: (node.y || 0) - NODE_CIRCLE_SIZE / 2 - 24,
     icon: "↑",
     label: "Orang Tua",
   },
   {
     type: "partner" as const,
-    x: node.x + NODE_CIRCLE_SIZE / 2 + 30,
-    y: node.y,
+    x: (node.x || 0) + NODE_CIRCLE_SIZE / 2 + 30,
+    y: (node.y || 0),
     icon: "♥",
     label: "Pasangan",
   },
   {
     type: "child" as const,
-    x: node.x,
-    y: node.y + NODE_CIRCLE_SIZE / 2 + 60,
+    x: (node.x || 0),
+    y: (node.y || 0) + NODE_CIRCLE_SIZE / 2 + 60,
     icon: "↓",
     label: "Anak",
+  },
+  {
+    type: "sibling" as const,
+    x: (node.x || 0) - NODE_CIRCLE_SIZE / 2 - 30,
+    y: (node.y || 0),
+    icon: "↔",
+    label: "Saudara",
   },
 ];
 
 const imageCache = new Map<string, HTMLImageElement>();
 
 export default function FamilyTreeCanvas({
-  nodes,
+  layout,
   selectedId,
   onSelectNode,
   onAddNode,
@@ -97,6 +105,8 @@ export default function FamilyTreeCanvas({
   useEffect(() => {
     zoomRef.current = zoom;
   }, [zoom]);
+
+  const { nodes, edges, width, height } = layout;
 
   useEffect(() => {
     let loadedCount = 0;
@@ -121,73 +131,10 @@ export default function FamilyTreeCanvas({
   }, [nodes]);
 
   const getCanvasSize = useCallback(() => {
-    const valid = nodes.filter(
-      (n) => Number.isFinite(n.x) && Number.isFinite(n.y)
-    );
-    if (!valid.length) return { width: 800, height: 600, offsetX: 0, offsetY: 0 };
-
-    const circleRadius = NODE_CIRCLE_SIZE / 2;
-    const labelPadding = NODE_TXT_HEIGHT;
-    const buttonRadius = BUTTON_SIZE / 2;
-    const cornerIconOffset = 8;
-    const cornerIconRadius = 10;
-    const badgeOffsetX = 8;
-    const badgeOffsetY = 6;
-    const badgeRadius = 6;
-
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const n of valid) {
-      const baseLeft = n.x - circleRadius - labelPadding;
-      const baseRight = n.x + circleRadius + labelPadding;
-      const baseTop = n.y - circleRadius - labelPadding;
-      const baseBottom = n.y + circleRadius + labelPadding;
-
-      minX = Math.min(minX, baseLeft);
-      maxX = Math.max(maxX, baseRight);
-      minY = Math.min(minY, baseTop);
-      maxY = Math.max(maxY, baseBottom);
-
-      const buttons = getQuickAddButtons(n);
-      for (const btn of buttons) {
-        minX = Math.min(minX, btn.x - buttonRadius);
-        maxX = Math.max(maxX, btn.x + buttonRadius);
-        minY = Math.min(minY, btn.y - buttonRadius);
-        maxY = Math.max(maxY, btn.y + buttonRadius);
-      }
-
-      const storyIconX = n.x + circleRadius - cornerIconOffset;
-      const storyIconY = n.y - circleRadius + cornerIconOffset;
-      minX = Math.min(minX, storyIconX - cornerIconRadius);
-      maxX = Math.max(maxX, storyIconX + cornerIconRadius);
-      minY = Math.min(minY, storyIconY - cornerIconRadius);
-      maxY = Math.max(maxY, storyIconY + cornerIconRadius);
-
-      const worksIconX = n.x - circleRadius + cornerIconOffset;
-      const worksIconY = n.y - circleRadius + cornerIconOffset;
-      minX = Math.min(minX, worksIconX - cornerIconRadius);
-      maxX = Math.max(maxX, worksIconX + cornerIconRadius);
-      minY = Math.min(minY, worksIconY - cornerIconRadius);
-      maxY = Math.max(maxY, worksIconY + cornerIconRadius);
-
-      const badgeX = worksIconX + badgeOffsetX;
-      const badgeY = worksIconY - badgeOffsetY;
-      minX = Math.min(minX, badgeX - badgeRadius);
-      maxX = Math.max(maxX, badgeX + badgeRadius);
-      minY = Math.min(minY, badgeY - badgeRadius);
-      maxY = Math.max(maxY, badgeY + badgeRadius);
-    }
-    const offsetX = -minX + PADDING_LEFT;
-    const offsetY = -minY + PADDING_TOP;
-    return {
-      width: Math.max(800, maxX + offsetX + PADDING_LEFT),
-      height: Math.max(600, maxY + offsetY + PADDING_TOP),
-      offsetX,
-      offsetY,
-    };
-  }, [nodes]);
+    const w = Math.max(800, width + PADDING_LEFT * 2);
+    const h = Math.max(600, height + PADDING_TOP * 2);
+    return { width: w, height: h, offsetX: PADDING_LEFT, offsetY: PADDING_TOP };
+  }, [width, height]);
 
   const findNodeAt = useCallback(
     (clientX: number, clientY: number) => {
@@ -202,6 +149,7 @@ export default function FamilyTreeCanvas({
       const adjustedY = canvasY / zoom - offsetY;
 
       for (const node of nodes) {
+        if (typeof node.x !== 'number' || typeof node.y !== 'number') continue;
         const dx = adjustedX - node.x;
         const dy = adjustedY - node.y;
         if (Math.sqrt(dx * dx + dy * dy) <= NODE_CIRCLE_SIZE / 2) return node;
@@ -326,6 +274,7 @@ export default function FamilyTreeCanvas({
 
     // safer than ctx.scale
     ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     // Background: warm-50
     ctx.fillStyle = "#f9f6f1";
@@ -334,288 +283,43 @@ export default function FamilyTreeCanvas({
     ctx.save();
     ctx.translate(offsetX, offsetY);
 
-    const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-
     // -------- Generation display calculation --------
     const owner = nodes.find((n) => n.line === "self") || nodes[0];
-    const ownerRank = owner?.__rankRaw ?? 0;
-    const BASE_GEN = 1; // Owner is always Generation 1
+    const ownerGen = owner?.generation ?? 0;
+    const BASE_GEN = 1;
 
-    const getDisplayGen = (n: LayoutNode): number => {
-      const r = (n.__rankRaw ?? 0) - ownerRank;
-      return r + BASE_GEN;
+    const getDisplayGen = (n: FamilyNode): number => {
+      return (n.generation ?? 0) - ownerGen + BASE_GEN;
     };
 
     const getGenColor = (gen: number): string => {
       if (GEN_COLORS[gen]) return GEN_COLORS[gen].border;
-      return gen < 0 ? "#6b21a8" : "#be123c"; // deep purple / deep red for extreme gens
+      return gen < 0 ? "#6b21a8" : "#be123c";
     };
 
-    // -------- Build parentsMap from childrenIds (multi-parent) --------
-    const parentsMap = new Map<string, string[]>();
-    for (const p of nodes) {
-      for (const cid of p.childrenIds || []) {
-        if (!parentsMap.has(cid)) parentsMap.set(cid, []);
-        parentsMap.get(cid)!.push(p.id);
-      }
-    }
-    for (const [cid, pids] of parentsMap) {
-      parentsMap.set(cid, Array.from(new Set(pids)));
-    }
+    // -------- Draw Edges (Explicit paths from layout) --------
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
 
-    // -------- Draw partner/marriage lines --------
-    // 1) explicit partners
-    const partnerPairs = new Set<string>();
-    ctx.strokeStyle = "#b08e51"; // Gold
-    ctx.lineWidth = 2;
-
-    for (const node of nodes) {
-      for (const pid of node.partners || []) {
-        const key = [node.id, pid].sort().join("-");
-        if (partnerPairs.has(key)) continue;
-        partnerPairs.add(key);
-
-        const p = nodeMap.get(pid);
-        if (!p) continue;
-
-        // same-level tolerance
-        if (Math.abs(node.y - p.y) > 0.5) continue;
-
-        const y = node.y;
-        const x1 = Math.min(node.x, p.x) + NODE_CIRCLE_SIZE / 2;
-        const x2 = Math.max(node.x, p.x) - NODE_CIRCLE_SIZE / 2;
-
-        ctx.beginPath();
-        ctx.moveTo(x1, y);
-        ctx.lineTo(x2, y);
-        ctx.stroke();
-      }
-    }
-
-    // 2) implicit co-parents: if a child has 2 parents, draw marriage-ish line between them (optional but makes it like reference)
-    for (const [cid, pids] of parentsMap) {
-      if (pids.length < 2) continue;
-      const a = nodeMap.get(pids[0]);
-      const b = nodeMap.get(pids[1]);
-      if (!a || !b) continue;
-      if (Math.abs(a.y - b.y) > 0.5) continue;
-
-      const key = [a.id, b.id].sort().join("-");
-      if (partnerPairs.has(key)) continue;
-      partnerPairs.add(key);
-
-      const y = a.y;
-      const x1 = Math.min(a.x, b.x) + NODE_CIRCLE_SIZE / 2;
-      const x2 = Math.max(a.x, b.x) - NODE_CIRCLE_SIZE / 2;
-
+    edges.forEach(edge => {
       ctx.beginPath();
-      ctx.moveTo(x1, y);
-      ctx.lineTo(x2, y);
-      ctx.stroke();
-    }
+      ctx.strokeStyle = edge.type === "spouse" ? "#b08e51" : LINE_COLOR;
+      ctx.lineWidth = edge.type === "spouse" ? 2 : LINE_WIDTH;
 
-    // reset line style for family connectors
-    ctx.strokeStyle = LINE_COLOR;
-    ctx.lineWidth = LINE_WIDTH;
-
-    // -------- Draw parent-to-children connection lines by FAMILY (parent set -> children) --------
-    type Family = { parents: LayoutNode[]; children: LayoutNode[] };
-    const families = new Map<string, Family>();
-
-    for (const child of nodes) {
-      const pids = parentsMap.get(child.id) || [];
-      if (!pids.length) continue;
-
-      const parents = pids
-        .map((id) => nodeMap.get(id))
-        .filter((p): p is LayoutNode => Boolean(p))
-        .filter(
-          (p) => Number.isFinite(p.x) && Number.isFinite(p.y) && p.y < child.y
-        );
-
-      if (!parents.length) continue;
-
-      const orderedParents = [...parents].sort((a, b) => a.x - b.x);
-      const key = orderedParents
-        .map((p) => p.id)
-        .sort()
-        .join("-");
-
-      const fam = families.get(key) || { parents: orderedParents, children: [] };
-      fam.children.push(child);
-      families.set(key, fam);
-    }
-
-    const clamp = (value: number, min: number, max: number) =>
-      Math.min(Math.max(value, min), max);
-    const getMedianX = (parents: LayoutNode[]) => {
-      const xs = parents.map((p) => p.x).sort((a, b) => a - b);
-      if (!xs.length) return 0;
-      const mid = Math.floor(xs.length / 2);
-      if (xs.length % 2 === 1) return xs[mid];
-      return (xs[mid - 1] + xs[mid]) / 2;
-    };
-
-    const familyDrawList = Array.from(families.values())
-      .map((fam) => {
-        const parents = fam.parents.filter(
-          (p) => Number.isFinite(p.x) && Number.isFinite(p.y)
-        );
-        const children = fam.children.filter(
-          (c) => Number.isFinite(c.x) && Number.isFinite(c.y)
-        );
-        if (!parents.length || !children.length) return null;
-
-        const orderedParents = [...parents].sort((a, b) => a.x - b.x);
-        const orderedChildren = [...children].sort((a, b) => a.x - b.x);
-        const parentY = Math.min(...orderedParents.map((p) => p.y));
-        const startY = parentY + NODE_CIRCLE_SIZE / 2;
-        const childTopY =
-          Math.min(...orderedChildren.map((c) => c.y)) - NODE_CIRCLE_SIZE / 2;
-        const minChildX = orderedChildren[0].x;
-        const maxChildX = orderedChildren[orderedChildren.length - 1].x;
-        const minParentX = orderedParents[0].x;
-        const maxParentX = orderedParents[orderedParents.length - 1].x;
-        const startX = clamp(
-          getMedianX(orderedParents),
-          minParentX,
-          maxParentX
-        );
-
-        return {
-          parents: orderedParents,
-          children: orderedChildren,
-          parentY,
-          startY,
-          childTopY,
-          minChildX,
-          maxChildX,
-          minParentX,
-          maxParentX,
-          startX,
-        };
-      })
-      .filter(
-        (
-          fam
-        ): fam is NonNullable<
-          (typeof familyDrawList)[number]
-        > => Boolean(fam)
-      )
-      .sort((a, b) => (a.parentY - b.parentY) || (a.startX - b.startX));
-
-    const laneAssignments = new Map<string, Array<Array<[number, number]>>>();
-
-    for (const fam of familyDrawList) {
-      const parents = fam.parents;
-      const children = fam.children;
-
-      if (!parents.length || !children.length) continue;
-
-      const startX = fam.startX;
-      const parentY = fam.parentY;
-
-      const startY = parentY + NODE_CIRCLE_SIZE / 2;
-
-      // draw multi-parent connector line (multi-couple)
-      if (parents.length > 1) {
-        const minParentX = parents[0].x;
-        const maxParentX = parents[parents.length - 1].x;
-        ctx.beginPath();
-        ctx.moveTo(minParentX + NODE_CIRCLE_SIZE / 2, parentY);
-        ctx.lineTo(maxParentX - NODE_CIRCLE_SIZE / 2, parentY);
-        ctx.stroke();
-      }
-
-      // children top and midY (with lane offsets to prevent overlap)
-      const childTopY = fam.childTopY;
-      const bandKey = `${Math.round(parentY)}-${Math.round(childTopY)}`;
-      const lanes = laneAssignments.get(bandKey) || [];
-      const span: [number, number] = [
-        fam.minChildX - NODE_CIRCLE_SIZE / 2,
-        fam.maxChildX + NODE_CIRCLE_SIZE / 2,
-      ];
-
-      let laneIndex = 0;
-      const overlaps = (a: [number, number], b: [number, number]) =>
-        !(a[1] < b[0] || a[0] > b[1]);
-
-      for (;;) {
-        const lane = lanes[laneIndex] || [];
-        const hasOverlap = lane.some((existing) =>
-          overlaps(existing, span)
-        );
-        if (!hasOverlap) {
-          lane.push(span);
-          lanes[laneIndex] = lane;
-          break;
+      if (edge.path.length > 0) {
+        ctx.moveTo(edge.path[0].x, edge.path[0].y);
+        for (let i = 1; i < edge.path.length; i++) {
+          ctx.lineTo(edge.path[i].x, edge.path[i].y);
         }
-        laneIndex += 1;
       }
-      laneAssignments.set(bandKey, lanes);
-
-      const baseMidY = startY + (childTopY - startY) / 2;
-      const laneOffset = laneIndex * 8;
-      const minMidY = startY + 8;
-      const maxMidY = childTopY - 8;
-      const unclampedMidY = baseMidY + laneOffset;
-      const midY =
-        minMidY > maxMidY
-          ? baseMidY
-          : clamp(unclampedMidY, minMidY, maxMidY);
-
-      // 1) vertical trunk
-      ctx.beginPath();
-      ctx.moveTo(startX, startY);
-      ctx.lineTo(startX, midY);
       ctx.stroke();
-
-      // single child: L shape
-      if (children.length === 1) {
-        const c = children[0];
-        if (Math.abs(c.x - startX) > 0.5) {
-          ctx.beginPath();
-          ctx.moveTo(startX, midY);
-          ctx.lineTo(c.x, midY);
-          ctx.stroke();
-        }
-        ctx.beginPath();
-        ctx.moveTo(c.x, midY);
-        ctx.lineTo(c.x, c.y - NODE_CIRCLE_SIZE / 2);
-        ctx.stroke();
-        continue;
-      }
-
-      const minX = children[0].x;
-      const maxX = children[children.length - 1].x;
-
-      // if trunk not inside span, connect to span
-      const clampedX = Math.min(Math.max(startX, minX), maxX);
-      if (Math.abs(clampedX - startX) > 0.5) {
-        ctx.beginPath();
-        ctx.moveTo(startX, midY);
-        ctx.lineTo(clampedX, midY);
-        ctx.stroke();
-      }
-
-      // 2) horizontal bus
-      ctx.beginPath();
-      ctx.moveTo(minX, midY);
-      ctx.lineTo(maxX, midY);
-      ctx.stroke();
-
-      // 3) drops
-      for (const c of children) {
-        ctx.beginPath();
-        ctx.moveTo(c.x, midY);
-        ctx.lineTo(c.x, c.y - NODE_CIRCLE_SIZE / 2);
-        ctx.stroke();
-      }
-    }
+    });
 
     // -------- Draw nodes --------
     for (const node of nodes) {
       if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) continue;
+      const x = node.x!;
+      const y = node.y!;
 
       const isSelected = node.id === selectedId;
       const isHovered = node.id === hoveredId;
@@ -629,7 +333,7 @@ export default function FamilyTreeCanvas({
       ctx.shadowBlur = 10;
       ctx.shadowOffsetY = 4;
       ctx.beginPath();
-      ctx.arc(node.x, node.y, NODE_CIRCLE_SIZE / 2 + 3, 0, Math.PI * 2);
+      ctx.arc(x, y, NODE_CIRCLE_SIZE / 2 + 3, 0, Math.PI * 2);
       ctx.fillStyle = "white";
       ctx.fill();
       ctx.restore();
@@ -639,7 +343,7 @@ export default function FamilyTreeCanvas({
       if (img && img.complete && img.naturalWidth > 0) {
         ctx.save();
         ctx.beginPath();
-        ctx.arc(node.x, node.y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
+        ctx.arc(x, y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
         ctx.clip();
 
         const hRatio = NODE_CIRCLE_SIZE / img.width;
@@ -650,41 +354,39 @@ export default function FamilyTreeCanvas({
 
         ctx.drawImage(
           img,
-          node.x - NODE_CIRCLE_SIZE / 2 + shiftX,
-          node.y - NODE_CIRCLE_SIZE / 2 + shiftY,
+          x - NODE_CIRCLE_SIZE / 2 + shiftX,
+          y - NODE_CIRCLE_SIZE / 2 + shiftY,
           img.width * ratio,
           img.height * ratio
         );
         ctx.restore();
       } else {
-        // warm-100 for placeholder background
         ctx.fillStyle = "#f2ede3";
         ctx.beginPath();
-        ctx.arc(node.x, node.y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
+        ctx.arc(x, y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
         ctx.fill();
 
-        // warmText for initials
         ctx.fillStyle = "#1d1a14";
         ctx.font = `bold ${NODE_CIRCLE_SIZE / 2.5}px Inter, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(node.label.charAt(0).toUpperCase(), node.x, node.y);
+        ctx.fillText(node.label.charAt(0).toUpperCase(), x, y);
       }
 
-      // border (use generation color)
+      // border
       const gen = getDisplayGen(node);
       const genBorderColor = getGenColor(gen);
 
       ctx.beginPath();
-      ctx.arc(node.x, node.y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
+      ctx.arc(x, y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
       ctx.strokeStyle = isHovered || isSelected ? "#b08e51" : genBorderColor;
       ctx.lineWidth = isHovered || isSelected ? 4 : 3;
       ctx.stroke();
 
       // story icon
       if (node.content?.description) {
-        const iconX = node.x + NODE_CIRCLE_SIZE / 2 - 8;
-        const iconY = node.y - NODE_CIRCLE_SIZE / 2 + 8;
+        const iconX = x + NODE_CIRCLE_SIZE / 2 - 8;
+        const iconY = y - NODE_CIRCLE_SIZE / 2 + 8;
 
         ctx.fillStyle = colorSet.base;
         ctx.beginPath();
@@ -698,18 +400,16 @@ export default function FamilyTreeCanvas({
         ctx.fillText("📖", iconX, iconY + 1);
       }
 
-      // works icon (pojok kiri atas)
+      // works icon
       if (node.works && node.works.length > 0) {
-        const worksIconX = node.x - NODE_CIRCLE_SIZE / 2 + 8;
-        const worksIconY = node.y - NODE_CIRCLE_SIZE / 2 + 8;
+        const worksIconX = x - NODE_CIRCLE_SIZE / 2 + 8;
+        const worksIconY = y - NODE_CIRCLE_SIZE / 2 + 8;
 
-        // Background circle - warm golden color
         ctx.fillStyle = "#b08e51";
         ctx.beginPath();
         ctx.arc(worksIconX, worksIconY, 10, 0, Math.PI * 2);
         ctx.fill();
 
-        // Get icon based on first work type
         const firstWorkType = node.works[0].type || "other";
         const workIcon = WORK_ICONS[firstWorkType] || WORK_ICONS.other;
 
@@ -719,7 +419,6 @@ export default function FamilyTreeCanvas({
         ctx.textBaseline = "middle";
         ctx.fillText(workIcon, worksIconX, worksIconY + 1);
 
-        // Badge for multiple works
         if (node.works.length > 1) {
           const badgeX = worksIconX + 8;
           const badgeY = worksIconY - 6;
@@ -773,8 +472,15 @@ export default function FamilyTreeCanvas({
       labelLines.forEach((line, index) => {
         ctx.fillText(line, node.x, textY + index * labelLineHeight);
       });
+      // label
+      ctx.fillStyle = "#1d1a14";
+      ctx.font = "600 12px Inter, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      const textY = y + NODE_CIRCLE_SIZE / 2 + 8;
+      ctx.fillText(node.label, x, textY);
 
-      // year - warmMuted
+      // year
       if (node.year) {
         const yearText = node.deathYear
           ? `${node.year} - ${node.deathYear}`
@@ -786,6 +492,7 @@ export default function FamilyTreeCanvas({
           node.x,
           textY + labelLines.length * labelLineHeight + 6
         );
+        ctx.fillText(yearText, x, textY + 16);
       }
 
       // quick add buttons
@@ -827,11 +534,13 @@ export default function FamilyTreeCanvas({
     wrapLabel,
     zoom,
   ]);
+  }, [nodes, edges, width, height, selectedId, hoveredId, isPanning, getCanvasSize, imagesLoaded]);
 
   useEffect(() => {
     drawTree();
   }, [drawTree]);
 
+  // Event handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     const hit = findButtonAt(e.clientX, e.clientY);
     if (hit) {
@@ -1010,6 +719,19 @@ export default function FamilyTreeCanvas({
           Ctrl/⌘ + scroll
         </span>
       </div>
+  return (
+    <div
+      ref={wrapperRef}
+      className="w-full h-full overflow-auto relative cursor-grab active:cursor-grabbing touch-none"
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <canvas ref={canvasRef} className="block" />
     </div>
   );
 }

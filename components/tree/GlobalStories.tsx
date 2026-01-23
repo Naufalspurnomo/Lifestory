@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { FamilyNode } from "../../lib/types/tree";
-import GalleryManager from "./GalleryManager";
 
 interface GlobalStoriesProps {
   nodes: FamilyNode[];
@@ -30,21 +29,19 @@ export default function GlobalStories({
         <div className="flex bg-warm-100 p-1 rounded-xl">
           <button
             onClick={() => setActiveTab("stories")}
-            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === "stories"
+            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "stories"
                 ? "bg-white text-gold-700 shadow-sm"
                 : "text-warmMuted hover:text-warmText"
-            }`}
+              }`}
           >
             📖 Cerita ({stories.length})
           </button>
           <button
             onClick={() => setActiveTab("gallery")}
-            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === "gallery"
+            className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "gallery"
                 ? "bg-white text-gold-700 shadow-sm"
                 : "text-warmMuted hover:text-warmText"
-            }`}
+              }`}
           >
             🖼️ Galeri Semua
           </button>
