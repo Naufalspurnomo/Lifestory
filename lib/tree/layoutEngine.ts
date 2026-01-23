@@ -17,7 +17,7 @@ export type LayoutNode = FamilyNode & {
 // Layout constants (keep your existing feel)
 const NODE_SIZE = 80;
 const PARTNER_GAP = 120; // spacing between spouse circles (center-to-center step includes NODE_SIZE)
-const SIBLING_GAP = 140; // spacing between groups within same rank
+const SIBLING_GAP = 120; // spacing between groups within same rank
 const GENERATION_GAP = 180; // y distance
 const CANVAS_START_X = 1000;
 const CANVAS_START_Y = 100;
@@ -109,6 +109,8 @@ type Group = {
   xCenter: number; // group center x
   orderKey: number; // stable ordering
 };
+
+type GroupTarget = { g: Group; target: number };
 
 export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
   if (!nodes.length) return [];
@@ -268,6 +270,42 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
     return x;
   };
 
+  const positionGroups = (scored: GroupTarget[]) => {
+    scored.sort((a, b) => a.target - b.target || a.g.orderKey - b.g.orderKey);
+    let cursorRight = -Infinity;
+    for (const item of scored) {
+      const g = item.g;
+      let left = item.target - g.width / 2;
+      if (left < cursorRight + SIBLING_GAP) left = cursorRight + SIBLING_GAP;
+      g.xCenter = left + g.width / 2;
+      cursorRight = left + g.width;
+    }
+  };
+
+  const getParentTargets = (g: Group, nodeX: Map<string, number>) => {
+    const parentXs: number[] = [];
+    for (const mid of g.memberIds) {
+      for (const pid of parentsMap.get(mid) || []) {
+        if ((normRank.get(pid) ?? -1) === g.rank - 1) {
+          const px = nodeX.get(pid);
+          if (px !== undefined) parentXs.push(px);
+        }
+      }
+    }
+    if (!parentXs.length) return g.xCenter;
+    return parentXs.reduce((a, b) => a + b, 0) / parentXs.length;
+  };
+
+  const shiftRankToFocus = (rank: number) => {
+    if ((normRank.get(focus.id) ?? 0) !== rank) return;
+    const list = groupsByRank.get(rank) || [];
+    const focusGroup = memberToGroup.get(focus.id);
+    if (!focusGroup) return;
+    const delta = CANVAS_START_X - focusGroup.xCenter;
+    if (!Number.isFinite(delta)) return;
+    for (const g of list) g.xCenter += delta;
+  };
+
   // 5) init positions per rank (simple spread around focus)
   for (let r = 0; r <= maxRank; r++) {
     const list = groupsByRank.get(r) || [];
@@ -284,18 +322,32 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
       list[i].xCenter = cx + list[i].width / 2;
       cx += list[i].width + SIBLING_GAP;
     }
+    shiftRankToFocus(r);
+  }
+
+  // 5b) initial parent-based alignment (top-down)
+  let nodeX = computeNodeX();
+  for (let r = 1; r <= maxRank; r++) {
+    const list = groupsByRank.get(r) || [];
+    const scored = list.map((g) => ({
+      g,
+      target: getParentTargets(g, nodeX),
+    }));
+    positionGroups(scored);
+    shiftRankToFocus(r);
+    nodeX = computeNodeX();
   }
 
   // 6) iterative barycenter sweeps
   const ITER = 6;
   for (let it = 0; it < ITER; it++) {
     // recompute nodeX each iteration
-    let nodeX = computeNodeX();
+    nodeX = computeNodeX();
 
     // TOP-DOWN: align groups to children
     for (let r = 0; r < maxRank; r++) {
       const list = groupsByRank.get(r) || [];
-      const scored = list.map((g) => {
+      const scored: GroupTarget[] = list.map((g) => {
         const childXs: number[] = [];
         for (const mid of g.memberIds) {
           for (const cid of childrenMap.get(mid) || []) {
@@ -313,17 +365,8 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
         return { g, target };
       });
 
-      scored.sort((a, b) => a.target - b.target || a.g.orderKey - b.g.orderKey);
-
-      // place without overlap
-      let cursorRight = -Infinity;
-      for (const item of scored) {
-        const g = item.g;
-        let left = item.target - g.width / 2;
-        if (left < cursorRight + SIBLING_GAP) left = cursorRight + SIBLING_GAP;
-        g.xCenter = left + g.width / 2;
-        cursorRight = left + g.width;
-      }
+      positionGroups(scored);
+      shiftRankToFocus(r);
 
       // update nodeX after rank placement
       nodeX = computeNodeX();
@@ -333,34 +376,13 @@ export function calculateHierarchicalLayout(nodes: FamilyNode[]): LayoutNode[] {
     nodeX = computeNodeX();
     for (let r = maxRank; r > 0; r--) {
       const list = groupsByRank.get(r) || [];
-      const scored = list.map((g) => {
-        const parentXs: number[] = [];
-        for (const mid of g.memberIds) {
-          for (const pid of parentsMap.get(mid) || []) {
-            if ((normRank.get(pid) ?? -1) === r - 1) {
-              const px = nodeX.get(pid);
-              if (px !== undefined) parentXs.push(px);
-            }
-          }
-        }
-        const target =
-          parentXs.length > 0
-            ? parentXs.reduce((a, b) => a + b, 0) / parentXs.length
-            : g.xCenter;
+      const scored: GroupTarget[] = list.map((g) => ({
+        g,
+        target: getParentTargets(g, nodeX),
+      }));
 
-        return { g, target };
-      });
-
-      scored.sort((a, b) => a.target - b.target || a.g.orderKey - b.g.orderKey);
-
-      let cursorRight = -Infinity;
-      for (const item of scored) {
-        const g = item.g;
-        let left = item.target - g.width / 2;
-        if (left < cursorRight + SIBLING_GAP) left = cursorRight + SIBLING_GAP;
-        g.xCenter = left + g.width / 2;
-        cursorRight = left + g.width;
-      }
+      positionGroups(scored);
+      shiftRankToFocus(r);
     }
   }
 
