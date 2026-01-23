@@ -32,7 +32,7 @@ const GEN_COLORS: Record<number, { border: string; label: string }> = {
 };
 
 const NODE_CIRCLE_SIZE = 70;
-const NODE_TXT_HEIGHT = 40;
+const NODE_TXT_HEIGHT = 56;
 const PADDING_TOP = 80;
 const PADDING_LEFT = 80;
 
@@ -84,6 +84,7 @@ export default function FamilyTreeCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasOffsetRef = useRef({ x: 0, y: 0 });
+  const zoomRef = useRef(1);
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [isPanning, setIsPanning] = useState(false);
@@ -92,6 +93,10 @@ export default function FamilyTreeCanvas({
   const [hasDragged, setHasDragged] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState(0);
   const [zoom, setZoom] = useState(1);
+
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
 
   useEffect(() => {
     let loadedCount = 0;
@@ -233,6 +238,73 @@ export default function FamilyTreeCanvas({
     },
     [nodes, selectedId, zoom]
   );
+
+  const drawRoundedRect = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    radius: number
+  ) => {
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(x, y, width, height, radius);
+      return;
+    }
+    const r = Math.min(radius, width / 2, height / 2);
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + width - r, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+    ctx.lineTo(x + width, y + height - r);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    ctx.lineTo(x + r, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+  };
+
+  const wrapLabel = (
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    maxWidth: number,
+    maxLines: number
+  ) => {
+    const words = text.split(" ");
+    const lines: string[] = [];
+    let current = "";
+    let wordIndex = 0;
+
+    while (wordIndex < words.length) {
+      const word = words[wordIndex];
+      const test = current ? `${current} ${word}` : word;
+      if (ctx.measureText(test).width <= maxWidth) {
+        current = test;
+        wordIndex += 1;
+      } else {
+        if (current) {
+          lines.push(current);
+          current = "";
+        } else {
+          lines.push(word);
+          wordIndex += 1;
+        }
+        if (lines.length === maxLines - 1) break;
+      }
+    }
+
+    if (current && lines.length < maxLines) {
+      lines.push(current);
+    }
+
+    const hasMore = wordIndex < words.length;
+    if (hasMore && lines.length > 0) {
+      const lastIndex = Math.min(lines.length, maxLines) - 1;
+      lines[lastIndex] = `${lines[lastIndex].replace(/\s+$/, "")}…`;
+      return lines.slice(0, maxLines);
+    }
+
+    return lines.slice(0, maxLines);
+  };
 
   const drawTree = useCallback(() => {
     const canvas = canvasRef.current;
@@ -668,11 +740,16 @@ export default function FamilyTreeCanvas({
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       const textY = node.y + NODE_CIRCLE_SIZE / 2 + 8;
-      const labelText = node.label;
-      const labelWidth = ctx.measureText(labelText).width;
-      const labelPaddingX = 10;
+      const labelPaddingX = 12;
       const labelPaddingY = 6;
-      const labelHeight = 18;
+      const labelLineHeight = 14;
+      const labelMaxWidth = 140;
+      const labelLines = wrapLabel(ctx, node.label, labelMaxWidth, 2);
+      const labelWidth = Math.max(
+        ...labelLines.map((line) => ctx.measureText(line).width)
+      );
+      const labelHeight =
+        labelLines.length * labelLineHeight + labelPaddingY * 2;
       const labelRectWidth = labelWidth + labelPaddingX * 2;
       const labelRectX = node.x - labelRectWidth / 2;
       const labelRectY = textY - labelPaddingY;
@@ -681,12 +758,21 @@ export default function FamilyTreeCanvas({
       ctx.strokeStyle = "rgba(224,212,192,0.9)";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(labelRectX, labelRectY, labelRectWidth, labelHeight, 8);
+      drawRoundedRect(
+        ctx,
+        labelRectX,
+        labelRectY,
+        labelRectWidth,
+        labelHeight,
+        10
+      );
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = "#1d1a14";
-      ctx.fillText(labelText, node.x, textY);
+      labelLines.forEach((line, index) => {
+        ctx.fillText(line, node.x, textY + index * labelLineHeight);
+      });
 
       // year - warmMuted
       if (node.year) {
@@ -695,7 +781,11 @@ export default function FamilyTreeCanvas({
           : `${node.year}`;
         ctx.fillStyle = "#5b5346";
         ctx.font = "400 11px Inter, sans-serif";
-        ctx.fillText(yearText, node.x, textY + 20);
+        ctx.fillText(
+          yearText,
+          node.x,
+          textY + labelLines.length * labelLineHeight + 6
+        );
       }
 
       // quick add buttons
@@ -733,6 +823,8 @@ export default function FamilyTreeCanvas({
     isPanning,
     getCanvasSize,
     imagesLoaded,
+    drawRoundedRect,
+    wrapLabel,
     zoom,
   ]);
 
@@ -819,11 +911,48 @@ export default function FamilyTreeCanvas({
     setIsPanning(false);
   };
 
+  const clampZoom = (value: number) => Math.min(2.5, Math.max(0.6, value));
+
+  const applyZoom = (
+    nextZoom: number,
+    anchor?: { clientX: number; clientY: number }
+  ) => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) {
+      setZoom(nextZoom);
+      return;
+    }
+    const rect = wrapper.getBoundingClientRect();
+    const anchorX = anchor ? anchor.clientX - rect.left : rect.width / 2;
+    const anchorY = anchor ? anchor.clientY - rect.top : rect.height / 2;
+    const prevZoom = zoomRef.current;
+    const scale = nextZoom / prevZoom;
+    const nextScrollLeft = (wrapper.scrollLeft + anchorX) * scale - anchorX;
+    const nextScrollTop = (wrapper.scrollTop + anchorY) * scale - anchorY;
+    zoomRef.current = nextZoom;
+    setZoom(nextZoom);
+    requestAnimationFrame(() => {
+      wrapper.scrollLeft = nextScrollLeft;
+      wrapper.scrollTop = nextScrollTop;
+    });
+  };
+
   const handleWheel = (e: React.WheelEvent) => {
     if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
     const direction = e.deltaY > 0 ? -0.08 : 0.08;
-    setZoom((prev) => Math.min(2.5, Math.max(0.6, prev + direction)));
+    const nextZoom = clampZoom(zoomRef.current + direction);
+    applyZoom(nextZoom, { clientX: e.clientX, clientY: e.clientY });
+  };
+
+  const handleFit = () => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const { width, height } = getCanvasSize();
+    const fitZoom = clampZoom(
+      Math.min(wrapper.clientWidth / width, wrapper.clientHeight / height)
+    );
+    applyZoom(fitZoom);
   };
 
   const { width, height } = getCanvasSize();
@@ -849,7 +978,7 @@ export default function FamilyTreeCanvas({
       />
       <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-white/90 px-2.5 py-1.5 shadow-lg border border-warm-200 text-sm font-semibold text-warmMuted backdrop-blur z-10">
         <button
-          onClick={() => setZoom((prev) => Math.min(2.5, prev + 0.1))}
+          onClick={() => applyZoom(clampZoom(zoomRef.current + 0.1))}
           className="h-7 w-7 rounded-full bg-white border border-warm-200 text-warmText hover:border-gold-500 hover:text-gold-600 transition"
           aria-label="Perbesar kanvas"
         >
@@ -857,19 +986,29 @@ export default function FamilyTreeCanvas({
         </button>
         <span className="min-w-[52px] text-center">{zoomPercent}%</span>
         <button
-          onClick={() => setZoom((prev) => Math.max(0.6, prev - 0.1))}
+          onClick={() => applyZoom(clampZoom(zoomRef.current - 0.1))}
           className="h-7 w-7 rounded-full bg-white border border-warm-200 text-warmText hover:border-gold-500 hover:text-gold-600 transition"
           aria-label="Perkecil kanvas"
         >
           −
         </button>
         <button
-          onClick={() => setZoom(1)}
+          onClick={() => applyZoom(1)}
           className="h-7 px-2 rounded-full bg-white border border-warm-200 text-warmText hover:border-gold-500 hover:text-gold-600 transition text-xs"
           aria-label="Reset zoom"
         >
           Reset
         </button>
+        <button
+          onClick={handleFit}
+          className="h-7 px-2 rounded-full bg-white border border-warm-200 text-warmText hover:border-gold-500 hover:text-gold-600 transition text-xs"
+          aria-label="Sesuaikan tampilan"
+        >
+          Fit
+        </button>
+        <span className="hidden sm:inline text-xs text-warmMuted/80">
+          Ctrl/⌘ + scroll
+        </span>
       </div>
     </div>
   );
