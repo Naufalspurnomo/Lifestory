@@ -298,40 +298,134 @@ export default function FamilyTreeCanvas({
 
       if (!parents.length) continue;
 
-      // prefer max 2 parents for classic rendering
-      const used = parents.slice(0, 2);
-      const key = used
+      const orderedParents = [...parents].sort((a, b) => a.x - b.x);
+      const key = orderedParents
         .map((p) => p.id)
         .sort()
         .join("-");
 
-      const fam = families.get(key) || { parents: used, children: [] };
+      const fam = families.get(key) || { parents: orderedParents, children: [] };
       fam.children.push(child);
       families.set(key, fam);
     }
 
-    for (const fam of families.values()) {
-      const parents = fam.parents.filter(
-        (p) => Number.isFinite(p.x) && Number.isFinite(p.y)
-      );
-      const children = fam.children.filter(
-        (c) => Number.isFinite(c.x) && Number.isFinite(c.y)
-      );
+    const clamp = (value: number, min: number, max: number) =>
+      Math.min(Math.max(value, min), max);
+    const getMedianX = (parents: LayoutNode[]) => {
+      const xs = parents.map((p) => p.x).sort((a, b) => a - b);
+      if (!xs.length) return 0;
+      const mid = Math.floor(xs.length / 2);
+      if (xs.length % 2 === 1) return xs[mid];
+      return (xs[mid - 1] + xs[mid]) / 2;
+    };
+
+    const familyDrawList = Array.from(families.values())
+      .map((fam) => {
+        const parents = fam.parents.filter(
+          (p) => Number.isFinite(p.x) && Number.isFinite(p.y)
+        );
+        const children = fam.children.filter(
+          (c) => Number.isFinite(c.x) && Number.isFinite(c.y)
+        );
+        if (!parents.length || !children.length) return null;
+
+        const orderedParents = [...parents].sort((a, b) => a.x - b.x);
+        const orderedChildren = [...children].sort((a, b) => a.x - b.x);
+        const parentY = Math.min(...orderedParents.map((p) => p.y));
+        const startY = parentY + NODE_CIRCLE_SIZE / 2;
+        const childTopY =
+          Math.min(...orderedChildren.map((c) => c.y)) - NODE_CIRCLE_SIZE / 2;
+        const minChildX = orderedChildren[0].x;
+        const maxChildX = orderedChildren[orderedChildren.length - 1].x;
+        const minParentX = orderedParents[0].x;
+        const maxParentX = orderedParents[orderedParents.length - 1].x;
+        const startX = clamp(
+          getMedianX(orderedParents),
+          minParentX,
+          maxParentX
+        );
+
+        return {
+          parents: orderedParents,
+          children: orderedChildren,
+          parentY,
+          startY,
+          childTopY,
+          minChildX,
+          maxChildX,
+          minParentX,
+          maxParentX,
+          startX,
+        };
+      })
+      .filter(
+        (
+          fam
+        ): fam is NonNullable<
+          (typeof familyDrawList)[number]
+        > => Boolean(fam)
+      )
+      .sort((a, b) => (a.parentY - b.parentY) || (a.startX - b.startX));
+
+    const laneAssignments = new Map<string, Array<Array<[number, number]>>>();
+
+    for (const fam of familyDrawList) {
+      const parents = fam.parents;
+      const children = fam.children;
 
       if (!parents.length || !children.length) continue;
 
-      // trunk start = center of couple if 2 parents, else single parent x
-      let startX = parents[0].x;
-      const parentY = Math.min(...parents.map((p) => p.y));
-      if (parents.length >= 2) startX = (parents[0].x + parents[1].x) / 2;
+      const startX = fam.startX;
+      const parentY = fam.parentY;
 
       const startY = parentY + NODE_CIRCLE_SIZE / 2;
 
-      // children top and midY
-      children.sort((a, b) => a.x - b.x);
-      const childTopY =
-        Math.min(...children.map((c) => c.y)) - NODE_CIRCLE_SIZE / 2;
-      const midY = startY + (childTopY - startY) / 2;
+      // draw multi-parent connector line (multi-couple)
+      if (parents.length > 1) {
+        const minParentX = parents[0].x;
+        const maxParentX = parents[parents.length - 1].x;
+        ctx.beginPath();
+        ctx.moveTo(minParentX + NODE_CIRCLE_SIZE / 2, parentY);
+        ctx.lineTo(maxParentX - NODE_CIRCLE_SIZE / 2, parentY);
+        ctx.stroke();
+      }
+
+      // children top and midY (with lane offsets to prevent overlap)
+      const childTopY = fam.childTopY;
+      const bandKey = `${Math.round(parentY)}-${Math.round(childTopY)}`;
+      const lanes = laneAssignments.get(bandKey) || [];
+      const span: [number, number] = [
+        fam.minChildX - NODE_CIRCLE_SIZE / 2,
+        fam.maxChildX + NODE_CIRCLE_SIZE / 2,
+      ];
+
+      let laneIndex = 0;
+      const overlaps = (a: [number, number], b: [number, number]) =>
+        !(a[1] < b[0] || a[0] > b[1]);
+
+      for (;;) {
+        const lane = lanes[laneIndex] || [];
+        const hasOverlap = lane.some((existing) =>
+          overlaps(existing, span)
+        );
+        if (!hasOverlap) {
+          lane.push(span);
+          lanes[laneIndex] = lane;
+          break;
+        }
+        laneIndex += 1;
+      }
+      laneAssignments.set(bandKey, lanes);
+
+      const baseMidY = startY + (childTopY - startY) / 2;
+      const laneOffset = laneIndex * 8;
+      const minMidY = startY + 8;
+      const maxMidY = childTopY - 8;
+      const unclampedMidY = baseMidY + laneOffset;
+      const midY =
+        minMidY > maxMidY
+          ? baseMidY
+          : clamp(unclampedMidY, minMidY, maxMidY);
 
       // 1) vertical trunk
       ctx.beginPath();
