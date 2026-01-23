@@ -83,6 +83,7 @@ export default function FamilyTreeCanvas({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const canvasOffsetRef = useRef({ x: 0, y: 0 });
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [isPanning, setIsPanning] = useState(false);
@@ -117,17 +118,68 @@ export default function FamilyTreeCanvas({
     const valid = nodes.filter(
       (n) => Number.isFinite(n.x) && Number.isFinite(n.y)
     );
-    if (!valid.length) return { width: 800, height: 600 };
+    if (!valid.length) return { width: 800, height: 600, offsetX: 0, offsetY: 0 };
 
-    let maxX = 0;
-    let maxY = 0;
+    const circleRadius = NODE_CIRCLE_SIZE / 2;
+    const labelPadding = NODE_TXT_HEIGHT;
+    const buttonRadius = BUTTON_SIZE / 2;
+    const cornerIconOffset = 8;
+    const cornerIconRadius = 10;
+    const badgeOffsetX = 8;
+    const badgeOffsetY = 6;
+    const badgeRadius = 6;
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
     for (const n of valid) {
-      maxX = Math.max(maxX, n.x + NODE_CIRCLE_SIZE / 2 + NODE_TXT_HEIGHT);
-      maxY = Math.max(maxY, n.y + NODE_CIRCLE_SIZE / 2 + NODE_TXT_HEIGHT + 20);
+      const baseLeft = n.x - circleRadius - labelPadding;
+      const baseRight = n.x + circleRadius + labelPadding;
+      const baseTop = n.y - circleRadius - labelPadding;
+      const baseBottom = n.y + circleRadius + labelPadding;
+
+      minX = Math.min(minX, baseLeft);
+      maxX = Math.max(maxX, baseRight);
+      minY = Math.min(minY, baseTop);
+      maxY = Math.max(maxY, baseBottom);
+
+      const buttons = getQuickAddButtons(n);
+      for (const btn of buttons) {
+        minX = Math.min(minX, btn.x - buttonRadius);
+        maxX = Math.max(maxX, btn.x + buttonRadius);
+        minY = Math.min(minY, btn.y - buttonRadius);
+        maxY = Math.max(maxY, btn.y + buttonRadius);
+      }
+
+      const storyIconX = n.x + circleRadius - cornerIconOffset;
+      const storyIconY = n.y - circleRadius + cornerIconOffset;
+      minX = Math.min(minX, storyIconX - cornerIconRadius);
+      maxX = Math.max(maxX, storyIconX + cornerIconRadius);
+      minY = Math.min(minY, storyIconY - cornerIconRadius);
+      maxY = Math.max(maxY, storyIconY + cornerIconRadius);
+
+      const worksIconX = n.x - circleRadius + cornerIconOffset;
+      const worksIconY = n.y - circleRadius + cornerIconOffset;
+      minX = Math.min(minX, worksIconX - cornerIconRadius);
+      maxX = Math.max(maxX, worksIconX + cornerIconRadius);
+      minY = Math.min(minY, worksIconY - cornerIconRadius);
+      maxY = Math.max(maxY, worksIconY + cornerIconRadius);
+
+      const badgeX = worksIconX + badgeOffsetX;
+      const badgeY = worksIconY - badgeOffsetY;
+      minX = Math.min(minX, badgeX - badgeRadius);
+      maxX = Math.max(maxX, badgeX + badgeRadius);
+      minY = Math.min(minY, badgeY - badgeRadius);
+      maxY = Math.max(maxY, badgeY + badgeRadius);
     }
+    const offsetX = -minX + PADDING_LEFT;
+    const offsetY = -minY + PADDING_TOP;
     return {
-      width: Math.max(800, maxX + PADDING_LEFT),
-      height: Math.max(600, maxY + PADDING_TOP),
+      width: Math.max(800, maxX + offsetX + PADDING_LEFT),
+      height: Math.max(600, maxY + offsetY + PADDING_TOP),
+      offsetX,
+      offsetY,
     };
   }, [nodes]);
 
@@ -139,10 +191,13 @@ export default function FamilyTreeCanvas({
       const rect = wrapper.getBoundingClientRect();
       const canvasX = clientX - rect.left + wrapper.scrollLeft;
       const canvasY = clientY - rect.top + wrapper.scrollTop;
+      const { x: offsetX, y: offsetY } = canvasOffsetRef.current;
+      const adjustedX = canvasX - offsetX;
+      const adjustedY = canvasY - offsetY;
 
       for (const node of nodes) {
-        const dx = canvasX - node.x;
-        const dy = canvasY - node.y;
+        const dx = adjustedX - node.x;
+        const dy = adjustedY - node.y;
         if (Math.sqrt(dx * dx + dy * dy) <= NODE_CIRCLE_SIZE / 2) return node;
       }
       return null;
@@ -158,14 +213,17 @@ export default function FamilyTreeCanvas({
       const rect = wrapper.getBoundingClientRect();
       const canvasX = clientX - rect.left + wrapper.scrollLeft;
       const canvasY = clientY - rect.top + wrapper.scrollTop;
+      const { x: offsetX, y: offsetY } = canvasOffsetRef.current;
+      const adjustedX = canvasX - offsetX;
+      const adjustedY = canvasY - offsetY;
 
       const selectedNode = nodes.find((n) => n.id === selectedId);
       if (!selectedNode) return null;
 
       const buttons = getQuickAddButtons(selectedNode);
       for (const btn of buttons) {
-        const dx = canvasX - btn.x;
-        const dy = canvasY - btn.y;
+        const dx = adjustedX - btn.x;
+        const dy = adjustedY - btn.y;
         if (Math.sqrt(dx * dx + dy * dy) <= BUTTON_SIZE / 2) {
           return { nodeId: selectedNode.id, type: btn.type };
         }
@@ -183,7 +241,8 @@ export default function FamilyTreeCanvas({
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const { width, height } = getCanvasSize();
+    const { width, height, offsetX, offsetY } = getCanvasSize();
+    canvasOffsetRef.current = { x: offsetX, y: offsetY };
 
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
@@ -196,6 +255,9 @@ export default function FamilyTreeCanvas({
     // Background: warm-50
     ctx.fillStyle = "#f9f6f1";
     ctx.fillRect(0, 0, width, height);
+
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
 
     const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
@@ -548,6 +610,8 @@ export default function FamilyTreeCanvas({
         }
       }
     }
+
+    ctx.restore();
   }, [nodes, selectedId, hoveredId, isPanning, getCanvasSize, imagesLoaded]);
 
   useEffect(() => {
