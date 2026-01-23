@@ -91,6 +91,7 @@ export default function FamilyTreeCanvas({
   const [scrollStart, setScrollStart] = useState({ x: 0, y: 0 });
   const [hasDragged, setHasDragged] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState(0);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     let loadedCount = 0;
@@ -192,8 +193,8 @@ export default function FamilyTreeCanvas({
       const canvasX = clientX - rect.left + wrapper.scrollLeft;
       const canvasY = clientY - rect.top + wrapper.scrollTop;
       const { x: offsetX, y: offsetY } = canvasOffsetRef.current;
-      const adjustedX = canvasX - offsetX;
-      const adjustedY = canvasY - offsetY;
+      const adjustedX = canvasX / zoom - offsetX;
+      const adjustedY = canvasY / zoom - offsetY;
 
       for (const node of nodes) {
         const dx = adjustedX - node.x;
@@ -202,7 +203,7 @@ export default function FamilyTreeCanvas({
       }
       return null;
     },
-    [nodes]
+    [nodes, zoom]
   );
 
   const findButtonAt = useCallback(
@@ -214,8 +215,8 @@ export default function FamilyTreeCanvas({
       const canvasX = clientX - rect.left + wrapper.scrollLeft;
       const canvasY = clientY - rect.top + wrapper.scrollTop;
       const { x: offsetX, y: offsetY } = canvasOffsetRef.current;
-      const adjustedX = canvasX - offsetX;
-      const adjustedY = canvasY - offsetY;
+      const adjustedX = canvasX / zoom - offsetX;
+      const adjustedY = canvasY / zoom - offsetY;
 
       const selectedNode = nodes.find((n) => n.id === selectedId);
       if (!selectedNode) return null;
@@ -230,7 +231,7 @@ export default function FamilyTreeCanvas({
       }
       return null;
     },
-    [nodes, selectedId]
+    [nodes, selectedId, zoom]
   );
 
   const drawTree = useCallback(() => {
@@ -244,13 +245,15 @@ export default function FamilyTreeCanvas({
     const { width, height, offsetX, offsetY } = getCanvasSize();
     canvasOffsetRef.current = { x: offsetX, y: offsetY };
 
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
+    const scaledWidth = width * zoom;
+    const scaledHeight = height * zoom;
+    canvas.style.width = `${scaledWidth}px`;
+    canvas.style.height = `${scaledHeight}px`;
+    canvas.width = scaledWidth * dpr;
+    canvas.height = scaledHeight * dpr;
 
     // safer than ctx.scale
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, 0, 0);
 
     // Background: warm-50
     ctx.fillStyle = "#f9f6f1";
@@ -661,12 +664,29 @@ export default function FamilyTreeCanvas({
       }
 
       // label - warmText
-      ctx.fillStyle = "#1d1a14";
       ctx.font = "600 12px Inter, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       const textY = node.y + NODE_CIRCLE_SIZE / 2 + 8;
-      ctx.fillText(node.label, node.x, textY);
+      const labelText = node.label;
+      const labelWidth = ctx.measureText(labelText).width;
+      const labelPaddingX = 10;
+      const labelPaddingY = 6;
+      const labelHeight = 18;
+      const labelRectWidth = labelWidth + labelPaddingX * 2;
+      const labelRectX = node.x - labelRectWidth / 2;
+      const labelRectY = textY - labelPaddingY;
+
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.strokeStyle = "rgba(224,212,192,0.9)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(labelRectX, labelRectY, labelRectWidth, labelHeight, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#1d1a14";
+      ctx.fillText(labelText, node.x, textY);
 
       // year - warmMuted
       if (node.year) {
@@ -675,7 +695,7 @@ export default function FamilyTreeCanvas({
           : `${node.year}`;
         ctx.fillStyle = "#5b5346";
         ctx.font = "400 11px Inter, sans-serif";
-        ctx.fillText(yearText, node.x, textY + 16);
+        ctx.fillText(yearText, node.x, textY + 20);
       }
 
       // quick add buttons
@@ -706,7 +726,15 @@ export default function FamilyTreeCanvas({
     }
 
     ctx.restore();
-  }, [nodes, selectedId, hoveredId, isPanning, getCanvasSize, imagesLoaded]);
+  }, [
+    nodes,
+    selectedId,
+    hoveredId,
+    isPanning,
+    getCanvasSize,
+    imagesLoaded,
+    zoom,
+  ]);
 
   useEffect(() => {
     drawTree();
@@ -791,13 +819,22 @@ export default function FamilyTreeCanvas({
     setIsPanning(false);
   };
 
+  const handleWheel = (e: React.WheelEvent) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const direction = e.deltaY > 0 ? -0.08 : 0.08;
+    setZoom((prev) => Math.min(2.5, Math.max(0.6, prev + direction)));
+  };
+
   const { width, height } = getCanvasSize();
+  const zoomPercent = Math.round(zoom * 100);
 
   return (
     <div
       ref={wrapperRef}
       className="relative w-full h-full overflow-auto bg-warm-50"
       style={{ cursor: isPanning ? "grabbing" : "default" }}
+      onWheel={handleWheel}
     >
       <canvas
         ref={canvasRef}
@@ -810,6 +847,30 @@ export default function FamilyTreeCanvas({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       />
+      <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-white/90 px-2.5 py-1.5 shadow-lg border border-warm-200 text-sm font-semibold text-warmMuted backdrop-blur z-10">
+        <button
+          onClick={() => setZoom((prev) => Math.min(2.5, prev + 0.1))}
+          className="h-7 w-7 rounded-full bg-white border border-warm-200 text-warmText hover:border-gold-500 hover:text-gold-600 transition"
+          aria-label="Perbesar kanvas"
+        >
+          +
+        </button>
+        <span className="min-w-[52px] text-center">{zoomPercent}%</span>
+        <button
+          onClick={() => setZoom((prev) => Math.max(0.6, prev - 0.1))}
+          className="h-7 w-7 rounded-full bg-white border border-warm-200 text-warmText hover:border-gold-500 hover:text-gold-600 transition"
+          aria-label="Perkecil kanvas"
+        >
+          −
+        </button>
+        <button
+          onClick={() => setZoom(1)}
+          className="h-7 px-2 rounded-full bg-white border border-warm-200 text-warmText hover:border-gold-500 hover:text-gold-600 transition text-xs"
+          aria-label="Reset zoom"
+        >
+          Reset
+        </button>
+      </div>
     </div>
   );
 }
