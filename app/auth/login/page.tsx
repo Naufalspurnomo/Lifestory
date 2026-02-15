@@ -13,30 +13,40 @@ import {
   Users,
 } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
+import { useLanguage } from "../../../components/providers/LanguageProvider";
 import { Button } from "../../../components/ui/Button";
 
-function routeLabel(next: string) {
-  if (next === "/app") return "Pohon Keluarga";
-  if (next === "/dashboard") return "Dashboard Admin";
+type Locale = "id" | "en";
+
+function routeLabel(next: string, locale: Locale) {
+  if (next === "/app") return locale === "id" ? "Pohon Keluarga" : "Family Tree";
+  if (next === "/dashboard")
+    return locale === "id" ? "Dashboard Admin" : "Admin Dashboard";
   return next;
 }
 
 function LoadingState() {
+  const { locale } = useLanguage();
   return (
     <div className="flex min-h-[420px] items-center justify-center">
       <div className="rounded-2xl border border-warmBorder bg-white px-6 py-4 text-sm text-warmMuted shadow-sm">
-        Memuat halaman login...
+        {locale === "id" ? "Memuat halaman login..." : "Loading login page..."}
       </div>
     </div>
   );
 }
 
 function AuthenticatedState() {
+  const { locale } = useLanguage();
   return (
     <div className="flex min-h-[420px] items-center justify-center">
       <div className="rounded-2xl border border-accent-200 bg-accent-50/70 px-6 py-5 text-center shadow-sm">
-        <p className="text-sm font-semibold text-accent-700">Anda sudah login.</p>
-        <p className="mt-1 text-sm text-accent-700">Mengalihkan ke aplikasi...</p>
+        <p className="text-sm font-semibold text-accent-700">
+          {locale === "id" ? "Anda sudah login." : "You are already logged in."}
+        </p>
+        <p className="mt-1 text-sm text-accent-700">
+          {locale === "id" ? "Mengalihkan ke aplikasi..." : "Redirecting to app..."}
+        </p>
       </div>
     </div>
   );
@@ -44,11 +54,63 @@ function AuthenticatedState() {
 
 function LoginPageContent() {
   const { status: sessionStatus } = useSession();
+  const { locale } = useLanguage();
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/app";
+
+  const copy =
+    locale === "id"
+      ? {
+          badge: "Secure Access",
+          title: "Masuk ke ruang arsip keluarga Anda.",
+          subtitle:
+            "Lanjutkan menata pohon keluarga, menambahkan cerita, dan mengelola akses anggota.",
+          email: "Email",
+          emailPlaceholder: "nama@email.com",
+          password: "Password",
+          passwordPlaceholder: "Masukkan password",
+          forgotPassword: "Lupa password?",
+          secureLogin: "Login aman dengan kredensial pribadi",
+          processing: "Memproses...",
+          signIn: "Masuk Sekarang",
+          invalidCredentials: "Email atau password salah.",
+          noAccount: "Belum punya akun?",
+          registerNow: "Daftar sekarang",
+          sideTitle: "Login cepat, lanjutkan cerita keluarga tanpa jeda.",
+          sidePoints: [
+            "Akses terenkripsi untuk data keluarga sensitif.",
+            "Kontrol anggota dan kolaborator dalam satu dashboard.",
+            "Progres arsip tersimpan otomatis tiap perubahan.",
+          ],
+          redirectTarget: "Redirect tujuan",
+        }
+      : {
+          badge: "Secure Access",
+          title: "Sign in to your family archive workspace.",
+          subtitle:
+            "Continue organizing your family tree, adding stories, and managing member access.",
+          email: "Email",
+          emailPlaceholder: "name@email.com",
+          password: "Password",
+          passwordPlaceholder: "Enter your password",
+          forgotPassword: "Forgot password?",
+          secureLogin: "Secure login with private credentials",
+          processing: "Processing...",
+          signIn: "Sign In Now",
+          invalidCredentials: "Incorrect email or password.",
+          noAccount: "No account yet?",
+          registerNow: "Register now",
+          sideTitle: "Quick login, continue your family story without pause.",
+          sidePoints: [
+            "Encrypted access for sensitive family data.",
+            "Control members and collaborators from one dashboard.",
+            "Archive progress auto-saves on every change.",
+          ],
+          redirectTarget: "Redirect target",
+        };
 
   useEffect(() => {
     if (sessionStatus === "authenticated") {
@@ -72,7 +134,7 @@ function LoginPageContent() {
     });
 
     if (res?.error) {
-      setError("Email atau password salah.");
+      setError(copy.invalidCredentials);
       setStatus("idle");
       return;
     }
@@ -102,44 +164,49 @@ function LoginPageContent() {
           <div className="mb-8 space-y-3">
             <p className="inline-flex items-center gap-2 rounded-full border border-warmBorder bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-accent-700">
               <Sparkles className="h-3.5 w-3.5" />
-              Secure Access
+              {copy.badge}
             </p>
             <h1 className="font-serif text-3xl leading-tight text-warmText sm:text-4xl">
-              Masuk ke ruang arsip keluarga Anda.
+              {copy.title}
             </h1>
             <p className="max-w-lg text-sm leading-relaxed text-warmMuted sm:text-base">
-              Lanjutkan menata pohon keluarga, menambahkan cerita, dan mengelola akses anggota.
+              {copy.subtitle}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <label className="block space-y-1.5">
-              <span className="text-sm font-medium text-warmText">Email</span>
+              <span className="text-sm font-medium text-warmText">{copy.email}</span>
               <input
                 required
                 name="email"
                 type="email"
-                placeholder="nama@email.com"
+                placeholder={copy.emailPlaceholder}
                 className="w-full rounded-xl border border-warmBorder bg-white px-4 py-3 text-sm text-warmText outline-none transition focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
               />
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-sm font-medium text-warmText">Password</span>
+              <span className="text-sm font-medium text-warmText">
+                {copy.password}
+              </span>
               <input
                 required
                 name="password"
                 type="password"
-                placeholder="Masukkan password"
+                placeholder={copy.passwordPlaceholder}
                 className="w-full rounded-xl border border-warmBorder bg-white px-4 py-3 text-sm text-warmText outline-none transition focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
               />
             </label>
 
             <div className="flex items-center justify-between pt-1 text-sm">
-              <Link href="/auth/forgot" className="text-accent-700 transition hover:text-accent-800 hover:underline">
-                Lupa password?
+              <Link
+                href="/auth/forgot"
+                className="text-accent-700 transition hover:text-accent-800 hover:underline"
+              >
+                {copy.forgotPassword}
               </Link>
-              <p className="text-warmMuted">Login aman dengan kredensial pribadi</p>
+              <p className="text-warmMuted">{copy.secureLogin}</p>
             </div>
 
             <Button
@@ -148,7 +215,7 @@ function LoginPageContent() {
               disabled={status === "loading"}
               className="h-12 rounded-xl text-sm"
             >
-              {status === "loading" ? "Memproses..." : "Masuk Sekarang"}
+              {status === "loading" ? copy.processing : copy.signIn}
             </Button>
 
             {error && (
@@ -159,9 +226,12 @@ function LoginPageContent() {
           </form>
 
           <div className="mt-6 border-t border-warmBorder pt-5 text-sm text-warmMuted">
-            Belum punya akun?{" "}
-            <Link href="/auth/register" className="font-semibold text-accent-700 transition hover:text-accent-800">
-              Daftar sekarang
+            {copy.noAccount}{" "}
+            <Link
+              href="/auth/register"
+              className="font-semibold text-accent-700 transition hover:text-accent-800"
+            >
+              {copy.registerNow}
             </Link>
           </div>
         </motion.section>
@@ -180,18 +250,21 @@ function LoginPageContent() {
               <TreePine className="h-5 w-5" />
             </div>
             <h2 className="font-serif text-2xl leading-tight sm:text-3xl">
-              Login cepat, lanjutkan cerita keluarga tanpa jeda.
+              {copy.sideTitle}
             </h2>
 
             <div className="space-y-3 text-sm text-white/85">
               {[
-                { icon: LockKeyhole, text: "Akses terenkripsi untuk data keluarga sensitif." },
-                { icon: Users, text: "Kontrol anggota dan kolaborator dalam satu dashboard." },
-                { icon: Clock3, text: "Progres arsip tersimpan otomatis tiap perubahan." },
+                { icon: LockKeyhole, text: copy.sidePoints[0] },
+                { icon: Users, text: copy.sidePoints[1] },
+                { icon: Clock3, text: copy.sidePoints[2] },
               ].map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.text} className="flex items-start gap-3 rounded-xl border border-white/15 bg-white/10 p-3">
+                  <div
+                    key={item.text}
+                    className="flex items-start gap-3 rounded-xl border border-white/15 bg-white/10 p-3"
+                  >
                     <Icon className="mt-0.5 h-4.5 w-4.5 shrink-0" />
                     <p>{item.text}</p>
                   </div>
@@ -201,10 +274,10 @@ function LoginPageContent() {
 
             <div className="rounded-2xl border border-white/15 bg-black/20 p-4 text-sm">
               <p className="mb-1 text-xs font-semibold uppercase tracking-[0.15em] text-gold-200">
-                Redirect tujuan
+                {copy.redirectTarget}
               </p>
               <p className="inline-flex items-center gap-2 font-medium text-white">
-                {routeLabel(next)}
+                {routeLabel(next, locale)}
                 <ArrowRight className="h-4 w-4" />
               </p>
             </div>
@@ -226,4 +299,3 @@ export default function LoginPage() {
     </Suspense>
   );
 }
-

@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { FamilyNode } from "../../lib/types/tree";
+import { useLanguage } from "../providers/LanguageProvider";
 
 interface SearchBarProps {
   nodes: FamilyNode[];
@@ -7,8 +8,22 @@ interface SearchBarProps {
 }
 
 export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
+  const { locale } = useLanguage();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const copy =
+    locale === "id"
+      ? {
+          placeholder: "Cari keluarga...",
+          generation: "Generasi",
+          notFound: (text: string) =>
+            `Tidak ditemukan hasil untuk "${text}"`,
+        }
+      : {
+          placeholder: "Search family...",
+          generation: "Generation",
+          notFound: (text: string) => `No result found for "${text}"`,
+        };
 
   const filteredNodes = useMemo(() => {
     if (!query.trim()) return [];
@@ -29,11 +44,11 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
-          placeholder="Cari keluarga..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-warm-200 focus:border-gold-500 focus:ring-2 focus:ring-gold-100 transition-all outline-none bg-white/80 backdrop-blur shadow-sm text-sm text-warmText placeholder:text-warmMuted"
+          placeholder={copy.placeholder}
+          className="w-full rounded-xl border border-warm-200 bg-white/80 py-2.5 pl-10 pr-4 text-sm text-warmText shadow-sm outline-none transition-all placeholder:text-warmMuted backdrop-blur focus:border-gold-500 focus:ring-2 focus:ring-gold-100"
         />
         <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-warmMuted w-4 h-4"
+          className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-warmMuted"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -53,14 +68,15 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
               setIsOpen(false);
             }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-warmMuted/50 hover:text-warmMuted"
+            aria-label="clear search"
           >
-            ✕
+            ×
           </button>
         )}
       </div>
 
       {isOpen && query && (
-        <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl border border-warm-200 overflow-hidden z-50 animate-[fadeIn_0.2s]">
+        <div className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-warm-200 bg-white shadow-xl animate-[fadeIn_0.2s]">
           {filteredNodes.length > 0 ? (
             <div className="max-h-60 overflow-y-auto py-2">
               {filteredNodes.map((node) => (
@@ -71,25 +87,25 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
                     setIsOpen(false);
                     setQuery("");
                   }}
-                  className="w-full px-4 py-3 text-left hover:bg-warm-100 transition-colors flex items-center gap-3 border-b border-warm-100 last:border-0"
+                  className="flex w-full items-center gap-3 border-b border-warm-100 px-4 py-3 text-left transition-colors last:border-0 hover:bg-warm-100"
                 >
-                  <div className="w-8 h-8 rounded-full bg-warm-100 flex items-center justify-center text-xs font-bold text-warmMuted overflow-hidden shrink-0">
+                  <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-warm-100 text-xs font-bold text-warmMuted flex items-center justify-center">
                     {node.imageUrl ? (
                       <img
                         src={node.imageUrl}
                         alt={node.label}
-                        className="w-full h-full object-cover"
+                        className="h-full w-full object-cover"
                       />
                     ) : (
                       node.label.charAt(0).toUpperCase()
                     )}
                   </div>
                   <div>
-                    <div className="font-medium text-warmText text-sm">
+                    <div className="text-sm font-medium text-warmText">
                       {node.label}
                     </div>
                     <div className="text-xs text-warmMuted">
-                      Gen {node.generation} • {node.year || "?"}
+                      {copy.generation} {node.generation} • {node.year || "?"}
                     </div>
                   </div>
                 </button>
@@ -97,7 +113,7 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
             </div>
           ) : (
             <div className="p-4 text-center text-sm text-warmMuted">
-              Tidak ditemukan hasil untuk &quot;{query}&quot;
+              {copy.notFound(query)}
             </div>
           )}
         </div>

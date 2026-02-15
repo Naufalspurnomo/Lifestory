@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState } from "react";
 import type { LayoutGraph, FamilyNode } from "../../lib/types/tree";
+import { useLanguage } from "../providers/LanguageProvider";
 
 type Props = {
   layout: LayoutGraph;
@@ -86,8 +87,24 @@ export default function FamilyTreeCanvas({
   onSelectNode,
   onAddNode,
 }: Props) {
+  const { locale } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const copy =
+    locale === "id"
+      ? {
+          hintPanZoom:
+            "Scroll untuk geser. Pinch atau Ctrl/Cmd + scroll untuk zoom.",
+          zoomIn: "Perbesar",
+          zoomOut: "Perkecil",
+          resetView: "Reset tampilan",
+        }
+      : {
+          hintPanZoom: "Scroll to pan. Pinch or Ctrl/Cmd + scroll to zoom.",
+          zoomIn: "Zoom in",
+          zoomOut: "Zoom out",
+          resetView: "Reset view",
+        };
 
   // View state: Transform (pan x/y, scale)
   const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
@@ -425,30 +442,38 @@ export default function FamilyTreeCanvas({
   // --- INTERACTION HANDLERS ---
 
   const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
     if (!wrapperRef.current) return;
     const rect = wrapperRef.current.getBoundingClientRect();
+    const isZoomGesture = e.ctrlKey || e.metaKey;
+    const deltaMultiplier = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? rect.height : 1;
 
-    // Zoom point relative to canvas (screen coords inside wrapper)
+    // Trackpad/mouse wheel should pan by default; zoom only with pinch or Ctrl/Cmd+wheel.
+    if (!isZoomGesture) {
+      e.preventDefault();
+      setTransform((prev) => ({
+        ...prev,
+        x: prev.x - e.deltaX * deltaMultiplier,
+        y: prev.y - e.deltaY * deltaMultiplier,
+      }));
+      return;
+    }
+
+    e.preventDefault();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    // Current world pos of mouse
-    const worldX = (mouseX - transform.x) / transform.k;
-    const worldY = (mouseY - transform.y) / transform.k;
+    setTransform((prev) => {
+      const worldX = (mouseX - prev.x) / prev.k;
+      const worldY = (mouseY - prev.y) / prev.k;
+      const zoomFactor = Math.exp((-e.deltaY * deltaMultiplier) / 1000);
+      const newK = Math.min(Math.max(prev.k * zoomFactor, 0.1), 5);
 
-    // Calc new scale
-    const zoomIntensity = 0.1;
-    const delta = -Math.sign(e.deltaY);
-    let newK = transform.k + delta * zoomIntensity * transform.k;
-    // Clamp zoom
-    newK = Math.min(Math.max(newK, 0.1), 5); // 0.1x to 5x
-
-    // Adjust pan to keep world point under mouse
-    const newX = mouseX - worldX * newK;
-    const newY = mouseY - worldY * newK;
-
-    setTransform({ x: newX, y: newY, k: newK });
+      return {
+        x: mouseX - worldX * newK,
+        y: mouseY - worldY * newK,
+        k: newK,
+      };
+    });
   };
 
 
@@ -526,12 +551,16 @@ export default function FamilyTreeCanvas({
         <button
           className="w-8 h-8 flex items-center justify-center rounded hover:bg-warm-100 text-warmMuted font-bold"
           onClick={() => setTransform(t => ({ ...t, k: Math.min(t.k * 1.2, 5) }))}
+          title={copy.zoomIn}
+          aria-label={copy.zoomIn}
         >
           +
         </button>
         <button
           className="w-8 h-8 flex items-center justify-center rounded hover:bg-warm-100 text-warmMuted font-bold"
           onClick={() => setTransform(t => ({ ...t, k: Math.max(t.k / 1.2, 0.1) }))}
+          title={copy.zoomOut}
+          aria-label={copy.zoomOut}
         >
           -
         </button>
@@ -547,9 +576,14 @@ export default function FamilyTreeCanvas({
               setTransform({ x: initialX, y: initialY, k: initialScale });
             }
           }}
+          title={copy.resetView}
+          aria-label={copy.resetView}
         >
           ⟲
         </button>
+      </div>
+      <div className="pointer-events-none absolute bottom-4 left-4 rounded-lg border border-warm-200 bg-white/90 px-3 py-2 text-xs text-warmMuted shadow-sm backdrop-blur">
+        {copy.hintPanZoom}
       </div>
     </div>
   );

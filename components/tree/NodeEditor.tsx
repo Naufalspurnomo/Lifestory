@@ -1,15 +1,32 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "../ui/Button";
 import GalleryManager from "./GalleryManager";
 import type { FamilyNode, MediaItem, WorkItem } from "../../lib/types/tree";
-import { Book, Music, Film, Palette, Star, Plus, X } from "lucide-react";
+import {
+  Book,
+  Music,
+  Film,
+  Palette,
+  Star,
+  Plus,
+  X,
+  Instagram,
+  Music2,
+  Linkedin,
+} from "lucide-react";
 import {
   compressImage,
   formatFileSize,
   getBase64Size,
 } from "../../lib/utils/imageUtils";
+import {
+  normalizeInstagramHandle,
+  normalizeTikTokHandle,
+  normalizeLinkedInHandle,
+} from "../../lib/utils/socialLinks";
+import { useLanguage } from "../providers/LanguageProvider";
 
 type Props = {
   isOpen: boolean;
@@ -28,10 +45,14 @@ export default function NodeEditor({
   addType = "child",
   parentId = null,
 }: Props) {
+  const { locale } = useLanguage();
   const [label, setLabel] = useState("");
   const [year, setYear] = useState<string>("");
   const [deathYear, setDeathYear] = useState<string>("");
   const [description, setDescription] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [tiktok, setTiktok] = useState("");
+  const [linkedin, setLinkedin] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [works, setWorks] = useState<WorkItem[]>([]);
@@ -42,16 +63,120 @@ export default function NodeEditor({
   const [showWorks, setShowWorks] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const copy =
+    locale === "id"
+      ? {
+          editProfile: "Edit Profil",
+          addTypeLabels: {
+            parent: "Tambah Orang Tua",
+            partner: "Tambah Pasangan",
+            child: "Tambah Anak",
+            sibling: "Tambah Saudara",
+          },
+          gallery: "Galeri",
+          galleryMedia: "Galeri Foto & Video",
+          imageProcessFailed: "Gagal memproses gambar",
+          requiredName: "Nama wajib diisi",
+          invalidInstagram:
+            "Format Instagram tidak valid. Gunakan @username atau link instagram.com/username",
+          invalidTikTok:
+            "Format TikTok tidak valid. Gunakan @username atau link tiktok.com/@username",
+          invalidLinkedIn:
+            "Format LinkedIn tidak valid. Gunakan username, in/username, atau link linkedin.com/in/username",
+          invalidDeathYear: "Tahun wafat tidak boleh sebelum tahun lahir",
+          profilePhotoLabel: "Foto profil",
+          clickUpload: "Klik untuk upload foto profil",
+          fullName: "Nama Lengkap *",
+          fullNamePlaceholder: "Nama anggota keluarga",
+          birthYear: "Tahun Lahir",
+          deathYear: "Tahun Wafat",
+          deathPlaceholder: "Kosongkan jika masih hidup",
+          socialMedia: "Sosial Media",
+          socialHint: "Opsional. Boleh isi username atau link profil.",
+          instagramPlaceholder: "@username atau instagram.com/username",
+          tiktokPlaceholder: "@username atau tiktok.com/@username",
+          linkedinPlaceholder: "username, in/username, atau linkedin.com/in/username",
+          shortBio: "Biografi Singkat",
+          bioPlaceholder: "Ceritakan tentang anggota keluarga ini...",
+          works: "Karya/Kreasi",
+          close: "Tutup",
+          add: "Tambah",
+          addNewWork: "Tambah Karya Baru",
+          workOptions: {
+            book: "Buku",
+            music: "Musik",
+            film: "Film",
+            art: "Seni",
+            other: "Lainnya",
+          } as Record<WorkItem["type"], string>,
+          workTitlePlaceholder: "Judul karya",
+          yearPlaceholder: "Tahun",
+          addWork: "Tambah Karya",
+          cancel: "Batal",
+          save: "Simpan",
+        }
+      : {
+          editProfile: "Edit Profile",
+          addTypeLabels: {
+            parent: "Add Parent",
+            partner: "Add Partner",
+            child: "Add Child",
+            sibling: "Add Sibling",
+          },
+          gallery: "Gallery",
+          galleryMedia: "Photo & Video Gallery",
+          imageProcessFailed: "Failed to process image",
+          requiredName: "Name is required",
+          invalidInstagram:
+            "Invalid Instagram format. Use @username or instagram.com/username",
+          invalidTikTok:
+            "Invalid TikTok format. Use @username or tiktok.com/@username",
+          invalidLinkedIn:
+            "Invalid LinkedIn format. Use username, in/username, or linkedin.com/in/username",
+          invalidDeathYear: "Death year cannot be earlier than birth year",
+          profilePhotoLabel: "Profile photo",
+          clickUpload: "Click to upload profile photo",
+          fullName: "Full Name *",
+          fullNamePlaceholder: "Family member name",
+          birthYear: "Birth Year",
+          deathYear: "Death Year",
+          deathPlaceholder: "Leave empty if still alive",
+          socialMedia: "Social Media",
+          socialHint: "Optional. You may use username or profile URL.",
+          instagramPlaceholder: "@username or instagram.com/username",
+          tiktokPlaceholder: "@username or tiktok.com/@username",
+          linkedinPlaceholder: "username, in/username, or linkedin.com/in/username",
+          shortBio: "Short Biography",
+          bioPlaceholder: "Tell a short story about this family member...",
+          works: "Works/Creations",
+          close: "Close",
+          add: "Add",
+          addNewWork: "Add New Work",
+          workOptions: {
+            book: "Book",
+            music: "Music",
+            film: "Film",
+            art: "Art",
+            other: "Other",
+          } as Record<WorkItem["type"], string>,
+          workTitlePlaceholder: "Work title",
+          yearPlaceholder: "Year",
+          addWork: "Add Work",
+          cancel: "Cancel",
+          save: "Save",
+        };
 
-  // Initialize form when editingNode changes
   useEffect(() => {
     if (editingNode) {
       setLabel(editingNode.label);
       setYear(editingNode.year?.toString() || "");
       setDeathYear(editingNode.deathYear?.toString() || "");
-      setDescription(editingNode.content.description || "");
+      setDescription(editingNode.content?.description || "");
+      setInstagram(editingNode.content?.instagram || "");
+      setTiktok(editingNode.content?.tiktok || "");
+      setLinkedin(editingNode.content?.linkedin || "");
       setImageUrl(editingNode.imageUrl);
-      setMedia(editingNode.content.media || []);
+      setMedia(editingNode.content?.media || []);
       setWorks(editingNode.works || []);
       if (editingNode.imageUrl) {
         setImageSize(getBase64Size(editingNode.imageUrl));
@@ -66,6 +191,9 @@ export default function NodeEditor({
     setYear("");
     setDeathYear("");
     setDescription("");
+    setInstagram("");
+    setTiktok("");
+    setLinkedin("");
     setImageUrl(null);
     setMedia([]);
     setWorks([]);
@@ -88,7 +216,7 @@ export default function NodeEditor({
       setImageUrl(compressed);
       setImageSize(getBase64Size(compressed));
     } catch (err) {
-      setError("Gagal memproses gambar");
+      setError(copy.imageProcessFailed);
       console.error(err);
     } finally {
       setIsUploading(false);
@@ -99,20 +227,37 @@ export default function NodeEditor({
     e.preventDefault();
 
     if (!label.trim()) {
-      setError("Nama wajib diisi");
+      setError(copy.requiredName);
       return;
     }
 
     const birthYear = year ? parseInt(year) : null;
     const death = deathYear ? parseInt(deathYear) : null;
+    const hasInstagramValue = instagram.trim().length > 0;
+    const normalizedInstagram = normalizeInstagramHandle(instagram);
+    const hasTikTokValue = tiktok.trim().length > 0;
+    const normalizedTikTok = normalizeTikTokHandle(tiktok);
+    const hasLinkedInValue = linkedin.trim().length > 0;
+    const normalizedLinkedIn = normalizeLinkedInHandle(linkedin);
 
-    // Date validation
-    if (birthYear && death && death < birthYear) {
-      setError("Tahun wafat tidak boleh sebelum tahun lahir");
+    if (hasInstagramValue && !normalizedInstagram) {
+      setError(copy.invalidInstagram);
+      return;
+    }
+    if (hasTikTokValue && !normalizedTikTok) {
+      setError(copy.invalidTikTok);
+      return;
+    }
+    if (hasLinkedInValue && !normalizedLinkedIn) {
+      setError(copy.invalidLinkedIn);
       return;
     }
 
-    // Determine line based on add type
+    if (birthYear && death && death < birthYear) {
+      setError(copy.invalidDeathYear);
+      return;
+    }
+
     let line: FamilyNode["line"] = "paternal";
     if (editingNode && editingNode.line) {
       line = editingNode.line;
@@ -126,14 +271,17 @@ export default function NodeEditor({
         addType === "child"
           ? parentId
           : addType === "parent" || addType === "sibling"
-            ? null
-            : parentId,
+          ? null
+          : parentId,
       partners: addType === "partner" && parentId ? [parentId] : [],
       line,
       imageUrl,
       content: {
         description,
         media,
+        instagram: normalizedInstagram || undefined,
+        tiktok: normalizedTikTok || undefined,
+        linkedin: normalizedLinkedIn || undefined,
       },
       works: works.length > 0 ? works : undefined,
     });
@@ -142,14 +290,6 @@ export default function NodeEditor({
     onClose();
   };
 
-  const addTypeLabels = {
-    parent: "Tambah Orang Tua",
-    partner: "Tambah Pasangan",
-    child: "Tambah Anak",
-    sibling: "Tambah Saudara",
-  };
-
-  // Work type icons and labels
   const getWorkIcon = (type: WorkItem["type"]) => {
     const iconClass = "w-5 h-5";
     switch (type) {
@@ -168,52 +308,45 @@ export default function NodeEditor({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 border-b border-warm-200 bg-white px-6 py-4 rounded-t-2xl z-10">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl">
+        <div className="sticky top-0 z-10 rounded-t-2xl border-b border-warm-200 bg-white px-6 py-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-warmText">
-              {editingNode ? "Edit Profil" : addTypeLabels[addType]}
+              {editingNode ? copy.editProfile : copy.addTypeLabels[addType]}
             </h2>
             {editingNode && (
               <button
                 type="button"
                 onClick={() => setShowGallery(!showGallery)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition ${showGallery
+                className={`rounded-lg px-3 py-1 text-sm font-medium transition ${
+                  showGallery
                     ? "bg-gold-100 text-gold-700"
                     : "bg-warm-100 text-warmMuted hover:bg-warm-200"
-                  }`}
+                }`}
               >
-                📷 Galeri {media.length > 0 && `(${media.length})`}
+                📷 {copy.gallery} {media.length > 0 && `(${media.length})`}
               </button>
             )}
           </div>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Gallery Section (for editing only) */}
+        <form onSubmit={handleSubmit} className="space-y-5 p-6">
           {showGallery && editingNode && (
-            <div className="pb-4 border-b border-warm-200">
-              <h3 className="text-sm font-medium text-warmMuted mb-3">
-                Galeri Foto & Video
+            <div className="border-b border-warm-200 pb-4">
+              <h3 className="mb-3 text-sm font-medium text-warmMuted">
+                {copy.galleryMedia}
               </h3>
               <GalleryManager media={media} onChange={setMedia} maxItems={10} />
             </div>
           )}
 
-          {/* Photo Upload */}
           <div className="flex flex-col items-center gap-3">
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="relative flex h-24 w-24 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-warm-100 to-warm-200 overflow-hidden hover:ring-4 hover:ring-gold-100 transition"
+              className="relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-warm-100 to-warm-200 transition hover:ring-4 hover:ring-gold-100"
             >
               {imageUrl ? (
-                <img
-                  src={imageUrl}
-                  alt="Preview"
-                  className="h-full w-full object-cover"
-                />
+                <img src={imageUrl} alt="Preview" className="h-full w-full object-cover" />
               ) : (
                 <span className="text-3xl text-gold-600">📷</span>
               )}
@@ -232,31 +365,25 @@ export default function NodeEditor({
             />
             <p className="text-xs text-warmMuted">
               {imageUrl
-                ? `Foto profil (${formatFileSize(imageSize)})`
-                : "Klik untuk upload foto profil"}
+                ? `${copy.profilePhotoLabel} (${formatFileSize(imageSize)})`
+                : copy.clickUpload}
             </p>
           </div>
 
-          {/* Name */}
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-warmMuted">
-              Nama Lengkap *
-            </span>
+            <span className="text-sm font-medium text-warmMuted">{copy.fullName}</span>
             <input
               required
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="Nama anggota keluarga"
+              placeholder={copy.fullNamePlaceholder}
               className="w-full rounded-xl border border-warm-200 bg-white px-4 py-2.5 text-warmText placeholder:text-warmMuted/50 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-100"
             />
           </label>
 
-          {/* Years */}
           <div className="grid grid-cols-2 gap-4">
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-warmMuted">
-                Tahun Lahir
-              </span>
+              <span className="text-sm font-medium text-warmMuted">{copy.birthYear}</span>
               <input
                 type="number"
                 value={year}
@@ -268,14 +395,12 @@ export default function NodeEditor({
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-warmMuted">
-                Tahun Wafat
-              </span>
+              <span className="text-sm font-medium text-warmMuted">{copy.deathYear}</span>
               <input
                 type="number"
                 value={deathYear}
                 onChange={(e) => setDeathYear(e.target.value)}
-                placeholder="Kosongkan jika masih hidup"
+                placeholder={copy.deathPlaceholder}
                 min="1800"
                 max={new Date().getFullYear()}
                 className="w-full rounded-xl border border-warm-200 bg-white px-4 py-2.5 text-warmText placeholder:text-warmMuted/50 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-100"
@@ -283,106 +408,139 @@ export default function NodeEditor({
             </label>
           </div>
 
-          {/* Description */}
+          <div className="space-y-3 rounded-xl border border-warm-200 bg-warm-50 p-4">
+            <div className="text-sm font-semibold text-warmText">{copy.socialMedia}</div>
+
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-warmMuted">Instagram</span>
+              <div className="flex items-center gap-2 rounded-xl border border-warm-200 bg-white px-3 py-2.5 focus-within:border-gold-500 focus-within:ring-2 focus-within:ring-gold-100">
+                <Instagram className="h-4 w-4 text-warmMuted" />
+                <input
+                  value={instagram}
+                  onChange={(e) => setInstagram(e.target.value)}
+                  placeholder={copy.instagramPlaceholder}
+                  className="w-full bg-transparent text-warmText placeholder:text-warmMuted/50 focus:outline-none"
+                />
+              </div>
+            </label>
+
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-warmMuted">TikTok</span>
+              <div className="flex items-center gap-2 rounded-xl border border-warm-200 bg-white px-3 py-2.5 focus-within:border-gold-500 focus-within:ring-2 focus-within:ring-gold-100">
+                <Music2 className="h-4 w-4 text-warmMuted" />
+                <input
+                  value={tiktok}
+                  onChange={(e) => setTiktok(e.target.value)}
+                  placeholder={copy.tiktokPlaceholder}
+                  className="w-full bg-transparent text-warmText placeholder:text-warmMuted/50 focus:outline-none"
+                />
+              </div>
+            </label>
+
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-warmMuted">LinkedIn</span>
+              <div className="flex items-center gap-2 rounded-xl border border-warm-200 bg-white px-3 py-2.5 focus-within:border-gold-500 focus-within:ring-2 focus-within:ring-gold-100">
+                <Linkedin className="h-4 w-4 text-warmMuted" />
+                <input
+                  value={linkedin}
+                  onChange={(e) => setLinkedin(e.target.value)}
+                  placeholder={copy.linkedinPlaceholder}
+                  className="w-full bg-transparent text-warmText placeholder:text-warmMuted/50 focus:outline-none"
+                />
+              </div>
+            </label>
+
+            <p className="text-xs text-warmMuted">{copy.socialHint}</p>
+          </div>
+
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-warmMuted">
-              Biografi Singkat
-            </span>
+            <span className="text-sm font-medium text-warmMuted">{copy.shortBio}</span>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ceritakan tentang anggota keluarga ini..."
+              placeholder={copy.bioPlaceholder}
               rows={3}
-              className="w-full rounded-xl border border-warm-200 bg-white px-4 py-2.5 text-warmText placeholder:text-warmMuted/50 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-100 resize-none"
+              className="w-full resize-none rounded-xl border border-warm-200 bg-white px-4 py-2.5 text-warmText placeholder:text-warmMuted/50 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-100"
             />
           </label>
 
-          {/* Works/Karya Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-warmMuted">
-                Karya/Kreasi
-              </span>
+              <span className="text-sm font-medium text-warmMuted">{copy.works}</span>
               <button
                 type="button"
                 onClick={() => setShowWorks(!showWorks)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition flex items-center gap-1 ${showWorks
+                className={`flex items-center gap-1 rounded-lg px-3 py-1 text-sm font-medium transition ${
+                  showWorks
                     ? "bg-gold-100 text-gold-700"
                     : "bg-warm-100 text-warmMuted hover:bg-warm-200"
-                  }`}
+                }`}
               >
                 {showWorks ? (
-                  "Tutup"
+                  copy.close
                 ) : works.length > 0 ? (
                   <>
-                    <Book className="w-4 h-4" /> ({works.length})
+                    <Book className="h-4 w-4" /> ({works.length})
                   </>
                 ) : (
                   <>
-                    <Plus className="w-4 h-4" /> Tambah
+                    <Plus className="h-4 w-4" /> {copy.add}
                   </>
                 )}
               </button>
             </div>
 
             {showWorks && (
-              <div className="space-y-3 p-4 bg-warm-50 rounded-xl border border-warm-200">
-                {/* Existing works */}
+              <div className="space-y-3 rounded-xl border border-warm-200 bg-warm-50 p-4">
                 {works.map((work, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-3 p-3 bg-white rounded-lg border border-warm-200"
+                    className="flex items-center gap-3 rounded-lg border border-warm-200 bg-white p-3"
                   >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gold-100 flex items-center justify-center text-gold-700">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700">
                       {getWorkIcon(work.type)}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-warmText truncate">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-warmText">
                         {work.title}
                       </p>
-                      {work.year && (
-                        <p className="text-xs text-warmMuted">{work.year}</p>
-                      )}
+                      {work.year && <p className="text-xs text-warmMuted">{work.year}</p>}
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        setWorks(works.filter((_, i) => i !== index));
-                      }}
-                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-full transition"
+                      onClick={() => setWorks(works.filter((_, i) => i !== index))}
+                      className="rounded-full p-1.5 text-red-500 transition hover:bg-red-50"
+                      aria-label="remove work"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
 
-                {/* Add new work form */}
-                <div className="space-y-2 pt-2 border-t border-warm-200">
-                  <p className="text-xs font-medium text-warmMuted">
-                    Tambah Karya Baru
-                  </p>
+                <div className="space-y-2 border-t border-warm-200 pt-2">
+                  <p className="text-xs font-medium text-warmMuted">{copy.addNewWork}</p>
                   <div className="flex gap-2">
                     <select
                       id="workType"
                       className="rounded-lg border border-warm-200 bg-white px-3 py-2 text-sm text-warmText focus:border-gold-500 focus:outline-none"
                       defaultValue="book"
                     >
-                      <option value="book">Buku</option>
-                      <option value="music">Musik</option>
-                      <option value="film">Film</option>
-                      <option value="art">Seni</option>
-                      <option value="other">Lainnya</option>
+                      <option value="book">{copy.workOptions.book}</option>
+                      <option value="music">{copy.workOptions.music}</option>
+                      <option value="film">{copy.workOptions.film}</option>
+                      <option value="art">{copy.workOptions.art}</option>
+                      <option value="other">{copy.workOptions.other}</option>
                     </select>
                     <input
                       id="workTitle"
                       type="text"
-                      placeholder="Judul karya"
+                      placeholder={copy.workTitlePlaceholder}
                       className="flex-1 rounded-lg border border-warm-200 bg-white px-3 py-2 text-sm text-warmText placeholder:text-warmMuted/50 focus:border-gold-500 focus:outline-none"
                     />
                     <input
                       id="workYear"
                       type="number"
-                      placeholder="Tahun"
+                      placeholder={copy.yearPlaceholder}
                       min="1800"
                       max={new Date().getFullYear()}
                       className="w-20 rounded-lg border border-warm-200 bg-white px-3 py-2 text-sm text-warmText placeholder:text-warmMuted/50 focus:border-gold-500 focus:outline-none"
@@ -405,32 +563,28 @@ export default function NodeEditor({
                         const newWork: WorkItem = {
                           type: typeEl.value as WorkItem["type"],
                           title: titleEl.value.trim(),
-                          year: yearEl.value
-                            ? parseInt(yearEl.value)
-                            : undefined,
+                          year: yearEl.value ? parseInt(yearEl.value) : undefined,
                         };
                         setWorks([...works, newWork]);
                         titleEl.value = "";
                         yearEl.value = "";
                       }
                     }}
-                    className="w-full py-2 rounded-lg bg-gold-500 text-white text-sm font-medium hover:bg-gold-600 transition flex items-center justify-center gap-2"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-gold-500 py-2 text-sm font-medium text-white transition hover:bg-gold-600"
                   >
-                    <Plus className="w-4 h-4" /> Tambah Karya
+                    <Plus className="h-4 w-4" /> {copy.addWork}
                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Error */}
           {error && (
-            <div className="rounded-xl bg-red-50 border border-red-100 p-3 text-sm text-red-700">
+            <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
               {error}
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex gap-3 pt-2">
             <Button
               type="button"
@@ -441,10 +595,10 @@ export default function NodeEditor({
               }}
               block
             >
-              Batal
+              {copy.cancel}
             </Button>
             <Button type="submit" block>
-              {editingNode ? "Simpan" : "Tambah"}
+              {editingNode ? copy.save : copy.add}
             </Button>
           </div>
         </form>

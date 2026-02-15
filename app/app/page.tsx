@@ -1,7 +1,7 @@
 "use client";
 // Force HMR update
 
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
 import FamilyTreeCanvas from "../../components/tree/FamilyTreeCanvas";
@@ -14,16 +14,78 @@ import SearchBar from "../../components/tree/SearchBar";
 import TimelineView from "../../components/tree/TimelineView";
 import GlobalStories from "../../components/tree/GlobalStories";
 import { useTreeState } from "../../lib/hooks/useTreeState";
+import { useLanguage } from "../../components/providers/LanguageProvider";
 
 import type { FamilyNode } from "../../lib/types/tree";
 
 export default function AppHome() {
   const { data: session } = useSession();
+  const { locale } = useLanguage();
   const user = session?.user;
 
-  // Use email as userId, fallback to empty string
+  const copy =
+    locale === "id"
+      ? {
+          fallbackUser: "Pengguna",
+          notifTreeCreated: "Pohon keluarga dibuat! Anda adalah simpul pertama.",
+          notifProfileUpdated: "Profil diperbarui",
+          notifAutoParentCreated: "Orang tua placeholder dibuat otomatis.",
+          notifAdded: (name: string) => `${name} ditambahkan ke pohon`,
+          notifError: (error?: string) => `Error: ${error || "Tidak diketahui"}`,
+          notifDeleted: (name: string) => `${name} dihapus dari pohon`,
+          notifImported: (count: number) =>
+            `${count} anggota keluarga berhasil diimpor`,
+          placeholderFather: "Ayah (Tidak Diketahui)",
+          placeholderMother: "Ibu (Tidak Diketahui)",
+          pageTitle: "Pohon Keluarga",
+          pageDescription:
+            "Visualisasikan sejarah keluarga Anda, simpan cerita, dan wariskan memori untuk generasi mendatang.",
+          viewTree: "Pohon",
+          viewTimeline: "Linimasa",
+          filterAll: "Semua",
+          filterCore: "Keluarga Inti",
+          comingSoon: "Segera Hadir",
+          invite: "Undang",
+          import: "Import",
+          export: "Ekspor",
+          addMemberTitle: "Tambah anggota keluarga",
+          statGenerations: "Generasi",
+          statMembers: "Anggota Keluarga",
+          statLines: "Garis Keluarga",
+          statEarliest: "Catatan Terawal",
+        }
+      : {
+          fallbackUser: "User",
+          notifTreeCreated: "Family tree created! You are the first node.",
+          notifProfileUpdated: "Profile updated",
+          notifAutoParentCreated: "Placeholder parents created automatically.",
+          notifAdded: (name: string) => `${name} added to tree`,
+          notifError: (error?: string) => `Error: ${error || "Unknown error"}`,
+          notifDeleted: (name: string) => `${name} removed from tree`,
+          notifImported: (count: number) =>
+            `${count} family members imported successfully`,
+          placeholderFather: "Father (Unknown)",
+          placeholderMother: "Mother (Unknown)",
+          pageTitle: "Family Trees",
+          pageDescription:
+            "Visualize your family history, preserve stories, and pass memory to future generations.",
+          viewTree: "Tree",
+          viewTimeline: "Timeline",
+          filterAll: "All",
+          filterCore: "Core Family",
+          comingSoon: "Coming Soon",
+          invite: "Invite",
+          import: "Import",
+          export: "Export",
+          addMemberTitle: "Add family member",
+          statGenerations: "Generations",
+          statMembers: "Family Members",
+          statLines: "Family Lines",
+          statEarliest: "Earliest Record",
+        };
+
   const userId = user?.email || "";
-  const userName = user?.name || "User";
+  const userName = user?.name || copy.fallbackUser;
 
   const {
     userTree,
@@ -37,12 +99,10 @@ export default function AppHome() {
     importNodes,
   } = useTreeState(userId, userName);
 
-  // DEBUG: Expose import for console testing
   useEffect(() => {
     (window as any).importNodes = importNodes;
   }, [importNodes]);
 
-  // UI State
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showNodeEditor, setShowNodeEditor] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -57,22 +117,19 @@ export default function AppHome() {
   const [viewMode, setViewMode] = useState<"tree" | "timeline">("tree");
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Show notification
   const showNotification = useCallback((msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3000);
   }, []);
 
-  // Handle start tree
   const handleStartTree = useCallback(() => {
     const result = createTree();
     if (result) {
       setHasCreatedTree(true);
-      showNotification("Pohon keluarga dibuat! Anda adalah simpul pertama.");
+      showNotification(copy.notifTreeCreated);
     }
-  }, [createTree, showNotification]);
+  }, [copy.notifTreeCreated, createTree, showNotification]);
 
-  // Check if tree was loaded
   useEffect(() => {
     if (userTree) {
       setHasCreatedTree(true);
@@ -94,56 +151,60 @@ export default function AppHome() {
   ) => {
     if (editingNode) {
       updateNode(editingNode.id, nodeData);
-      showNotification("Profil diperbarui");
+      showNotification(copy.notifProfileUpdated);
     } else {
-      // Logic for different add types & validation
       let finalNodeData = { ...nodeData };
       let updatedParentIds = nodeData.parentIds || [];
 
-      // SIBLING LOGIC: 
-      // If adding sibling, we need to check if reference node (addParentId) has parents.
-      // If yes, use them. If no, CREATE implicit parents first.
       if (addType === "sibling" && addParentId) {
         const sibling = getNode(addParentId);
         if (sibling) {
-          const existingParentIds = sibling.parentIds || (sibling.parentId ? [sibling.parentId] : []);
+          const existingParentIds =
+            sibling.parentIds || (sibling.parentId ? [sibling.parentId] : []);
 
           if (existingParentIds.length > 0) {
-            // Inherit parents
             updatedParentIds = existingParentIds;
             finalNodeData.parentIds = updatedParentIds;
             finalNodeData.parentId = updatedParentIds[0];
           } else {
-            // Create placeholders
-            const fatherRes = addNode({ label: "Ayah (Unknown)", sex: "M", isPlaceholder: true } as any);
-            const motherRes = addNode({ label: "Ibu (Unknown)", sex: "F", isPlaceholder: true } as any);
+            const fatherRes = addNode({
+              label: copy.placeholderFather,
+              sex: "M",
+              isPlaceholder: true,
+            } as any);
+            const motherRes = addNode({
+              label: copy.placeholderMother,
+              sex: "F",
+              isPlaceholder: true,
+            } as any);
 
-            if (fatherRes.success && motherRes.success && fatherRes.node && motherRes.node) {
-              // Link them as partners (if needed, or implicit)
-              // Link sibling to them
-              updateNode(sibling.id, { parentIds: [fatherRes.node.id, motherRes.node.id], parentId: fatherRes.node.id });
+            if (
+              fatherRes.success &&
+              motherRes.success &&
+              fatherRes.node &&
+              motherRes.node
+            ) {
+              updateNode(sibling.id, {
+                parentIds: [fatherRes.node.id, motherRes.node.id],
+                parentId: fatherRes.node.id,
+              });
 
               updatedParentIds = [fatherRes.node.id, motherRes.node.id];
               finalNodeData.parentIds = updatedParentIds;
               finalNodeData.parentId = updatedParentIds[0];
 
-              showNotification("Orang tua placeholder dibuat otomatis.");
+              showNotification(copy.notifAutoParentCreated);
             }
           }
         }
       }
 
-      // Link types based on addType
       const initialChildrenIds =
         addType === "parent" && addParentId ? [addParentId] : [];
 
-      // If adding as partner, link the new node to the existing node as partner
       const partnersToLink =
-        addType === "partner" && addParentId
-          ? [addParentId]
-          : nodeData.partners || [];
+        addType === "partner" && addParentId ? [addParentId] : nodeData.partners || [];
 
-      // When adding partner/sibling, explicitly clear parentId to avoid treating as child (unless set above)
       let parentIdToUse = nodeData.parentId || null;
       if (addType === "partner") parentIdToUse = null;
       if (addType === "sibling") parentIdToUse = finalNodeData.parentId || null;
@@ -157,9 +218,9 @@ export default function AppHome() {
       });
 
       if (result.success && result.node) {
-        showNotification(`${nodeData.label} ditambahkan ke pohon`);
+        showNotification(copy.notifAdded(nodeData.label));
       } else {
-        showNotification(`Error: ${result.error}`);
+        showNotification(copy.notifError(result.error));
       }
     }
     setShowNodeEditor(false);
@@ -177,18 +238,14 @@ export default function AppHome() {
     const node = getNode(nodeId);
     if (node) {
       deleteNode(nodeId);
-      showNotification(`${node.label} dihapus dari pohon`);
+      showNotification(copy.notifDeleted(node.label));
       setSelectedId(null);
     }
   };
 
-  // Get selected node
   const selectedNode = selectedId ? getNode(selectedId) : null;
-
-  // Show tree if we have one OR if user just created one
   const showTree = userTree && currentTree;
 
-  // Stats calculation
   const stats = {
     generations: 0,
     members: currentTree?.nodes.length || 0,
@@ -197,10 +254,7 @@ export default function AppHome() {
   };
 
   if (currentTree) {
-    stats.generations = Math.max(
-      ...currentTree.nodes.map((n) => n.generation),
-      0
-    );
+    stats.generations = Math.max(...currentTree.nodes.map((n) => n.generation), 0);
     const lines = new Set(currentTree.nodes.map((n) => n.line));
     stats.lines = lines.size;
     const years = currentTree.nodes
@@ -210,20 +264,17 @@ export default function AppHome() {
   }
 
   return (
-    <div className="min-h-screen pb-32 bg-warm-50">
-      {/* Welcome screen for new users */}
+    <div className="min-h-screen bg-warm-50 pb-32">
       {!showTree && !hasCreatedTree && (
         <WelcomeScreen userName={userName} onStart={handleStartTree} />
       )}
 
-      {/* Main app with tree */}
       {showTree && (
         <>
           <div className="container mx-auto max-w-6xl p-4 md:p-8">
-            {/* Header */}
-            <header className="text-center mb-12">
-              <div className="max-w-7xl mx-auto">
-                <div className="h-16 w-16 text-gold-600 mx-auto mb-4">
+            <header className="mb-12 text-center">
+              <div className="mx-auto max-w-7xl">
+                <div className="mx-auto mb-4 h-16 w-16 text-gold-600">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="100%"
@@ -241,36 +292,32 @@ export default function AppHome() {
                   </svg>
                 </div>
 
-                <h1 className="text-5xl md:text-6xl font-bold text-warmText mb-6 font-playfair">
-                  Family Trees
+                <h1 className="mb-6 font-playfair text-5xl font-bold text-warmText md:text-6xl">
+                  {copy.pageTitle}
                 </h1>
-                <p className="text-lg md:text-xl text-warmMuted max-w-3xl mx-auto leading-relaxed mb-8">
-                  {currentTree.name} — Visualisasikan sejarah keluarga Anda,
-                  simpan cerita, dan wariskan memori untuk generasi mendatang.
+                <p className="mx-auto mb-8 max-w-3xl text-lg leading-relaxed text-warmMuted md:text-xl">
+                  {currentTree.name} - {copy.pageDescription}
                 </p>
 
-                <div className="max-w-md mx-auto">
-                  <SearchBar
-                    nodes={currentTree.nodes}
-                    onSelect={setSelectedId}
-                  />
+                <div className="mx-auto max-w-md">
+                  <SearchBar nodes={currentTree.nodes} onSelect={setSelectedId} />
                 </div>
               </div>
             </header>
 
-            {/* Controls */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <div className="flex items-center flex-wrap gap-3">
-                <div className="inline-flex rounded-xl bg-white p-1 shadow-sm border border-warm-200">
+            <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="inline-flex rounded-xl border border-warm-200 bg-white p-1 shadow-sm">
                   <button
                     onClick={() => setViewMode("tree")}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${viewMode === "tree"
-                      ? "bg-gradient-to-br from-gold-500 to-gold-700 text-white shadow-md"
-                      : "text-warmMuted hover:bg-warm-100"
-                      }`}
+                    className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                      viewMode === "tree"
+                        ? "bg-gradient-to-br from-gold-500 to-gold-700 text-white shadow-md"
+                        : "text-warmMuted hover:bg-warm-100"
+                    }`}
                   >
                     <svg
-                      className="w-5 h-5"
+                      className="h-5 w-5"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -280,19 +327,20 @@ export default function AppHome() {
                         strokeLinejoin="round"
                         strokeWidth="2"
                         d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                      ></path>
+                      />
                     </svg>
-                    Tree View
+                    {copy.viewTree}
                   </button>
                   <button
                     onClick={() => setViewMode("timeline")}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${viewMode === "timeline"
-                      ? "bg-gradient-to-br from-gold-500 to-gold-700 text-white shadow-md"
-                      : "text-warmMuted hover:bg-warm-100"
-                      }`}
+                    className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                      viewMode === "timeline"
+                        ? "bg-gradient-to-br from-gold-500 to-gold-700 text-white shadow-md"
+                        : "text-warmMuted hover:bg-warm-100"
+                    }`}
                   >
                     <svg
-                      className="w-5 h-5"
+                      className="h-5 w-5"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -302,22 +350,21 @@ export default function AppHome() {
                         strokeLinejoin="round"
                         strokeWidth="2"
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      ></path>
+                      />
                     </svg>
-                    Timeline
+                    {copy.viewTimeline}
                   </button>
                 </div>
 
-                {/* Quick Filters (UI Only) */}
-                <div className="inline-flex rounded-xl bg-white p-1 shadow-sm border border-warm-200 ml-2 hidden lg:inline-flex">
-                  <button className="px-4 py-2 rounded-lg text-sm font-semibold bg-warm-100 text-warmText shadow-sm border border-warm-200">
-                    Semua
+                <div className="ml-2 hidden rounded-xl border border-warm-200 bg-white p-1 shadow-sm lg:inline-flex">
+                  <button className="rounded-lg border border-warm-200 bg-warm-100 px-4 py-2 text-sm font-semibold text-warmText shadow-sm">
+                    {copy.filterAll}
                   </button>
                   <button
-                    className="px-4 py-2 rounded-lg text-sm font-semibold text-warmMuted/50 hover:bg-warm-100 cursor-not-allowed"
-                    title="Coming Soon"
+                    className="cursor-not-allowed rounded-lg px-4 py-2 text-sm font-semibold text-warmMuted/50 hover:bg-warm-100"
+                    title={copy.comingSoon}
                   >
-                    Keluarga Inti
+                    {copy.filterCore}
                   </button>
                 </div>
               </div>
@@ -325,7 +372,7 @@ export default function AppHome() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowInviteModal(true)}
-                  className="px-4 py-2.5 bg-white border-2 border-gold-200 text-gold-700 rounded-xl font-semibold text-sm hover:bg-gold-50 transition-colors flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-xl border-2 border-gold-200 bg-white px-4 py-2.5 text-sm font-semibold text-gold-700 transition-colors hover:bg-gold-50"
                 >
                   <svg
                     width="18"
@@ -339,11 +386,11 @@ export default function AppHome() {
                     <polyline points="17 8 12 3 7 8" />
                     <line x1="12" y1="3" x2="12" y2="15" />
                   </svg>
-                  Undang
+                  {copy.invite}
                 </button>
                 <button
                   onClick={() => setShowImportModal(true)}
-                  className="px-4 py-2.5 bg-white border-2 border-gold-200 text-gold-700 rounded-xl font-semibold text-sm hover:bg-gold-50 transition-colors flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-xl border-2 border-gold-200 bg-white px-4 py-2.5 text-sm font-semibold text-gold-700 transition-colors hover:bg-gold-50"
                 >
                   <svg
                     width="18"
@@ -357,9 +404,9 @@ export default function AppHome() {
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
-                  Import
+                  {copy.import}
                 </button>
-                <button className="px-4 py-2.5 bg-white border-2 border-gold-200 text-gold-700 rounded-xl font-semibold text-sm hover:bg-gold-50 transition-colors flex items-center gap-2">
+                <button className="flex items-center gap-2 rounded-xl border-2 border-gold-200 bg-white px-4 py-2.5 text-sm font-semibold text-gold-700 transition-colors hover:bg-gold-50">
                   <svg
                     width="18"
                     height="18"
@@ -371,17 +418,17 @@ export default function AppHome() {
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
                   </svg>
-                  Export
+                  {copy.export}
                 </button>
               </div>
             </div>
 
-            {/* Canvas Wrapper */}
             <main
-              className={`w-full rounded-2xl shadow-xl bg-white overflow-hidden relative transition-all duration-300 ${isFullscreen
-                ? "fixed inset-0 z-[60] rounded-none h-screen"
-                : "h-[600px] border border-warm-200"
-                }`}
+              className={`relative w-full overflow-hidden rounded-2xl bg-white shadow-xl transition-all duration-300 ${
+                isFullscreen
+                  ? "fixed inset-0 z-[60] h-screen rounded-none"
+                  : "h-[600px] border border-warm-200"
+              }`}
             >
               {viewMode === "tree" ? (
                 <FamilyTreeCanvas
@@ -401,7 +448,7 @@ export default function AppHome() {
 
               <button
                 onClick={() => setIsFullscreen(!isFullscreen)}
-                className="absolute top-4 right-4 p-2.5 bg-white/80 backdrop-blur border border-warm-200 rounded-full shadow-sm hover:scale-110 hover:bg-white hover:border-gold-500 hover:text-gold-600 transition-all text-warmMuted z-10"
+                className="absolute right-4 top-4 z-10 rounded-full border border-warm-200 bg-white/80 p-2.5 text-warmMuted shadow-sm backdrop-blur transition-all hover:scale-110 hover:border-gold-500 hover:bg-white hover:text-gold-600"
               >
                 <svg
                   width="20"
@@ -422,27 +469,23 @@ export default function AppHome() {
               </button>
 
               {viewMode === "tree" && (
-                <>
-                  {/* Quick Add Button (Bottom Left inside canvas) */}
-                  <button
-                    onClick={() => {
-                      const rootNode = currentTree.nodes.find(
-                        (n) => !n.parentIds?.length && !n.parentId
-                      );
-                      if (rootNode) {
-                        handleAddNode(rootNode.id, "child");
-                      }
-                    }}
-                    className="absolute bottom-6 left-6 flex h-12 w-12 items-center justify-center rounded-full bg-gold-700 text-2xl text-white shadow-lg hover:bg-gold-800 transition lg:hidden z-20"
-                    title="Tambah anggota keluarga (Root)"
-                  >
-                    +
-                  </button>
-                </>
+                <button
+                  onClick={() => {
+                    const rootNode = currentTree.nodes.find(
+                      (n) => !n.parentIds?.length && !n.parentId
+                    );
+                    if (rootNode) {
+                      handleAddNode(rootNode.id, "child");
+                    }
+                  }}
+                  className="absolute bottom-6 left-6 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-gold-700 text-2xl text-white shadow-lg transition hover:bg-gold-800 lg:hidden"
+                  title={copy.addMemberTitle}
+                >
+                  +
+                </button>
               )}
             </main>
 
-            {/* Global Features Section */}
             <section className="mt-12">
               <GlobalStories
                 nodes={currentTree.nodes}
@@ -451,9 +494,6 @@ export default function AppHome() {
             </section>
           </div>
 
-          {/* Fixed/Modal Elements moved outside container for proper positioning */}
-
-          {/* Bio Modal */}
           {selectedNode && (
             <BioModal
               node={selectedNode}
@@ -467,7 +507,6 @@ export default function AppHome() {
             />
           )}
 
-          {/* Node Editor Modal */}
           <NodeEditor
             isOpen={showNodeEditor}
             onClose={() => {
@@ -480,7 +519,6 @@ export default function AppHome() {
             parentId={addParentId}
           />
 
-          {/* Invite Modal */}
           {currentTree && (
             <InviteModal
               isOpen={showInviteModal}
@@ -490,59 +528,56 @@ export default function AppHome() {
             />
           )}
 
-          {/* Import Modal */}
           <ImportModal
             isOpen={showImportModal}
             onClose={() => setShowImportModal(false)}
             onImport={(nodes) => {
               importNodes(nodes);
-              showNotification(`${nodes.length} anggota keluarga berhasil diimport`);
+              showNotification(copy.notifImported(nodes.length));
             }}
           />
 
-          {/* Footer Stats */}
-          <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-warm-200 z-40">
+          <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-warm-200 bg-white/95 backdrop-blur-xl">
             <div className="container mx-auto max-w-6xl">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-gold-500 to-gold-700">
+                  <div className="bg-gradient-to-br from-gold-500 to-gold-700 bg-clip-text text-2xl font-bold text-transparent">
                     {stats.generations}
                   </div>
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-warmMuted mt-1">
-                    Generations
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-warmMuted">
+                    {copy.statGenerations}
                   </p>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-gold-500 to-gold-700">
+                  <div className="bg-gradient-to-br from-gold-500 to-gold-700 bg-clip-text text-2xl font-bold text-transparent">
                     {stats.members}
                   </div>
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-warmMuted mt-1">
-                    Family Members
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-warmMuted">
+                    {copy.statMembers}
                   </p>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-gold-500 to-gold-700">
+                  <div className="bg-gradient-to-br from-gold-500 to-gold-700 bg-clip-text text-2xl font-bold text-transparent">
                     {stats.lines}
                   </div>
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-warmMuted mt-1">
-                    Family Lines
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-warmMuted">
+                    {copy.statLines}
                   </p>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-gold-500 to-gold-700">
+                  <div className="bg-gradient-to-br from-gold-500 to-gold-700 bg-clip-text text-2xl font-bold text-transparent">
                     {stats.earliestRecord}
                   </div>
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-warmMuted mt-1">
-                    Earliest Record
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-warmMuted">
+                    {copy.statEarliest}
                   </p>
                 </div>
               </div>
             </div>
           </footer>
 
-          {/* Notifications */}
           {notification && (
-            <div className="fixed top-6 left-1/2 -translate-x-1/2 rounded-full bg-warmText/90 backdrop-blur px-6 py-3 text-sm font-medium text-white shadow-xl z-50 animate-[fadeIn_0.3s]">
+            <div className="fixed left-1/2 top-6 z-50 -translate-x-1/2 rounded-full bg-warmText/90 px-6 py-3 text-sm font-medium text-white shadow-xl backdrop-blur animate-[fadeIn_0.3s]">
               {notification}
             </div>
           )}

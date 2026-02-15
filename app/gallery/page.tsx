@@ -7,6 +7,84 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { galleryItems } from "../../lib/content/galleryItems";
+import { useLanguage } from "../../components/providers/LanguageProvider";
+
+type LocalizedGalleryMeta = {
+  subtitle: string;
+  summary: string;
+  era: string;
+  palette: string;
+};
+
+const localizedGalleryMeta: Record<
+  string,
+  { id: LocalizedGalleryMeta; en: LocalizedGalleryMeta }
+> = {
+  "ivory-classic": {
+    id: {
+      subtitle: "Memoar hidup personal",
+      summary:
+        "Potret hitam-putih yang tegas untuk kisah hidup personal, perjalanan batin, dan momen penting yang membentuk karakter.",
+      era: "Klasik Modern",
+      palette: "Monokrom Noir",
+    },
+    en: {
+      subtitle: "Personal life memoir",
+      summary:
+        "A bold black-and-white portrait for personal journeys, inner growth, and defining life moments.",
+      era: "Modern Classic",
+      palette: "Monochrome Noir",
+    },
+  },
+  "royal-navy": {
+    id: {
+      subtitle: "Edisi tribute keluarga",
+      summary:
+        "Siluet lembut dan nuansa hangat untuk mengenang sosok ibu, berisi cerita masa kecil, pengorbanan, dan kasih yang diwariskan.",
+      era: "Lintas Generasi",
+      palette: "Krim Hangat",
+    },
+    en: {
+      subtitle: "Family tribute edition",
+      summary:
+        "A soft silhouette with warm tones to honor a mother figure, filled with childhood stories, sacrifice, and enduring love.",
+      era: "Cross Generation",
+      palette: "Warm Cream",
+    },
+  },
+  "crimson-legacy": {
+    id: {
+      subtitle: "Kronik foto keluarga",
+      summary:
+        "Berbasis foto keluarga, cocok untuk kisah ayah sebagai figur sentral: nilai hidup, perjuangan, dan kebersamaan lintas generasi.",
+      era: "Generasi Kini",
+      palette: "Teal Gading",
+    },
+    en: {
+      subtitle: "Family photo chronicle",
+      summary:
+        "Built from family photos, ideal for a father's central journey: values, struggles, and togetherness across generations.",
+      era: "Current Generation",
+      palette: "Teal Ivory",
+    },
+  },
+  "emerald-vault": {
+    id: {
+      subtitle: "Edisi memori warisan",
+      summary:
+        "Sampul bernuansa vintage hangat untuk memoar keteguhan hidup, kenangan masa tua, dan warisan nilai yang tetap menyala.",
+      era: "Kisah Seumur Hidup",
+      palette: "Amber Klasik",
+    },
+    en: {
+      subtitle: "Legacy memory edition",
+      summary:
+        "A warm vintage cover for memoirs of resilience, later-life memories, and values passed forward.",
+      era: "Lifetime Story",
+      palette: "Amber Vintage",
+    },
+  },
+};
 
 export default function GalleryPage() {
   return (
@@ -17,6 +95,7 @@ export default function GalleryPage() {
 }
 
 function GalleryPageContent() {
+  const { locale } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -25,6 +104,53 @@ function GalleryPageContent() {
   const [isMounted, setIsMounted] = useState(false);
 
   const activeItem = activeIndex !== null ? galleryItems[activeIndex] : null;
+  const copy =
+    locale === "id"
+      ? {
+          sectionLabel: "Galeri",
+          title: "Koleksi Biografi Pilihan",
+          desc:
+            "Halaman ini memperluas section unggulan dari beranda. Koleksi yang sama, sekarang dengan konteks lebih kaya, catatan era, dan detail identitas visual tiap sampul biografi.",
+          backHome: "Kembali ke Beranda",
+          era: "Era",
+          palette: "Palet",
+          tips: "Tips: gunakan tombol panah kiri/kanan untuk melihat sampul dengan cepat.",
+          prev: "Sebelumnya",
+          next: "Berikutnya",
+          close: "Tutup",
+          ariaCloseModal: "Tutup modal",
+          ariaPrevCover: "Sampul sebelumnya",
+          ariaNextCover: "Sampul berikutnya",
+          ariaOpenDetails: (title: string) => `Buka detail ${title}`,
+        }
+      : {
+          sectionLabel: "Gallery",
+          title: "Featured Biography Collections",
+          desc:
+            "This page expands the featured section from homepage. Same collection, now with richer context, era notes, and visual identity detail for each biography cover.",
+          backHome: "Back to Home",
+          era: "Era",
+          palette: "Palette",
+          tips: "Tips: use left/right arrow keys to browse covers quickly.",
+          prev: "Prev",
+          next: "Next",
+          close: "Close",
+          ariaCloseModal: "Close modal",
+          ariaPrevCover: "Previous cover",
+          ariaNextCover: "Next cover",
+          ariaOpenDetails: (title: string) => `Open ${title} details`,
+        };
+
+  const getLocalizedMeta = useCallback(
+    (itemId: string): LocalizedGalleryMeta | null => {
+      const itemMeta = localizedGalleryMeta[itemId];
+      if (!itemMeta) return null;
+      return locale === "id" ? itemMeta.id : itemMeta.en;
+    },
+    [locale]
+  );
+
+  const activeMeta = activeItem ? getLocalizedMeta(activeItem.id) : null;
 
   const replaceItemQuery = useCallback(
     (itemId: string | null) => {
@@ -140,7 +266,7 @@ function GalleryPageContent() {
             type="button"
             onClick={closeModal}
             className="absolute right-3 top-3 z-20 hidden h-10 w-10 items-center justify-center rounded-full border border-[#d9ccb8] bg-white/90 text-[#5d4f42] shadow-sm transition hover:bg-white md:inline-flex"
-            aria-label="Close modal"
+            aria-label={copy.ariaCloseModal}
           >
             <X className="h-5 w-5" />
           </button>
@@ -159,7 +285,7 @@ function GalleryPageContent() {
 
             <div className="max-h-[48vh] space-y-5 overflow-y-auto p-6 md:max-h-[calc(100vh-4rem)] md:p-10">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a68553]">
-                {activeItem.subtitle}
+                {activeMeta?.subtitle || activeItem.subtitle}
               </p>
               <h2 className="font-serif text-[clamp(2rem,4vw,3.2rem)] leading-tight text-[#3f342d]">
                 {activeItem.title}
@@ -167,19 +293,19 @@ function GalleryPageContent() {
 
               <div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#705f4e]">
                 <span className="rounded-full border border-[#dfd2bb] bg-white/80 px-2.5 py-1">
-                  Era: {activeItem.era}
+                  {copy.era}: {activeMeta?.era || activeItem.era}
                 </span>
                 <span className="rounded-full border border-[#dfd2bb] bg-white/80 px-2.5 py-1">
-                  Palette: {activeItem.palette}
+                  {copy.palette}: {activeMeta?.palette || activeItem.palette}
                 </span>
               </div>
 
               <p className="max-w-xl text-base leading-relaxed text-[#6f6358] md:text-lg">
-                {activeItem.summary}
+                {activeMeta?.summary || activeItem.summary}
               </p>
 
               <p className="text-sm text-[#7b6e61]">
-                Tips: use left/right arrow keys to browse covers quickly.
+                {copy.tips}
               </p>
             </div>
           </div>
@@ -189,27 +315,27 @@ function GalleryPageContent() {
               type="button"
               onClick={goPrev}
               className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[#d9ccb8] bg-white text-sm font-semibold text-[#5d4f42]"
-              aria-label="Previous cover"
+              aria-label={copy.ariaPrevCover}
             >
               <ChevronLeft className="h-4 w-4" />
-              Prev
+              {copy.prev}
             </button>
             <button
               type="button"
               onClick={closeModal}
               className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[#e4c9c9] bg-[#fff5f5] text-sm font-semibold text-[#9b4d4d]"
-              aria-label="Close modal"
+              aria-label={copy.ariaCloseModal}
             >
               <X className="h-4 w-4" />
-              Close
+              {copy.close}
             </button>
             <button
               type="button"
               onClick={goNext}
               className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[#d9ccb8] bg-white text-sm font-semibold text-[#5d4f42]"
-              aria-label="Next cover"
+              aria-label={copy.ariaNextCover}
             >
-              Next
+              {copy.next}
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -218,7 +344,7 @@ function GalleryPageContent() {
             type="button"
             onClick={goPrev}
             className="absolute left-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#d9ccb8] bg-white/90 text-[#5d4f42] shadow-sm transition hover:bg-white md:inline-flex"
-            aria-label="Previous cover"
+            aria-label={copy.ariaPrevCover}
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -227,7 +353,7 @@ function GalleryPageContent() {
             type="button"
             onClick={goNext}
             className="absolute right-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#d9ccb8] bg-white/90 text-[#5d4f42] shadow-sm transition hover:bg-white md:inline-flex"
-            aria-label="Next cover"
+            aria-label={copy.ariaNextCover}
           >
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -242,15 +368,13 @@ function GalleryPageContent() {
         <div className="mb-10 flex flex-col gap-5 md:mb-12 md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a68553]">
-              Gallery
+              {copy.sectionLabel}
             </p>
             <h1 className="font-serif text-[clamp(2rem,4.8vw,3.8rem)] leading-[1.06] text-[#3f342d]">
-              Featured Biography Collections
+              {copy.title}
             </h1>
             <p className="text-base leading-relaxed text-[#72675f] md:text-lg">
-              This page expands the featured section from homepage. Same
-              collection, now with richer context, era notes, and visual
-              identity detail for each biography cover.
+              {copy.desc}
             </p>
           </div>
 
@@ -258,7 +382,7 @@ function GalleryPageContent() {
             href="/"
             className="inline-flex items-center gap-2 self-start rounded-full border border-[#dccfb7] bg-white/80 px-5 py-2 text-sm font-semibold text-[#6c5a49] transition hover:border-[#c7b289] hover:bg-white hover:text-[#4c3f34] md:self-auto"
           >
-            Back to Home
+            {copy.backHome}
             <span aria-hidden>&rarr;</span>
           </Link>
         </div>
@@ -273,7 +397,7 @@ function GalleryPageContent() {
                 type="button"
                 onClick={() => openItem(index)}
                 className="block w-full text-left"
-                aria-label={`Open ${item.title} details`}
+                aria-label={copy.ariaOpenDetails(item.title)}
               >
                 <div className="relative aspect-[2/3] overflow-hidden">
                   <Image
@@ -289,7 +413,7 @@ function GalleryPageContent() {
                 <div className="space-y-3 p-5">
                   <div className="space-y-1">
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#aa8b5c]">
-                      {item.subtitle}
+                      {getLocalizedMeta(item.id)?.subtitle || item.subtitle}
                     </p>
                     <h2 className="font-serif text-2xl leading-tight text-[#3f342d]">
                       {item.title}
@@ -298,15 +422,15 @@ function GalleryPageContent() {
 
                   <div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#705f4e]">
                     <span className="rounded-full border border-[#dfd2bb] bg-[#faf7f1] px-2.5 py-1">
-                      Era: {item.era}
+                      {copy.era}: {getLocalizedMeta(item.id)?.era || item.era}
                     </span>
                     <span className="rounded-full border border-[#dfd2bb] bg-[#faf7f1] px-2.5 py-1">
-                      {item.palette}
+                      {getLocalizedMeta(item.id)?.palette || item.palette}
                     </span>
                   </div>
 
                   <p className="text-sm leading-relaxed text-[#6f6358]">
-                    {item.summary}
+                    {getLocalizedMeta(item.id)?.summary || item.summary}
                   </p>
                 </div>
               </button>

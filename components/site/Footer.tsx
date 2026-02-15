@@ -1,15 +1,38 @@
+"use client";
+
 import Link from "next/link";
 import { BookMarked } from "lucide-react";
-
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/gallery", label: "Gallery" },
-  { href: "/app", label: "Family Trees" },
-  { href: "/about", label: "About Us" },
-  { href: "/contact", label: "Contact" },
-];
+import { useLanguage } from "../providers/LanguageProvider";
 
 export function Footer() {
+  const { locale } = useLanguage();
+  const copy =
+    locale === "id"
+      ? {
+          links: [
+            { href: "/", label: "Beranda" },
+            { href: "/gallery", label: "Galeri" },
+            { href: "/app", label: "Pohon Keluarga" },
+            { href: "/about", label: "Tentang Kami" },
+            { href: "/contact", label: "Kontak" },
+          ],
+          tagline:
+            "Mengabadikan kisah keluarga dengan pengalaman premium yang tak lekang waktu. Dibangun untuk memori, warisan, dan kolaborasi modern.",
+          rights: "Hak cipta dilindungi.",
+        }
+      : {
+          links: [
+            { href: "/", label: "Home" },
+            { href: "/gallery", label: "Gallery" },
+            { href: "/app", label: "Family Trees" },
+            { href: "/about", label: "About Us" },
+            { href: "/contact", label: "Contact" },
+          ],
+          tagline:
+            "Preserving family stories with a timeless, premium experience. Built for memory, legacy, and modern collaboration.",
+          rights: "All rights reserved.",
+        };
+
   return (
     <footer className="border-t border-[#e4dccf] bg-[#f7f5f1]">
       <div className="mx-auto max-w-[1320px] px-6 py-12">
@@ -24,13 +47,12 @@ export function Footer() {
               </span>
             </div>
             <p className="max-w-xl text-sm leading-relaxed text-[#786b5e]">
-              Preserving family stories with a timeless, premium experience.
-              Built for memory, legacy, and modern collaboration.
+              {copy.tagline}
             </p>
           </div>
 
           <nav className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            {links.map((link) => (
+            {copy.links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -43,7 +65,9 @@ export function Footer() {
         </div>
 
         <div className="mt-8 border-t border-[#e5dfd3] pt-5 text-xs text-[#8a7e72]">
-          <p>&copy; {new Date().getFullYear()} Lifestory.co. All rights reserved.</p>
+          <p>
+            &copy; {new Date().getFullYear()} Lifestory.co. {copy.rights}
+          </p>
         </div>
       </div>
     </footer>

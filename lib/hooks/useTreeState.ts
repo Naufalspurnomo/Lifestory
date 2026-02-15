@@ -26,12 +26,28 @@ function normalizeNode(n: any): FamilyNode {
   const parentIdsFromField = Array.isArray(n.parentIds) ? n.parentIds : [];
   const parentIdsFromLegacy = n.parentId ? [n.parentId] : [];
   const parentIds = uniq([...parentIdsFromField, ...parentIdsFromLegacy]);
+  const content = n && typeof n.content === "object" ? n.content : {};
+  const instagram =
+    typeof content.instagram === "string" ? content.instagram.trim() : "";
+  const tiktok =
+    typeof content.tiktok === "string" ? content.tiktok.trim() : "";
+  const linkedin =
+    typeof content.linkedin === "string" ? content.linkedin.trim() : "";
+  const normalizedContent: FamilyNode["content"] = {
+    description:
+      typeof content.description === "string" ? content.description : "",
+    media: Array.isArray(content.media) ? content.media : [],
+    ...(instagram ? { instagram } : {}),
+    ...(tiktok ? { tiktok } : {}),
+    ...(linkedin ? { linkedin } : {}),
+  };
 
   return {
     ...n,
     partners,
     childrenIds,
     parentIds,
+    content: normalizedContent,
     parentId: parentIds[0] ?? null, // keep legacy in sync
   };
 }

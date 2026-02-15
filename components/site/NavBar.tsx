@@ -17,14 +17,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-
-const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/gallery", label: "Gallery" },
-  { href: "/app", label: "Family Trees" },
-  { href: "/about", label: "About Us" },
-  { href: "/contact", label: "Contact" },
-];
+import { useLanguage } from "../providers/LanguageProvider";
+import { LanguageToggle } from "./LanguageToggle";
 
 type AccountLink = {
   href: string;
@@ -40,6 +34,7 @@ function isActive(pathname: string, href: string) {
 export function NavBar() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const { locale } = useLanguage();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -49,28 +44,85 @@ export function NavBar() {
   const isLoggedIn = status === "authenticated";
   const isAdmin = user?.role === "admin";
   const isSubscribed = Boolean(user?.subscriptionActive);
-  const displayName = user?.name?.trim() || "Member";
-  const displayEmail = user?.email || "No email";
+  const copy =
+    locale === "id"
+      ? {
+          nav: {
+            home: "Beranda",
+            gallery: "Galeri",
+            familyTrees: "Pohon Keluarga",
+            about: "Tentang Kami",
+            contact: "Kontak",
+          },
+          startStory: "Mulai Cerita",
+          accountAdmin: "Admin",
+          accountMember: "Anggota",
+          accountPending: "Menunggu",
+          adminDashboard: "Dashboard Admin",
+          collections: "Koleksi",
+          activatePlan: "Aktifkan Paket",
+          familyTrees: "Pohon Keluarga",
+          signOut: "Keluar",
+          noEmail: "Email tidak tersedia",
+          adminAccount: "Akun Admin",
+          memberAccount: "Akun Anggota",
+          pendingMember: "Anggota Menunggu",
+          closeAccountMenu: "Tutup latar menu akun",
+          toggleMenu: "Buka/tutup menu",
+        }
+      : {
+          nav: {
+            home: "Home",
+            gallery: "Gallery",
+            familyTrees: "Family Trees",
+            about: "About Us",
+            contact: "Contact",
+          },
+          startStory: "Start Story",
+          accountAdmin: "Admin",
+          accountMember: "Member",
+          accountPending: "Pending",
+          adminDashboard: "Admin Dashboard",
+          collections: "Collections",
+          activatePlan: "Activate Plan",
+          familyTrees: "Family Trees",
+          signOut: "Sign Out",
+          noEmail: "No email",
+          adminAccount: "Admin Account",
+          memberAccount: "Member Account",
+          pendingMember: "Pending Member",
+          closeAccountMenu: "Close account menu backdrop",
+          toggleMenu: "Toggle menu",
+        };
+  const navLinks = [
+    { href: "/", label: copy.nav.home },
+    { href: "/gallery", label: copy.nav.gallery },
+    { href: "/app", label: copy.nav.familyTrees },
+    { href: "/about", label: copy.nav.about },
+    { href: "/contact", label: copy.nav.contact },
+  ];
+  const displayName = user?.name?.trim() || copy.accountMember;
+  const displayEmail = user?.email || copy.noEmail;
   const userInitial = displayName.charAt(0).toUpperCase();
 
   const accountLinks = useMemo<AccountLink[]>(() => {
     if (isAdmin) {
       return [
-        { href: "/dashboard", label: "Admin Dashboard", icon: LayoutDashboard },
-        { href: "/app", label: "Family Trees", icon: TreePine },
-        { href: "/gallery", label: "Collections", icon: Sparkles },
+        { href: "/dashboard", label: copy.adminDashboard, icon: LayoutDashboard },
+        { href: "/app", label: copy.familyTrees, icon: TreePine },
+        { href: "/gallery", label: copy.collections, icon: Sparkles },
       ];
     }
 
     return [
       {
         href: isSubscribed ? "/app" : "/subscribe",
-        label: isSubscribed ? "Family Trees" : "Activate Plan",
+        label: isSubscribed ? copy.familyTrees : copy.activatePlan,
         icon: isSubscribed ? TreePine : Crown,
       },
-      { href: "/gallery", label: "Collections", icon: Sparkles },
+      { href: "/gallery", label: copy.collections, icon: Sparkles },
     ];
-  }, [isAdmin, isSubscribed]);
+  }, [copy, isAdmin, isSubscribed]);
 
   useEffect(() => {
     function onScroll() {
@@ -95,8 +147,10 @@ export function NavBar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 border-b border-[#e8e1d6] bg-white/92 backdrop-blur-md transition-all duration-300 ${
-        isScrolled ? "shadow-[0_10px_24px_rgba(62,48,28,0.12)]" : ""
+      className={`sticky top-0 z-50 border-b transition-all duration-300 ${
+        isScrolled
+          ? "border-[#e2d7c5] bg-[#fffdf9] shadow-[0_10px_24px_rgba(62,48,28,0.12)]"
+          : "border-[#e8e1d6] bg-[rgba(255,253,249,0.96)]"
       }`}
     >
       <div
@@ -104,7 +158,10 @@ export function NavBar() {
           isScrolled ? "h-[62px]" : "h-[74px]"
         }`}
       >
-        <Link href="/" className="inline-flex items-center gap-3">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-3 rounded-full border border-[#e8dece] bg-white/95 px-3 py-1.5 shadow-[0_8px_18px_rgba(76,58,33,0.08)]"
+        >
           <span
             className={`inline-flex items-center justify-center rounded-md border-2 border-[#e3a621] text-[#e3a621] transition-all duration-300 ${
               isScrolled ? "h-8 w-8" : "h-9 w-9"
@@ -137,7 +194,7 @@ export function NavBar() {
                 className={`group relative pb-1.5 font-semibold tracking-[0.02em] transition ${
                   isScrolled ? "text-[14px]" : "text-[15px]"
                 } ${
-                  active ? "text-[#d7991e]" : "text-[#7f756e] hover:text-[#4a3f37]"
+                  active ? "text-[#cf8f16]" : "text-[#6a5f56] hover:text-[#3f342d]"
                 }`}
               >
                 {link.label}
@@ -152,6 +209,8 @@ export function NavBar() {
         </nav>
 
         <div className="hidden items-center gap-2 xl:flex">
+          <LanguageToggle />
+
           {status === "loading" && (
             <div className="h-10 w-44 animate-pulse rounded-full border border-[#e4d7c1] bg-white/80" />
           )}
@@ -163,7 +222,7 @@ export function NavBar() {
                 isScrolled ? "px-4 py-2 text-[11px]" : "px-5 py-2.5 text-xs"
               }`}
             >
-              Start Story
+              {copy.startStory}
             </Link>
           )}
 
@@ -189,7 +248,11 @@ export function NavBar() {
                       : "bg-[#f6ead6] text-[#8d6426]"
                   }`}
                 >
-                  {isAdmin ? "Admin" : isSubscribed ? "Member" : "Pending"}
+                  {isAdmin
+                    ? copy.accountAdmin
+                    : isSubscribed
+                    ? copy.accountMember
+                    : copy.accountPending}
                 </span>
                 <ChevronDown className="h-4 w-4 text-[#7d6f62]" />
               </button>
@@ -197,7 +260,7 @@ export function NavBar() {
               {accountOpen && (
                 <>
                   <button
-                    aria-label="Close account menu backdrop"
+                    aria-label={copy.closeAccountMenu}
                     className="fixed inset-0 z-10 cursor-default"
                     onClick={() => setAccountOpen(false)}
                   />
@@ -239,7 +302,7 @@ export function NavBar() {
                         className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[#b34a4a] transition hover:bg-[#fff1f1]"
                       >
                         <LogOut className="h-4 w-4" />
-                        Sign Out
+                        {copy.signOut}
                       </button>
                     </div>
                   </div>
@@ -252,7 +315,7 @@ export function NavBar() {
         <button
           onClick={() => setMobileOpen((prev) => !prev)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#dfd8cc] text-[#5f5247] xl:hidden"
-          aria-label="Toggle menu"
+          aria-label={copy.toggleMenu}
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -260,6 +323,10 @@ export function NavBar() {
 
       {mobileOpen && (
         <div className="border-t border-[#ece6dd] bg-white px-6 py-4 xl:hidden">
+          <div className="mb-4">
+            <LanguageToggle />
+          </div>
+
           <nav className="flex flex-col gap-2.5">
             {navLinks.map((link) => {
               const active = isActive(pathname, link.href);
@@ -291,7 +358,7 @@ export function NavBar() {
                 onClick={() => setMobileOpen(false)}
                 className="inline-flex w-full items-center justify-center rounded-md bg-[#e4a429] px-3 py-2 text-sm font-semibold text-white"
               >
-                Start Story
+                {copy.startStory}
               </Link>
             )}
 
@@ -302,7 +369,11 @@ export function NavBar() {
                   <p className="truncate text-xs text-[#7f7062]">{displayEmail}</p>
                   <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a27f4a]">
                     <UserCircle2 className="h-3.5 w-3.5" />
-                    {isAdmin ? "Admin Account" : isSubscribed ? "Member Account" : "Pending Member"}
+                    {isAdmin
+                      ? copy.adminAccount
+                      : isSubscribed
+                      ? copy.memberAccount
+                      : copy.pendingMember}
                   </p>
                 </div>
 
@@ -328,7 +399,7 @@ export function NavBar() {
                     className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#f2d1d1] bg-[#fff4f4] px-3 py-2 text-sm font-semibold text-[#b34a4a]"
                   >
                     <LogOut className="h-4 w-4" />
-                    Sign Out
+                    {copy.signOut}
                   </button>
                 </div>
               </div>

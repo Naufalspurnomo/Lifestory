@@ -14,30 +14,57 @@ import {
   Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useLanguage } from "../../../components/providers/LanguageProvider";
 import { Button } from "../../../components/ui/Button";
 
 function LoadingState() {
+  const { locale } = useLanguage();
   return (
     <div className="flex min-h-[420px] items-center justify-center">
       <div className="rounded-2xl border border-warmBorder bg-white px-6 py-4 text-sm text-warmMuted shadow-sm">
-        Memuat halaman pendaftaran...
+        {locale === "id"
+          ? "Memuat halaman pendaftaran..."
+          : "Loading registration page..."}
       </div>
     </div>
   );
 }
 
 function AuthenticatedState() {
+  const { locale } = useLanguage();
   return (
     <div className="flex min-h-[420px] items-center justify-center">
       <div className="rounded-2xl border border-accent-200 bg-accent-50/70 px-6 py-5 text-center shadow-sm">
-        <p className="text-sm font-semibold text-accent-700">Anda sudah login.</p>
-        <p className="mt-1 text-sm text-accent-700">Mengalihkan ke aplikasi...</p>
+        <p className="text-sm font-semibold text-accent-700">
+          {locale === "id" ? "Anda sudah login." : "You are already logged in."}
+        </p>
+        <p className="mt-1 text-sm text-accent-700">
+          {locale === "id" ? "Mengalihkan ke aplikasi..." : "Redirecting to app..."}
+        </p>
       </div>
     </div>
   );
 }
 
 function SuccessState() {
+  const { locale } = useLanguage();
+  const copy =
+    locale === "id"
+      ? {
+          title: "Pendaftaran diterima!",
+          desc:
+            "Data Anda sudah masuk. Tim admin akan menghubungi lewat WhatsApp untuk verifikasi dan aktivasi akun.",
+          viewPlans: "Lihat Paket Langganan",
+          backHome: "Kembali ke Beranda",
+        }
+      : {
+          title: "Registration received!",
+          desc:
+            "Your data has been submitted. Our admin team will contact you via WhatsApp for verification and account activation.",
+          viewPlans: "View Subscription Plans",
+          backHome: "Back to Home",
+        };
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-warm-50 via-[#fbf8f2] to-white">
       <div className="pointer-events-none absolute inset-0">
@@ -55,20 +82,23 @@ function SuccessState() {
           <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100 text-green-700">
             <BadgeCheck className="h-6 w-6" />
           </div>
-          <h2 className="font-serif text-3xl text-warmText">Pendaftaran diterima!</h2>
+          <h2 className="font-serif text-3xl text-warmText">{copy.title}</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-warmMuted sm:text-base">
-            Data Anda sudah masuk. Tim admin akan menghubungi lewat WhatsApp untuk verifikasi dan aktivasi akun.
+            {copy.desc}
           </p>
 
           <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link href="/subscribe" className="w-full sm:w-auto">
               <Button className="h-11 w-full rounded-xl px-6 sm:w-auto">
-                Lihat Paket Langganan
+                {copy.viewPlans}
               </Button>
             </Link>
             <Link href="/" className="w-full sm:w-auto">
-              <Button variant="secondary" className="h-11 w-full rounded-xl px-6 sm:w-auto">
-                Kembali ke Beranda
+              <Button
+                variant="secondary"
+                className="h-11 w-full rounded-xl px-6 sm:w-auto"
+              >
+                {copy.backHome}
               </Button>
             </Link>
           </div>
@@ -80,9 +110,73 @@ function SuccessState() {
 
 export default function RegisterPage() {
   const { status: sessionStatus } = useSession();
+  const { locale } = useLanguage();
   const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  const copy =
+    locale === "id"
+      ? {
+          badge: "Family Onboarding",
+          title: "Daftarkan keluarga Anda ke Lifestory.",
+          subtitle:
+            "Mulai ruang arsip digital untuk menyimpan sejarah keluarga dan mengelola akses lintas generasi.",
+          name: "Nama Lengkap",
+          namePlaceholder: "Nama Anda",
+          email: "Email",
+          emailPlaceholder: "nama@email.com",
+          phone: "Nomor WhatsApp",
+          phonePlaceholder: "08xxxxxxxxxx",
+          password: "Password",
+          passwordPlaceholder: "Min 8 karakter, huruf besar, kecil, angka",
+          passwordTitle: "Minimal 8 karakter dengan huruf besar, huruf kecil, dan angka",
+          processing: "Memproses...",
+          register: "Daftar Sekarang",
+          registerFailed: "Gagal mendaftarkan akun.",
+          networkError: "Terjadi kesalahan jaringan. Coba lagi.",
+          haveAccount: "Sudah punya akun?",
+          signIn: "Masuk di sini",
+          sideTitle: "Onboarding yang rapi untuk keluarga modern.",
+          sidePoints: [
+            "Data pendaftaran diverifikasi sebelum akun aktif.",
+            "Akses keluarga dikelola bertahap sesuai kebutuhan.",
+            "Koordinasi aktivasi akun via WhatsApp admin.",
+          ],
+          afterSubmit: "Setelah submit",
+          afterSubmitDesc: "Tim admin akan menghubungi Anda",
+        }
+      : {
+          badge: "Family Onboarding",
+          title: "Register your family on Lifestory.",
+          subtitle:
+            "Start a digital archive space to preserve family history and manage access across generations.",
+          name: "Full Name",
+          namePlaceholder: "Your name",
+          email: "Email",
+          emailPlaceholder: "name@email.com",
+          phone: "WhatsApp Number",
+          phonePlaceholder: "08xxxxxxxxxx",
+          password: "Password",
+          passwordPlaceholder:
+            "Min 8 characters with uppercase, lowercase, and number",
+          passwordTitle:
+            "At least 8 characters with uppercase, lowercase, and number",
+          processing: "Processing...",
+          register: "Register Now",
+          registerFailed: "Failed to register account.",
+          networkError: "Network error. Please try again.",
+          haveAccount: "Already have an account?",
+          signIn: "Sign in here",
+          sideTitle: "Structured onboarding for modern families.",
+          sidePoints: [
+            "Registration data is verified before account activation.",
+            "Family access is managed gradually as needed.",
+            "Account activation coordination via admin WhatsApp.",
+          ],
+          afterSubmit: "After submit",
+          afterSubmitDesc: "Our admin team will contact you",
+        };
 
   useEffect(() => {
     if (sessionStatus === "authenticated") {
@@ -113,19 +207,15 @@ export default function RegisterPage() {
         }),
       });
 
-      const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const details = Array.isArray(payload?.details)
-          ? payload.details.join(", ")
-          : "";
-        setError(payload?.error ? `${payload.error}${details ? `: ${details}` : ""}` : "Gagal mendaftarkan akun.");
+        setError(copy.registerFailed);
         setStatus("idle");
         return;
       }
 
       setStatus("success");
     } catch {
-      setError("Terjadi kesalahan jaringan. Coba lagi.");
+      setError(copy.networkError);
       setStatus("idle");
     }
   }
@@ -152,59 +242,63 @@ export default function RegisterPage() {
           <div className="mb-8 space-y-3">
             <p className="inline-flex items-center gap-2 rounded-full border border-warmBorder bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-accent-700">
               <Sparkles className="h-3.5 w-3.5" />
-              Family Onboarding
+              {copy.badge}
             </p>
             <h1 className="font-serif text-3xl leading-tight text-warmText sm:text-4xl">
-              Daftarkan keluarga Anda ke Lifestory.
+              {copy.title}
             </h1>
             <p className="max-w-lg text-sm leading-relaxed text-warmMuted sm:text-base">
-              Mulai ruang arsip digital untuk menyimpan sejarah keluarga dan mengelola akses lintas generasi.
+              {copy.subtitle}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <label className="block space-y-1.5">
-              <span className="text-sm font-medium text-warmText">Nama Lengkap</span>
+              <span className="text-sm font-medium text-warmText">{copy.name}</span>
               <input
                 required
                 name="name"
-                placeholder="Nama Anda"
+                placeholder={copy.namePlaceholder}
                 className="w-full rounded-xl border border-warmBorder bg-white px-4 py-3 text-sm text-warmText outline-none transition focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
               />
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-sm font-medium text-warmText">Email</span>
+              <span className="text-sm font-medium text-warmText">
+                {copy.email}
+              </span>
               <input
                 required
                 name="email"
                 type="email"
-                placeholder="nama@email.com"
+                placeholder={copy.emailPlaceholder}
                 className="w-full rounded-xl border border-warmBorder bg-white px-4 py-3 text-sm text-warmText outline-none transition focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
               />
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-sm font-medium text-warmText">Nomor WhatsApp</span>
+              <span className="text-sm font-medium text-warmText">{copy.phone}</span>
               <input
                 required
                 name="phone"
                 type="tel"
-                placeholder="08xxxxxxxxxx"
+                placeholder={copy.phonePlaceholder}
                 className="w-full rounded-xl border border-warmBorder bg-white px-4 py-3 text-sm text-warmText outline-none transition focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
               />
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-sm font-medium text-warmText">Password</span>
+              <span className="text-sm font-medium text-warmText">
+                {copy.password}
+              </span>
               <input
                 required
                 name="password"
                 type="password"
-                placeholder="Min 8 karakter, huruf besar, kecil, angka"
+                placeholder={copy.passwordPlaceholder}
                 minLength={8}
                 pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,}"
-                title="Minimal 8 karakter dengan huruf besar, huruf kecil, dan angka"
+                title={copy.passwordTitle}
                 className="w-full rounded-xl border border-warmBorder bg-white px-4 py-3 text-sm text-warmText outline-none transition focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
               />
             </label>
@@ -215,7 +309,7 @@ export default function RegisterPage() {
               disabled={status === "loading"}
               className="h-12 rounded-xl text-sm"
             >
-              {status === "loading" ? "Memproses..." : "Daftar Sekarang"}
+              {status === "loading" ? copy.processing : copy.register}
             </Button>
 
             {error && (
@@ -226,9 +320,12 @@ export default function RegisterPage() {
           </form>
 
           <div className="mt-6 border-t border-warmBorder pt-5 text-sm text-warmMuted">
-            Sudah punya akun?{" "}
-            <Link href="/auth/login" className="font-semibold text-accent-700 transition hover:text-accent-800">
-              Masuk di sini
+            {copy.haveAccount}{" "}
+            <Link
+              href="/auth/login"
+              className="font-semibold text-accent-700 transition hover:text-accent-800"
+            >
+              {copy.signIn}
             </Link>
           </div>
         </motion.section>
@@ -247,18 +344,21 @@ export default function RegisterPage() {
               <TreePine className="h-5 w-5" />
             </div>
             <h2 className="font-serif text-2xl leading-tight sm:text-3xl">
-              Onboarding yang rapi untuk keluarga modern.
+              {copy.sideTitle}
             </h2>
 
             <div className="space-y-3 text-sm text-white/85">
               {[
-                { icon: ShieldCheck, text: "Data pendaftaran diverifikasi sebelum akun aktif." },
-                { icon: Users, text: "Akses keluarga dikelola bertahap sesuai kebutuhan." },
-                { icon: MessageCircleMore, text: "Koordinasi aktivasi akun via WhatsApp admin." },
+                { icon: ShieldCheck, text: copy.sidePoints[0] },
+                { icon: Users, text: copy.sidePoints[1] },
+                { icon: MessageCircleMore, text: copy.sidePoints[2] },
               ].map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.text} className="flex items-start gap-3 rounded-xl border border-white/15 bg-white/10 p-3">
+                  <div
+                    key={item.text}
+                    className="flex items-start gap-3 rounded-xl border border-white/15 bg-white/10 p-3"
+                  >
                     <Icon className="mt-0.5 h-4.5 w-4.5 shrink-0" />
                     <p>{item.text}</p>
                   </div>
@@ -268,10 +368,10 @@ export default function RegisterPage() {
 
             <div className="rounded-2xl border border-white/15 bg-black/20 p-4 text-sm">
               <p className="mb-1 text-xs font-semibold uppercase tracking-[0.15em] text-gold-200">
-                Setelah submit
+                {copy.afterSubmit}
               </p>
               <p className="inline-flex items-center gap-2 font-medium text-white">
-                Tim admin akan menghubungi Anda
+                {copy.afterSubmitDesc}
                 <ArrowRight className="h-4 w-4" />
               </p>
             </div>

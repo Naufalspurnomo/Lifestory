@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { FamilyNode } from "../../lib/types/tree";
+import { useLanguage } from "../providers/LanguageProvider";
 
 interface TimelineViewProps {
   nodes: FamilyNode[];
@@ -12,25 +13,34 @@ interface TimelineEvent {
   node: FamilyNode;
 }
 
-export default function TimelineView({
-  nodes,
-  onSelectNode,
-}: TimelineViewProps) {
+export default function TimelineView({ nodes, onSelectNode }: TimelineViewProps) {
+  const { locale } = useLanguage();
+  const copy =
+    locale === "id"
+      ? {
+          birth: "Lahir",
+          death: "Wafat",
+          generation: "Generasi",
+          empty:
+            "Belum ada data tahun kelahiran/kematian untuk ditampilkan di linimasa.",
+        }
+      : {
+          birth: "Born",
+          death: "Passed",
+          generation: "Generation",
+          empty: "No birth/death year data to display in timeline yet.",
+        };
+
   const events = useMemo(() => {
     const allEvents: TimelineEvent[] = [];
     nodes.forEach((node) => {
-      if (node.year) {
-        allEvents.push({ year: node.year, type: "birth", node });
-      }
-      if (node.deathYear) {
+      if (node.year) allEvents.push({ year: node.year, type: "birth", node });
+      if (node.deathYear)
         allEvents.push({ year: node.deathYear, type: "death", node });
-      }
     });
-    // Sort by year descending (newest first)
     return allEvents.sort((a, b) => b.year - a.year);
   }, [nodes]);
 
-  // Group events by decade
   const groupedEvents = useMemo(() => {
     const groups: { [key: number]: TimelineEvent[] } = {};
     events.forEach((event) => {
@@ -40,21 +50,20 @@ export default function TimelineView({
     });
     return Object.entries(groups)
       .sort(([a], [b]) => Number(b) - Number(a))
-      .map(([decade, events]) => ({
+      .map(([decade, grouped]) => ({
         decade: Number(decade),
-        events,
+        events: grouped,
       }));
   }, [events]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-8 relative">
-      {/* Central Line */}
-      <div className="absolute left-1/2 top-10 bottom-10 w-0.5 bg-gradient-to-b from-transparent via-gold-300 to-transparent -translate-x-1/2"></div>
+    <div className="relative mx-auto w-full max-w-4xl p-8">
+      <div className="absolute bottom-10 left-1/2 top-10 w-0.5 -translate-x-1/2 bg-gradient-to-b from-transparent via-gold-300 to-transparent" />
 
       {groupedEvents.map((group) => (
-        <div key={group.decade} className="mb-12 relative">
-          <div className="flex justify-center mb-6 sticky top-4 z-10">
-            <div className="bg-white/90 backdrop-blur border border-gold-200 text-gold-700 px-4 py-1 rounded-full text-sm font-bold shadow-sm font-playfair">
+        <div key={group.decade} className="relative mb-12">
+          <div className="sticky top-4 z-10 mb-6 flex justify-center">
+            <div className="rounded-full border border-gold-200 bg-white/90 px-4 py-1 font-playfair text-sm font-bold text-gold-700 shadow-sm backdrop-blur">
               {group.decade}s
             </div>
           </div>
@@ -65,14 +74,12 @@ export default function TimelineView({
               return (
                 <div
                   key={`${event.node.id}-${event.type}`}
-                  className={`flex items-center ${
+                  className={`group relative flex items-center ${
                     isLeft ? "flex-row" : "flex-row-reverse"
-                  } relative group`}
+                  }`}
                 >
-                  {/* Timeline Dot */}
-                  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-4 border-gold-400 z-10 shadow-sm group-hover:scale-125 transition-transform"></div>
+                  <div className="absolute left-1/2 top-1/2 z-10 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-gold-400 bg-white shadow-sm transition-transform group-hover:scale-125" />
 
-                  {/* Content Card */}
                   <div
                     className={`w-[calc(50%-2rem)] ${
                       isLeft ? "pr-8 text-right" : "pl-8 text-left"
@@ -80,30 +87,33 @@ export default function TimelineView({
                   >
                     <div
                       onClick={() => onSelectNode(event.node)}
-                      className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md border border-warm-200 transition-all cursor-pointer group-hover:border-gold-300"
+                      className="cursor-pointer rounded-xl border border-warm-200 bg-white p-4 shadow-sm transition-all group-hover:border-gold-300 group-hover:shadow-md"
                     >
-                      <span className="text-xs font-semibold uppercase tracking-wider text-warmMuted mb-1 block">
+                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-warmMuted">
                         {event.year} •{" "}
-                        {event.type === "birth" ? "🐣 Lahir" : "🕯️ Wafat"}
+                        {event.type === "birth"
+                          ? `🐣 ${copy.birth}`
+                          : `🕯️ ${copy.death}`}
                       </span>
-                      <h4 className="text-lg font-bold text-warmText font-playfair mb-1 group-hover:text-gold-700 transition-colors">
+                      <h4 className="mb-1 font-playfair text-lg font-bold text-warmText transition-colors group-hover:text-gold-700">
                         {event.node.label}
                       </h4>
-                      <div className="flex items-center gap-2 text-xs text-warmMuted justify-end">
+                      <div className="flex items-center justify-end gap-2 text-xs text-warmMuted">
                         {event.node.imageUrl && (
                           <img
                             src={event.node.imageUrl}
-                            className="w-6 h-6 rounded-full object-cover"
+                            className="h-6 w-6 rounded-full object-cover"
                             alt=""
                           />
                         )}
-                        <span>Generasi {event.node.generation}</span>
+                        <span>
+                          {copy.generation} {event.node.generation}
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Empty space for balance */}
-                  <div className="w-[calc(50%-2rem)]"></div>
+                  <div className="w-[calc(50%-2rem)]" />
                 </div>
               );
             })}
@@ -112,9 +122,7 @@ export default function TimelineView({
       ))}
 
       {events.length === 0 && (
-        <div className="text-center py-20 text-warmMuted italic">
-          Belum ada data tahun kelahiran/kematian untuk ditampilkan di timeline.
-        </div>
+        <div className="py-20 text-center italic text-warmMuted">{copy.empty}</div>
       )}
     </div>
   );

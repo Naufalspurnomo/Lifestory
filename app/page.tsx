@@ -4,33 +4,79 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { galleryItems } from "../lib/content/galleryItems";
+import { useLanguage } from "../components/providers/LanguageProvider";
 
 const heroImage = "/hero-bg.jpg";
 
-const highlights = [
-  "Private family archive",
-  "Curated biography layouts",
-  "Shareable family tree workspace",
-];
-
 export default function HomePage() {
   const { data: session, status } = useSession();
+  const { locale } = useLanguage();
   const user = session?.user;
   const isLoggedIn = status === "authenticated";
   const isAdmin = user?.role === "admin";
   const isSubscribed = Boolean(user?.subscriptionActive);
-  const displayName = user?.name?.trim() || "Member";
+  const copy =
+    locale === "id"
+      ? {
+          highlights: [
+            "Arsip keluarga privat",
+            "Tata letak biografi terkurasi",
+            "Ruang kerja pohon keluarga kolaboratif",
+          ],
+          welcomeBack: "Selamat datang kembali",
+          heroTitle: "Kami menjaganya untuk Anda.",
+          heroSubtitle:
+            "Menjaga cerita, kenangan, dan warisan paling berharga untuk generasi yang akan datang.",
+          startStory: "Mulai Cerita Anda",
+          exploreFamilyTrees: "JELAJAHI POHON KELUARGA",
+          accountMember: "Anggota",
+          openAdminDashboard: "Buka Dashboard Admin",
+          continueYourStory: "Lanjutkan Cerita Anda",
+          activatePlan: "Aktifkan Paket Anda",
+          openFamilyTrees: "Buka Pohon Keluarga",
+          exploreCollections: "Jelajahi Koleksi",
+          sectionTitle: "Cerita Anda Layak Untuk Diabadikan",
+          sectionBody:
+            "Lifestory.co adalah layanan penulisan biografi profesional yang didedikasikan untuk mengabadikan kisah dan kenangan manusia. Kami merangkai pengalaman, pencapaian, dan momen bermakna Anda menjadi biografi yang indah dan diwariskan lintas generasi.",
+          featuredTitle: "Koleksi Biografi Pilihan",
+          viewMore: "Lihat Lainnya",
+        }
+      : {
+          highlights: [
+            "Private family archive",
+            "Curated biography layouts",
+            "Shareable family tree workspace",
+          ],
+          welcomeBack: "Welcome back",
+          heroTitle: "We keep it for you.",
+          heroSubtitle:
+            "Preserving the most precious stories, memories, and legacies for generations to come.",
+          startStory: "Start Your Story",
+          exploreFamilyTrees: "EXPLORE FAMILY TREES",
+          accountMember: "Member",
+          openAdminDashboard: "Open Admin Dashboard",
+          continueYourStory: "Continue Your Story",
+          activatePlan: "Activate Your Plan",
+          openFamilyTrees: "Open Family Trees",
+          exploreCollections: "Explore Collections",
+          sectionTitle: "Your Story Deserves to Be Remembered",
+          sectionBody:
+            "Lifestory.co is a professional biography writing service dedicated to preserving human stories and memories. We transform your experiences, achievements, and cherished moments into beautifully crafted biographies that will be treasured for generations. Every life has a story worth telling, and we are here to help you tell yours.",
+          featuredTitle: "Featured Biography Collections",
+          viewMore: "View More",
+        };
+  const displayName = user?.name?.trim() || copy.accountMember;
   const firstName = displayName.split(" ")[0];
 
   const primaryCta = isAdmin
-    ? { href: "/dashboard", label: "Open Admin Dashboard" }
+    ? { href: "/dashboard", label: copy.openAdminDashboard }
     : isSubscribed
-    ? { href: "/app", label: "Continue Your Story" }
-    : { href: "/subscribe", label: "Activate Your Plan" };
+    ? { href: "/app", label: copy.continueYourStory }
+    : { href: "/subscribe", label: copy.activatePlan };
 
   const secondaryCta = isAdmin
-    ? { href: "/app", label: "Open Family Trees" }
-    : { href: "/gallery", label: "Explore Collections" };
+    ? { href: "/app", label: copy.openFamilyTrees }
+    : { href: "/gallery", label: copy.exploreCollections };
 
   return (
     <div className="bg-[#f7f5f1] text-[#40342c]">
@@ -47,15 +93,14 @@ export default function HomePage() {
           <div className="max-w-4xl animate-[fade-in-up_0.7s_ease-out]">
             {isLoggedIn && (
               <p className="mx-auto mb-5 inline-flex items-center rounded-full border border-[#dccfb7] bg-[rgba(255,255,255,0.7)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7b6f63] backdrop-blur-sm">
-                Welcome back, {firstName}
+                {copy.welcomeBack}, {firstName}
               </p>
             )}
             <h1 className="font-serif text-[clamp(3rem,8vw,6.2rem)] leading-[0.98] tracking-[-0.02em] text-[#3f342d]">
-              We keep it for you.
+              {copy.heroTitle}
             </h1>
             <p className="mx-auto mt-5 max-w-3xl text-[clamp(1.05rem,2vw,1.95rem)] leading-relaxed text-[#776b61]">
-              Preserving the most precious stories, memories, and legacies for
-              generations to come.
+              {copy.heroSubtitle}
             </p>
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
@@ -72,14 +117,14 @@ export default function HomePage() {
                     href="/auth/register"
                     className="inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-9 py-3.5 text-lg font-semibold text-white shadow-[0_16px_36px_rgba(169,116,21,0.34)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_40px_rgba(169,116,21,0.42)]"
                   >
-                    Start Your Story
+                    {copy.startStory}
                     <span aria-hidden>&rarr;</span>
                   </Link>
                   <Link
                     href="/app"
                     className="inline-flex items-center rounded-full border border-[#d7c4a1] bg-[rgba(255,255,255,0.74)] px-7 py-3.5 text-sm font-semibold tracking-[0.08em] text-[#6a584a] backdrop-blur-sm transition hover:bg-white"
                   >
-                    EXPLORE FAMILY TREES
+                    {copy.exploreFamilyTrees}
                   </Link>
                 </>
               )}
@@ -104,7 +149,7 @@ export default function HomePage() {
             </div>
 
             <div className="mt-9 flex flex-wrap items-center justify-center gap-2">
-              {highlights.map((item) => (
+              {copy.highlights.map((item) => (
                 <span
                   key={item}
                   className="rounded-full border border-[#dccfb7] bg-[rgba(255,255,255,0.68)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#7b6f63] backdrop-blur-sm"
@@ -119,28 +164,24 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-5xl px-6 py-24 text-center md:py-28">
         <h2 className="font-serif text-[clamp(2.1rem,5vw,4.1rem)] leading-[1.08] text-[#3f342d]">
-          Your Story Deserves to Be Remembered
+          {copy.sectionTitle}
         </h2>
         <p className="mx-auto mt-8 max-w-4xl text-[clamp(0.65rem,1.25vw,1.05rem)] leading-[1.65] text-[#72675f]">
-          Lifestory.co is a professional biography writing service dedicated to
-          preserving human stories and memories. We transform your experiences,
-          achievements, and cherished moments into beautifully crafted
-          biographies that will be treasured for generations. Every life has a
-          story worth telling, and we are here to help you tell yours.
+          {copy.sectionBody}
         </p>
       </section>
 
       <section className="mx-auto max-w-[1320px] px-6 pb-24 md:pb-28">
         <div>
           <h2 className="text-center font-serif text-[clamp(2rem,4.8vw,3.85rem)] leading-[1.1] text-[#3f342d]">
-            Featured Biography Collections
+            {copy.featuredTitle}
           </h2>
           <div className="mt-4 flex justify-center sm:justify-end">
             <Link
               href="/gallery"
               className="inline-flex items-center gap-2 rounded-full border border-[#dccfb7] bg-white/75 px-5 py-2 text-sm font-semibold text-[#6c5a49] transition hover:border-[#c7b289] hover:bg-white hover:text-[#4c3f34]"
             >
-              View More
+              {copy.viewMore}
               <span aria-hidden>&rarr;</span>
             </Link>
           </div>

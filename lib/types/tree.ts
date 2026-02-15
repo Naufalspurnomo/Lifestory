@@ -17,6 +17,9 @@ export type WorkItem = {
 export type NodeContent = {
   description: string;
   media: MediaItem[];
+  instagram?: string;
+  tiktok?: string;
+  linkedin?: string;
 };
 
 // Core Entity: Person (Internal Graph)
