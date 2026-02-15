@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion, type Variants } from "framer-motion";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import {
   ArrowRight,
   BookOpenText,
@@ -19,6 +19,78 @@ import {
 import { useLanguage } from "../../components/providers/LanguageProvider";
 
 const heroImage = "/hero-bg.jpg";
+
+const heroHighlights = [
+  "Arsip memori keluarga",
+  "Narasi biografi berlapis emosi",
+  "Warisan visual lintas generasi",
+];
+
+const heroHighlightsEn = [
+  "Family memory archive",
+  "Emotion-led biography narrative",
+  "Cross-generation visual legacy",
+];
+
+const storyMoments = [
+  {
+    phase: "Babak 01",
+    title: "Mendengar sebelum menulis.",
+    body: "Kami membuka ruang percakapan yang tenang agar cerita lama yang sempat tersembunyi bisa muncul kembali.",
+    note: "Setiap detail kecil bisa menjadi benih warisan besar.",
+    icon: Quote,
+    className:
+      "md:col-span-2 bg-[linear-gradient(140deg,#fff8ea_0%,#fffdf6_56%,#fff_100%)]",
+  },
+  {
+    phase: "Babak 02",
+    title: "Merangkai makna.",
+    body: "Momen hidup disusun menjadi alur yang utuh, sehingga keluarga tidak hanya membaca fakta, tetapi merasakan perjalanan.",
+    note: "Cerita yang rapi membuat nilai hidup lebih mudah diwariskan.",
+    icon: Target,
+    className:
+      "md:col-span-1 bg-[linear-gradient(145deg,#f3efe6_0%,#fffaf3_100%)]",
+  },
+  {
+    phase: "Babak 03",
+    title: "Mewariskan dengan hangat.",
+    body: "Hasil akhir disajikan dalam format fisik dan digital agar generasi berikutnya dapat terus terhubung dengan akar keluarga.",
+    note: "Warisan terbaik adalah kisah yang bisa disentuh dan dibaca ulang.",
+    icon: HeartHandshake,
+    className:
+      "md:col-span-2 bg-[linear-gradient(150deg,#f5f8ee_0%,#ffffff_100%)]",
+  },
+];
+
+const storyMomentsEn = [
+  {
+    phase: "Act 01",
+    title: "Listen before we write.",
+    body: "We begin with calm conversations so long-held memories can return and be captured with care.",
+    note: "Small details often become the strongest family legacy.",
+    icon: Quote,
+    className:
+      "md:col-span-2 bg-[linear-gradient(140deg,#fff8ea_0%,#fffdf6_56%,#fff_100%)]",
+  },
+  {
+    phase: "Act 02",
+    title: "Shape the meaning.",
+    body: "Life moments are arranged into a clear flow, so families do not only read facts but also feel the journey.",
+    note: "Structured stories preserve values more effectively.",
+    icon: Target,
+    className:
+      "md:col-span-1 bg-[linear-gradient(145deg,#f3efe6_0%,#fffaf3_100%)]",
+  },
+  {
+    phase: "Act 03",
+    title: "Pass it on with warmth.",
+    body: "Final deliverables are prepared in physical and digital formats, keeping future generations connected to their roots.",
+    note: "The best legacy is a story that can be revisited anytime.",
+    icon: HeartHandshake,
+    className:
+      "md:col-span-2 bg-[linear-gradient(150deg,#f5f8ee_0%,#ffffff_100%)]",
+  },
+];
 
 const whyPoints = [
   "Manusia cuma hidup sekali, dan hidup terlalu berharga jika berlalu tanpa warisan cerita.",
@@ -121,6 +193,9 @@ const packages = [
     title: "Buku Biografi Kustom",
     tag: "Unggulan",
     desc: "Buku kisah hidup yang dirancang personal untuk warisan keluarga.",
+    className:
+      "md:col-span-2 md:row-span-2 bg-[linear-gradient(145deg,#fff9ef_0%,#fff_100%)]",
+    icon: BookOpenText,
     features: [
       "Sampul keras, foto lama + foto baru, penulisan, desain, dan tata letak.",
       "Kemasan tahan air dan unik.",
@@ -131,6 +206,9 @@ const packages = [
     title: "Sesi Foto",
     tag: "Warisan Visual",
     desc: "Sesi foto profesional untuk melengkapi kisah hidup.",
+    className:
+      "md:col-span-2 md:row-span-1 bg-[linear-gradient(145deg,#f4f0e8_0%,#fffaf4_100%)]",
+    icon: Camera,
     features: [
       "Hasil akhir foto 20R.",
       "30 file digital resolusi tinggi.",
@@ -141,6 +219,9 @@ const packages = [
     title: "Paket Video",
     tag: "Dokumenter",
     desc: "Wawancara, dokumentasi kegiatan, dan rangkuman momen penting.",
+    className:
+      "md:col-span-1 md:row-span-1 bg-[linear-gradient(145deg,#f8f4ec_0%,#fff_100%)]",
+    icon: Video,
     features: [
       "Pengemasan video secara eksklusif.",
       "Termasuk flash disk dan kemasan premium.",
@@ -151,6 +232,9 @@ const packages = [
     title: "Pohon Keluarga Cetak & Bingkai",
     tag: "Peta Warisan",
     desc: "Silsilah keluarga dalam bentuk visual elegan yang mudah dilanjutkan.",
+    className:
+      "md:col-span-1 md:row-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fff_100%)]",
+    icon: TreePine,
     features: [
       "Dicetak dan dibingkai.",
       "Slot lanjutan untuk update generasi berikutnya.",
@@ -260,6 +344,9 @@ const packagesEn = [
     title: "Customized Biography Book",
     tag: "Signature",
     desc: "A personalized life-story book crafted as a timeless family legacy.",
+    className:
+      "md:col-span-2 md:row-span-2 bg-[linear-gradient(145deg,#fff9ef_0%,#fff_100%)]",
+    icon: BookOpenText,
     features: [
       "Hard cover, old + new photos, writing, design, and layout.",
       "Waterproof and unique packaging.",
@@ -270,6 +357,9 @@ const packagesEn = [
     title: "Photo Session",
     tag: "Visual Legacy",
     desc: "Professional photo sessions to enrich every biography project.",
+    className:
+      "md:col-span-2 md:row-span-1 bg-[linear-gradient(145deg,#f4f0e8_0%,#fffaf4_100%)]",
+    icon: Camera,
     features: [
       "Final output in 20R print.",
       "30 high-resolution digital files.",
@@ -280,6 +370,9 @@ const packagesEn = [
     title: "Video Package",
     tag: "Documentary",
     desc: "Interview, activity documentation, and life-memory highlights.",
+    className:
+      "md:col-span-1 md:row-span-1 bg-[linear-gradient(145deg,#f8f4ec_0%,#fff_100%)]",
+    icon: Video,
     features: [
       "Premium video packaging.",
       "Includes flash disk and final package box.",
@@ -290,6 +383,9 @@ const packagesEn = [
     title: "Family Tree Printed & Framed",
     tag: "Legacy Map",
     desc: "Elegant lineage visualization that can grow across generations.",
+    className:
+      "md:col-span-1 md:row-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fff_100%)]",
+    icon: TreePine,
     features: [
       "Printed and framed output.",
       "Additional slots for future generation updates.",
@@ -299,28 +395,38 @@ const packagesEn = [
 ];
 
 const sectionVariant: Variants = {
-  hidden: { opacity: 0, y: 28 },
-  show: {
+  hidden: { opacity: 0, y: 30 },
+  show: (index = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] },
-  },
+    transition: {
+      duration: 0.7,
+      delay: index * 0.08,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  }),
 };
 
 const staggerVariant: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.1 } },
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.04 } },
 };
 
 export default function AboutPage() {
   const { locale } = useLanguage();
   const isId = locale === "id";
+  const reduceMotion = useReducedMotion();
+  const viewportAmount = reduceMotion ? 0.16 : 0.24;
   const pageCopy = isId
     ? {
         aboutLabel: "Tentang Lifestory Co.",
         heroTitle: "Kisah hidup bukan untuk berhenti di satu generasi.",
         heroBody:
           "Lifestory Company adalah jasa pengabadian kisah hidup dan kenangan lama yang didedikasikan terutama untuk keturunan serta sanak saudara, agar jati diri dan keberadaan seseorang tetap hidup sebagai inspirasi dan pengetahuan keluarga.",
+        storyLabel: "Emotional Storytelling",
+        storyTitle: "Perjalanan kisah yang terasa sinematis saat digulir.",
+        storyBody:
+          "Setiap section hadir bertahap dengan transisi lembut agar pengunjung merasakan alur cerita, bukan sekadar membaca informasi.",
         whyLabel: "Mengapa Butuh Lifestory?",
         whyTitle: "Karena setiap orang hanya hidup sekali.",
         purposeLabel: "Apa Tujuan Lifestory?",
@@ -332,8 +438,10 @@ export default function AboutPage() {
         bentoTitle: "Berupa apa hasil akhirnya?",
         bentoBody:
           "Kombinasi produk fisik dan digital untuk menjaga cerita tetap utuh, mudah dibaca, dan bisa diwariskan lintas generasi.",
-        packageLabel: "Paket Interaktif",
-        packageTitle: "Paket layanan yang elegan dan fleksibel.",
+        packageLabel: "Bento Paket Layanan",
+        packageTitle: "Pilihan paket yang fleksibel dengan layout modern.",
+        packageBody:
+          "Setiap kartu paket memiliki prioritas visual berbeda agar pengguna langsung memahami produk utama dan pendukung.",
         sideEffectLabel: "Efek Positif",
         sideEffectBody:
           "Kita bisa mengerti kehidupan orang lain, belajar dari pengalaman mereka, dan perlahan membagikan kasih Kristus saat hati mulai terbuka.",
@@ -353,6 +461,10 @@ export default function AboutPage() {
         heroTitle: "A life story should not stop at one generation.",
         heroBody:
           "Lifestory Company is a life-story preservation service dedicated not only to individuals, but especially to their descendants and relatives, so identity and legacy remain an inspiration for future families.",
+        storyLabel: "Emotional Storytelling",
+        storyTitle: "A cinematic story journey revealed while scrolling.",
+        storyBody:
+          "Each section appears progressively with soft transitions, so visitors can feel the narrative flow instead of consuming static blocks.",
         whyLabel: "Why We Need Lifestory",
         whyTitle: "Because each life is lived only once.",
         purposeLabel: "What Is Lifestory's Purpose?",
@@ -365,8 +477,10 @@ export default function AboutPage() {
         bentoTitle: "What are the final deliverables?",
         bentoBody:
           "A blend of physical and digital products designed to preserve stories, improve readability, and pass legacy across generations.",
-        packageLabel: "Interactive Packages",
-        packageTitle: "Elegant and flexible service packages.",
+        packageLabel: "Service Package Bento",
+        packageTitle: "Flexible packages presented with a modern layout.",
+        packageBody:
+          "Each package card has distinct visual weight to make flagship and supporting services clearer at a glance.",
         sideEffectLabel: "Positive Side Effect",
         sideEffectBody:
           "We can understand other people's lives, learn from their journeys, and gently share the love of Christ as hearts become open.",
@@ -381,6 +495,8 @@ export default function AboutPage() {
         consultCta: "Consult Packages",
         exploreCta: "Explore Family Tree",
       };
+  const currentHeroHighlights = isId ? heroHighlights : heroHighlightsEn;
+  const currentStoryMoments = isId ? storyMoments : storyMomentsEn;
   const currentWhyPoints = isId ? whyPoints : whyPointsEn;
   const currentPurposePoints = isId ? purposePoints : purposePointsEn;
   const currentBenefitPoints = isId ? benefitPoints : benefitPointsEn;
@@ -404,9 +520,9 @@ export default function AboutPage() {
 
         <div className="relative mx-auto flex min-h-[88vh] max-w-6xl items-center px-6 pb-20 pt-24">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            transition={{ duration: reduceMotion ? 0.01 : 0.8, ease: "easeOut" }}
             className="max-w-4xl"
           >
             <p className="mb-6 inline-flex items-center rounded-full border border-[#dccfb7] bg-[rgba(255,255,255,0.72)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7b6f63] backdrop-blur-sm">
@@ -418,19 +534,27 @@ export default function AboutPage() {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 1.1, delay: 0.2, ease: "easeOut" }}
+              transition={{
+                duration: reduceMotion ? 0.01 : 1.05,
+                delay: 0.12,
+                ease: "easeOut",
+              }}
               className="mt-6 max-w-3xl text-[clamp(1rem,2vw,1.45rem)] leading-relaxed text-[#73685f]"
             >
               {pageCopy.heroBody}
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.35, ease: "easeOut" }}
+              transition={{
+                duration: reduceMotion ? 0.01 : 0.7,
+                delay: 0.22,
+                ease: "easeOut",
+              }}
               className="mt-9 flex flex-wrap gap-2.5"
             >
-              {["React", "Tailwind CSS", "Framer Motion"].map((item) => (
+              {currentHeroHighlights.map((item) => (
                 <span
                   key={item}
                   className="rounded-full border border-[#d8cab1] bg-white/75 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#6f645b]"
@@ -438,6 +562,31 @@ export default function AboutPage() {
                   {item}
                 </span>
               ))}
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: reduceMotion ? 0.01 : 0.6,
+                delay: 0.3,
+                ease: "easeOut",
+              }}
+              className="mt-8 flex flex-wrap items-center gap-3"
+            >
+              <Link
+                href="/contact"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-7 py-3 text-sm font-semibold uppercase tracking-[0.1em] text-white shadow-[0_14px_30px_rgba(169,116,21,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(169,116,21,0.4)]"
+              >
+                {pageCopy.consultCta}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/app"
+                className="inline-flex items-center rounded-full border border-[#d7c4a1] bg-white px-7 py-3 text-sm font-semibold uppercase tracking-[0.1em] text-[#6a584a] transition hover:bg-[#fffaf0]"
+              >
+                {pageCopy.exploreCta}
+              </Link>
             </motion.div>
           </motion.div>
         </div>
@@ -448,42 +597,95 @@ export default function AboutPage() {
           variants={staggerVariant}
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, amount: 0.2 }}
-          className="space-y-16"
+          viewport={{ once: true, amount: viewportAmount }}
         >
-          <motion.article
-            variants={sectionVariant}
-            className="grid gap-6 rounded-3xl border border-[#dfd2be] bg-white/75 p-7 shadow-[0_16px_30px_rgba(59,43,24,0.08)] md:grid-cols-[220px,1fr]"
-          >
+          <motion.div variants={sectionVariant} custom={0} className="max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-              {pageCopy.whyLabel}
+              {pageCopy.storyLabel}
             </p>
-            <div className="space-y-4">
-              <h2 className="font-serif text-[clamp(1.7rem,4vw,2.5rem)] text-[#3f342d]">
+            <h2 className="mt-3 font-serif text-[clamp(2rem,4.6vw,3.6rem)] leading-[1.05] text-[#3f342d]">
+              {pageCopy.storyTitle}
+            </h2>
+            <p className="mt-4 text-[#6c6055]">{pageCopy.storyBody}</p>
+          </motion.div>
+
+          <div className="mt-10 grid gap-5 md:grid-cols-3 md:auto-rows-[240px]">
+            {currentStoryMoments.map((moment, index) => {
+              const Icon = moment.icon;
+              return (
+                <motion.article
+                  key={moment.title}
+                  variants={sectionVariant}
+                  custom={index + 1}
+                  className={`group relative flex h-full flex-col overflow-hidden rounded-3xl border border-[#dfd3c2] p-6 shadow-[0_16px_30px_rgba(59,43,24,0.1)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_34px_rgba(59,43,24,0.14)] ${moment.className}`}
+                >
+                  <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[rgba(202,162,79,0.12)] transition group-hover:scale-110" />
+                  <div className="relative flex h-full flex-col">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a7c4e]">
+                        {moment.phase}
+                      </span>
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#ddc7a2] bg-white/80 text-[#b07f2f]">
+                        <Icon className="h-4 w-4" />
+                      </span>
+                    </div>
+                    <h3 className="font-serif text-2xl leading-tight text-[#3f342d]">
+                      {moment.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-relaxed text-[#6a5f55]">
+                      {moment.body}
+                    </p>
+                    <p className="mt-auto pt-4 text-sm italic text-[#7b6d61]">
+                      "{moment.note}"
+                    </p>
+                  </div>
+                </motion.article>
+              );
+            })}
+          </div>
+        </motion.div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-20 md:pb-24">
+        <motion.div
+          variants={staggerVariant}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: viewportAmount }}
+        >
+          <div className="grid gap-5 lg:grid-cols-6 lg:auto-rows-[220px]">
+            <motion.article
+              variants={sectionVariant}
+              custom={0}
+              className="rounded-3xl border border-[#dfd2be] bg-white/80 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.08)] lg:col-span-3 lg:row-span-2"
+            >
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
+                {pageCopy.whyLabel}
+              </p>
+              <h2 className="mt-3 font-serif text-[clamp(1.7rem,3.6vw,2.35rem)] text-[#3f342d]">
                 {pageCopy.whyTitle}
               </h2>
-              <div className="space-y-3 text-[#6e6258]">
+              <div className="mt-5 space-y-3 text-[#6e6258]">
                 {currentWhyPoints.map((point) => (
                   <p key={point} className="leading-relaxed">
                     {point}
                   </p>
                 ))}
               </div>
-            </div>
-          </motion.article>
+            </motion.article>
 
-          <motion.article
-            variants={sectionVariant}
-            className="grid gap-6 rounded-3xl border border-[#dfd2be] bg-white/75 p-7 shadow-[0_16px_30px_rgba(59,43,24,0.08)] md:grid-cols-[220px,1fr]"
-          >
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-              {pageCopy.purposeLabel}
-            </p>
-            <div className="space-y-4">
-              <h2 className="font-serif text-[clamp(1.7rem,4vw,2.5rem)] text-[#3f342d]">
+            <motion.article
+              variants={sectionVariant}
+              custom={1}
+              className="rounded-3xl border border-[#dfd2be] bg-white/80 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.08)] lg:col-span-3 lg:row-span-2"
+            >
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
+                {pageCopy.purposeLabel}
+              </p>
+              <h2 className="mt-3 font-serif text-[clamp(1.7rem,3.6vw,2.35rem)] text-[#3f342d]">
                 {pageCopy.purposeTitle}
               </h2>
-              <div className="grid gap-2.5">
+              <div className="mt-5 grid gap-2.5">
                 {currentPurposePoints.map((point) => (
                   <p
                     key={point}
@@ -494,21 +696,20 @@ export default function AboutPage() {
                   </p>
                 ))}
               </div>
-            </div>
-          </motion.article>
+            </motion.article>
 
-          <motion.article
-            variants={sectionVariant}
-            className="grid gap-6 rounded-3xl border border-[#dfd2be] bg-white/75 p-7 shadow-[0_16px_30px_rgba(59,43,24,0.08)] md:grid-cols-[220px,1fr]"
-          >
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-              {pageCopy.benefitLabel}
-            </p>
-            <div className="space-y-4">
-              <h2 className="font-serif text-[clamp(1.7rem,4vw,2.5rem)] text-[#3f342d]">
+            <motion.article
+              variants={sectionVariant}
+              custom={2}
+              className="rounded-3xl border border-[#dfd2be] bg-white/82 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.08)] lg:col-span-6"
+            >
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
+                {pageCopy.benefitLabel}
+              </p>
+              <h2 className="mt-3 font-serif text-[clamp(1.7rem,3.3vw,2.2rem)] text-[#3f342d]">
                 {pageCopy.benefitTitle}
               </h2>
-              <div className="grid gap-2.5">
+              <div className="mt-5 grid gap-2.5 md:grid-cols-2">
                 {currentBenefitPoints.map((point) => (
                   <p
                     key={point}
@@ -519,8 +720,8 @@ export default function AboutPage() {
                   </p>
                 ))}
               </div>
-            </div>
-          </motion.article>
+            </motion.article>
+          </div>
         </motion.div>
       </section>
 
@@ -528,10 +729,10 @@ export default function AboutPage() {
         <motion.div
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, amount: 0.2 }}
+          viewport={{ once: true, amount: viewportAmount }}
           variants={staggerVariant}
         >
-          <motion.div variants={sectionVariant} className="mb-10 max-w-3xl">
+          <motion.div variants={sectionVariant} custom={0} className="mb-10 max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
               {pageCopy.bentoLabel}
             </p>
@@ -544,12 +745,13 @@ export default function AboutPage() {
           </motion.div>
 
           <div className="grid gap-5 md:grid-cols-3 md:auto-rows-[220px]">
-            {currentProductBento.map((item) => {
+            {currentProductBento.map((item, index) => {
               const Icon = item.icon;
               return (
                 <motion.article
                   key={item.title}
                   variants={sectionVariant}
+                  custom={index + 1}
                   className={`group relative overflow-hidden rounded-3xl border border-[#dfd3c2] p-6 shadow-[0_18px_32px_rgba(61,47,28,0.12)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_36px_rgba(61,47,28,0.18)] ${item.className}`}
                 >
                   <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[rgba(202,162,79,0.1)] transition group-hover:scale-110" />
@@ -577,50 +779,60 @@ export default function AboutPage() {
         <motion.div
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, amount: 0.2 }}
+          viewport={{ once: true, amount: viewportAmount }}
           variants={staggerVariant}
         >
-          <motion.div variants={sectionVariant} className="mb-10 max-w-3xl">
+          <motion.div variants={sectionVariant} custom={0} className="mb-10 max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
               {pageCopy.packageLabel}
             </p>
             <h2 className="mt-3 font-serif text-[clamp(2rem,4.5vw,3.4rem)] leading-[1.06] text-[#3f342d]">
               {pageCopy.packageTitle}
             </h2>
+            <p className="mt-4 text-[#6d6157]">
+              {pageCopy.packageBody}
+            </p>
           </motion.div>
 
-          <div className="grid gap-5 md:grid-cols-2">
-            {currentPackages.map((pkg) => (
-              <motion.article
-                key={pkg.title}
-                variants={sectionVariant}
-                whileHover={{ y: -6, transition: { duration: 0.25 } }}
-                className="group rounded-3xl border border-[#dfd2be] bg-white p-7 shadow-[0_14px_24px_rgba(59,43,24,0.09)] transition hover:border-[#cda15a] hover:shadow-[0_20px_34px_rgba(59,43,24,0.15)]"
-              >
-                <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="grid gap-5 md:grid-cols-4 md:auto-rows-[230px]">
+            {currentPackages.map((pkg, index) => {
+              const Icon = pkg.icon;
+              return (
+                <motion.article
+                  key={pkg.title}
+                  variants={sectionVariant}
+                  custom={index + 1}
+                  whileHover={{ y: -6, transition: { duration: 0.25 } }}
+                  className={`group rounded-3xl border border-[#dfd2be] p-7 shadow-[0_14px_24px_rgba(59,43,24,0.09)] transition hover:border-[#cda15a] hover:shadow-[0_20px_34px_rgba(59,43,24,0.15)] ${pkg.className}`}
+                >
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#dfc9a1] bg-white/80 text-[#9d7641]">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="rounded-full border border-[#dfc9a1] bg-[#fff7e8] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9d7641]">
+                      {pkg.tag}
+                    </span>
+                  </div>
                   <h3 className="font-serif text-2xl text-[#3f342d]">
                     {pkg.title}
                   </h3>
-                  <span className="rounded-full border border-[#dfc9a1] bg-[#fff7e8] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9d7641]">
-                    {pkg.tag}
-                  </span>
-                </div>
-                <p className="text-sm leading-relaxed text-[#6f645a]">
-                  {pkg.desc}
-                </p>
-                <div className="mt-5 grid gap-2.5">
-                  {pkg.features.map((feature) => (
-                    <p
-                      key={feature}
-                      className="flex items-start gap-2.5 rounded-xl bg-[#faf6ef] px-3 py-2.5 text-sm text-[#60554c]"
-                    >
-                      <Sparkles className="mt-0.5 h-4 w-4 flex-none text-[#bd892f]" />
-                      <span>{feature}</span>
-                    </p>
-                  ))}
-                </div>
-              </motion.article>
-            ))}
+                  <p className="text-sm leading-relaxed text-[#6f645a]">
+                    {pkg.desc}
+                  </p>
+                  <div className="mt-5 grid gap-2.5">
+                    {pkg.features.map((feature) => (
+                      <p
+                        key={feature}
+                        className="flex items-start gap-2.5 rounded-xl bg-[#faf6ef] px-3 py-2.5 text-sm text-[#60554c]"
+                      >
+                        <Sparkles className="mt-0.5 h-4 w-4 flex-none text-[#bd892f]" />
+                        <span>{feature}</span>
+                      </p>
+                    ))}
+                  </div>
+                </motion.article>
+              );
+            })}
           </div>
         </motion.div>
       </section>
@@ -629,12 +841,13 @@ export default function AboutPage() {
         <motion.div
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, amount: 0.2 }}
+          viewport={{ once: true, amount: viewportAmount }}
           variants={staggerVariant}
           className="grid gap-6 lg:grid-cols-3"
         >
           <motion.article
             variants={sectionVariant}
+            custom={0}
             className="rounded-3xl border border-[#dfd2be] bg-white/85 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.09)] lg:col-span-2"
           >
             <div className="flex items-center gap-2 text-[#9b845f]">
@@ -679,6 +892,7 @@ export default function AboutPage() {
 
           <motion.article
             variants={sectionVariant}
+            custom={1}
             className="rounded-3xl border border-[#dfd2be] bg-white/85 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.09)]"
           >
             <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
@@ -715,10 +929,10 @@ export default function AboutPage() {
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 18 }}
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          viewport={{ once: true, amount: viewportAmount }}
+          transition={{ duration: reduceMotion ? 0.01 : 0.6, ease: "easeOut" }}
           className="mt-10 rounded-[30px] border border-[#d9c8ad] bg-[linear-gradient(140deg,#fff8ed_0%,#fff_100%)] px-6 py-10 text-center shadow-[0_18px_34px_rgba(59,43,24,0.12)] md:px-12"
         >
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
