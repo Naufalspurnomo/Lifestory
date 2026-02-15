@@ -148,9 +148,11 @@ export default function HomePage() {
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:gap-8 xl:grid-cols-4">
           {galleryItems.map((book, index) => (
-            <article
+            <Link
               key={book.id}
-              className="group relative aspect-[2/3] overflow-hidden rounded-[20px] border border-[#d2c5ad] bg-white transition duration-500 hover:-translate-y-1.5 hover:shadow-[0_24px_40px_rgba(49,35,15,0.22)]"
+              href={`/gallery?item=${book.id}`}
+              aria-label={`Open ${book.title} in gallery`}
+              className="group relative block aspect-[2/3] overflow-hidden rounded-[20px] border border-[#d2c5ad] bg-white transition duration-500 hover:-translate-y-1.5 hover:shadow-[0_24px_40px_rgba(49,35,15,0.22)]"
             >
               <Image
                 src={book.src}
@@ -161,7 +163,7 @@ export default function HomePage() {
                 priority={index < 2}
               />
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),rgba(0,0,0,0.18))]" />
-            </article>
+            </Link>
           ))}
         </div>
       </section>
