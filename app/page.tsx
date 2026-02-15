@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { galleryItems } from "../lib/content/galleryItems";
 
 const heroImage = "/hero-bg.jpg";
@@ -11,6 +14,24 @@ const highlights = [
 ];
 
 export default function HomePage() {
+  const { data: session, status } = useSession();
+  const user = session?.user;
+  const isLoggedIn = status === "authenticated";
+  const isAdmin = user?.role === "admin";
+  const isSubscribed = Boolean(user?.subscriptionActive);
+  const displayName = user?.name?.trim() || "Member";
+  const firstName = displayName.split(" ")[0];
+
+  const primaryCta = isAdmin
+    ? { href: "/dashboard", label: "Open Admin Dashboard" }
+    : isSubscribed
+    ? { href: "/app", label: "Continue Your Story" }
+    : { href: "/subscribe", label: "Activate Your Plan" };
+
+  const secondaryCta = isAdmin
+    ? { href: "/app", label: "Open Family Trees" }
+    : { href: "/gallery", label: "Explore Collections" };
+
   return (
     <div className="bg-[#f7f5f1] text-[#40342c]">
       <section className="relative min-h-[86vh] overflow-hidden">
@@ -24,6 +45,11 @@ export default function HomePage() {
 
         <div className="relative mx-auto flex min-h-[86vh] max-w-6xl items-center justify-center px-6 pb-28 pt-24 text-center">
           <div className="max-w-4xl animate-[fade-in-up_0.7s_ease-out]">
+            {isLoggedIn && (
+              <p className="mx-auto mb-5 inline-flex items-center rounded-full border border-[#dccfb7] bg-[rgba(255,255,255,0.7)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7b6f63] backdrop-blur-sm">
+                Welcome back, {firstName}
+              </p>
+            )}
             <h1 className="font-serif text-[clamp(3rem,8vw,6.2rem)] leading-[0.98] tracking-[-0.02em] text-[#3f342d]">
               We keep it for you.
             </h1>
@@ -33,19 +59,48 @@ export default function HomePage() {
             </p>
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-              <Link
-                href="/auth/register"
-                className="inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-9 py-3.5 text-lg font-semibold text-white shadow-[0_16px_36px_rgba(169,116,21,0.34)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_40px_rgba(169,116,21,0.42)]"
-              >
-                Start Your Story
-                <span aria-hidden>&rarr;</span>
-              </Link>
-              <Link
-                href="/app"
-                className="inline-flex items-center rounded-full border border-[#d7c4a1] bg-[rgba(255,255,255,0.74)] px-7 py-3.5 text-sm font-semibold tracking-[0.08em] text-[#6a584a] backdrop-blur-sm transition hover:bg-white"
-              >
-                EXPLORE FAMILY TREES
-              </Link>
+              {status === "loading" && (
+                <>
+                  <div className="h-[58px] w-[250px] animate-pulse rounded-full border border-[#e2d4be] bg-white/70" />
+                  <div className="h-[58px] w-[250px] animate-pulse rounded-full border border-[#e2d4be] bg-white/70" />
+                </>
+              )}
+
+              {status === "unauthenticated" && (
+                <>
+                  <Link
+                    href="/auth/register"
+                    className="inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-9 py-3.5 text-lg font-semibold text-white shadow-[0_16px_36px_rgba(169,116,21,0.34)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_40px_rgba(169,116,21,0.42)]"
+                  >
+                    Start Your Story
+                    <span aria-hidden>&rarr;</span>
+                  </Link>
+                  <Link
+                    href="/app"
+                    className="inline-flex items-center rounded-full border border-[#d7c4a1] bg-[rgba(255,255,255,0.74)] px-7 py-3.5 text-sm font-semibold tracking-[0.08em] text-[#6a584a] backdrop-blur-sm transition hover:bg-white"
+                  >
+                    EXPLORE FAMILY TREES
+                  </Link>
+                </>
+              )}
+
+              {isLoggedIn && (
+                <>
+                  <Link
+                    href={primaryCta.href}
+                    className="inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-9 py-3.5 text-lg font-semibold text-white shadow-[0_16px_36px_rgba(169,116,21,0.34)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_40px_rgba(169,116,21,0.42)]"
+                  >
+                    {primaryCta.label}
+                    <span aria-hidden>&rarr;</span>
+                  </Link>
+                  <Link
+                    href={secondaryCta.href}
+                    className="inline-flex items-center rounded-full border border-[#d7c4a1] bg-[rgba(255,255,255,0.74)] px-7 py-3.5 text-sm font-semibold tracking-[0.08em] text-[#6a584a] backdrop-blur-sm transition hover:bg-white"
+                  >
+                    {secondaryCta.label.toUpperCase()}
+                  </Link>
+                </>
+              )}
             </div>
 
             <div className="mt-9 flex flex-wrap items-center justify-center gap-2">
