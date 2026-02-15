@@ -12,7 +12,6 @@ import {
   detectCycle,
   calculateGeneration,
   calculateHierarchicalLayout,
-  type LayoutNode,
 } from "../tree/layoutEngine";
 import { loadTrees, saveTrees, checkStorageQuota } from "../utils/storageUtils";
 

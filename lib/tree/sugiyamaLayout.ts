@@ -4,7 +4,6 @@ import {
     LayoutGraph,
     Person,
     Union,
-    Point,
     LAYOUT,
 } from "../types/tree";
 
@@ -245,12 +244,7 @@ function assignLayers(g: InternalGraph) {
             });
         });
 
-        // Propagate Person -> Other Unions (if multi-marriage and one raised layer)
-        g.persons.forEach(p => {
-            // If a person is part of multiple unions, and one union raised their layer...
-            // all unions they are part of should ideally be on that layer (or handled).
-            // For now, simple traversal handles most.
-        });
+        // Propagate Person -> Other Unions step intentionally skipped for now.
     }
 
     // Final pass: ensure anyone still -1 gets 0 (orphans/disconnected)
@@ -404,7 +398,6 @@ function reduceCrossings(g: InternalGraph) {
             row.forEach(b => {
                 b.x = cx + b.width / 2;
                 // Update internal elements X
-                let ex = cx + NODE_SIZE / 2; // start
                 if (b.elements.length > 1) {
                     // Distribute elements within block
                     b.elements.forEach((el, idx) => {
@@ -506,10 +499,6 @@ function routeEdges(g: InternalGraph): LayoutEdge[] {
 
         // Sort kids by X
         kids.sort((a, b) => a.x - b.x);
-
-        const minChildX = kids[0].x;
-        const maxChildX = kids[kids.length - 1].x;
-        const childLayerY = kids[0].y;
 
         // Bus Height: halfway between layers
         const busY = startY + (NODE_SPACING_Y / 2);

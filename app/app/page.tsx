@@ -379,7 +379,7 @@ export default function AppHome() {
             {/* Canvas Wrapper */}
             <main
               className={`w-full rounded-2xl shadow-xl bg-white overflow-hidden relative transition-all duration-300 ${isFullscreen
-                ? "fixed inset-0 z-40 rounded-none h-screen"
+                ? "fixed inset-0 z-[60] rounded-none h-screen"
                 : "h-[600px] border border-warm-200"
                 }`}
             >
@@ -485,8 +485,8 @@ export default function AppHome() {
             <InviteModal
               isOpen={showInviteModal}
               onClose={() => setShowInviteModal(false)}
-              treeId={currentTree.id}
               treeName={currentTree.name}
+              treeData={currentTree}
             />
           )}
 

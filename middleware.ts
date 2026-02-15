@@ -1,35 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-// Protected page routes
 const protectedPagePaths = ["/app", "/dashboard"];
-
-// Protected API routes (admin only)
 const adminOnlyApiPaths = ["/api/users"];
 
-// List of allowed origins (untuk production, ganti dengan domain kamu)
-const allowedOrigins = [
+const defaultAllowedOrigins = [
   "http://localhost:3000",
-  "https://lifestory.id", // Ganti dengan domain production
+  "https://lifestory.id",
   "https://www.lifestory.id",
 ];
+
+function parseCsvEnv(value?: string): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function hostMatches(host: string, allowedHost: string): boolean {
+  return host === allowedHost || host.endsWith(`.${allowedHost}`);
+}
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // ====== Origin Check untuk mutating requests ======
   if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
     const origin = req.headers.get("origin");
     const host = req.headers.get("host");
 
-    // Check if origin is allowed
-    if (origin) {
-      const isAllowedOrigin = allowedOrigins.some(
-        (allowed) => origin === allowed || origin.includes("localhost")
-      );
+    if (origin && process.env.NODE_ENV === "production") {
+      let normalizedOrigin = "";
+      try {
+        normalizedOrigin = new URL(origin).origin;
+      } catch {
+        return NextResponse.json(
+          { error: "Forbidden - Invalid origin header" },
+          { status: 403 }
+        );
+      }
 
-      if (!isAllowedOrigin && process.env.NODE_ENV === "production") {
-        console.warn(`Blocked request from origin: ${origin}`);
+      const configuredOrigins = [
+        ...defaultAllowedOrigins,
+        ...parseCsvEnv(process.env.ALLOWED_ORIGINS),
+      ];
+
+      const isSameOrigin = normalizedOrigin === req.nextUrl.origin;
+      const isAllowedOrigin =
+        isSameOrigin ||
+        normalizedOrigin.includes("localhost") ||
+        configuredOrigins.includes(normalizedOrigin);
+
+      if (!isAllowedOrigin) {
         return NextResponse.json(
           { error: "Forbidden - Invalid origin" },
           { status: 403 }
@@ -37,22 +59,24 @@ export async function middleware(req: NextRequest) {
       }
     }
 
-    // Verify host header matches expected
     if (host && process.env.NODE_ENV === "production") {
-      const expectedHosts = ["lifestory.id", "www.lifestory.id"];
-      const isValidHost = expectedHosts.some((h) => host.includes(h));
-
-      if (!isValidHost) {
-        console.warn(`Blocked request to host: ${host}`);
-        return NextResponse.json(
-          { error: "Forbidden - Invalid host" },
-          { status: 403 }
+      const configuredHosts = parseCsvEnv(process.env.ALLOWED_HOSTS);
+      if (configuredHosts.length > 0) {
+        const hostWithoutPort = host.split(":")[0];
+        const isValidHost = configuredHosts.some((allowedHost) =>
+          hostMatches(hostWithoutPort, allowedHost)
         );
+
+        if (!isValidHost) {
+          return NextResponse.json(
+            { error: "Forbidden - Invalid host" },
+            { status: 403 }
+          );
+        }
       }
     }
   }
 
-  // ====== Check if protected ======
   const isProtectedPage = protectedPagePaths.some((path) =>
     pathname.startsWith(path)
   );
@@ -64,13 +88,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ====== Get auth token ======
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const hasSession = Boolean(token);
   const subscriptionActive = Boolean(token?.subscriptionActive);
   const isAdmin = token?.role === "admin";
 
-  // ====== Handle protected pages ======
   if (isProtectedPage) {
     if (!hasSession) {
       const loginUrl = new URL("/auth/login", req.url);
@@ -78,12 +100,10 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // Dashboard requires admin role
     if (pathname.startsWith("/dashboard") && !isAdmin) {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
-    // App requires subscription (unless admin)
     if (pathname.startsWith("/app") && !subscriptionActive && !isAdmin) {
       const subUrl = new URL("/subscribe", req.url);
       subUrl.searchParams.set("next", pathname);
@@ -91,7 +111,6 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // ====== Handle admin-only API routes ======
   if (isAdminOnlyApi) {
     if (!hasSession) {
       return NextResponse.json(
@@ -116,6 +135,7 @@ export const config = {
     "/app/:path*",
     "/dashboard/:path*",
     "/api/users/:path*",
-    "/api/auth/:path*", // Include auth routes for rate limiting later
+    "/api/invites/:path*",
+    "/api/auth/:path*",
   ],
 };

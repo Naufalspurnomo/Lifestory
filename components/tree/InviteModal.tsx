@@ -1,45 +1,91 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { TreeData } from "../../lib/types/tree";
 import { Button } from "../ui/Button";
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  treeId: string;
   treeName: string;
+  treeData: TreeData;
 };
 
 export default function InviteModal({
   isOpen,
   onClose,
-  treeId,
   treeName,
+  treeData,
 }: Props) {
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState("");
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+
+  const expiresLabel = useMemo(() => {
+    if (!expiresAt) return "-";
+    return new Date(expiresAt).toLocaleString("id-ID");
+  }, [expiresAt]);
+
+  const generateInvite = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/invites", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          treeName,
+          treeData,
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setInviteLink("");
+        setExpiresAt(null);
+        setError(payload?.error || "Gagal membuat link undangan");
+        return;
+      }
+
+      setInviteLink(payload.inviteLink || "");
+      setExpiresAt(payload.expiresAt || null);
+    } catch {
+      setInviteLink("");
+      setExpiresAt(null);
+      setError("Terjadi kesalahan saat membuat link undangan");
+    } finally {
+      setLoading(false);
+    }
+  }, [treeData, treeName]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    generateInvite();
+  }, [isOpen, generateInvite]);
 
   if (!isOpen) return null;
-
-  // Generate invite link (in production, this would call an API to create a token)
-  const inviteToken = btoa(`${treeId}-${Date.now()}`);
-  const inviteLink = `${
-    typeof window !== "undefined" ? window.location.origin : ""
-  }/invite/${inviteToken}`;
 
   const whatsappMessage = encodeURIComponent(
     `Hai! Saya mengundang kamu untuk berkontribusi ke pohon keluarga "${treeName}" di Lifestory.\n\nKlik link berikut untuk bergabung:\n${inviteLink}`
   );
 
   function copyLink() {
+    if (!inviteLink) return;
     navigator.clipboard.writeText(inviteLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const canShare = Boolean(inviteLink) && !loading;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
-        {/* Header */}
         <div className="border-b border-warm-200 px-6 py-4">
           <h2 className="text-xl font-semibold text-warmText">
             Undang Anggota Keluarga
@@ -49,9 +95,13 @@ export default function InviteModal({
           </p>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Copy Link */}
+        <div className="space-y-6 p-6">
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           <div className="space-y-2">
             <label className="text-sm font-medium text-warmMuted">
               Link Undangan
@@ -59,16 +109,22 @@ export default function InviteModal({
             <div className="flex gap-2">
               <input
                 readOnly
-                value={inviteLink}
-                className="flex-1 rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warmMuted truncate"
+                value={loading ? "Membuat link..." : inviteLink}
+                className="flex-1 truncate rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warmMuted"
               />
-              <Button onClick={copyLink} variant="secondary">
-                {copied ? "✓ Copied" : "Copy"}
+              <Button
+                onClick={copyLink}
+                variant="secondary"
+                disabled={!canShare}
+              >
+                {copied ? "Copied" : "Copy"}
               </Button>
             </div>
+            <p className="text-xs text-warmMuted">
+              Berlaku sampai: {expiresLabel}
+            </p>
           </div>
 
-          {/* Share buttons */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-warmMuted">
               Bagikan via
@@ -78,7 +134,11 @@ export default function InviteModal({
                 href={`https://wa.me/?text=${whatsappMessage}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 rounded-xl bg-accent-500 px-4 py-3 font-medium text-white hover:bg-accent-600 transition"
+                className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium text-white transition ${
+                  canShare
+                    ? "bg-accent-500 hover:bg-accent-600"
+                    : "pointer-events-none bg-slate-300"
+                }`}
               >
                 <svg
                   className="h-5 w-5"
@@ -91,24 +151,34 @@ export default function InviteModal({
               </a>
               <a
                 href={`mailto:?subject=Undangan Pohon Keluarga&body=${whatsappMessage}`}
-                className="flex items-center justify-center gap-2 rounded-xl bg-gold-700 px-4 py-3 font-medium text-white hover:bg-gold-800 transition"
+                className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium text-white transition ${
+                  canShare
+                    ? "bg-gold-700 hover:bg-gold-800"
+                    : "pointer-events-none bg-slate-300"
+                }`}
               >
-                📧 Email
+                Email
               </a>
             </div>
           </div>
 
-          {/* Permission note */}
-          <div className="rounded-xl bg-gold-100 border border-gold-200 p-4">
+          <Button
+            onClick={generateInvite}
+            variant="secondary"
+            block
+            disabled={loading}
+          >
+            {loading ? "Memproses..." : "Generate Ulang Link"}
+          </Button>
+
+          <div className="rounded-xl border border-gold-200 bg-gold-100 p-4">
             <p className="text-sm text-gold-800">
-              ⚠️ Siapa pun dengan link ini dapat melihat dan mengedit pohon
-              keluarga Anda. Bagikan hanya kepada anggota keluarga yang
-              terpercaya.
+              Siapa pun dengan link ini dapat melihat dan mengedit pohon
+              keluarga Anda. Bagikan hanya kepada anggota keluarga terpercaya.
             </p>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="border-t border-warm-200 px-6 py-4">
           <Button variant="secondary" block onClick={onClose}>
             Tutup

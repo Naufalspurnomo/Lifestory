@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Inter, Playfair_Display } from "next/font/google";
 import { NavBar } from "../components/site/NavBar";
 import { Footer } from "../components/site/Footer";
+import { PageTransition } from "../components/site/PageTransition";
 import { AuthProvider } from "../components/providers/AuthProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -25,7 +26,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <AuthProvider>
           <div className="flex min-h-screen flex-col">
             <NavBar />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1">
+              <PageTransition>{children}</PageTransition>
+            </main>
             <Footer />
           </div>
         </AuthProvider>

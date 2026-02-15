@@ -3,106 +3,192 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  /* Cinematic Luxury Dark Theme */
+  --color-bg: #030303; /* Deepest black */
+  --color-bg-secondary: #0a0a0a;
+  --color-text: #ededed;
+  --color-text-muted: #888888;
+  --color-accent: #3b82f6; /* Electric Blue for digital feel */
+  --color-gold: #fbbf24;
 
-  /* Luxury Warm Palette - CSS Variables */
-  --color-bg: #f9f6f1;
-  --color-surface: #ffffff;
-  --color-border: #e6dbc7;
-  --color-text: #1d1a14;
-  --color-text-muted: #5b5346;
-  --color-accent: #1f6f62;
-  --color-gold: #b08e51;
-  --color-gold-700: #82693c;
+  --font-inter: "Inter", sans-serif;
+  --font-playfair: "Playfair Display", serif;
 }
 
 body {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
-    sans-serif;
-  background: var(--color-bg);
+  background-color: var(--color-bg);
   color: var(--color-text);
-  overscroll-behavior: none;
+  font-family: var(--font-inter);
+  overflow-x: hidden;
+  height: 100%;
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
+/* AURORA MESH GRADIENT ANIMATION */
+@keyframes aurora {
+  0% {
+    background-position:
+      50% 50%,
+      50% 50%;
   }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes zoomIn {
-  from {
-    transform: translate(-50%, -50%) scale(0.95);
-    opacity: 0;
-  }
-  to {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
+  100% {
+    background-position:
+      350% 50%,
+      350% 50%;
   }
 }
 
-@keyframes zoomOut {
-  from {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
+.aurora-bg {
+  position: absolute;
+  inset: -50%;
+  background-image:
+    repeating-linear-gradient(
+      100deg,
+      #000 0%,
+      #000 7%,
+      transparent 10%,
+      transparent 12%,
+      #000 16%
+    ),
+    repeating-linear-gradient(
+      100deg,
+      #1e1b4b 10%,
+      #312e81 15%,
+      #4c1d95 20%,
+      #4338ca 25%,
+      #1e1b4b 30%
+    );
+  background-size: 300% 300%;
+  background-position: 0 0;
+  filter: blur(10px);
+  opacity: 0.4;
+  animation: aurora 60s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* SPOTLIGHT EFFECT */
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  transition:
+    transform 0.3s ease,
+    background 0.3s ease;
+}
+
+.spotlight-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+/* TEXT SHIMMER */
+@keyframes shimmer {
+  0% {
+    background-position: 200% center;
   }
-  to {
-    transform: translate(-50%, -50%) scale(0.95);
-    opacity: 0;
+  100% {
+    background-position: -200% center;
   }
 }
 
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
+.text-shimmer {
+  background: linear-gradient(
+    to right,
+    #ededed 20%,
+    #a1a1aa 30%,
+    #ededed 70%,
+    #a1a1aa 80%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: shimmer 8s linear infinite reverse;
 }
 
-/* Custom Utilities */
-.modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  animation: fadeIn 0.2s ease-out;
+/* BENTO GRID UTILITIES */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+  padding: 1.5rem;
 }
 
-.modal-content {
-  animation: zoomIn 0.2s ease-out forwards;
+/* Typography Overrides */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  letter-spacing: -0.02em;
 }
 
-/* Scrollbar Styling - Luxury Warm */
+/* Custom Scrollbar (Dark) */
 ::-webkit-scrollbar {
   width: 8px;
-  height: 8px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #f2ede3;
-  border-radius: 4px;
+  background: #0a0a0a;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #b08e51;
+  background: #333;
   border-radius: 4px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #82693c;
+  background: #555;
 }
 
-.font-playfair {
-  font-family: var(--font-playfair), serif;
+/* 2025 Landing Motion */
+@keyframes story-marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
 }
 
-/* Focus Ring Styles - Luxury Warm */
-input:focus,
-button:focus,
-textarea:focus {
-  outline: none;
+.story-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: story-marquee 26s linear infinite;
+}
+
+.story-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes cta-gradient-wave {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.lux-cta-gradient {
+  background-image: linear-gradient(
+    120deg,
+    #0e2d29 0%,
+    #164a42 35%,
+    #82693c 70%,
+    #b08e51 100%
+  );
+  background-size: 170% 170%;
+  animation: cta-gradient-wave 12s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-marquee-track,
+  .lux-cta-gradient {
+    animation: none;
+  }
 }

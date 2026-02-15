@@ -32,8 +32,6 @@ const GEN_COLORS: Record<number, { border: string; label: string }> = {
 };
 
 const NODE_CIRCLE_SIZE = 70;
-const PADDING_TOP = 80;
-const PADDING_LEFT = 80;
 
 const LINE_COLOR = "#e6dbc7"; // warmBorder
 const LINE_WIDTH = 1.5;
@@ -90,17 +88,29 @@ export default function FamilyTreeCanvas({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const canvasOffsetRef = useRef({ x: 0, y: 0 });
 
+  // View state: Transform (pan x/y, scale)
+  const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  const [scrollStart, setScrollStart] = useState({ x: 0, y: 0 });
-  const [hasDragged, setHasDragged] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState(0);
 
   const { nodes, edges, width, height } = layout;
 
+  // Initial centering
+  useEffect(() => {
+    if (nodes.length > 0 && wrapperRef.current) {
+      const { clientWidth } = wrapperRef.current;
+      // Center the tree initially
+      const initialScale = 0.8;
+      const initialX = (clientWidth - width * initialScale) / 2;
+      const initialY = 100; // Top padding
+      setTransform({ x: initialX, y: initialY, k: initialScale });
+    }
+  }, [width, height, nodes.length]);
+
+  // Image preloading logic...
   useEffect(() => {
     let loadedCount = 0;
     const toLoad = nodes.filter((n) => n.imageUrl && !imageCache.has(n.id));
@@ -123,110 +133,105 @@ export default function FamilyTreeCanvas({
     });
   }, [nodes]);
 
-  const getCanvasSize = useCallback(() => {
-    const w = Math.max(800, width + PADDING_LEFT * 2);
-    const h = Math.max(600, height + PADDING_TOP * 2);
-    return { width: w, height: h, offsetX: PADDING_LEFT, offsetY: PADDING_TOP };
-  }, [width, height]);
+  // --- HIT TESTING (Screen -> World) ---
+  const screenToWorld = useCallback(
+    (sx: number, sy: number) => {
+      return {
+        x: (sx - transform.x) / transform.k,
+        y: (sy - transform.y) / transform.k,
+      };
+    },
+    [transform]
+  );
 
   const findNodeAt = useCallback(
     (clientX: number, clientY: number) => {
       const wrapper = wrapperRef.current;
       if (!wrapper) return null;
-
       const rect = wrapper.getBoundingClientRect();
-      const canvasX = clientX - rect.left + wrapper.scrollLeft;
-      const canvasY = clientY - rect.top + wrapper.scrollTop;
-      const { x: offsetX, y: offsetY } = canvasOffsetRef.current;
-      const adjustedX = canvasX - offsetX;
-      const adjustedY = canvasY - offsetY;
+      const sx = clientX - rect.left;
+      const sy = clientY - rect.top;
+      const { x, y } = screenToWorld(sx, sy);
 
+      // Check distance to nodes
       for (const node of nodes) {
-        if (typeof node.x !== 'number' || typeof node.y !== 'number') continue;
-        const dx = adjustedX - node.x;
-        const dy = adjustedY - node.y;
-        if (Math.sqrt(dx * dx + dy * dy) <= NODE_CIRCLE_SIZE / 2) return node;
+        if (typeof node.x !== "number" || typeof node.y !== "number") continue;
+        const dx = x - node.x;
+        const dy = y - node.y;
+        // Hit area slightly larger for easier selection
+        if (dx * dx + dy * dy <= (NODE_CIRCLE_SIZE / 2) ** 2) {
+          return node;
+        }
       }
       return null;
     },
-    [nodes]
+    [nodes, screenToWorld]
   );
 
   const findButtonAt = useCallback(
     (clientX: number, clientY: number) => {
+      if (!selectedId) return null;
       const wrapper = wrapperRef.current;
-      if (!wrapper || !selectedId) return null;
-
+      if (!wrapper) return null;
       const rect = wrapper.getBoundingClientRect();
-      const canvasX = clientX - rect.left + wrapper.scrollLeft;
-      const canvasY = clientY - rect.top + wrapper.scrollTop;
-      const { x: offsetX, y: offsetY } = canvasOffsetRef.current;
-      const adjustedX = canvasX - offsetX;
-      const adjustedY = canvasY - offsetY;
+      const sx = clientX - rect.left;
+      const sy = clientY - rect.top;
+      const { x, y } = screenToWorld(sx, sy);
 
       const selectedNode = nodes.find((n) => n.id === selectedId);
       if (!selectedNode) return null;
 
       const buttons = getQuickAddButtons(selectedNode);
       for (const btn of buttons) {
-        const dx = adjustedX - btn.x;
-        const dy = adjustedY - btn.y;
-        if (Math.sqrt(dx * dx + dy * dy) <= BUTTON_SIZE / 2) {
+        const dx = x - btn.x;
+        const dy = y - btn.y;
+        if (dx * dx + dy * dy <= (BUTTON_SIZE / 2 + 5) ** 2) {
           return { nodeId: selectedNode.id, type: btn.type };
         }
       }
       return null;
     },
-    [nodes, selectedId]
+    [nodes, selectedId, screenToWorld]
   );
 
+  // --- DRAWING ---
   const drawTree = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-
+    if (!canvas || !wrapperRef.current) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const { clientWidth, clientHeight } = wrapperRef.current;
     const dpr = window.devicePixelRatio || 1;
-    const { width, height, offsetX, offsetY } = getCanvasSize();
-    canvasOffsetRef.current = { x: offsetX, y: offsetY };
 
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
+    // Resize canvas to full wrapper size
+    if (
+      canvas.width !== clientWidth * dpr ||
+      canvas.height !== clientHeight * dpr
+    ) {
+      canvas.width = clientWidth * dpr;
+      canvas.height = clientHeight * dpr;
+      canvas.style.width = `${clientWidth}px`;
+      canvas.style.height = `${clientHeight}px`;
+    }
 
+    // Reset transform & clear
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, clientWidth, clientHeight);
 
-    // Background: warm-50
-    ctx.fillStyle = "#f9f6f1";
-    ctx.fillRect(0, 0, width, height);
-
+    // Apply Zoom/Pan Transform
     ctx.save();
-    ctx.translate(offsetX, offsetY);
+    ctx.translate(transform.x, transform.y);
+    ctx.scale(transform.k, transform.k);
 
-    // -------- Generation display calculation --------
-    const owner = nodes.find((n) => n.line === "self") || nodes[0];
-    const ownerGen = owner?.generation ?? 0;
-    const BASE_GEN = 1;
-
-    const getDisplayGen = (n: FamilyNode): number => {
-      return (n.generation ?? 0) - ownerGen + BASE_GEN;
-    };
-
-    const getGenColor = (gen: number): string => {
-      if (GEN_COLORS[gen]) return GEN_COLORS[gen].border;
-      return gen < 0 ? "#6b21a8" : "#be123c";
-    };
-
-    // -------- Draw Edges (Explicit paths from layout) --------
+    // 1. Draw Edges
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
-
-    edges.forEach(edge => {
+    edges.forEach((edge) => {
       ctx.beginPath();
+      // "spouse" edges get a special gold color, others standard
       ctx.strokeStyle = edge.type === "spouse" ? "#b08e51" : LINE_COLOR;
-      ctx.lineWidth = edge.type === "spouse" ? 2 : LINE_WIDTH;
+      ctx.lineWidth = (edge.type === "spouse" ? 2 : LINE_WIDTH); // visual thickness scales with zoom naturally
 
       if (edge.path.length > 0) {
         ctx.moveTo(edge.path[0].x, edge.path[0].y);
@@ -237,147 +242,151 @@ export default function FamilyTreeCanvas({
       ctx.stroke();
     });
 
-    // -------- Draw nodes --------
+    // Determine Owner Node for Generation Color Calculation
+    const owner = nodes.find((n) => n.line === "self") || nodes[0];
+    const ownerGen = owner?.generation ?? 0;
+    const BASE_GEN = 1;
+
+    // 2. Draw Nodes
     for (const node of nodes) {
       if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) continue;
       const x = node.x!;
       const y = node.y!;
-
       const isSelected = node.id === selectedId;
       const isHovered = node.id === hoveredId;
 
+      // Color info
       const lineKey = (node.line as keyof typeof COLORS) || "default";
       const colorSet = COLORS[lineKey] || COLORS.default;
+      const displayGen = (node.generation ?? 0) - ownerGen + BASE_GEN;
+      const genColor = GEN_COLORS[displayGen]?.border || "#be123c";
 
-      // shadow
+      // --- Node Shadow ---
       ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,0.1)";
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetY = 4;
+      ctx.shadowColor = "rgba(0,0,0,0.15)";
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetY = 6;
       ctx.beginPath();
-      ctx.arc(x, y, NODE_CIRCLE_SIZE / 2 + 3, 0, Math.PI * 2);
+      ctx.arc(x, y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
       ctx.fillStyle = "white";
       ctx.fill();
       ctx.restore();
 
-      // image or initials
+      // --- Node Image / Initials ---
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
+      ctx.clip();
+
       const img = imageCache.get(node.id);
       if (img && img.complete && img.naturalWidth > 0) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(x, y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
-        ctx.clip();
-
-        const hRatio = NODE_CIRCLE_SIZE / img.width;
-        const vRatio = NODE_CIRCLE_SIZE / img.height;
-        const ratio = Math.max(hRatio, vRatio);
-        const shiftX = (NODE_CIRCLE_SIZE - img.width * ratio) / 2;
-        const shiftY = (NODE_CIRCLE_SIZE - img.height * ratio) / 2;
-
-        ctx.drawImage(
-          img,
-          x - NODE_CIRCLE_SIZE / 2 + shiftX,
-          y - NODE_CIRCLE_SIZE / 2 + shiftY,
-          img.width * ratio,
-          img.height * ratio
+        // Cover-fit image
+        const scale = Math.max(
+          NODE_CIRCLE_SIZE / img.width,
+          NODE_CIRCLE_SIZE / img.height
         );
-        ctx.restore();
+        const cw = img.width * scale;
+        const ch = img.height * scale;
+        ctx.drawImage(img, x - cw / 2, y - ch / 2, cw, ch);
       } else {
-        ctx.fillStyle = "#f2ede3";
-        ctx.beginPath();
-        ctx.arc(x, y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = "#1d1a14";
-        ctx.font = `bold ${NODE_CIRCLE_SIZE / 2.5}px Inter, sans-serif`;
+        // Fallback Initials
+        ctx.fillStyle = "#f9f6f1"; // bg-warm-50
+        ctx.fillRect(
+          x - NODE_CIRCLE_SIZE / 2,
+          y - NODE_CIRCLE_SIZE / 2,
+          NODE_CIRCLE_SIZE,
+          NODE_CIRCLE_SIZE
+        );
+        ctx.fillStyle = "#5b5346"; // text-warmMuted
+        ctx.font = `bold ${NODE_CIRCLE_SIZE * 0.4}px Inter, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(node.label.charAt(0).toUpperCase(), x, y);
       }
+      ctx.restore();
 
-      // border
-      const gen = getDisplayGen(node);
-      const genBorderColor = getGenColor(gen);
-
+      // --- Node Border ---
       ctx.beginPath();
       ctx.arc(x, y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
-      ctx.strokeStyle = isHovered || isSelected ? "#b08e51" : genBorderColor;
-      ctx.lineWidth = isHovered || isSelected ? 4 : 3;
+      // Highlights: Selected/Hovered gets Gold, else Generation Color
+      if (isSelected || isHovered) {
+        ctx.strokeStyle = "#b08e51";
+        ctx.lineWidth = 4;
+      } else {
+        ctx.strokeStyle = genColor;
+        ctx.lineWidth = 3;
+      }
       ctx.stroke();
 
-      // story icon
+      // --- Badges (Story / Works) ---
+      // Story Icon (Top Right)
       if (node.content?.description) {
-        const iconX = x + NODE_CIRCLE_SIZE / 2 - 8;
-        const iconY = y - NODE_CIRCLE_SIZE / 2 + 8;
-
-        ctx.fillStyle = colorSet.base;
+        const iconX = x + NODE_CIRCLE_SIZE / 2 * 0.7; // 45 deg approx
+        const iconY = y - NODE_CIRCLE_SIZE / 2 * 0.7;
         ctx.beginPath();
-        ctx.arc(iconX, iconY, 10, 0, Math.PI * 2);
+        ctx.arc(iconX, iconY, 12, 0, Math.PI * 2);
+        ctx.fillStyle = colorSet.base;
         ctx.fill();
-
         ctx.fillStyle = "white";
         ctx.font = "12px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText("📖", iconX, iconY + 1);
       }
-
-      // works icon
+      // Works Icon (Bottom Left) - moved slightly to avoid text overlap
       if (node.works && node.works.length > 0) {
-        const worksIconX = x - NODE_CIRCLE_SIZE / 2 + 8;
-        const worksIconY = y - NODE_CIRCLE_SIZE / 2 + 8;
-
-        ctx.fillStyle = "#b08e51";
+        const iconX = x - NODE_CIRCLE_SIZE / 2 * 0.7;
+        const iconY = y - NODE_CIRCLE_SIZE / 2 * 0.7;
         ctx.beginPath();
-        ctx.arc(worksIconX, worksIconY, 10, 0, Math.PI * 2);
+        ctx.arc(iconX, iconY, 12, 0, Math.PI * 2);
+        ctx.fillStyle = "#b08e51"; // Gold
         ctx.fill();
 
         const firstWorkType = node.works[0].type || "other";
         const workIcon = WORK_ICONS[firstWorkType] || WORK_ICONS.other;
-
         ctx.fillStyle = "white";
-        ctx.font = "11px sans-serif";
+        ctx.font = "12px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(workIcon, worksIconX, worksIconY + 1);
-
-        if (node.works.length > 1) {
-          const badgeX = worksIconX + 8;
-          const badgeY = worksIconY - 6;
-
-          ctx.fillStyle = "#ef4444";
-          ctx.beginPath();
-          ctx.arc(badgeX, badgeY, 6, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = "white";
-          ctx.font = "bold 8px sans-serif";
-          ctx.fillText(String(node.works.length), badgeX, badgeY);
-        }
+        ctx.fillText(workIcon, iconX, iconY + 1);
       }
 
-      // label
-      ctx.fillStyle = "#1d1a14";
-      ctx.font = "600 12px Inter, sans-serif";
+
+      // --- Text Labels (Under Node) ---
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      const textY = y + NODE_CIRCLE_SIZE / 2 + 8;
-      ctx.fillText(node.label, x, textY);
 
-      // year
+      // Name
+      ctx.fillStyle = "#1d1a14";
+      ctx.font = `600 ${13 / transform.k}px Inter, sans-serif`; // Scale text slightly to readable constant size? No, keep it scaling naturally but maybe limit min size
+      // Actually standard scaling is better for zoom.
+      ctx.font = "600 13px Inter, sans-serif";
+      const textY = y + NODE_CIRCLE_SIZE / 2 + 10;
+      // Truncate overly long names? Or multiline?
+      // simple shadow for text readability against lines
+      ctx.save();
+      ctx.shadowColor = "rgba(255,255,255,0.8)";
+      ctx.shadowBlur = 4;
+      ctx.fillText(node.label, x, textY);
+      ctx.restore();
+
+      // Year
       if (node.year) {
         const yearText = node.deathYear
           ? `${node.year} - ${node.deathYear}`
           : `${node.year}`;
         ctx.fillStyle = "#5b5346";
         ctx.font = "400 11px Inter, sans-serif";
-        ctx.fillText(yearText, x, textY + 16);
+        ctx.fillText(yearText, x, textY + 18);
       }
 
-      // quick add buttons
-      if (isSelected && !isPanning) {
+      // --- Quick Add Buttons (Only if selected) ---
+      if (isSelected) {
         const buttons = getQuickAddButtons(node);
+        // Draw connecting lines to buttons? Optional.
+
         for (const btn of buttons) {
+          // Button cleanup
           ctx.beginPath();
           ctx.arc(btn.x, btn.y + 2, BUTTON_SIZE / 2, 0, Math.PI * 2);
           ctx.fillStyle = "rgba(0,0,0,0.2)";
@@ -385,15 +394,14 @@ export default function FamilyTreeCanvas({
 
           ctx.beginPath();
           ctx.arc(btn.x, btn.y, BUTTON_SIZE / 2, 0, Math.PI * 2);
-          ctx.fillStyle = "#82693c"; // gold-700
+          ctx.fillStyle = "#82693c"; // Gold-700
           ctx.fill();
-
-          ctx.strokeStyle = "#FFF";
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = "white";
+          ctx.lineWidth = 1.5;
           ctx.stroke();
 
-          ctx.fillStyle = "#FFF";
-          ctx.font = "bold 16px system-ui";
+          ctx.fillStyle = "white";
+          ctx.font = "bold 16px sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText(btn.icon, btn.x, btn.y);
@@ -402,105 +410,147 @@ export default function FamilyTreeCanvas({
     }
 
     ctx.restore();
-  }, [nodes, edges, width, height, selectedId, hoveredId, isPanning, getCanvasSize, imagesLoaded]);
+  }, [nodes, edges, width, height, selectedId, hoveredId, transform, imagesLoaded]);
 
+  // Redraw on change
   useEffect(() => {
     drawTree();
+    // Also re-draw on window resize
+    const handleResize = () => requestAnimationFrame(drawTree);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [drawTree]);
 
-  // Event handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    const hit = findButtonAt(e.clientX, e.clientY);
-    if (hit) {
-      onAddNode(hit.nodeId, hit.type);
+
+  // --- INTERACTION HANDLERS ---
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    if (!wrapperRef.current) return;
+    const rect = wrapperRef.current.getBoundingClientRect();
+
+    // Zoom point relative to canvas (screen coords inside wrapper)
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // Current world pos of mouse
+    const worldX = (mouseX - transform.x) / transform.k;
+    const worldY = (mouseY - transform.y) / transform.k;
+
+    // Calc new scale
+    const zoomIntensity = 0.1;
+    const delta = -Math.sign(e.deltaY);
+    let newK = transform.k + delta * zoomIntensity * transform.k;
+    // Clamp zoom
+    newK = Math.min(Math.max(newK, 0.1), 5); // 0.1x to 5x
+
+    // Adjust pan to keep world point under mouse
+    const newX = mouseX - worldX * newK;
+    const newY = mouseY - worldY * newK;
+
+    setTransform({ x: newX, y: newY, k: newK });
+  };
+
+
+  // Revised Mouse Handler for separation of Click vs Drag
+  const dragDistanceRef = useRef(0);
+
+  const handleMouseDownRevised = (e: React.MouseEvent) => {
+    const btnHit = findButtonAt(e.clientX, e.clientY);
+    if (btnHit) {
+      onAddNode(btnHit.nodeId, btnHit.type);
       return;
     }
-    setIsPanning(true);
-    setHasDragged(false);
-    setPanStart({ x: e.clientX, y: e.clientY });
-    setScrollStart({
-      x: wrapperRef.current?.scrollLeft || 0,
-      y: wrapperRef.current?.scrollTop || 0,
-    });
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+    dragDistanceRef.current = 0;
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isPanning) {
-      const dx = e.clientX - panStart.x;
-      const dy = e.clientY - panStart.y;
-      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) setHasDragged(true);
-      if (wrapperRef.current) {
-        wrapperRef.current.scrollLeft = scrollStart.x - dx;
-        wrapperRef.current.scrollTop = scrollStart.y - dy;
-      }
+  const handleMouseMoveRevised = (e: React.MouseEvent) => {
+    if (isDragging) {
+      const dx = e.clientX - dragStart.x;
+      const dy = e.clientY - dragStart.y;
+      dragDistanceRef.current += Math.abs(dx) + Math.abs(dy);
+
+      setTransform((prev) => ({
+        ...prev,
+        x: prev.x + dx,
+        y: prev.y + dy,
+      }));
+      setDragStart({ x: e.clientX, y: e.clientY });
+
+      if (canvasRef.current) canvasRef.current.style.cursor = 'grabbing';
     } else {
+      // Hover
       const node = findNodeAt(e.clientX, e.clientY);
       setHoveredId(node?.id || null);
+
+      // Buttons
+      const btnHit = findButtonAt(e.clientX, e.clientY);
+      if (canvasRef.current) {
+        canvasRef.current.style.cursor = (node || btnHit) ? 'pointer' : 'grab';
+      }
     }
   };
 
-  const handleMouseUp = (e: React.MouseEvent) => {
-    if (!hasDragged) {
+  const handleMouseUpRevised = (e: React.MouseEvent) => {
+    setIsDragging(false);
+    if (canvasRef.current) canvasRef.current.style.cursor = 'grab';
+
+    // If drag was small, treat as click
+    if (dragDistanceRef.current < 5) {
       const node = findNodeAt(e.clientX, e.clientY);
       onSelectNode(node ? node.id : null);
     }
-    setIsPanning(false);
   };
 
   const handleMouseLeave = () => {
-    setIsPanning(false);
+    setIsDragging(false);
     setHoveredId(null);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      const t = e.touches[0];
-      setIsPanning(true);
-      setHasDragged(false);
-      setPanStart({ x: t.clientX, y: t.clientY });
-      setScrollStart({
-        x: wrapperRef.current?.scrollLeft || 0,
-        y: wrapperRef.current?.scrollTop || 0,
-      });
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (isPanning && e.touches.length === 1) {
-      e.preventDefault();
-      const t = e.touches[0];
-      const dx = t.clientX - panStart.x;
-      const dy = t.clientY - panStart.y;
-      setHasDragged(true);
-      if (wrapperRef.current) {
-        wrapperRef.current.scrollLeft = scrollStart.x - dx;
-        wrapperRef.current.scrollTop = scrollStart.y - dy;
-      }
-    }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!hasDragged && e.changedTouches.length === 1) {
-      const t = e.changedTouches[0];
-      const node = findNodeAt(t.clientX, t.clientY);
-      if (node) onSelectNode(node.id);
-    }
-    setIsPanning(false);
   };
 
   return (
     <div
       ref={wrapperRef}
-      className="w-full h-full overflow-auto relative cursor-grab active:cursor-grabbing touch-none"
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
+      className="w-full h-full relative overflow-hidden bg-[#f9f6f1] select-none"
+      onWheel={handleWheel}
+      onMouseDown={handleMouseDownRevised}
+      onMouseMove={handleMouseMoveRevised}
+      onMouseUp={handleMouseUpRevised}
       onMouseLeave={handleMouseLeave}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
       <canvas ref={canvasRef} className="block" />
+
+      {/* Zoom Controls Overlay (Optional but good UX) */}
+      <div className="absolute bottom-4 right-4 flex flex-col gap-2 p-2 bg-white/90 backdrop-blur rounded-lg shadow-md border border-warm-200">
+        <button
+          className="w-8 h-8 flex items-center justify-center rounded hover:bg-warm-100 text-warmMuted font-bold"
+          onClick={() => setTransform(t => ({ ...t, k: Math.min(t.k * 1.2, 5) }))}
+        >
+          +
+        </button>
+        <button
+          className="w-8 h-8 flex items-center justify-center rounded hover:bg-warm-100 text-warmMuted font-bold"
+          onClick={() => setTransform(t => ({ ...t, k: Math.max(t.k / 1.2, 0.1) }))}
+        >
+          -
+        </button>
+        <button
+          className="w-8 h-8 flex items-center justify-center rounded hover:bg-warm-100 text-warmMuted font-bold text-xs"
+          onClick={() => {
+            // Reset to center
+            if (wrapperRef.current) {
+              const { clientWidth } = wrapperRef.current;
+              const initialScale = 0.8;
+              const initialX = (clientWidth - width * initialScale) / 2;
+              const initialY = 100;
+              setTransform({ x: initialX, y: initialY, k: initialScale });
+            }
+          }}
+        >
+          ⟲
+        </button>
+      </div>
     </div>
   );
 }
