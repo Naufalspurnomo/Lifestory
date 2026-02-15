@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
@@ -40,7 +40,7 @@ const storyMoments = [
     note: "Setiap detail kecil bisa menjadi benih warisan besar.",
     icon: Quote,
     className:
-      "md:col-span-2 bg-[linear-gradient(140deg,#fff8ea_0%,#fffdf6_56%,#fff_100%)]",
+      "lg:col-span-2 bg-[linear-gradient(140deg,#fff8ea_0%,#fffdf6_56%,#fff_100%)]",
   },
   {
     phase: "Babak 02",
@@ -49,7 +49,7 @@ const storyMoments = [
     note: "Cerita yang rapi membuat nilai hidup lebih mudah diwariskan.",
     icon: Target,
     className:
-      "md:col-span-1 bg-[linear-gradient(145deg,#f3efe6_0%,#fffaf3_100%)]",
+      "lg:col-span-1 bg-[linear-gradient(145deg,#f3efe6_0%,#fffaf3_100%)]",
   },
   {
     phase: "Babak 03",
@@ -58,7 +58,7 @@ const storyMoments = [
     note: "Warisan terbaik adalah kisah yang bisa disentuh dan dibaca ulang.",
     icon: HeartHandshake,
     className:
-      "md:col-span-2 bg-[linear-gradient(150deg,#f5f8ee_0%,#ffffff_100%)]",
+      "lg:col-span-2 bg-[linear-gradient(150deg,#f5f8ee_0%,#ffffff_100%)]",
   },
 ];
 
@@ -70,7 +70,7 @@ const storyMomentsEn = [
     note: "Small details often become the strongest family legacy.",
     icon: Quote,
     className:
-      "md:col-span-2 bg-[linear-gradient(140deg,#fff8ea_0%,#fffdf6_56%,#fff_100%)]",
+      "lg:col-span-2 bg-[linear-gradient(140deg,#fff8ea_0%,#fffdf6_56%,#fff_100%)]",
   },
   {
     phase: "Act 02",
@@ -79,7 +79,7 @@ const storyMomentsEn = [
     note: "Structured stories preserve values more effectively.",
     icon: Target,
     className:
-      "md:col-span-1 bg-[linear-gradient(145deg,#f3efe6_0%,#fffaf3_100%)]",
+      "lg:col-span-1 bg-[linear-gradient(145deg,#f3efe6_0%,#fffaf3_100%)]",
   },
   {
     phase: "Act 03",
@@ -88,7 +88,7 @@ const storyMomentsEn = [
     note: "The best legacy is a story that can be revisited anytime.",
     icon: HeartHandshake,
     className:
-      "md:col-span-2 bg-[linear-gradient(150deg,#f5f8ee_0%,#ffffff_100%)]",
+      "lg:col-span-2 bg-[linear-gradient(150deg,#f5f8ee_0%,#ffffff_100%)]",
   },
 ];
 
@@ -149,7 +149,7 @@ const productBento = [
     title: "Buku Autobiografi Eksklusif",
     icon: BookOpenText,
     className:
-      "md:col-span-2 md:row-span-2 bg-[linear-gradient(140deg,#fff5df_0%,#fffaf0_58%,#fff_100%)]",
+      "lg:col-span-2 bg-[linear-gradient(140deg,#fff5df_0%,#fffaf0_58%,#fff_100%)]",
     points: [
       "Sampul keras premium, kertas berkualitas, kemasan tahan air dan dikustomisasi.",
       "Foto lama, dokumen, dan foto baru dari sesi Lifestory.",
@@ -160,7 +160,7 @@ const productBento = [
     title: "Video Wawancara & Dokumentasi",
     icon: Video,
     className:
-      "md:col-span-1 md:row-span-1 bg-[linear-gradient(145deg,#f4efe6_0%,#fffaf4_100%)]",
+      "lg:col-span-1 bg-[linear-gradient(145deg,#f4efe6_0%,#fffaf4_100%)]",
     points: [
       "Wawancara terarah dan dokumentasi aktivitas bermakna.",
       "Rangkuman momen terbaik dalam kemasan eksklusif + flash disk.",
@@ -170,7 +170,7 @@ const productBento = [
     title: "Poster Pohon Keturunan",
     icon: TreePine,
     className:
-      "md:col-span-1 md:row-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fbfffa_100%)]",
+      "lg:col-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fbfffa_100%)]",
     points: [
       "Dicetak dan dibingkai, dengan slot tambahan untuk periode selanjutnya.",
       "Mendukung pelacakan silsilah secara visual dan mudah dipahami.",
@@ -180,7 +180,7 @@ const productBento = [
     title: "Sesi Foto & Cetak Besar",
     icon: Camera,
     className:
-      "md:col-span-2 md:row-span-1 bg-[linear-gradient(145deg,#f7f3eb_0%,#ffffff_100%)]",
+      "lg:col-span-2 bg-[linear-gradient(145deg,#f7f3eb_0%,#ffffff_100%)]",
     points: [
       "Output foto 20R, 30 file digital, plus bonus 2 foto kecil berbingkai.",
       "Dokumentasi visual artistik untuk melengkapi narasi keluarga.",
@@ -194,7 +194,7 @@ const packages = [
     tag: "Unggulan",
     desc: "Buku kisah hidup yang dirancang personal untuk warisan keluarga.",
     className:
-      "md:col-span-2 md:row-span-2 bg-[linear-gradient(145deg,#fff9ef_0%,#fff_100%)]",
+      "lg:col-span-2 bg-[linear-gradient(145deg,#fff9ef_0%,#fff_100%)]",
     icon: BookOpenText,
     features: [
       "Sampul keras, foto lama + foto baru, penulisan, desain, dan tata letak.",
@@ -207,7 +207,7 @@ const packages = [
     tag: "Warisan Visual",
     desc: "Sesi foto profesional untuk melengkapi kisah hidup.",
     className:
-      "md:col-span-2 md:row-span-1 bg-[linear-gradient(145deg,#f4f0e8_0%,#fffaf4_100%)]",
+      "lg:col-span-2 bg-[linear-gradient(145deg,#f4f0e8_0%,#fffaf4_100%)]",
     icon: Camera,
     features: [
       "Hasil akhir foto 20R.",
@@ -220,7 +220,7 @@ const packages = [
     tag: "Dokumenter",
     desc: "Wawancara, dokumentasi kegiatan, dan rangkuman momen penting.",
     className:
-      "md:col-span-1 md:row-span-1 bg-[linear-gradient(145deg,#f8f4ec_0%,#fff_100%)]",
+      "lg:col-span-1 bg-[linear-gradient(145deg,#f8f4ec_0%,#fff_100%)]",
     icon: Video,
     features: [
       "Pengemasan video secara eksklusif.",
@@ -233,7 +233,7 @@ const packages = [
     tag: "Peta Warisan",
     desc: "Silsilah keluarga dalam bentuk visual elegan yang mudah dilanjutkan.",
     className:
-      "md:col-span-1 md:row-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fff_100%)]",
+      "lg:col-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fff_100%)]",
     icon: TreePine,
     features: [
       "Dicetak dan dibingkai.",
@@ -300,7 +300,7 @@ const productBentoEn = [
     title: "Exclusive Autobiography Book",
     icon: BookOpenText,
     className:
-      "md:col-span-2 md:row-span-2 bg-[linear-gradient(140deg,#fff5df_0%,#fffaf0_58%,#fff_100%)]",
+      "lg:col-span-2 bg-[linear-gradient(140deg,#fff5df_0%,#fffaf0_58%,#fff_100%)]",
     points: [
       "Premium hard cover, high-quality paper, water-resistant custom packaging.",
       "Includes old photos, documents, and new photos from Lifestory sessions.",
@@ -311,7 +311,7 @@ const productBentoEn = [
     title: "Interview & Documentary Video",
     icon: Video,
     className:
-      "md:col-span-1 md:row-span-1 bg-[linear-gradient(145deg,#f4efe6_0%,#fffaf4_100%)]",
+      "lg:col-span-1 bg-[linear-gradient(145deg,#f4efe6_0%,#fffaf4_100%)]",
     points: [
       "Guided interviews and meaningful life-activity documentation.",
       "Curated highlight summary with premium packaging and flash disk.",
@@ -321,7 +321,7 @@ const productBentoEn = [
     title: "Family Lineage Poster",
     icon: TreePine,
     className:
-      "md:col-span-1 md:row-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fbfffa_100%)]",
+      "lg:col-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fbfffa_100%)]",
     points: [
       "Printed and framed, with expandable slots for future periods.",
       "Supports visual and accessible family-tree tracking.",
@@ -331,7 +331,7 @@ const productBentoEn = [
     title: "Photo Session & Large Prints",
     icon: Camera,
     className:
-      "md:col-span-2 md:row-span-1 bg-[linear-gradient(145deg,#f7f3eb_0%,#ffffff_100%)]",
+      "lg:col-span-2 bg-[linear-gradient(145deg,#f7f3eb_0%,#ffffff_100%)]",
     points: [
       "20R print output, 30 digital files, and 2 framed mini photos.",
       "Artistic visual documentation to complete each family's narrative.",
@@ -345,7 +345,7 @@ const packagesEn = [
     tag: "Signature",
     desc: "A personalized life-story book crafted as a timeless family legacy.",
     className:
-      "md:col-span-2 md:row-span-2 bg-[linear-gradient(145deg,#fff9ef_0%,#fff_100%)]",
+      "lg:col-span-2 bg-[linear-gradient(145deg,#fff9ef_0%,#fff_100%)]",
     icon: BookOpenText,
     features: [
       "Hard cover, old + new photos, writing, design, and layout.",
@@ -358,7 +358,7 @@ const packagesEn = [
     tag: "Visual Legacy",
     desc: "Professional photo sessions to enrich every biography project.",
     className:
-      "md:col-span-2 md:row-span-1 bg-[linear-gradient(145deg,#f4f0e8_0%,#fffaf4_100%)]",
+      "lg:col-span-2 bg-[linear-gradient(145deg,#f4f0e8_0%,#fffaf4_100%)]",
     icon: Camera,
     features: [
       "Final output in 20R print.",
@@ -371,7 +371,7 @@ const packagesEn = [
     tag: "Documentary",
     desc: "Interview, activity documentation, and life-memory highlights.",
     className:
-      "md:col-span-1 md:row-span-1 bg-[linear-gradient(145deg,#f8f4ec_0%,#fff_100%)]",
+      "lg:col-span-1 bg-[linear-gradient(145deg,#f8f4ec_0%,#fff_100%)]",
     icon: Video,
     features: [
       "Premium video packaging.",
@@ -384,7 +384,7 @@ const packagesEn = [
     tag: "Legacy Map",
     desc: "Elegant lineage visualization that can grow across generations.",
     className:
-      "md:col-span-1 md:row-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fff_100%)]",
+      "lg:col-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fff_100%)]",
     icon: TreePine,
     features: [
       "Printed and framed output.",
@@ -609,7 +609,7 @@ export default function AboutPage() {
             <p className="mt-4 text-[#6c6055]">{pageCopy.storyBody}</p>
           </motion.div>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-3 md:auto-rows-[240px]">
+          <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {currentStoryMoments.map((moment, index) => {
               const Icon = moment.icon;
               return (
@@ -653,11 +653,11 @@ export default function AboutPage() {
           whileInView="show"
           viewport={{ once: true, amount: viewportAmount }}
         >
-          <div className="grid gap-5 lg:grid-cols-6 lg:auto-rows-[220px]">
+          <div className="grid gap-5 lg:grid-cols-2">
             <motion.article
               variants={sectionVariant}
               custom={0}
-              className="rounded-3xl border border-[#dfd2be] bg-white/80 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.08)] lg:col-span-3 lg:row-span-2"
+              className="rounded-3xl border border-[#dfd2be] bg-white/80 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.08)]"
             >
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
                 {pageCopy.whyLabel}
@@ -677,7 +677,7 @@ export default function AboutPage() {
             <motion.article
               variants={sectionVariant}
               custom={1}
-              className="rounded-3xl border border-[#dfd2be] bg-white/80 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.08)] lg:col-span-3 lg:row-span-2"
+              className="rounded-3xl border border-[#dfd2be] bg-white/80 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.08)]"
             >
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
                 {pageCopy.purposeLabel}
@@ -701,7 +701,7 @@ export default function AboutPage() {
             <motion.article
               variants={sectionVariant}
               custom={2}
-              className="rounded-3xl border border-[#dfd2be] bg-white/82 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.08)] lg:col-span-6"
+              className="rounded-3xl border border-[#dfd2be] bg-white/82 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.08)] lg:col-span-2"
             >
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
                 {pageCopy.benefitLabel}
@@ -744,7 +744,7 @@ export default function AboutPage() {
             </p>
           </motion.div>
 
-          <div className="grid gap-5 md:grid-cols-3 md:auto-rows-[220px]">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {currentProductBento.map((item, index) => {
               const Icon = item.icon;
               return (
@@ -794,7 +794,7 @@ export default function AboutPage() {
             </p>
           </motion.div>
 
-          <div className="grid gap-5 md:grid-cols-4 md:auto-rows-[230px]">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {currentPackages.map((pkg, index) => {
               const Icon = pkg.icon;
               return (
@@ -964,3 +964,4 @@ export default function AboutPage() {
     </div>
   );
 }
+
