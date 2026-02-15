@@ -2,8 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { galleryItems } from "../lib/content/galleryItems";
 
-const heroImage =
-  "https://images.unsplash.com/photo-1455885666463-9a8f3e5f7f05?auto=format&fit=crop&w=2200&q=80";
+const heroImage = "/hero-bg.jpg";
 
 const highlights = [
   "Private family archive",
