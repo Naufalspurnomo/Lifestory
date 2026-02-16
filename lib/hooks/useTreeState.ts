@@ -364,11 +364,6 @@ export function useTreeState(userId: string, userName: string) {
       if (isAddChild) {
         const parentId = newNode.parentId!;
         updatedNodes = linkParentChild(updatedNodes, parentId, newNodeId);
-        const parent = updatedNodes.find((n) => n.id === parentId);
-        const spouseId = parent?.partners?.[0];
-        if (spouseId) {
-          updatedNodes = linkParentChild(updatedNodes, spouseId, newNodeId);
-        }
       }
 
       if (isAddPartner) {

@@ -35,6 +35,10 @@ type Props = {
   editingNode?: FamilyNode | null;
   addType?: "parent" | "partner" | "child" | "sibling";
   parentId?: string | null;
+  coParentOptions?: Array<{
+    id: string;
+    label: string;
+  }>;
 };
 
 export default function NodeEditor({
@@ -44,11 +48,13 @@ export default function NodeEditor({
   editingNode,
   addType = "child",
   parentId = null,
+  coParentOptions = [],
 }: Props) {
   const { locale } = useLanguage();
   const [label, setLabel] = useState("");
   const [year, setYear] = useState<string>("");
   const [deathYear, setDeathYear] = useState<string>("");
+  const [coParentId, setCoParentId] = useState<string>("");
   const [description, setDescription] = useState("");
   const [instagram, setInstagram] = useState("");
   const [tiktok, setTiktok] = useState("");
@@ -91,6 +97,10 @@ export default function NodeEditor({
           birthYear: "Tahun Lahir",
           deathYear: "Tahun Wafat",
           deathPlaceholder: "Kosongkan jika masih hidup",
+          coParent: "Orang Tua Kedua",
+          coParentHint:
+            "Pilih jika anak ini juga milik pasangan tertentu. Jika kosong, hanya terhubung ke parent yang dipilih.",
+          coParentNone: "Tidak ada / hanya satu orang tua",
           socialMedia: "Sosial Media",
           socialHint: "Opsional. Boleh isi username atau link profil.",
           instagramPlaceholder: "@username atau instagram.com/username",
@@ -141,6 +151,10 @@ export default function NodeEditor({
           birthYear: "Birth Year",
           deathYear: "Death Year",
           deathPlaceholder: "Leave empty if still alive",
+          coParent: "Second Parent",
+          coParentHint:
+            "Select this only if the child should also be linked to a specific partner.",
+          coParentNone: "None / single parent only",
           socialMedia: "Social Media",
           socialHint: "Optional. You may use username or profile URL.",
           instagramPlaceholder: "@username or instagram.com/username",
@@ -171,6 +185,7 @@ export default function NodeEditor({
       setLabel(editingNode.label);
       setYear(editingNode.year?.toString() || "");
       setDeathYear(editingNode.deathYear?.toString() || "");
+      setCoParentId("");
       setDescription(editingNode.content?.description || "");
       setInstagram(editingNode.content?.instagram || "");
       setTiktok(editingNode.content?.tiktok || "");
@@ -186,10 +201,23 @@ export default function NodeEditor({
     }
   }, [editingNode]);
 
+  useEffect(() => {
+    if (!isOpen || editingNode || addType !== "child") {
+      setCoParentId("");
+      return;
+    }
+
+    const stillValid = coParentOptions.some((option) => option.id === coParentId);
+    if (!stillValid) {
+      setCoParentId("");
+    }
+  }, [addType, coParentId, coParentOptions, editingNode, isOpen]);
+
   const resetForm = () => {
     setLabel("");
     setYear("");
     setDeathYear("");
+    setCoParentId("");
     setDescription("");
     setInstagram("");
     setTiktok("");
@@ -258,23 +286,44 @@ export default function NodeEditor({
       return;
     }
 
-    let line: FamilyNode["line"] = "paternal";
-    if (editingNode && editingNode.line) {
-      line = editingNode.line;
-    }
+    const selectedParentIds =
+      addType === "child"
+        ? Array.from(
+            new Set(
+              [parentId, coParentId || null].filter(
+                (id): id is string => Boolean(id)
+              )
+            )
+          )
+        : [];
+
+    const relationData: Pick<
+      Omit<FamilyNode, "id" | "generation" | "childrenIds">,
+      "parentId" | "parentIds" | "partners" | "line"
+    > = editingNode
+      ? {
+          parentId:
+            editingNode.parentIds?.[0] ??
+            editingNode.parentId ??
+            null,
+          parentIds:
+            editingNode.parentIds ||
+            (editingNode.parentId ? [editingNode.parentId] : []),
+          partners: editingNode.partners || [],
+          line: editingNode.line || "paternal",
+        }
+      : {
+          parentId: addType === "child" ? (selectedParentIds[0] || null) : null,
+          parentIds: addType === "child" ? selectedParentIds : undefined,
+          partners: addType === "partner" && parentId ? [parentId] : [],
+          line: "paternal",
+        };
 
     onSave({
       label: label.trim(),
       year: birthYear,
       deathYear: death,
-      parentId:
-        addType === "child"
-          ? parentId
-          : addType === "parent" || addType === "sibling"
-          ? null
-          : parentId,
-      partners: addType === "partner" && parentId ? [parentId] : [],
-      line,
+      ...relationData,
       imageUrl,
       content: {
         description,
@@ -407,6 +456,25 @@ export default function NodeEditor({
               />
             </label>
           </div>
+
+          {!editingNode && addType === "child" && parentId && coParentOptions.length > 0 && (
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-warmMuted">{copy.coParent}</span>
+              <select
+                value={coParentId}
+                onChange={(e) => setCoParentId(e.target.value)}
+                className="w-full rounded-xl border border-warm-200 bg-white px-4 py-2.5 text-warmText focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-100"
+              >
+                <option value="">{copy.coParentNone}</option>
+                {coParentOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-warmMuted">{copy.coParentHint}</p>
+            </label>
+          )}
 
           <div className="space-y-3 rounded-xl border border-warm-200 bg-warm-50 p-4">
             <div className="text-sm font-semibold text-warmText">{copy.socialMedia}</div>

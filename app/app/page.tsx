@@ -1,7 +1,7 @@
 "use client";
 // Force HMR update
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 
 import FamilyTreeCanvas from "../../components/tree/FamilyTreeCanvas";
@@ -254,6 +254,20 @@ export default function AppHome() {
 
   const selectedNode = selectedId ? getNode(selectedId) : null;
   const showTree = userTree && currentTree;
+  const coParentOptions = useMemo(() => {
+    if (!currentTree || !addParentId || addType !== "child" || editingNode) {
+      return [];
+    }
+
+    const baseParent = getNode(addParentId);
+    if (!baseParent) return [];
+
+    return (baseParent.partners || [])
+      .map((partnerId) => currentTree.nodes.find((node) => node.id === partnerId))
+      .filter((partner): partner is FamilyNode => Boolean(partner))
+      .map((partner) => ({ id: partner.id, label: partner.label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "id", { sensitivity: "base" }));
+  }, [addParentId, addType, currentTree, editingNode, getNode]);
 
   const handleExportTree = useCallback(() => {
     if (!currentTree || currentTree.nodes.length === 0) {
@@ -551,6 +565,7 @@ export default function AppHome() {
             editingNode={editingNode}
             addType={addType}
             parentId={addParentId}
+            coParentOptions={coParentOptions}
           />
 
           {currentTree && (
