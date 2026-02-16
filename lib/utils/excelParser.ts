@@ -267,6 +267,16 @@ function splitCsv(value?: string): string[] {
   );
 }
 
+function sharesAnyParent(
+  aId: string,
+  bId: string,
+  parentIdsByNode: Map<string, string[]>
+): boolean {
+  const aParents = new Set(parentIdsByNode.get(aId) || []);
+  if (!aParents.size) return false;
+  return (parentIdsByNode.get(bId) || []).some((pid) => aParents.has(pid));
+}
+
 function parseGender(value?: string): FamilyNode["sex"] | undefined {
   if (!value) return undefined;
   const normalized = normalizeText(value);
@@ -620,6 +630,9 @@ export function convertToFamilyNodes(members: ExcelMember[]): FamilyNode[] {
       for (let j = i + 1; j < parentIds.length; j++) {
         const leftParent = parentIds[i];
         const rightParent = parentIds[j];
+        if (sharesAnyParent(leftParent, rightParent, parentIdsByNode)) {
+          continue;
+        }
         if (!partnerMap.has(leftParent) || !partnerMap.has(rightParent)) continue;
         partnerMap.get(leftParent)?.add(rightParent);
         partnerMap.get(rightParent)?.add(leftParent);

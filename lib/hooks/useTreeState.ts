@@ -20,6 +20,12 @@ const MAX_HISTORY = 50;
 // ---------- helpers ----------
 const uniq = (a: string[]) => Array.from(new Set((a || []).filter(Boolean)));
 
+function sharesParent(a: FamilyNode, b: FamilyNode): boolean {
+  const aParents = new Set(a.parentIds || []);
+  if (!aParents.size) return false;
+  return (b.parentIds || []).some((pid) => aParents.has(pid));
+}
+
 function normalizeNode(n: any): FamilyNode {
   const partners = uniq(Array.isArray(n.partners) ? n.partners : []);
   const childrenIds = uniq(Array.isArray(n.childrenIds) ? n.childrenIds : []);
@@ -64,6 +70,15 @@ function sanitizeGraph(nodes: FamilyNode[]): FamilyNode[] {
       if (!p) continue;
       if (!p.partners.includes(n.id)) p.partners = uniq([...p.partners, n.id]);
     }
+  }
+
+  // partner cleanup: siblings should not be auto-treated as partners
+  for (const n of map.values()) {
+    n.partners = (n.partners || []).filter((pid) => {
+      const partner = map.get(pid);
+      if (!partner) return false;
+      return !sharesParent(n, partner);
+    });
   }
 
   // parent<->child sync (multi-parent)
@@ -116,11 +131,14 @@ function sanitizeGraph(nodes: FamilyNode[]): FamilyNode[] {
 
     if (!inferredPartnerId || parentIds.includes(inferredPartnerId)) continue;
 
+    const inferredPartner = map.get(inferredPartnerId);
+    if (!inferredPartner) continue;
+    if (sharesParent(knownParent, inferredPartner)) continue;
+
     child.parentIds = uniq([...parentIds, inferredPartnerId]);
 
-    const inferredParent = map.get(inferredPartnerId);
-    if (inferredParent && !inferredParent.childrenIds.includes(child.id)) {
-      inferredParent.childrenIds = uniq([...inferredParent.childrenIds, child.id]);
+    if (!inferredPartner.childrenIds.includes(child.id)) {
+      inferredPartner.childrenIds = uniq([...inferredPartner.childrenIds, child.id]);
     }
   }
 
