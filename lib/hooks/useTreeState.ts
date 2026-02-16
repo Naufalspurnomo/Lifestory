@@ -88,8 +88,59 @@ function sanitizeGraph(nodes: FamilyNode[]): FamilyNode[] {
         parent.childrenIds = uniq([...parent.childrenIds, child.id]);
       }
     }
-    // legacy sync
-    child.parentId = (child.parentIds || [])[0] ?? null;
+  }
+
+  // C) infer missing co-parent when one parent has a single stable partner
+  for (const child of map.values()) {
+    const parentIds = uniq(child.parentIds || []);
+    if (parentIds.length !== 1) continue;
+
+    const knownParent = map.get(parentIds[0]);
+    if (!knownParent) continue;
+
+    const partnerCandidates = (knownParent.partners || []).filter((pid) =>
+      map.has(pid)
+    );
+    if (partnerCandidates.length === 0) continue;
+
+    const candidatesAlreadyLinkedToChild = partnerCandidates.filter((pid) =>
+      map.get(pid)?.childrenIds.includes(child.id)
+    );
+
+    const inferredPartnerId =
+      candidatesAlreadyLinkedToChild.length === 1
+        ? candidatesAlreadyLinkedToChild[0]
+        : partnerCandidates.length === 1
+        ? partnerCandidates[0]
+        : null;
+
+    if (!inferredPartnerId || parentIds.includes(inferredPartnerId)) continue;
+
+    child.parentIds = uniq([...parentIds, inferredPartnerId]);
+
+    const inferredParent = map.get(inferredPartnerId);
+    if (inferredParent && !inferredParent.childrenIds.includes(child.id)) {
+      inferredParent.childrenIds = uniq([...inferredParent.childrenIds, child.id]);
+    }
+  }
+
+  // Final sync to keep arrays and legacy fields consistent
+  for (const child of map.values()) {
+    child.parentIds = uniq(child.parentIds || []);
+    for (const pid of child.parentIds) {
+      const parent = map.get(pid);
+      if (!parent) continue;
+      if (!parent.childrenIds.includes(child.id)) {
+        parent.childrenIds = uniq([...parent.childrenIds, child.id]);
+      }
+      if (!parent.partners) parent.partners = [];
+    }
+    child.parentId = child.parentIds[0] ?? null;
+  }
+
+  for (const node of map.values()) {
+    node.childrenIds = uniq(node.childrenIds || []);
+    node.partners = uniq(node.partners || []);
   }
 
   // return preserving original order

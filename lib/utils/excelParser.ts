@@ -29,6 +29,10 @@ const COPY = {
           "ID unik untuk setiap anggota (boleh kosong, akan di-generate)",
       },
       { Kolom: "nama", Keterangan: "Nama lengkap (WAJIB)" },
+      {
+        Kolom: "jenis_kelamin",
+        Keterangan: "M / F / X (opsional tapi direkomendasikan)",
+      },
       { Kolom: "tahun_lahir", Keterangan: "Tahun lahir (contoh: 1980)" },
       {
         Kolom: "tahun_wafat",
@@ -37,6 +41,18 @@ const COPY = {
       {
         Kolom: "parent_id",
         Keterangan: "ID orang tua (referensi ke kolom id)",
+      },
+      {
+        Kolom: "parent_ids",
+        Keterangan: "Semua parent ID, pisahkan koma jika lebih dari satu",
+      },
+      {
+        Kolom: "ayah_id",
+        Keterangan: "ID ayah (opsional, diprioritaskan saat tersedia)",
+      },
+      {
+        Kolom: "ibu_id",
+        Keterangan: "ID ibu (opsional, diprioritaskan saat tersedia)",
       },
       {
         Kolom: "pasangan_ids",
@@ -54,9 +70,13 @@ const COPY = {
       {
         id: "member_001",
         nama: "Budi Santoso",
+        jenis_kelamin: "M",
         tahun_lahir: 1950,
         tahun_wafat: "",
         parent_id: "",
+        parent_ids: "",
+        ayah_id: "",
+        ibu_id: "",
         pasangan_ids: "member_002",
         garis: "self",
         deskripsi: "Kepala keluarga",
@@ -65,9 +85,13 @@ const COPY = {
       {
         id: "member_002",
         nama: "Siti Rahayu",
+        jenis_kelamin: "F",
         tahun_lahir: 1955,
         tahun_wafat: "",
         parent_id: "",
+        parent_ids: "",
+        ayah_id: "",
+        ibu_id: "",
         pasangan_ids: "member_001",
         garis: "self",
         deskripsi: "Istri",
@@ -76,9 +100,13 @@ const COPY = {
       {
         id: "member_003",
         nama: "Andi Santoso",
+        jenis_kelamin: "M",
         tahun_lahir: 1980,
         tahun_wafat: "",
         parent_id: "member_001",
+        parent_ids: "member_001, member_002",
+        ayah_id: "member_001",
+        ibu_id: "member_002",
         pasangan_ids: "",
         garis: "descendant",
         deskripsi: "Anak pertama",
@@ -104,12 +132,22 @@ const COPY = {
         Description: "Unique ID per member (optional, auto-generated if empty)",
       },
       { Column: "nama", Description: "Full name (REQUIRED)" },
+      {
+        Column: "jenis_kelamin",
+        Description: "M / F / X (optional but recommended)",
+      },
       { Column: "tahun_lahir", Description: "Birth year (example: 1980)" },
       {
         Column: "tahun_wafat",
         Description: "Death year (leave empty if still alive)",
       },
       { Column: "parent_id", Description: "Parent ID (reference to id column)" },
+      {
+        Column: "parent_ids",
+        Description: "All parent IDs, comma-separated if more than one",
+      },
+      { Column: "ayah_id", Description: "Father ID (optional)" },
+      { Column: "ibu_id", Description: "Mother ID (optional)" },
       {
         Column: "pasangan_ids",
         Description: "Partner IDs, separated by comma for multiple values",
@@ -126,9 +164,13 @@ const COPY = {
       {
         id: "member_001",
         nama: "Michael Hart",
+        jenis_kelamin: "M",
         tahun_lahir: 1950,
         tahun_wafat: "",
         parent_id: "",
+        parent_ids: "",
+        ayah_id: "",
+        ibu_id: "",
         pasangan_ids: "member_002",
         garis: "self",
         deskripsi: "Head of family",
@@ -137,9 +179,13 @@ const COPY = {
       {
         id: "member_002",
         nama: "Sarah Hart",
+        jenis_kelamin: "F",
         tahun_lahir: 1955,
         tahun_wafat: "",
         parent_id: "",
+        parent_ids: "",
+        ayah_id: "",
+        ibu_id: "",
         pasangan_ids: "member_001",
         garis: "self",
         deskripsi: "Spouse",
@@ -148,9 +194,13 @@ const COPY = {
       {
         id: "member_003",
         nama: "Daniel Hart",
+        jenis_kelamin: "M",
         tahun_lahir: 1980,
         tahun_wafat: "",
         parent_id: "member_001",
+        parent_ids: "member_001, member_002",
+        ayah_id: "member_001",
+        ibu_id: "member_002",
         pasangan_ids: "",
         garis: "descendant",
         deskripsi: "First child",
@@ -168,10 +218,18 @@ function getCopy(locale: Locale) {
 export interface ExcelMember {
   id?: string;
   nama: string;
+  jenis_kelamin?: FamilyNode["sex"];
   tahun_lahir?: number;
   tahun_wafat?: number;
   parent_id?: string;
+  parent_ids?: string;
+  parent_nama?: string;
+  ayah_id?: string;
+  ayah_nama?: string;
+  ibu_id?: string;
+  ibu_nama?: string;
   pasangan_ids?: string;
+  pasangan_nama?: string;
   garis?: string;
   deskripsi?: string;
   foto_url?: string;
@@ -182,6 +240,97 @@ export interface ValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
+}
+
+function getCellString(row: Record<string, any>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    if (!(key in row)) continue;
+    const value = String(row[key] ?? "").trim();
+    if (value) return value;
+  }
+  return undefined;
+}
+
+function normalizeText(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function splitCsv(value?: string): string[] {
+  if (!value) return [];
+  return Array.from(
+    new Set(
+      value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+function parseGender(value?: string): FamilyNode["sex"] | undefined {
+  if (!value) return undefined;
+  const normalized = normalizeText(value);
+  if (["m", "male", "l", "laki", "laki-laki", "pria"].includes(normalized)) {
+    return "M";
+  }
+  if (["f", "female", "p", "perempuan", "wanita"].includes(normalized)) {
+    return "F";
+  }
+  if (["x", "other", "lainnya", "unknown", "tidak diketahui"].includes(normalized)) {
+    return "X";
+  }
+  return undefined;
+}
+
+function mergeCsvField(a?: string, b?: string): string | undefined {
+  const merged = splitCsv(a).concat(splitCsv(b));
+  if (!merged.length) return undefined;
+  return Array.from(new Set(merged)).join(", ");
+}
+
+function mergeMember(base: ExcelMember, extra: ExcelMember): ExcelMember {
+  return {
+    id: base.id || extra.id,
+    nama: base.nama || extra.nama,
+    jenis_kelamin: base.jenis_kelamin || extra.jenis_kelamin,
+    tahun_lahir: base.tahun_lahir ?? extra.tahun_lahir,
+    tahun_wafat: base.tahun_wafat ?? extra.tahun_wafat,
+    parent_id: base.parent_id || extra.parent_id,
+    parent_ids: mergeCsvField(base.parent_ids, extra.parent_ids),
+    parent_nama: mergeCsvField(base.parent_nama, extra.parent_nama),
+    ayah_id: base.ayah_id || extra.ayah_id,
+    ayah_nama: base.ayah_nama || extra.ayah_nama,
+    ibu_id: base.ibu_id || extra.ibu_id,
+    ibu_nama: base.ibu_nama || extra.ibu_nama,
+    pasangan_ids: mergeCsvField(base.pasangan_ids, extra.pasangan_ids),
+    pasangan_nama: mergeCsvField(base.pasangan_nama, extra.pasangan_nama),
+    garis: base.garis || extra.garis,
+    deskripsi: base.deskripsi || extra.deskripsi,
+    foto_url: base.foto_url || extra.foto_url,
+  };
+}
+
+function mergeDuplicateMembers(members: ExcelMember[]): ExcelMember[] {
+  const result: ExcelMember[] = [];
+  const indexById = new Map<string, number>();
+
+  for (const member of members) {
+    if (!member.id) {
+      result.push(member);
+      continue;
+    }
+
+    const existingIndex = indexById.get(member.id);
+    if (existingIndex === undefined) {
+      indexById.set(member.id, result.length);
+      result.push(member);
+      continue;
+    }
+
+    result[existingIndex] = mergeMember(result[existingIndex], member);
+  }
+
+  return result;
 }
 
 /**
@@ -208,20 +357,28 @@ export async function parseExcelFile(
         });
 
         const members: ExcelMember[] = jsonData.map((row) => ({
-          id: String(row.id || row.ID || "").trim() || undefined,
-          nama: String(row.nama || row.Nama || row.name || row.Name || "").trim(),
-          tahun_lahir: parseYear(row.tahun_lahir || row.birth_year),
-          tahun_wafat: parseYear(row.tahun_wafat || row.death_year),
-          parent_id: String(row.parent_id || row.Parent_ID || "").trim() || undefined,
-          pasangan_ids:
-            String(row.pasangan_ids || row.partner_ids || "").trim() || undefined,
-          garis: String(row.garis || row.line || "").trim() || undefined,
-          deskripsi:
-            String(row.deskripsi || row.description || "").trim() || undefined,
-          foto_url: String(row.foto_url || row.image_url || "").trim() || undefined,
+          id: getCellString(row, ["id", "ID"]),
+          nama: getCellString(row, ["nama", "Nama", "name", "Name"]) || "",
+          jenis_kelamin: parseGender(
+            getCellString(row, ["jenis_kelamin", "gender", "sex", "Jenis_Kelamin"])
+          ),
+          tahun_lahir: parseYear(row.tahun_lahir ?? row.birth_year),
+          tahun_wafat: parseYear(row.tahun_wafat ?? row.death_year),
+          parent_id: getCellString(row, ["parent_id", "Parent_ID"]),
+          parent_ids: getCellString(row, ["parent_ids", "Parent_IDs", "parents_ids"]),
+          parent_nama: getCellString(row, ["parent_nama", "parent_names"]),
+          ayah_id: getCellString(row, ["ayah_id", "father_id"]),
+          ayah_nama: getCellString(row, ["ayah_nama", "father_name"]),
+          ibu_id: getCellString(row, ["ibu_id", "mother_id"]),
+          ibu_nama: getCellString(row, ["ibu_nama", "mother_name"]),
+          pasangan_ids: getCellString(row, ["pasangan_ids", "partner_ids", "pasangan_id"]),
+          pasangan_nama: getCellString(row, ["pasangan_nama", "partner_names"]),
+          garis: getCellString(row, ["garis", "line"]),
+          deskripsi: getCellString(row, ["deskripsi", "description"]),
+          foto_url: getCellString(row, ["foto_url", "image_url"]),
         }));
 
-        resolve(members);
+        resolve(mergeDuplicateMembers(members));
       } catch (error) {
         reject(new Error(t.readExcelFailedPrefix + (error as Error).message));
       }
@@ -257,6 +414,14 @@ export function validateImportData(
   const errors: string[] = [];
   const warnings: string[] = [];
   const idSet = new Set<string>();
+  const existingIds = new Set(
+    members.map((member) => member.id).filter((id): id is string => Boolean(id))
+  );
+  const existingNames = new Set(
+    members
+      .map((member) => normalizeText(member.nama || ""))
+      .filter((name) => Boolean(name))
+  );
 
   members.forEach((member, index) => {
     const rowNum = index + 2;
@@ -272,11 +437,23 @@ export function validateImportData(
       idSet.add(member.id);
     }
 
-    if (member.parent_id && !idSet.has(member.parent_id)) {
-      const parentExists = members.some((m) => m.id === member.parent_id);
+    const parentRefs = uniqueIds([
+      member.parent_id,
+      member.ayah_id,
+      member.ibu_id,
+      ...splitCsv(member.parent_ids),
+      ...splitCsv(member.parent_nama),
+      member.ayah_nama,
+      member.ibu_nama,
+    ]);
+
+    for (const parentRef of parentRefs) {
+      const normalizedRef = normalizeText(parentRef);
+      const parentExists =
+        existingIds.has(parentRef) || existingNames.has(normalizedRef);
       if (!parentExists) {
         warnings.push(
-          `${t.row} ${rowNum}: ${t.parentNotFound(member.parent_id)}`
+          `${t.row} ${rowNum}: ${t.parentNotFound(parentRef)}`
         );
       }
     }
@@ -312,39 +489,69 @@ export function validateImportData(
  */
 export function convertToFamilyNodes(members: ExcelMember[]): FamilyNode[] {
   const idMap = new Map<string, string>();
+  const uniqueNameToId = new Map<string, string | undefined>();
   const tempIdPrefix = "import_";
+  const importSeed = Date.now();
 
   members.forEach((member, index) => {
     const originalId = member.id || `temp_${index}`;
-    const newId = member.id || `${tempIdPrefix}${Date.now()}_${index}`;
+    const newId = member.id || `${tempIdPrefix}${importSeed}_${index}`;
     idMap.set(originalId, newId);
   });
 
-  const childrenMap = new Map<string, string[]>();
-  members.forEach((member) => {
-    if (member.parent_id) {
-      const parentNewId = idMap.get(member.parent_id);
-      const memberNewId = idMap.get(member.id || `temp_${members.indexOf(member)}`);
-      if (parentNewId && memberNewId) {
-        const children = childrenMap.get(parentNewId) || [];
-        children.push(memberNewId);
-        childrenMap.set(parentNewId, children);
-      }
+  members.forEach((member, index) => {
+    const nameKey = normalizeText(member.nama || "");
+    if (!nameKey) return;
+
+    const originalId = member.id || `temp_${index}`;
+    const mappedId = idMap.get(originalId);
+    if (!mappedId) return;
+
+    if (!uniqueNameToId.has(nameKey)) {
+      uniqueNameToId.set(nameKey, mappedId);
+      return;
+    }
+
+    const existingId = uniqueNameToId.get(nameKey);
+    if (existingId && existingId !== mappedId) {
+      uniqueNameToId.set(nameKey, undefined);
     }
   });
+
+  const resolveReference = (rawValue?: string): string | undefined => {
+    if (!rawValue) return undefined;
+    const value = rawValue.trim();
+    if (!value) return undefined;
+
+    const mappedById = idMap.get(value);
+    if (mappedById) return mappedById;
+
+    const mappedByName = uniqueNameToId.get(normalizeText(value));
+    return mappedByName || undefined;
+  };
+
+  const parentIdsByNode = new Map<string, string[]>();
+  const partnerIdsByNode = new Map<string, string[]>();
 
   const nodes: FamilyNode[] = members.map((member, index) => {
     const originalId = member.id || `temp_${index}`;
     const nodeId = idMap.get(originalId)!;
+    const parentIds = uniqueIds([
+      resolveReference(member.parent_id),
+      resolveReference(member.ayah_id),
+      resolveReference(member.ibu_id),
+      ...splitCsv(member.parent_ids).map((value) => resolveReference(value)),
+      ...splitCsv(member.parent_nama).map((value) => resolveReference(value)),
+      ...splitCsv(member.ayah_nama).map((value) => resolveReference(value)),
+      ...splitCsv(member.ibu_nama).map((value) => resolveReference(value)),
+    ]).filter((id) => id !== nodeId);
+    const partnerIds = uniqueIds([
+      ...splitCsv(member.pasangan_ids).map((value) => resolveReference(value)),
+      ...splitCsv(member.pasangan_nama).map((value) => resolveReference(value)),
+    ]).filter((id) => id !== nodeId);
 
-    const partnerIds: string[] = [];
-    if (member.pasangan_ids) {
-      member.pasangan_ids.split(",").forEach((pid) => {
-        const trimmedPid = pid.trim();
-        const mappedId = idMap.get(trimmedPid);
-        if (mappedId) partnerIds.push(mappedId);
-      });
-    }
+    parentIdsByNode.set(nodeId, parentIds);
+    partnerIdsByNode.set(nodeId, partnerIds);
 
     let line: FamilyNode["line"] = "default";
     if (member.garis) {
@@ -366,18 +573,15 @@ export function convertToFamilyNodes(members: ExcelMember[]): FamilyNode[] {
       } as MediaItem);
     }
 
-    const parentId = member.parent_id ? idMap.get(member.parent_id) || null : null;
-    const parentIds: string[] = parentId ? [parentId] : [];
-    const childrenIds = childrenMap.get(nodeId) || [];
-
     return {
       id: nodeId,
-      label: member.nama,
-      year: member.tahun_lahir || null,
-      deathYear: member.tahun_wafat || null,
-      parentId,
+      label: member.nama || `Member ${index + 1}`,
+      sex: member.jenis_kelamin,
+      year: member.tahun_lahir ?? null,
+      deathYear: member.tahun_wafat ?? null,
+      parentId: parentIds[0] || null,
       partners: partnerIds,
-      childrenIds,
+      childrenIds: [],
       parentIds,
       generation: 0,
       line,
@@ -386,7 +590,56 @@ export function convertToFamilyNodes(members: ExcelMember[]): FamilyNode[] {
     };
   });
 
-  return nodes;
+  const childrenMap = new Map<string, Set<string>>();
+  const partnerMap = new Map<string, Set<string>>();
+
+  nodes.forEach((node) => {
+    childrenMap.set(node.id, new Set<string>());
+    partnerMap.set(node.id, new Set<string>());
+  });
+
+  nodes.forEach((node) => {
+    const parentIds = parentIdsByNode.get(node.id) || [];
+    parentIds.forEach((parentId) => {
+      childrenMap.get(parentId)?.add(node.id);
+    });
+
+    const partnerIds = partnerIdsByNode.get(node.id) || [];
+    partnerIds.forEach((partnerId) => {
+      if (!partnerMap.has(partnerId)) return;
+      partnerMap.get(node.id)?.add(partnerId);
+      partnerMap.get(partnerId)?.add(node.id);
+    });
+  });
+
+  nodes.forEach((node) => {
+    const parentIds = parentIdsByNode.get(node.id) || [];
+    if (parentIds.length < 2) return;
+
+    for (let i = 0; i < parentIds.length - 1; i++) {
+      for (let j = i + 1; j < parentIds.length; j++) {
+        const leftParent = parentIds[i];
+        const rightParent = parentIds[j];
+        if (!partnerMap.has(leftParent) || !partnerMap.has(rightParent)) continue;
+        partnerMap.get(leftParent)?.add(rightParent);
+        partnerMap.get(rightParent)?.add(leftParent);
+      }
+    }
+  });
+
+  return nodes.map((node) => {
+    const parentIds = parentIdsByNode.get(node.id) || [];
+    const childrenIds = Array.from(childrenMap.get(node.id) || []);
+    const partnerIds = Array.from(partnerMap.get(node.id) || []);
+
+    return {
+      ...node,
+      parentIds,
+      parentId: parentIds[0] || null,
+      childrenIds,
+      partners: partnerIds,
+    };
+  });
 }
 
 /**
@@ -402,6 +655,10 @@ export function generateExcelTemplate(locale: Locale = "id"): Blob {
     { width: 25 },
     { width: 12 },
     { width: 12 },
+    { width: 12 },
+    { width: 15 },
+    { width: 18 },
+    { width: 15 },
     { width: 15 },
     { width: 20 },
     { width: 12 },
@@ -595,6 +852,7 @@ export function exportFamilyTreeToExcel(
     return {
       id: node.id,
       nama: node.label,
+      jenis_kelamin: node.sex || "X",
       tahun_lahir: node.year ?? "",
       tahun_wafat: node.deathYear ?? "",
       parent_id: primaryParentId,
@@ -713,6 +971,7 @@ export function exportFamilyTreeToExcel(
   importSheet["!cols"] = [
     { width: 22 },
     { width: 28 },
+    { width: 14 },
     { width: 12 },
     { width: 12 },
     { width: 22 },

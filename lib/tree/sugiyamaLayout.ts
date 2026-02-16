@@ -56,7 +56,7 @@ function buildInternalGraph(nodes: FamilyNode[]): InternalGraph {
         persons.set(n.id, {
             id: n.id,
             label: n.label,
-            sex: (n.content as any)?.sex || "X", // assuming sex might be in content or implied
+            sex: n.sex || "X",
             birthDate: n.year?.toString(),
             deathDate: n.deathYear?.toString(),
             imageUrl: n.imageUrl || undefined,
