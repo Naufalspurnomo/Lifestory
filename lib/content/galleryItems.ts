@@ -7,6 +7,10 @@ export type GalleryItem = {
   summary: string;
   era: string;
   palette: string;
+  pdf?: {
+    url: string;
+    fileName: string;
+  };
 };
 
 export const galleryItems: GalleryItem[] = [
@@ -53,5 +57,9 @@ export const galleryItems: GalleryItem[] = [
       "Sampul bernuansa vintage hangat untuk memoar keteguhan hidup, kenangan masa tua, dan warisan nilai yang tetap menyala.",
     era: "Kisah Seumur Hidup",
     palette: "Amber Vintage",
+    pdf: {
+      url: "/api/gallery-pdf/mak-book-re-arrange-1",
+      fileName: "Mak Book Re-Arrange 1.pdf",
+    },
   },
 ];

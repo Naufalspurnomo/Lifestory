@@ -1,7 +1,7 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { BookMarked } from "lucide-react";
 import { useLanguage } from "../providers/LanguageProvider";
 
 export function Footer() {
@@ -39,8 +39,14 @@ export function Footer() {
         <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-3">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-md border-2 border-[#e3a621] text-[#e3a621]">
-                <BookMarked className="h-5 w-5" />
+              <span className="relative inline-flex h-9 w-9 items-center justify-center">
+                <Image
+                  src="/brand/ferachanna-logo.png"
+                  alt="Ferachanna logo"
+                  fill
+                  className="object-contain"
+                  sizes="36px"
+                />
               </span>
               <span className="font-serif text-[clamp(1.6rem,2.5vw,2rem)] leading-none tracking-[-0.03em] text-[#3f342d]">
                 Lifestory<span className="text-[#e3a621]">.co</span>

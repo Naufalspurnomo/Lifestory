@@ -3,7 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import {
+  BookOpenText,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  FileDown,
+  Maximize2,
+  X,
+} from "lucide-react";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { galleryItems } from "../../lib/content/galleryItems";
@@ -102,42 +110,82 @@ function GalleryPageContent() {
 
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [activePane, setActivePane] = useState<"story" | "pdf">("story");
+  const [isFocusedReaderOpen, setIsFocusedReaderOpen] = useState(false);
 
   const activeItem = activeIndex !== null ? galleryItems[activeIndex] : null;
+  const activePdf = activeItem?.pdf ?? null;
+  const pdfViewerSrc = activePdf
+    ? `${activePdf.url}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`
+    : null;
   const copy =
     locale === "id"
       ? {
           sectionLabel: "Galeri",
           title: "Koleksi Biografi Pilihan",
           desc:
-            "Halaman ini memperluas section unggulan dari beranda. Koleksi yang sama, sekarang dengan konteks lebih kaya, catatan era, dan detail identitas visual tiap sampul biografi.",
+            "Halaman ini memperluas section unggulan dari beranda. Koleksi yang sama, sekarang dengan konteks lebih kaya, catatan era, identitas visual, dan reader PDF untuk naskah memoar keluarga.",
           backHome: "Kembali ke Beranda",
           era: "Era",
           palette: "Palet",
           tips: "Tips: gunakan tombol panah kiri/kanan untuk melihat sampul dengan cepat.",
+          storyTab: "Cerita Sampul",
+          pdfTab: "Baca PDF",
+          pdfReaderTitle: "Naskah Memoar Keluarga",
+          pdfReaderDesc:
+            "Dokumen ini bisa langsung dibaca dari galeri. Gunakan mode fokus jika ingin pengalaman baca yang lebih lega.",
+          openPdfTab: "Buka Reader PDF",
+          focusMode: "Mode Fokus",
+          openInNewTab: "Tab Baru",
+          downloadPdf: "Unduh PDF",
+          readerHint:
+            "Tip baca: gunakan scroll atau kontrol bawaan PDF untuk navigasi halaman.",
+          closeReader: "Tutup Reader",
           prev: "Sebelumnya",
           next: "Berikutnya",
           close: "Tutup",
           ariaCloseModal: "Tutup modal",
           ariaPrevCover: "Sampul sebelumnya",
           ariaNextCover: "Sampul berikutnya",
+          ariaCloseReader: "Tutup pembaca PDF",
+          ariaOpenFocusedReader: "Buka pembaca PDF mode fokus",
+          ariaOpenPdfNewTab: "Buka PDF di tab baru",
+          ariaDownloadPdf: "Unduh PDF",
+          ariaPdfFrame: (title: string) => `Pembaca PDF untuk ${title}`,
           ariaOpenDetails: (title: string) => `Buka detail ${title}`,
         }
       : {
           sectionLabel: "Gallery",
           title: "Featured Biography Collections",
           desc:
-            "This page expands the featured section from homepage. Same collection, now with richer context, era notes, and visual identity detail for each biography cover.",
+            "This page expands the featured section from homepage. Same collection, now with richer context, era notes, visual identity details, and a built-in PDF reader for family memoir manuscripts.",
           backHome: "Back to Home",
           era: "Era",
           palette: "Palette",
           tips: "Tips: use left/right arrow keys to browse covers quickly.",
+          storyTab: "Cover Story",
+          pdfTab: "Read PDF",
+          pdfReaderTitle: "Family Memoir Manuscript",
+          pdfReaderDesc:
+            "This document can be read directly from the gallery. Use focus mode for a more immersive reading layout.",
+          openPdfTab: "Open PDF Reader",
+          focusMode: "Focus Mode",
+          openInNewTab: "New Tab",
+          downloadPdf: "Download PDF",
+          readerHint:
+            "Reading tip: scroll naturally or use the built-in PDF controls for page navigation.",
+          closeReader: "Close Reader",
           prev: "Prev",
           next: "Next",
           close: "Close",
           ariaCloseModal: "Close modal",
           ariaPrevCover: "Previous cover",
           ariaNextCover: "Next cover",
+          ariaCloseReader: "Close PDF reader",
+          ariaOpenFocusedReader: "Open PDF reader in focus mode",
+          ariaOpenPdfNewTab: "Open PDF in new tab",
+          ariaDownloadPdf: "Download PDF",
+          ariaPdfFrame: (title: string) => `PDF reader for ${title}`,
           ariaOpenDetails: (title: string) => `Open ${title} details`,
         };
 
@@ -171,6 +219,8 @@ function GalleryPageContent() {
 
   const openItem = useCallback(
     (index: number) => {
+      setActivePane("story");
+      setIsFocusedReaderOpen(false);
       setActiveIndex(index);
       replaceItemQuery(galleryItems[index].id);
     },
@@ -178,11 +228,15 @@ function GalleryPageContent() {
   );
 
   const closeModal = useCallback(() => {
+    setActivePane("story");
+    setIsFocusedReaderOpen(false);
     setActiveIndex(null);
     replaceItemQuery(null);
   }, [replaceItemQuery]);
 
   const goNext = useCallback(() => {
+    setActivePane("story");
+    setIsFocusedReaderOpen(false);
     setActiveIndex((prev) => {
       if (prev === null) return prev;
       const nextIndex = (prev + 1) % galleryItems.length;
@@ -192,6 +246,8 @@ function GalleryPageContent() {
   }, [replaceItemQuery]);
 
   const goPrev = useCallback(() => {
+    setActivePane("story");
+    setIsFocusedReaderOpen(false);
     setActiveIndex((prev) => {
       if (prev === null) return prev;
       const prevIndex = (prev - 1 + galleryItems.length) % galleryItems.length;
@@ -219,7 +275,14 @@ function GalleryPageContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (activeIndex === null) return;
+    if (!activePdf) {
+      setActivePane("story");
+      setIsFocusedReaderOpen(false);
+    }
+  }, [activePdf]);
+
+  useEffect(() => {
+    if (activeIndex === null || isFocusedReaderOpen) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -248,7 +311,27 @@ function GalleryPageContent() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [activeIndex, closeModal, goNext, goPrev]);
+  }, [activeIndex, closeModal, goNext, goPrev, isFocusedReaderOpen]);
+
+  useEffect(() => {
+    if (!isFocusedReaderOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function onReaderKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsFocusedReaderOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", onReaderKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onReaderKeyDown);
+    };
+  }, [isFocusedReaderOpen]);
 
   const modal = activeItem ? (
     <div
@@ -300,13 +383,109 @@ function GalleryPageContent() {
                 </span>
               </div>
 
-              <p className="max-w-xl text-base leading-relaxed text-[#6f6358] md:text-lg">
-                {activeMeta?.summary || activeItem.summary}
-              </p>
+              {activePdf ? (
+                <div className="inline-flex rounded-full border border-[#dbcba6] bg-white/90 p-1 shadow-[0_8px_20px_rgba(96,71,33,0.1)]">
+                  <button
+                    type="button"
+                    onClick={() => setActivePane("story")}
+                    className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                      activePane === "story"
+                        ? "bg-[#b88642] text-white shadow-[0_8px_18px_rgba(142,94,35,0.35)]"
+                        : "text-[#6f5a42] hover:text-[#4d3e2e]"
+                    }`}
+                  >
+                    {copy.storyTab}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivePane("pdf")}
+                    className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                      activePane === "pdf"
+                        ? "bg-[#8d5f2c] text-white shadow-[0_8px_18px_rgba(115,73,24,0.35)]"
+                        : "text-[#6f5a42] hover:text-[#4d3e2e]"
+                    }`}
+                  >
+                    {copy.pdfTab}
+                  </button>
+                </div>
+              ) : null}
 
-              <p className="text-sm text-[#7b6e61]">
-                {copy.tips}
-              </p>
+              {activePane === "pdf" && activePdf && pdfViewerSrc ? (
+                <div className="space-y-4 rounded-[20px] border border-[#d9c49d] bg-[linear-gradient(150deg,#fff9eb_0%,#f9efdc_48%,#f2e2c8_100%)] p-4 shadow-[0_16px_28px_rgba(90,62,26,0.16)]">
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#a37733]">
+                      {copy.pdfReaderTitle}
+                    </p>
+                    <p className="text-sm leading-relaxed text-[#5f4c37]">
+                      {copy.pdfReaderDesc}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsFocusedReaderOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-full border border-[#c6a269] bg-[#fff7e8] px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#6f4a21] transition hover:bg-white"
+                      aria-label={copy.ariaOpenFocusedReader}
+                    >
+                      <Maximize2 className="h-3.5 w-3.5" />
+                      {copy.focusMode}
+                    </button>
+                    <a
+                      href={activePdf.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full border border-[#d4bd95] bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#5f4d37] transition hover:bg-white"
+                      aria-label={copy.ariaOpenPdfNewTab}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      {copy.openInNewTab}
+                    </a>
+                    <a
+                      href={activePdf.url}
+                      download={activePdf.fileName}
+                      className="inline-flex items-center gap-2 rounded-full border border-[#d4bd95] bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#5f4d37] transition hover:bg-white"
+                      aria-label={copy.ariaDownloadPdf}
+                    >
+                      <FileDown className="h-3.5 w-3.5" />
+                      {copy.downloadPdf}
+                    </a>
+                  </div>
+
+                  <div className="overflow-hidden rounded-2xl border border-[#c9ad78]/70 bg-[#fef9ee] shadow-inner">
+                    <iframe
+                      title={copy.ariaPdfFrame(activeItem.title)}
+                      src={pdfViewerSrc}
+                      className="h-[420px] w-full md:h-[500px]"
+                    />
+                  </div>
+
+                  <p className="text-xs leading-relaxed text-[#705a42]">
+                    {copy.readerHint}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="max-w-xl text-base leading-relaxed text-[#6f6358] md:text-lg">
+                    {activeMeta?.summary || activeItem.summary}
+                  </p>
+
+                  <p className="text-sm text-[#7b6e61]">
+                    {copy.tips}
+                  </p>
+
+                  {activePdf ? (
+                    <button
+                      type="button"
+                      onClick={() => setActivePane("pdf")}
+                      className="inline-flex items-center gap-2 rounded-full border border-[#cfb07e] bg-[#fff8ea] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#70491f] transition hover:bg-white"
+                    >
+                      <BookOpenText className="h-4 w-4" />
+                      {copy.openPdfTab}
+                    </button>
+                  ) : null}
+                </>
+              )}
             </div>
           </div>
 
@@ -361,6 +540,65 @@ function GalleryPageContent() {
       </div>
     </div>
   ) : null;
+
+  const focusedReaderModal =
+    activeItem && activePdf && pdfViewerSrc && isFocusedReaderOpen ? (
+      <div
+        className="fixed inset-0 z-[130] bg-[rgba(19,12,6,0.84)] backdrop-blur-[4px]"
+        role="dialog"
+        aria-modal="true"
+        onClick={() => setIsFocusedReaderOpen(false)}
+      >
+        <div className="mx-auto flex min-h-full w-full max-w-[1500px] items-center justify-center p-3 sm:p-5 md:p-7">
+          <div
+            className="w-full overflow-hidden rounded-[22px] border border-[#b89967]/55 bg-[linear-gradient(170deg,#fff9ec_0%,#f7e9ce_45%,#f0debc_100%)] shadow-[0_28px_60px_rgba(20,11,5,0.45)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d9c39a] bg-white/70 px-4 py-3 md:px-6">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#9f7538]">
+                  {copy.pdfReaderTitle}
+                </p>
+                <p className="text-sm text-[#5f4d36]">{activePdf.fileName}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={activePdf.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-10 items-center gap-2 rounded-full border border-[#cfb68b] bg-white px-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#5f4b33]"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  {copy.openInNewTab}
+                </a>
+                <a
+                  href={activePdf.url}
+                  download={activePdf.fileName}
+                  className="inline-flex h-10 items-center gap-2 rounded-full border border-[#cfb68b] bg-white px-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#5f4b33]"
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                  {copy.downloadPdf}
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setIsFocusedReaderOpen(false)}
+                  className="inline-flex h-10 items-center gap-2 rounded-full border border-[#dcb5a7] bg-[#fff4f1] px-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#8f4f44]"
+                  aria-label={copy.ariaCloseReader}
+                >
+                  <X className="h-3.5 w-3.5" />
+                  {copy.closeReader}
+                </button>
+              </div>
+            </div>
+            <iframe
+              title={copy.ariaPdfFrame(activeItem.title)}
+              src={pdfViewerSrc}
+              className="h-[82vh] min-h-[520px] w-full md:h-[84vh]"
+            />
+          </div>
+        </div>
+      </div>
+    ) : null;
 
   return (
     <div className="bg-[#f7f5f1] text-[#40342c]">
@@ -439,7 +677,15 @@ function GalleryPageContent() {
         </div>
       </section>
 
-      {isMounted && modal ? createPortal(modal, document.body) : null}
+      {isMounted && (modal || focusedReaderModal)
+        ? createPortal(
+            <>
+              {modal}
+              {focusedReaderModal}
+            </>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

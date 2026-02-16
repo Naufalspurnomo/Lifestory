@@ -1,10 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
-  BookMarked,
   ChevronDown,
   Crown,
   LayoutDashboard,
@@ -163,11 +163,18 @@ export function NavBar() {
           className="inline-flex items-center gap-3 rounded-full border border-[#e8dece] bg-white/95 px-3 py-1.5 shadow-[0_8px_18px_rgba(76,58,33,0.08)]"
         >
           <span
-            className={`inline-flex items-center justify-center rounded-md border-2 border-[#e3a621] text-[#e3a621] transition-all duration-300 ${
+            className={`relative inline-flex transition-all duration-300 ${
               isScrolled ? "h-8 w-8" : "h-9 w-9"
             }`}
           >
-            <BookMarked className={`${isScrolled ? "h-4.5 w-4.5" : "h-5 w-5"}`} />
+            <Image
+              src="/brand/ferachanna-logo.png"
+              alt="Ferachanna logo"
+              fill
+              className="object-contain"
+              sizes="40px"
+              priority
+            />
           </span>
           <span
             className={`font-serif leading-none tracking-[-0.03em] text-[#3f342d] transition-all duration-300 ${
