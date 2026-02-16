@@ -50,6 +50,7 @@ export type Union = {
 export type FamilyNode = {
   id: string; // Unique Timestamp ID
   label: string; // Display name
+  sex?: "M" | "F" | "X"; // Optional gender marker for relationship labeling
   year: number | null; // Birth year
   deathYear: number | null; // Death year (null = alive)
   parentId: string | null; // Primary Parent node ID (legacy)

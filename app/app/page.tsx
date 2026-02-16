@@ -15,6 +15,7 @@ import TimelineView from "../../components/tree/TimelineView";
 import GlobalStories from "../../components/tree/GlobalStories";
 import { useTreeState } from "../../lib/hooks/useTreeState";
 import { useLanguage } from "../../components/providers/LanguageProvider";
+import { exportFamilyTreeToExcel } from "../../lib/utils/excelParser";
 
 import type { FamilyNode } from "../../lib/types/tree";
 
@@ -35,6 +36,10 @@ export default function AppHome() {
           notifDeleted: (name: string) => `${name} dihapus dari pohon`,
           notifImported: (count: number) =>
             `${count} anggota keluarga berhasil diimpor`,
+          notifExported: (count: number) =>
+            `Ekspor selesai: ${count} anggota dengan relasi lengkap.`,
+          notifNoDataToExport: "Belum ada data keluarga untuk diekspor.",
+          notifExportFailed: "Gagal mengekspor data keluarga.",
           placeholderFather: "Ayah (Tidak Diketahui)",
           placeholderMother: "Ibu (Tidak Diketahui)",
           pageTitle: "Pohon Keluarga",
@@ -64,6 +69,10 @@ export default function AppHome() {
           notifDeleted: (name: string) => `${name} removed from tree`,
           notifImported: (count: number) =>
             `${count} family members imported successfully`,
+          notifExported: (count: number) =>
+            `Export complete: ${count} members with full relationship mapping.`,
+          notifNoDataToExport: "No family data available to export.",
+          notifExportFailed: "Failed to export family data.",
           placeholderFather: "Father (Unknown)",
           placeholderMother: "Mother (Unknown)",
           pageTitle: "Family Trees",
@@ -246,6 +255,28 @@ export default function AppHome() {
   const selectedNode = selectedId ? getNode(selectedId) : null;
   const showTree = userTree && currentTree;
 
+  const handleExportTree = useCallback(() => {
+    if (!currentTree || currentTree.nodes.length === 0) {
+      showNotification(copy.notifNoDataToExport);
+      return;
+    }
+
+    try {
+      exportFamilyTreeToExcel(currentTree, locale);
+      showNotification(copy.notifExported(currentTree.nodes.length));
+    } catch (error) {
+      console.error("Failed to export tree:", error);
+      showNotification(copy.notifExportFailed);
+    }
+  }, [
+    copy.notifExportFailed,
+    copy.notifExported,
+    copy.notifNoDataToExport,
+    currentTree,
+    locale,
+    showNotification,
+  ]);
+
   const stats = {
     generations: 0,
     members: currentTree?.nodes.length || 0,
@@ -406,7 +437,10 @@ export default function AppHome() {
                   </svg>
                   {copy.import}
                 </button>
-                <button className="flex items-center gap-2 rounded-xl border-2 border-gold-200 bg-white px-4 py-2.5 text-sm font-semibold text-gold-700 transition-colors hover:bg-gold-50">
+                <button
+                  onClick={handleExportTree}
+                  className="flex items-center gap-2 rounded-xl border-2 border-gold-200 bg-white px-4 py-2.5 text-sm font-semibold text-gold-700 transition-colors hover:bg-gold-50"
+                >
                   <svg
                     width="18"
                     height="18"

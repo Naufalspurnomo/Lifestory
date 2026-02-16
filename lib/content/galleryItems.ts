@@ -51,7 +51,7 @@ export const galleryItems: GalleryItem[] = [
     id: "emerald-vault",
     src: "/cover-gallery/cover-4.png",
     alt: "Cover Bara yang hangat dan angin yang sejuk karya Suwati",
-    title: "Bara yang Hangat",
+    title: "Bara yang Hangat & Angin yang Sejuk",
     subtitle: "Legacy memory edition",
     summary:
       "Sampul bernuansa vintage hangat untuk memoar keteguhan hidup, kenangan masa tua, dan warisan nilai yang tetap menyala.",

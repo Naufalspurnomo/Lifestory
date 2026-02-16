@@ -17,7 +17,7 @@ const nextConfig = {
           // Prevent clickjacking
           {
             key: "X-Frame-Options",
-            value: "DENY",
+            value: "SAMEORIGIN",
           },
           // XSS Protection (legacy browsers)
           {
@@ -38,7 +38,7 @@ const nextConfig = {
           // Prevent embedding in iframes (same as X-Frame-Options but more modern)
           {
             key: "Content-Security-Policy",
-            value: "frame-ancestors 'none'",
+            value: "frame-ancestors 'self'",
           },
         ],
       },
