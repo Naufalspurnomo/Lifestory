@@ -374,7 +374,7 @@ function calculateRowWidth(groups: RowGroup[], runtime: Map<string, RuntimeNode>
   return width;
 }
 
-function layoutNodes(runtime: Map<string, RuntimeNode>): { width: number; height: number } {
+function layoutRuntimeNodes(runtime: Map<string, RuntimeNode>): { width: number; height: number } {
   const rowsByGen = new Map<number, string[]>();
   for (const r of runtime.values()) {
     if (!rowsByGen.has(r.generation)) rowsByGen.set(r.generation, []);
@@ -503,7 +503,7 @@ export function calculateSugiyamaLayout(nodes: FamilyNode[]): LayoutGraph {
 
   const runtime = buildRuntime(nodes);
   assignGenerations(runtime);
-  const { width, height } = layoutNodes(runtime);
+  const { width, height } = layoutRuntimeNodes(runtime);
   const unions = buildUnionMap(runtime);
   positionUnions(unions, runtime);
   const edges = buildEdges(runtime, unions);
