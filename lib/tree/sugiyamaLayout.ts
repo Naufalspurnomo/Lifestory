@@ -1,41 +1,56 @@
 import { FamilyNode, LayoutEdge, LayoutGraph } from "../types/tree";
 
-const NODE_WIDTH = 180;
-const NODE_HEIGHT = 58;
-const ROW_GAP = 170;
-const COL_GAP = 52;
-const GROUP_GAP = 96;
-const PADDING_X = 140;
+const NODE_DIAMETER = 70;
+const NODE_SPACING_X = 126;
+const ROW_GAP = 150;
+const GROUP_GAP = 72;
+const PADDING_X = 120;
 const PADDING_Y = 80;
 
 type RuntimeNode = {
-  node: FamilyNode;
   id: string;
+  node: FamilyNode;
+  index: number;
   generation: number;
   parents: string[];
   partners: string[];
   children: string[];
-  order: number;
   x: number;
   y: number;
 };
 
-function uniq(ids: Array<string | null | undefined>): string[] {
-  return Array.from(new Set(ids.filter((id): id is string => Boolean(id))));
+type UnionNode = {
+  id: string;
+  partnerIds: string[];
+  childIds: string[];
+  generation: number;
+  x: number;
+  y: number;
+};
+
+type RowGroup = {
+  ids: string[];
+  parentKey: string;
+  minIndex: number;
+  anchor: number;
+};
+
+function uniq(values: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(values.filter((v): v is string => Boolean(v))));
 }
 
-function edgeKey(a: string, b: string): string {
+function sorted(ids: string[], runtime: Map<string, RuntimeNode>): string[] {
+  return [...ids].sort(
+    (a, b) => (runtime.get(a)?.index ?? Number.MAX_SAFE_INTEGER) - (runtime.get(b)?.index ?? Number.MAX_SAFE_INTEGER)
+  );
+}
+
+function pairKey(a: string, b: string): string {
   return [a, b].sort().join("::");
 }
 
-function sortByLabel(ids: string[], runtime: Map<string, RuntimeNode>): string[] {
-  return [...ids].sort((a, b) =>
-    runtime
-      .get(a)
-      ?.node.label.localeCompare(runtime.get(b)?.node.label || "", "id", {
-        sensitivity: "base",
-      }) || 0
-  );
+function canonicalParentKey(parentIds: string[]): string {
+  return [...parentIds].sort().join("|");
 }
 
 function pickPartnerInRow(
@@ -47,12 +62,10 @@ function pickPartnerInRow(
   const node = runtime.get(id);
   if (!node) return null;
 
-  const candidates = node.partners.filter(
-    (partnerId) => rowSet.has(partnerId) && !used.has(partnerId)
-  );
+  const candidates = node.partners.filter((partnerId) => rowSet.has(partnerId) && !used.has(partnerId));
   if (!candidates.length) return null;
 
-  return sortByLabel(candidates, runtime)[0];
+  return candidates.sort((a, b) => (runtime.get(a)?.index ?? 0) - (runtime.get(b)?.index ?? 0))[0];
 }
 
 function orderPair(aId: string, bId: string, runtime: Map<string, RuntimeNode>): [string, string] {
@@ -60,11 +73,10 @@ function orderPair(aId: string, bId: string, runtime: Map<string, RuntimeNode>):
   const b = runtime.get(bId)?.node;
   if (!a || !b) return [aId, bId];
 
-  // Keep common male-left/female-right reading order when available.
   if (a.sex === "M" && b.sex === "F") return [aId, bId];
   if (a.sex === "F" && b.sex === "M") return [bId, aId];
 
-  return a.label.localeCompare(b.label, "id", { sensitivity: "base" }) <= 0
+  return (runtime.get(aId)?.index ?? 0) <= (runtime.get(bId)?.index ?? 0)
     ? [aId, bId]
     : [bId, aId];
 }
@@ -92,70 +104,29 @@ function compactPartners(ids: string[], runtime: Map<string, RuntimeNode>): stri
   return result;
 }
 
-function assignGenerations(runtime: Map<string, RuntimeNode>): void {
-  // Start from stored generation when available, otherwise 0.
-  for (const node of runtime.values()) {
-    const raw = Number.isFinite(node.node.generation) ? node.node.generation : 0;
-    node.generation = Math.max(0, raw);
-  }
-
-  // Relaxation pass so every child is at least one row below max(parent generation).
-  const limit = runtime.size * 4 + 16;
-  for (let i = 0; i < limit; i++) {
-    let changed = false;
-    for (const node of runtime.values()) {
-      if (!node.parents.length) continue;
-      const parentGen = Math.max(
-        ...node.parents.map((parentId) => runtime.get(parentId)?.generation ?? 0)
-      );
-      const target = parentGen + 1;
-      if (node.generation < target) {
-        node.generation = target;
-        changed = true;
-      }
-    }
-    if (!changed) break;
-  }
-
-  // Normalize minimum generation to 0.
-  const minGen = Math.min(...Array.from(runtime.values()).map((node) => node.generation));
-  if (minGen > 0) {
-    for (const node of runtime.values()) {
-      node.generation -= minGen;
-    }
-  }
-}
-
 function buildRuntime(nodes: FamilyNode[]): Map<string, RuntimeNode> {
   const runtime = new Map<string, RuntimeNode>();
 
-  for (const node of nodes) {
+  nodes.forEach((node, index) => {
     runtime.set(node.id, {
-      node,
       id: node.id,
+      node,
+      index,
       generation: 0,
       parents: [],
       partners: [],
       children: [],
-      order: 0,
       x: 0,
       y: 0,
     });
-  }
+  });
 
   for (const r of runtime.values()) {
-    const parents = uniq([...(r.node.parentIds || []), r.node.parentId]).filter((id) =>
-      runtime.has(id)
-    );
-    const partners = uniq(r.node.partners || []).filter((id) => runtime.has(id));
-    const children = uniq(r.node.childrenIds || []).filter((id) => runtime.has(id));
-
-    r.parents = parents;
-    r.partners = partners;
-    r.children = children;
+    r.parents = uniq([...(r.node.parentIds || []), r.node.parentId]).filter((id) => runtime.has(id));
+    r.partners = uniq(r.node.partners || []).filter((id) => runtime.has(id));
+    r.children = uniq(r.node.childrenIds || []).filter((id) => runtime.has(id));
   }
 
-  // Sync children from parent references.
   for (const r of runtime.values()) {
     for (const parentId of r.parents) {
       const parent = runtime.get(parentId);
@@ -164,7 +135,6 @@ function buildRuntime(nodes: FamilyNode[]): Map<string, RuntimeNode> {
     }
   }
 
-  // Sync partners bidirectionally.
   for (const r of runtime.values()) {
     for (const partnerId of r.partners) {
       const partner = runtime.get(partnerId);
@@ -173,187 +143,276 @@ function buildRuntime(nodes: FamilyNode[]): Map<string, RuntimeNode> {
     }
   }
 
-  assignGenerations(runtime);
   return runtime;
 }
 
-function buildRows(runtime: Map<string, RuntimeNode>): string[][] {
-  const byGen = new Map<number, string[]>();
+function assignGenerations(runtime: Map<string, RuntimeNode>): void {
   for (const r of runtime.values()) {
-    if (!byGen.has(r.generation)) byGen.set(r.generation, []);
-    byGen.get(r.generation)!.push(r.id);
+    const raw = Number.isFinite(r.node.generation) ? r.node.generation : 0;
+    r.generation = Math.max(0, raw);
   }
 
-  const generations = Array.from(byGen.keys()).sort((a, b) => a - b);
-  const rows: string[][] = [];
+  // Main constraints:
+  // 1) child >= max(parent) + 1
+  // 2) partners are on same generation (raise lower partner)
+  const maxIterations = runtime.size * 6 + 32;
+  for (let i = 0; i < maxIterations; i++) {
+    let changed = false;
 
-  for (let gi = 0; gi < generations.length; gi++) {
-    const gen = generations[gi];
-    const rowIds = sortByLabel(byGen.get(gen) || [], runtime);
-
-    if (gi === 0) {
-      const arranged = compactPartners(rowIds, runtime);
-      rows.push(arranged);
-      arranged.forEach((id, idx) => {
-        const node = runtime.get(id);
-        if (node) node.order = idx;
-      });
-      continue;
+    for (const r of runtime.values()) {
+      if (!r.parents.length) continue;
+      const parentGen = Math.max(...r.parents.map((pid) => runtime.get(pid)?.generation ?? 0));
+      const target = parentGen + 1;
+      if (r.generation < target) {
+        r.generation = target;
+        changed = true;
+      }
     }
 
-    const groups = new Map<string, string[]>();
-    for (const id of rowIds) {
-      const r = runtime.get(id)!;
-      const key = r.parents.length
-        ? [...r.parents].sort().join("|")
-        : `solo:${id}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(id);
+    for (const r of runtime.values()) {
+      for (const partnerId of r.partners) {
+        const partner = runtime.get(partnerId);
+        if (!partner) continue;
+        const target = Math.max(r.generation, partner.generation);
+        if (r.generation < target) {
+          r.generation = target;
+          changed = true;
+        }
+        if (partner.generation < target) {
+          partner.generation = target;
+          changed = true;
+        }
+      }
     }
 
-    const grouped = Array.from(groups.entries()).map(([key, ids]) => {
-      const sortedIds = sortByLabel(ids, runtime);
-      const anchors = sortedIds.flatMap((id) =>
-        runtime.get(id)!.parents.map((pid) => runtime.get(pid)?.order ?? 0)
-      );
-      const anchor = anchors.length
-        ? anchors.reduce((acc, v) => acc + v, 0) / anchors.length
-        : Number.POSITIVE_INFINITY;
-      return { key, ids: compactPartners(sortedIds, runtime), anchor };
-    });
-
-    grouped.sort((a, b) => {
-      if (a.anchor !== b.anchor) return a.anchor - b.anchor;
-      return a.key.localeCompare(b.key);
-    });
-
-    const arranged: string[] = [];
-    grouped.forEach((group, index) => {
-      arranged.push(...group.ids);
-      if (index < grouped.length - 1) arranged.push("__GROUP_BREAK__");
-    });
-
-    let order = 0;
-    const finalRow = arranged.filter((id) => id !== "__GROUP_BREAK__");
-    finalRow.forEach((id) => {
-      const node = runtime.get(id);
-      if (node) node.order = order++;
-    });
-    rows.push(arranged);
+    if (!changed) break;
   }
 
-  return rows;
+  const minGen = Math.min(...Array.from(runtime.values()).map((r) => r.generation));
+  if (minGen > 0) {
+    for (const r of runtime.values()) {
+      r.generation -= minGen;
+    }
+  }
 }
 
-function positionRows(runtime: Map<string, RuntimeNode>, rows: string[]): number {
-  let cursor = 0;
-  let maxX = 0;
-  let placed = false;
+function buildUnionMap(runtime: Map<string, RuntimeNode>): Map<string, UnionNode> {
+  const unions = new Map<string, UnionNode>();
 
-  for (const id of rows) {
-    if (id === "__GROUP_BREAK__") {
-      cursor += GROUP_GAP;
-      continue;
+  const ensureUnion = (partnerIds: string[], childId?: string): UnionNode | null => {
+    const cleaned = uniq(partnerIds).filter((id) => runtime.has(id));
+    if (!cleaned.length) return null;
+
+    const key =
+      cleaned.length === 1
+        ? `single:${cleaned[0]}`
+        : `pair:${[...cleaned].sort().join("|")}`;
+
+    if (!unions.has(key)) {
+      const generation = Math.max(...cleaned.map((id) => runtime.get(id)?.generation ?? 0));
+      unions.set(key, {
+        id: `union-${key}`,
+        partnerIds: cleaned,
+        childIds: [],
+        generation,
+        x: 0,
+        y: 0,
+      });
     }
-    const node = runtime.get(id);
-    if (!node) continue;
-    node.x = cursor;
-    cursor += NODE_WIDTH + COL_GAP;
-    maxX = Math.max(maxX, node.x);
-    placed = true;
+
+    const union = unions.get(key)!;
+    if (childId && !union.childIds.includes(childId)) union.childIds.push(childId);
+    union.generation = Math.max(
+      union.generation,
+      ...union.partnerIds.map((id) => runtime.get(id)?.generation ?? union.generation)
+    );
+    return union;
+  };
+
+  for (const node of runtime.values()) {
+    if (node.parents.length > 0) {
+      ensureUnion(sorted(node.parents, runtime), node.id);
+    }
   }
 
-  if (!placed) return 0;
-  return maxX;
+  const seenPairs = new Set<string>();
+  for (const node of runtime.values()) {
+    for (const partnerId of node.partners) {
+      if (!runtime.has(partnerId)) continue;
+      const key = pairKey(node.id, partnerId);
+      if (seenPairs.has(key)) continue;
+      seenPairs.add(key);
+      ensureUnion([node.id, partnerId]);
+    }
+  }
+
+  return unions;
+}
+
+function buildGroupsForRow(
+  rowIds: string[],
+  runtime: Map<string, RuntimeNode>
+): RowGroup[] {
+  const arranged = compactPartners(sorted(rowIds, runtime), runtime);
+  const rowSet = new Set(arranged);
+  const used = new Set<string>();
+  const groups: RowGroup[] = [];
+
+  for (const id of arranged) {
+    if (used.has(id)) continue;
+    const node = runtime.get(id);
+    if (!node) continue;
+
+    const partnerId = node.partners.find(
+      (pid) => rowSet.has(pid) && !used.has(pid)
+    );
+    const ids = partnerId ? orderPair(id, partnerId, runtime) : [id];
+    ids.forEach((nid) => used.add(nid));
+
+    const allParents = uniq(ids.flatMap((nid) => runtime.get(nid)?.parents || []));
+    const parentKey = allParents.length ? canonicalParentKey(allParents) : `solo:${ids[0]}`;
+    const minIndex = Math.min(...ids.map((nid) => runtime.get(nid)?.index ?? Number.MAX_SAFE_INTEGER));
+    const anchors = allParents.map((pid) => runtime.get(pid)?.x).filter((v): v is number => Number.isFinite(v));
+    const anchor = anchors.length
+      ? anchors.reduce((acc, x) => acc + x, 0) / anchors.length
+      : Number.POSITIVE_INFINITY;
+
+    groups.push({ ids, parentKey, minIndex, anchor });
+  }
+
+  groups.sort((a, b) => {
+    if (a.anchor !== b.anchor) return a.anchor - b.anchor;
+    return a.minIndex - b.minIndex;
+  });
+
+  return groups;
 }
 
 function layoutNodes(runtime: Map<string, RuntimeNode>): { width: number; height: number } {
-  const rows = buildRows(runtime);
-  const cleanRows = rows.map((row) => row.filter((id) => id !== "__GROUP_BREAK__"));
-  const rowWidths = cleanRows.map((row) =>
-    row.length > 0 ? (row.length - 1) * (NODE_WIDTH + COL_GAP) + NODE_WIDTH : 0
+  const rowsByGen = new Map<number, string[]>();
+  for (const r of runtime.values()) {
+    if (!rowsByGen.has(r.generation)) rowsByGen.set(r.generation, []);
+    rowsByGen.get(r.generation)!.push(r.id);
+  }
+
+  const generations = Array.from(rowsByGen.keys()).sort((a, b) => a - b);
+  const rowGroupMatrix = generations.map((gen) =>
+    buildGroupsForRow(rowsByGen.get(gen) || [], runtime)
   );
-  const maxRowWidth = Math.max(...rowWidths, NODE_WIDTH);
 
-  rows.forEach((row, rowIndex) => {
-    positionRows(runtime, row);
-    const clean = row.filter((id) => id !== "__GROUP_BREAK__");
-    const rowWidth =
-      clean.length > 0 ? (clean.length - 1) * (NODE_WIDTH + COL_GAP) + NODE_WIDTH : 0;
-    const shift = (maxRowWidth - rowWidth) / 2 + PADDING_X;
-    const y = PADDING_Y + rowIndex * ROW_GAP;
+  const rowWidths = rowGroupMatrix.map((groups) => {
+    if (!groups.length) return 0;
+    const nodeCount = groups.reduce((acc, group) => acc + group.ids.length, 0);
+    const interNode = Math.max(0, nodeCount - 1) * NODE_SPACING_X;
+    const interGroup = Math.max(0, groups.length - 1) * GROUP_GAP;
+    return interNode + interGroup + NODE_DIAMETER;
+  });
+  const maxRowWidth = Math.max(NODE_DIAMETER, ...rowWidths);
 
-    for (const id of clean) {
-      const node = runtime.get(id);
-      if (!node) continue;
-      node.x += shift + NODE_WIDTH / 2;
-      node.y = y + NODE_HEIGHT / 2;
-      node.node.generation = rowIndex;
-    }
+  rowGroupMatrix.forEach((groups, rowIndex) => {
+    const nodeCount = groups.reduce((acc, group) => acc + group.ids.length, 0);
+    const interNode = Math.max(0, nodeCount - 1) * NODE_SPACING_X;
+    const interGroup = Math.max(0, groups.length - 1) * GROUP_GAP;
+    const rowWidth = interNode + interGroup + (nodeCount ? NODE_DIAMETER : 0);
+    const startX = PADDING_X + (maxRowWidth - rowWidth) / 2 + NODE_DIAMETER / 2;
+    const y = PADDING_Y + rowIndex * ROW_GAP + NODE_DIAMETER / 2;
+
+    let cursorX = startX;
+    groups.forEach((group, groupIndex) => {
+      group.ids.forEach((id, idx) => {
+        const node = runtime.get(id);
+        if (!node) return;
+        node.x = cursorX;
+        node.y = y;
+        node.node.generation = rowIndex;
+        if (idx < group.ids.length - 1) cursorX += NODE_SPACING_X;
+      });
+
+      if (groupIndex < groups.length - 1) cursorX += NODE_SPACING_X + GROUP_GAP;
+    });
   });
 
   return {
     width: maxRowWidth + PADDING_X * 2,
-    height: rows.length * ROW_GAP + PADDING_Y * 2,
+    height: Math.max(1, generations.length) * ROW_GAP + PADDING_Y * 2,
   };
 }
 
-function buildEdges(runtime: Map<string, RuntimeNode>): LayoutEdge[] {
+function positionUnions(unions: Map<string, UnionNode>, runtime: Map<string, RuntimeNode>): void {
+  for (const union of unions.values()) {
+    const partners = union.partnerIds
+      .map((id) => runtime.get(id))
+      .filter((p): p is RuntimeNode => Boolean(p))
+      .sort((a, b) => a.x - b.x);
+
+    if (!partners.length) continue;
+
+    union.generation = Math.max(...partners.map((p) => p.generation));
+    union.x =
+      partners.length === 1
+        ? partners[0].x
+        : partners.reduce((acc, p) => acc + p.x, 0) / partners.length;
+    union.y = partners.reduce((acc, p) => acc + p.y, 0) / partners.length;
+  }
+}
+
+function buildEdges(runtime: Map<string, RuntimeNode>, unions: Map<string, UnionNode>): LayoutEdge[] {
   const edges: LayoutEdge[] = [];
-  const spouseSeen = new Set<string>();
+  const spouseEdgeSeen = new Set<string>();
 
-  for (const node of runtime.values()) {
-    for (const partnerId of node.partners) {
-      const partner = runtime.get(partnerId);
-      if (!partner) continue;
+  for (const union of unions.values()) {
+    if (union.partnerIds.length < 2) continue;
+    const [aId, bId] = union.partnerIds;
+    const a = runtime.get(aId);
+    const b = runtime.get(bId);
+    if (!a || !b) continue;
 
-      const key = edgeKey(node.id, partner.id);
-      if (spouseSeen.has(key)) continue;
-      spouseSeen.add(key);
+    const key = pairKey(aId, bId);
+    if (spouseEdgeSeen.has(key)) continue;
+    spouseEdgeSeen.add(key);
 
+    edges.push({
+      id: `edge-spouse-${key}`,
+      source: aId,
+      target: bId,
+      type: "spouse",
+      path: [
+        { x: a.x, y: a.y },
+        { x: b.x, y: b.y },
+      ],
+    });
+  }
+
+  for (const union of unions.values()) {
+    if (!union.childIds.length) continue;
+
+    const startX = union.x;
+    const startY = union.y + NODE_DIAMETER / 2;
+    const children = union.childIds
+      .map((id) => runtime.get(id))
+      .filter((node): node is RuntimeNode => Boolean(node))
+      .sort((a, b) => a.x - b.x);
+    if (!children.length) continue;
+
+    const minChildTop = Math.min(...children.map((child) => child.y - NODE_DIAMETER / 2));
+    const midY = Math.min(startY + 36, minChildTop - 18);
+    const busY = Math.max(startY + 24, midY);
+
+    for (const child of children) {
+      const childTop = child.y - NODE_DIAMETER / 2;
       edges.push({
-        id: `edge-spouse-${key}`,
-        source: node.id,
-        target: partner.id,
-        type: "spouse",
+        id: `edge-parent-${union.id}-${child.id}`,
+        source: union.id,
+        target: child.id,
+        type: "union-child",
         path: [
-          { x: node.x, y: node.y },
-          { x: partner.x, y: partner.y },
+          { x: startX, y: startY },
+          { x: startX, y: busY },
+          { x: child.x, y: busY },
+          { x: child.x, y: childTop },
         ],
       });
     }
-  }
-
-  for (const child of runtime.values()) {
-    if (!child.parents.length) continue;
-
-    const parentNodes = child.parents
-      .map((pid) => runtime.get(pid))
-      .filter((p): p is RuntimeNode => Boolean(p))
-      .sort((a, b) => a.x - b.x);
-    if (!parentNodes.length) continue;
-
-    const startX =
-      parentNodes.length === 1
-        ? parentNodes[0].x
-        : parentNodes.reduce((acc, p) => acc + p.x, 0) / parentNodes.length;
-    const startY = Math.max(...parentNodes.map((p) => p.y)) + NODE_HEIGHT / 2;
-    const endY = child.y - NODE_HEIGHT / 2;
-    const gapY = Math.max(34, (endY - startY) * 0.45);
-    const midY = startY + gapY;
-
-    edges.push({
-      id: `edge-parent-${child.id}`,
-      source: parentNodes[0].id,
-      target: child.id,
-      type: "union-child",
-      path: [
-        { x: startX, y: startY },
-        { x: startX, y: midY },
-        { x: child.x, y: midY },
-        { x: child.x, y: endY },
-      ],
-    });
   }
 
   return edges;
@@ -365,10 +424,13 @@ export function calculateSugiyamaLayout(nodes: FamilyNode[]): LayoutGraph {
   }
 
   const runtime = buildRuntime(nodes);
+  assignGenerations(runtime);
   const { width, height } = layoutNodes(runtime);
-  const edges = buildEdges(runtime);
+  const unions = buildUnionMap(runtime);
+  positionUnions(unions, runtime);
+  const edges = buildEdges(runtime, unions);
 
-  const layoutNodesList = nodes.map((node) => {
+  const layoutNodes = nodes.map((node) => {
     const r = runtime.get(node.id)!;
     return {
       ...node,
@@ -379,7 +441,16 @@ export function calculateSugiyamaLayout(nodes: FamilyNode[]): LayoutGraph {
   });
 
   return {
-    nodes: layoutNodesList,
+    nodes: layoutNodes,
+    unions: Array.from(unions.values()).map((union) => ({
+      id: union.id,
+      partnerIds: union.partnerIds,
+      childrenIds: union.childIds,
+      type: union.partnerIds.length > 1 ? "marriage" : "relationship",
+      layer: union.generation,
+      x: union.x,
+      y: union.y,
+    })),
     edges,
     width,
     height,
