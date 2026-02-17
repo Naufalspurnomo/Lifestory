@@ -58,7 +58,7 @@ export const galleryItems: GalleryItem[] = [
     era: "Kisah Seumur Hidup",
     palette: "Amber Vintage",
     pdf: {
-      url: "/api/gallery-pdf/mak-book-re-arrange-1",
+      url: "/pdf/Mak Book Re-Arrange 1.pdf",
       fileName: "Mak Book Re-Arrange 1.pdf",
     },
   },

@@ -2,9 +2,11 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
 const pdfCatalog: Record<string, { relativePath: string; downloadName: string }> = {
   "mak-book-re-arrange-1": {
-    relativePath: path.join("Images", "pdf", "Mak Book Re-Arrange 1.pdf"),
+    relativePath: path.join("public", "pdf", "Mak Book Re-Arrange 1.pdf"),
     downloadName: "Mak Book Re-Arrange 1.pdf",
   },
 };
@@ -93,7 +95,8 @@ export async function GET(
         "Content-Length": String(totalSize),
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("PDF load failed:", error);
     return NextResponse.json({ error: "Unable to load PDF file." }, { status: 500 });
   }
 }
