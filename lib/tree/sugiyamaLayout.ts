@@ -1,615 +1,387 @@
-import {
-    FamilyNode,
-    LayoutEdge,
-    LayoutGraph,
-    Person,
-    Union,
-    LAYOUT,
-} from "../types/tree";
+import { FamilyNode, LayoutEdge, LayoutGraph } from "../types/tree";
 
-// --- constants ---
-const { NODE_SIZE, NODE_SPACING_X, NODE_SPACING_Y, PARTNER_GAP } = LAYOUT;
-const SIBLING_GAP = NODE_SPACING_X;
+const NODE_WIDTH = 180;
+const NODE_HEIGHT = 58;
+const ROW_GAP = 170;
+const COL_GAP = 52;
+const GROUP_GAP = 96;
+const PADDING_X = 140;
+const PADDING_Y = 80;
 
-// --- Internal Types ---
-
-type InternalGraph = {
-    persons: Map<string, PersonNode>;
-    unions: Map<string, UnionNode>;
+type RuntimeNode = {
+  node: FamilyNode;
+  id: string;
+  generation: number;
+  parents: string[];
+  partners: string[];
+  children: string[];
+  order: number;
+  x: number;
+  y: number;
 };
 
-type PersonNode = Person & {
-    // graph topology
-    unionIds: string[]; // unions where this person is a partner
-    parentUnionId?: string; // union where this person is a child
-
-    // layout
-    layer: number;
-    x: number;
-    y: number;
-
-    // blocks
-    blockId?: string;
-};
-
-type UnionNode = Union & {
-    // graph topology
-    // partnerIds and childrenIds are in base type
-
-    // layout
-    layer: number;
-    x: number;
-    y: number;
-
-    // blocks
-    blockId?: string;
-};
-
-// --- 1. Build Internal Graph ---
-
-function buildInternalGraph(nodes: FamilyNode[]): InternalGraph {
-    const persons = new Map<string, PersonNode>();
-    const unions = new Map<string, UnionNode>();
-
-    // 1a. Create Person Nodes
-    for (const n of nodes) {
-        persons.set(n.id, {
-            id: n.id,
-            label: n.label,
-            sex: n.sex || "X",
-            birthDate: n.year?.toString(),
-            deathDate: n.deathYear?.toString(),
-            imageUrl: n.imageUrl || undefined,
-            unionIds: [],
-            parentUnionId: undefined,
-            layer: -1,
-            x: 0,
-            y: 0,
-        });
-    }
-
-    // 1b. Create Union Nodes
-    // We infer unions from 'partners' and 'parentIds' / 'childrenIds'
-    // Strategy: valid union = set of partners that have children together OR are explicitly linked
-
-    // Track processed partnerships to avoid duplicates
-    const processedPartnerships = new Set<string>();
-
-    // Helper to get consistent key
-    const getPartnersKey = (ids: string[]) => ids.sort().join("::");
-
-    // Iterate all nodes to find partnerships
-    for (const p of nodes) {
-        // 1. Explicit partners
-        for (const partnerId of p.partners) {
-            if (!persons.has(partnerId)) continue;
-            const key = getPartnersKey([p.id, partnerId]);
-            if (processedPartnerships.has(key)) continue;
-
-            processedPartnerships.add(key);
-
-            // Create Union
-            const uId = `union-${key}`; // deterministic ID
-            if (!unions.has(uId)) {
-                unions.set(uId, {
-                    id: uId,
-                    partnerIds: [p.id, partnerId],
-                    childrenIds: [], // fill later
-                    type: "marriage", // default
-                    layer: -1,
-                    x: 0,
-                    y: 0,
-                });
-
-                // Link persons to union
-                persons.get(p.id)!.unionIds.push(uId);
-                persons.get(partnerId)!.unionIds.push(uId);
-            }
-        }
-
-        // 2. Child -> Parents (to capture unions that might not be in 'partners' list or single parents)
-        if (p.parentIds && p.parentIds.length > 0) {
-            // Filter valid parents
-            const parents = p.parentIds.filter(pid => persons.has(pid));
-            if (parents.length > 0) {
-                // Sort parents to find/create union
-                // Case A: 2 Parents -> Standard Union
-                // Case B: 1 Parent -> Single Parent Union
-                // Case C: >2 Parents -> Pick first 2 or handle complex (simplified: first 2)
-
-                // If parents are already partners, find that union. 
-                // If not, we might need to create a "virtual" union or implies they should be partners
-
-                let targetUnionId: string | undefined;
-
-                if (parents.length >= 2) {
-                    const p1 = parents[0];
-                    const p2 = parents[1];
-                    const key = getPartnersKey([p1, p2]);
-                    targetUnionId = `union-${key}`;
-
-                    if (!unions.has(targetUnionId)) {
-                        // Implicit union from parenthood
-                        unions.set(targetUnionId, {
-                            id: targetUnionId,
-                            partnerIds: [p1, p2],
-                            childrenIds: [],
-                            type: "relationship", // inferred
-                            layer: -1,
-                            x: 0,
-                            y: 0,
-                        });
-                        persons.get(p1)!.unionIds.push(targetUnionId);
-                        persons.get(p2)!.unionIds.push(targetUnionId);
-                        processedPartnerships.add(key);
-                    }
-                } else if (parents.length === 1) {
-                    // Single parent
-                    const p1 = parents[0];
-                    const key = `single-${p1}`;
-                    targetUnionId = `union-${key}`;
-
-                    if (!unions.has(targetUnionId)) {
-                        unions.set(targetUnionId, {
-                            id: targetUnionId,
-                            partnerIds: [p1],
-                            childrenIds: [],
-                            type: "relationship",
-                            layer: -1,
-                            x: 0,
-                            y: 0,
-                        });
-                        persons.get(p1)!.unionIds.push(targetUnionId);
-                    }
-                }
-
-                if (targetUnionId) {
-                    const u = unions.get(targetUnionId)!;
-                    if (!u.childrenIds.includes(p.id)) {
-                        u.childrenIds.push(p.id);
-                    }
-                    persons.get(p.id)!.parentUnionId = targetUnionId;
-                }
-            }
-        }
-    }
-
-    // Legacy fallback: if node has `parentId` and not `parentIds`, handle strictly
-    // but `nodes` coming in should largely be normalized.
-
-    return { persons, unions };
+function uniq(ids: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(ids.filter((id): id is string => Boolean(id))));
 }
 
-// --- 2. Layer Assignment (Longest Path on DAG) ---
-
-function assignLayers(g: InternalGraph) {
-    // Constraints:
-    // 1. Union L(U) = L(Partner)
-    // 2. Child L(C) >= L(U) + 1
-
-    // Step 2a: Identify components and roots (persons with no parent union)
-    // We relax layer assignment using a priority queue or simple Bellman-Ford-like relaxation
-
-    // Initialize roots to layer 0
-    const q: string[] = []; // person IDs
-
-    g.persons.forEach(p => {
-        if (!p.parentUnionId) {
-            p.layer = 0;
-            q.push(p.id);
-        }
-    });
-
-    // If cycle exists, this might loop, so we limit iterations
-    let changed = true;
-    let iterations = 0;
-    const HEADER_LIMIT = (g.persons.size + g.unions.size) * 2 + 100;
-
-    while (changed && iterations < HEADER_LIMIT) {
-        changed = false;
-        iterations++;
-
-        // Propagate Person -> Union (Union matches Partner Max Layer)
-        g.unions.forEach(u => {
-            let maxP = -1;
-            u.partnerIds.forEach(pid => {
-                const p = g.persons.get(pid);
-                if (p && p.layer > maxP) maxP = p.layer;
-            });
-
-            if (maxP > -1 && u.layer !== maxP) {
-                u.layer = maxP;
-                changed = true;
-
-                // Force all partners to match this union layer (if data allows)
-                // If strict generation is needed, partners MUST be same layer. 
-                // We propagate upwards too? No, usually propagate max downwards.
-                // Let's adopt "Union layer = Max(Partners)".
-                // And then push Partners up? No, that breaks invariants.
-                // Assuming partners are roughly same generation.
-            }
-        });
-
-        // Propagate Union -> Children
-        g.unions.forEach(u => {
-            if (u.layer === -1) return;
-            const childLayer = u.layer + 1;
-
-            u.childrenIds.forEach(cid => {
-                const c = g.persons.get(cid);
-                if (c && c.layer < childLayer) {
-                    c.layer = childLayer;
-                    changed = true;
-                }
-            });
-        });
-
-        // Propagate Person -> Other Unions step intentionally skipped for now.
-    }
-
-    // Final pass: ensure anyone still -1 gets 0 (orphans/disconnected)
-    g.persons.forEach(p => { if (p.layer === -1) p.layer = 0; });
-    g.unions.forEach(u => {
-        // single parent union might be missed if parent layer was set late
-        if (u.layer === -1) {
-            const p = g.persons.get(u.partnerIds[0]);
-            if (p) u.layer = p.layer;
-        }
-    });
-
-    // Normalization: make min layer 0
-    let minL = Infinity;
-    g.persons.forEach(p => minL = Math.min(minL, p.layer));
-    if (minL < Infinity && minL > 0) {
-        g.persons.forEach(p => p.layer -= minL);
-        g.unions.forEach(u => u.layer -= minL);
-    }
+function edgeKey(a: string, b: string): string {
+  return [a, b].sort().join("::");
 }
 
-// --- 3. Ordering (Crossing Reduction) ---
+function sortByLabel(ids: string[], runtime: Map<string, RuntimeNode>): string[] {
+  return [...ids].sort((a, b) =>
+    runtime
+      .get(a)
+      ?.node.label.localeCompare(runtime.get(b)?.node.label || "", "id", {
+        sensitivity: "base",
+      }) || 0
+  );
+}
 
-type Block = {
-    id: string;
-    type: "person" | "union-group";
-    elements: (PersonNode | UnionNode)[];
-    layer: number;
-    x?: number; // computed later
-    width: number;
-    barycenter: number;
-    // neighbors for constraints
-};
+function pickPartnerInRow(
+  id: string,
+  rowSet: Set<string>,
+  used: Set<string>,
+  runtime: Map<string, RuntimeNode>
+): string | null {
+  const node = runtime.get(id);
+  if (!node) return null;
 
-function reduceCrossings(g: InternalGraph) {
-    // Strategy: Group (Partner + Union + Partner) into a "Marriage Block" to keep them together.
-    // Group (Siblings) into "Sibling Block"? No, usually siblings can be interleaved if needed, 
-    // but for family trees, keeping siblings adjacent is nice.
+  const candidates = node.partners.filter(
+    (partnerId) => rowSet.has(partnerId) && !used.has(partnerId)
+  );
+  if (!candidates.length) return null;
 
-    // We will build "Layer Rows" where each item is a Block.
+  return sortByLabel(candidates, runtime)[0];
+}
 
-    const layers = new Map<number, Block[]>();
+function orderPair(aId: string, bId: string, runtime: Map<string, RuntimeNode>): [string, string] {
+  const a = runtime.get(aId)?.node;
+  const b = runtime.get(bId)?.node;
+  if (!a || !b) return [aId, bId];
 
-    // Helper to get layer map
-    const getLayer = (l: number) => {
-        if (!layers.has(l)) layers.set(l, []);
-        return layers.get(l)!;
-    };
+  // Keep common male-left/female-right reading order when available.
+  if (a.sex === "M" && b.sex === "F") return [aId, bId];
+  if (a.sex === "F" && b.sex === "M") return [bId, aId];
 
-    // 1. Build Blocks
-    const processedUnions = new Set<string>();
-    const processedPersons = new Set<string>();
+  return a.label.localeCompare(b.label, "id", { sensitivity: "base" }) <= 0
+    ? [aId, bId]
+    : [bId, aId];
+}
 
-    // Detect Marriage Blocks: [P1, U, P2] or [P1, U]
-    g.unions.forEach(u => {
-        if (processedUnions.has(u.id)) return;
+function compactPartners(ids: string[], runtime: Map<string, RuntimeNode>): string[] {
+  const rowSet = new Set(ids);
+  const used = new Set<string>();
+  const result: string[] = [];
 
-        // Identify all linked unions for these partners (complex multi-marriage chain)
-        // For MVP: Simple single union block: P1 - U - P2
+  for (const id of ids) {
+    if (used.has(id)) continue;
+    used.add(id);
 
-        const elements: (PersonNode | UnionNode)[] = [];
-
-        // Add first partner
-        const p1 = g.persons.get(u.partnerIds[0]);
-        if (p1 && !processedPersons.has(p1.id)) {
-            elements.push(p1);
-            processedPersons.add(p1.id);
-        }
-
-        // Add Union
-        elements.push(u);
-        processedUnions.add(u.id);
-
-        // Add second partner
-        if (u.partnerIds.length > 1) {
-            const p2 = g.persons.get(u.partnerIds[1]);
-            if (p2 && !processedPersons.has(p2.id)) {
-                elements.push(p2);
-                processedPersons.add(p2.id);
-            }
-        }
-
-        const b: Block = {
-            id: `block-${u.id}`,
-            type: "union-group",
-            elements,
-            layer: u.layer,
-            width: elements.length * NODE_SIZE + (elements.length - 1) * PARTNER_GAP,
-            barycenter: 0
-        };
-        getLayer(u.layer).push(b);
-    });
-
-    // Add remaining persons (unmarried or unprocessed)
-    g.persons.forEach(p => {
-        if (!processedPersons.has(p.id)) {
-            const b: Block = {
-                id: `block-p-${p.id}`,
-                type: "person",
-                elements: [p],
-                layer: p.layer,
-                width: NODE_SIZE,
-                barycenter: 0
-            };
-            getLayer(p.layer).push(b);
-            processedPersons.add(p.id);
-        }
-    });
-
-    // 2. Sort layers
-    const maxLayer = Math.max(...Array.from(layers.keys()));
-
-    // Initial Sort: by some heuristic (e.g. parent order)
-    // ... skip for brevity, rely on sweeping
-
-    // 3. Barycenter Sweeps
-    for (let i = 0; i < 4; i++) {
-        // Top-down
-        for (let l = 0; l <= maxLayer; l++) {
-            const row = getLayer(l);
-            // Calc barycenter from parents (if person) or from partners' parents (if union group)
-            row.forEach(block => {
-                let sum = 0, count = 0;
-                // look "up"
-                // If block is person: look at parent union
-                // If block is union group: look at partners' parent unions
-
-                const handlePerson = (p: PersonNode) => {
-                    if (p.parentUnionId) {
-                        const u = g.unions.get(p.parentUnionId);
-                        if (u && u.x !== undefined) {
-                            sum += u.x;
-                            count++;
-                        }
-                    }
-                };
-
-                block.elements.forEach(el => {
-                    if ('sex' in el) handlePerson(el as PersonNode);
-                });
-
-                if (count > 0) block.barycenter = sum / count;
-                else block.barycenter = block.x || 0; // retain or default
-            });
-
-            // Sort row by barycenter
-            row.sort((a, b) => a.barycenter - b.barycenter);
-
-            // Assign tentative X (simple packing)
-            let cx = 0;
-            row.forEach(b => {
-                b.x = cx + b.width / 2;
-                // Update internal elements X
-                if (b.elements.length > 1) {
-                    // Distribute elements within block
-                    b.elements.forEach((el, idx) => {
-                        el.x = b.x! - b.width / 2 + (idx * (NODE_SIZE + PARTNER_GAP)) + NODE_SIZE / 2;
-                        el.y = l * NODE_SPACING_Y;
-                    });
-                } else {
-                    b.elements[0].x = b.x;
-                    b.elements[0].y = l * NODE_SPACING_Y;
-                }
-                cx += b.width + SIBLING_GAP;
-            });
-        }
-
-        // Bottom-up (align to children)
-        for (let l = maxLayer; l >= 0; l--) {
-            const row = getLayer(l);
-            row.forEach(block => {
-                let sum = 0, count = 0;
-                // Look down: Unions -> Children
-                const handleUnion = (u: UnionNode) => {
-                    u.childrenIds.forEach(cid => {
-                        const c = g.persons.get(cid);
-                        if (c && c.x !== undefined) {
-                            sum += c.x;
-                            count++;
-                        }
-                    });
-                };
-
-                block.elements.forEach(el => {
-                    if (!('sex' in el)) handleUnion(el as UnionNode); // is Union
-                    // Persons can basically pull towards their own unions if needed?
-                    // Usually we align Union to Children.
-                });
-
-                if (count > 0) block.barycenter = sum / count;
-            });
-
-            row.sort((a, b) => a.barycenter - b.barycenter);
-
-            // Compact Assign X
-            let cx = 0;
-            row.forEach(b => {
-                b.x = cx + b.width / 2;
-                // update elements
-                if (b.elements.length > 1) {
-                    const startX = b.x - b.width / 2;
-                    b.elements.forEach((el, idx) => {
-                        el.x = startX + idx * (NODE_SIZE + PARTNER_GAP) + NODE_SIZE / 2;
-                    });
-                } else {
-                    b.elements[0].x = b.x;
-                }
-                cx += b.width + SIBLING_GAP;
-            });
-        }
+    const partnerId = pickPartnerInRow(id, rowSet, used, runtime);
+    if (!partnerId) {
+      result.push(id);
+      continue;
     }
+
+    used.add(partnerId);
+    const [left, right] = orderPair(id, partnerId, runtime);
+    result.push(left, right);
+  }
+
+  return result;
 }
 
-// --- 4. Edge Routing (Bus) ---
+function assignGenerations(runtime: Map<string, RuntimeNode>): void {
+  // Start from stored generation when available, otherwise 0.
+  for (const node of runtime.values()) {
+    const raw = Number.isFinite(node.node.generation) ? node.node.generation : 0;
+    node.generation = Math.max(0, raw);
+  }
 
-function routeEdges(g: InternalGraph): LayoutEdge[] {
-    const edges: LayoutEdge[] = [];
+  // Relaxation pass so every child is at least one row below max(parent generation).
+  const limit = runtime.size * 4 + 16;
+  for (let i = 0; i < limit; i++) {
+    let changed = false;
+    for (const node of runtime.values()) {
+      if (!node.parents.length) continue;
+      const parentGen = Math.max(
+        ...node.parents.map((parentId) => runtime.get(parentId)?.generation ?? 0)
+      );
+      const target = parentGen + 1;
+      if (node.generation < target) {
+        node.generation = target;
+        changed = true;
+      }
+    }
+    if (!changed) break;
+  }
 
-    // 1. Partner Edges (within group)
-    // Already implicitly handled by placement? No, need visual line.
-    g.unions.forEach(u => {
-        if (u.partnerIds.length < 2) return;
-        // Draw line between partners
-        const p1 = g.persons.get(u.partnerIds[0]);
-        const p2 = g.persons.get(u.partnerIds[1]);
-        if (p1 && p2) {
-            edges.push({
-                id: `edge-spouse-${u.id}`,
-                source: p1.id,
-                target: p2.id,
-                type: "spouse",
-                path: [
-                    { x: Math.min(p1.x, p2.x), y: p1.y },
-                    { x: Math.max(p1.x, p2.x), y: p2.y }
-                ]
-            });
-        }
-    });
-
-    // 2. Parent-Child (Bus Routing)
-    g.unions.forEach(u => {
-        if (u.childrenIds.length === 0) return;
-
-        // Start from Union Center
-        const startX = u.x;
-        const startY = u.y; // Union node is virtually at same Y as partners
-
-        // Bus calculation
-        // Collect children
-        const kids = u.childrenIds.map(cid => g.persons.get(cid)).filter(k => k !== undefined) as PersonNode[];
-        if (kids.length === 0) return;
-
-        // Sort kids by X
-        kids.sort((a, b) => a.x - b.x);
-
-        // Bus Height: halfway between layers
-        const busY = startY + (NODE_SPACING_Y / 2);
-
-        // Trunk: Union -> Bus
-        // Actually we represent this as edges from Union -> Child?
-        // Or we create a specific visual structure.
-        // The requirement says "U -> Pchild".
-
-        // We create one edge per child, but utilizing the shared bus points visually.
-
-        kids.forEach(k => {
-            edges.push({
-                id: `edge-parent-${u.id}-${k.id}`,
-                source: u.id,  // Source is the Union Node!
-                target: k.id,
-                type: "union-child",
-                path: [
-                    { x: startX, y: startY + NODE_SIZE / 2 }, // Start below union
-                    { x: startX, y: busY }, // Down to bus Y
-                    { x: k.x, y: busY }, // Across to child X
-                    { x: k.x, y: k.y - NODE_SIZE / 2 } // Down to child top
-                ]
-            });
-        });
-
-        // Also, if Union is implicit (not rendered as node), we might need edges from Parents -> Union.
-        // But our blueprint says "Node(U:union) untuk setiap union". So Union IS a node.
-        // We expect the renderer to draw the Union Node (maybe as a dot or small circle).
-        // Let's add edges from Partners -> Union? 
-        // Usually Partner -> Union is invisible if Union is just placed between them.
-        // But "Edges: P -> U (partner)" in blueprint.
-        u.partnerIds.forEach(pid => {
-            const p = g.persons.get(pid);
-            if (p) {
-                edges.push({
-                    id: `edge-partner-${p.id}-${u.id}`,
-                    source: p.id,
-                    target: u.id,
-                    type: "spouse",
-                    path: [
-                        { x: p.x, y: p.y },
-                        { x: u.x, y: u.y }
-                    ]
-                });
-            }
-        });
-
-    });
-
-    return edges;
+  // Normalize minimum generation to 0.
+  const minGen = Math.min(...Array.from(runtime.values()).map((node) => node.generation));
+  if (minGen > 0) {
+    for (const node of runtime.values()) {
+      node.generation -= minGen;
+    }
+  }
 }
 
-// --- Main Export ---
+function buildRuntime(nodes: FamilyNode[]): Map<string, RuntimeNode> {
+  const runtime = new Map<string, RuntimeNode>();
+
+  for (const node of nodes) {
+    runtime.set(node.id, {
+      node,
+      id: node.id,
+      generation: 0,
+      parents: [],
+      partners: [],
+      children: [],
+      order: 0,
+      x: 0,
+      y: 0,
+    });
+  }
+
+  for (const r of runtime.values()) {
+    const parents = uniq([...(r.node.parentIds || []), r.node.parentId]).filter((id) =>
+      runtime.has(id)
+    );
+    const partners = uniq(r.node.partners || []).filter((id) => runtime.has(id));
+    const children = uniq(r.node.childrenIds || []).filter((id) => runtime.has(id));
+
+    r.parents = parents;
+    r.partners = partners;
+    r.children = children;
+  }
+
+  // Sync children from parent references.
+  for (const r of runtime.values()) {
+    for (const parentId of r.parents) {
+      const parent = runtime.get(parentId);
+      if (!parent) continue;
+      if (!parent.children.includes(r.id)) parent.children.push(r.id);
+    }
+  }
+
+  // Sync partners bidirectionally.
+  for (const r of runtime.values()) {
+    for (const partnerId of r.partners) {
+      const partner = runtime.get(partnerId);
+      if (!partner) continue;
+      if (!partner.partners.includes(r.id)) partner.partners.push(r.id);
+    }
+  }
+
+  assignGenerations(runtime);
+  return runtime;
+}
+
+function buildRows(runtime: Map<string, RuntimeNode>): string[][] {
+  const byGen = new Map<number, string[]>();
+  for (const r of runtime.values()) {
+    if (!byGen.has(r.generation)) byGen.set(r.generation, []);
+    byGen.get(r.generation)!.push(r.id);
+  }
+
+  const generations = Array.from(byGen.keys()).sort((a, b) => a - b);
+  const rows: string[][] = [];
+
+  for (let gi = 0; gi < generations.length; gi++) {
+    const gen = generations[gi];
+    const rowIds = sortByLabel(byGen.get(gen) || [], runtime);
+
+    if (gi === 0) {
+      const arranged = compactPartners(rowIds, runtime);
+      rows.push(arranged);
+      arranged.forEach((id, idx) => {
+        const node = runtime.get(id);
+        if (node) node.order = idx;
+      });
+      continue;
+    }
+
+    const groups = new Map<string, string[]>();
+    for (const id of rowIds) {
+      const r = runtime.get(id)!;
+      const key = r.parents.length
+        ? [...r.parents].sort().join("|")
+        : `solo:${id}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(id);
+    }
+
+    const grouped = Array.from(groups.entries()).map(([key, ids]) => {
+      const sortedIds = sortByLabel(ids, runtime);
+      const anchors = sortedIds.flatMap((id) =>
+        runtime.get(id)!.parents.map((pid) => runtime.get(pid)?.order ?? 0)
+      );
+      const anchor = anchors.length
+        ? anchors.reduce((acc, v) => acc + v, 0) / anchors.length
+        : Number.POSITIVE_INFINITY;
+      return { key, ids: compactPartners(sortedIds, runtime), anchor };
+    });
+
+    grouped.sort((a, b) => {
+      if (a.anchor !== b.anchor) return a.anchor - b.anchor;
+      return a.key.localeCompare(b.key);
+    });
+
+    const arranged: string[] = [];
+    grouped.forEach((group, index) => {
+      arranged.push(...group.ids);
+      if (index < grouped.length - 1) arranged.push("__GROUP_BREAK__");
+    });
+
+    let order = 0;
+    const finalRow = arranged.filter((id) => id !== "__GROUP_BREAK__");
+    finalRow.forEach((id) => {
+      const node = runtime.get(id);
+      if (node) node.order = order++;
+    });
+    rows.push(arranged);
+  }
+
+  return rows;
+}
+
+function positionRows(runtime: Map<string, RuntimeNode>, rows: string[]): number {
+  let cursor = 0;
+  let maxX = 0;
+  let placed = false;
+
+  for (const id of rows) {
+    if (id === "__GROUP_BREAK__") {
+      cursor += GROUP_GAP;
+      continue;
+    }
+    const node = runtime.get(id);
+    if (!node) continue;
+    node.x = cursor;
+    cursor += NODE_WIDTH + COL_GAP;
+    maxX = Math.max(maxX, node.x);
+    placed = true;
+  }
+
+  if (!placed) return 0;
+  return maxX;
+}
+
+function layoutNodes(runtime: Map<string, RuntimeNode>): { width: number; height: number } {
+  const rows = buildRows(runtime);
+  const cleanRows = rows.map((row) => row.filter((id) => id !== "__GROUP_BREAK__"));
+  const rowWidths = cleanRows.map((row) =>
+    row.length > 0 ? (row.length - 1) * (NODE_WIDTH + COL_GAP) + NODE_WIDTH : 0
+  );
+  const maxRowWidth = Math.max(...rowWidths, NODE_WIDTH);
+
+  rows.forEach((row, rowIndex) => {
+    positionRows(runtime, row);
+    const clean = row.filter((id) => id !== "__GROUP_BREAK__");
+    const rowWidth =
+      clean.length > 0 ? (clean.length - 1) * (NODE_WIDTH + COL_GAP) + NODE_WIDTH : 0;
+    const shift = (maxRowWidth - rowWidth) / 2 + PADDING_X;
+    const y = PADDING_Y + rowIndex * ROW_GAP;
+
+    for (const id of clean) {
+      const node = runtime.get(id);
+      if (!node) continue;
+      node.x += shift + NODE_WIDTH / 2;
+      node.y = y + NODE_HEIGHT / 2;
+      node.node.generation = rowIndex;
+    }
+  });
+
+  return {
+    width: maxRowWidth + PADDING_X * 2,
+    height: rows.length * ROW_GAP + PADDING_Y * 2,
+  };
+}
+
+function buildEdges(runtime: Map<string, RuntimeNode>): LayoutEdge[] {
+  const edges: LayoutEdge[] = [];
+  const spouseSeen = new Set<string>();
+
+  for (const node of runtime.values()) {
+    for (const partnerId of node.partners) {
+      const partner = runtime.get(partnerId);
+      if (!partner) continue;
+
+      const key = edgeKey(node.id, partner.id);
+      if (spouseSeen.has(key)) continue;
+      spouseSeen.add(key);
+
+      edges.push({
+        id: `edge-spouse-${key}`,
+        source: node.id,
+        target: partner.id,
+        type: "spouse",
+        path: [
+          { x: node.x, y: node.y },
+          { x: partner.x, y: partner.y },
+        ],
+      });
+    }
+  }
+
+  for (const child of runtime.values()) {
+    if (!child.parents.length) continue;
+
+    const parentNodes = child.parents
+      .map((pid) => runtime.get(pid))
+      .filter((p): p is RuntimeNode => Boolean(p))
+      .sort((a, b) => a.x - b.x);
+    if (!parentNodes.length) continue;
+
+    const startX =
+      parentNodes.length === 1
+        ? parentNodes[0].x
+        : parentNodes.reduce((acc, p) => acc + p.x, 0) / parentNodes.length;
+    const startY = Math.max(...parentNodes.map((p) => p.y)) + NODE_HEIGHT / 2;
+    const endY = child.y - NODE_HEIGHT / 2;
+    const gapY = Math.max(34, (endY - startY) * 0.45);
+    const midY = startY + gapY;
+
+    edges.push({
+      id: `edge-parent-${child.id}`,
+      source: parentNodes[0].id,
+      target: child.id,
+      type: "union-child",
+      path: [
+        { x: startX, y: startY },
+        { x: startX, y: midY },
+        { x: child.x, y: midY },
+        { x: child.x, y: endY },
+      ],
+    });
+  }
+
+  return edges;
+}
 
 export function calculateSugiyamaLayout(nodes: FamilyNode[]): LayoutGraph {
-    if (nodes.length === 0) return { nodes: [], edges: [], width: 0, height: 0 };
+  if (!nodes.length) {
+    return { nodes: [], edges: [], width: 0, height: 0 };
+  }
 
-    // 1. Build
-    const g = buildInternalGraph(nodes);
+  const runtime = buildRuntime(nodes);
+  const { width, height } = layoutNodes(runtime);
+  const edges = buildEdges(runtime);
 
-    // 2. Layer
-    assignLayers(g);
-
-    // 3. Crossing
-    reduceCrossings(g);
-
-    // 4. Coordinates (simplified above)
-
-    // 5. Edges
-    const edges = routeEdges(g);
-
-    // 6. Output Transformation
-    // Convert internal nodes back to FamilyNode (with X/Y)
-
-    // We need to keep Union nodes if the renderer supports them? 
-    // The User blueprint says "Graph internal yang digambar: Node(P), Node(U)".
-    // But `FamilyNode` type usually represents People.
-
-    // If the renderer expects `FamilyNode` to be only people, we assume UnionNodes are handled by edges/renderer.
-    // BUT, to follow "Production Grade", we should probably include Unions in the 'nodes' list if they are visual.
-    // Or keep them separate. 
-    // Our updated `LayoutGraph` has `unions?: Union[]`.
-
-    const layoutNodes = Array.from(g.persons.values()).map(p => {
-        // Find original node content
-        const original = nodes.find(n => n.id === p.id);
-        return {
-            ...original!,
-            x: p.x,
-            y: p.y,
-            generation: p.layer, // update generation based on calculation
-        } as FamilyNode;
-    });
-
-    const layoutUnions = Array.from(g.unions.values()).map(u => ({
-        ...u
-    })); // Copy union data
-
-    // Calculate bounds
-    let maxX = 0, maxY = 0;
-    layoutNodes.forEach(n => {
-        maxX = Math.max(maxX, (n.x || 0) + NODE_SIZE);
-        maxY = Math.max(maxY, (n.y || 0) + NODE_SIZE);
-    });
-
+  const layoutNodesList = nodes.map((node) => {
+    const r = runtime.get(node.id)!;
     return {
-        nodes: layoutNodes,
-        unions: layoutUnions,
-        edges,
-        width: maxX + 100,
-        height: maxY + 100,
+      ...node,
+      x: r.x,
+      y: r.y,
+      generation: r.node.generation,
     };
+  });
+
+  return {
+    nodes: layoutNodesList,
+    edges,
+    width,
+    height,
+  };
 }

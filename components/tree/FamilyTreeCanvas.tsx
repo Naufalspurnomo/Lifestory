@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState } from "react";
+import { useRef, useEffect, useCallback, useState, useMemo } from "react";
 import type { LayoutGraph, FamilyNode } from "../../lib/types/tree";
 import { useLanguage } from "../providers/LanguageProvider";
 
@@ -11,75 +11,108 @@ type Props = {
   onAddNode: (parentId: string, type: "parent" | "partner" | "child" | "sibling") => void;
 };
 
-// Luxury Warm Color Palette
-const COLORS = {
-  paternal: { border: "#60a5fa", base: "#3b82f6" },
-  maternal: { border: "#f472b6", base: "#ec4899" },
-  union: { border: "#a78bfa", base: "#8b5cf6" },
-  descendant: { border: "#4ade80", base: "#22c55e" },
-  self: { border: "#b08e51", base: "#82693c" }, // Gold from logo
-  default: { border: "#5b5346", base: "#1d1a14" }, // warmMuted / warmText
-};
-
-// Generation-based colors (relative to owner = Gen 1)
-const GEN_COLORS: Record<number, { border: string; label: string }> = {
-  [-2]: { border: "#a855f7", label: "Buyut" }, // Purple
-  [-1]: { border: "#1f6f62", label: "Kakek/Nenek" }, // Accent Teal
-  [0]: { border: "#22c55e", label: "Orang Tua" }, // Green
-  [1]: { border: "#b08e51", label: "Anda" }, // Gold (Owner)
-  [2]: { border: "#82693c", label: "Anak" }, // Gold-700
-  [3]: { border: "#ef4444", label: "Cucu" }, // Red
-  [4]: { border: "#ec4899", label: "Cicit" }, // Pink
-};
-
-const NODE_CIRCLE_SIZE = 70;
-
-const LINE_COLOR = "#e6dbc7"; // warmBorder
-const LINE_WIDTH = 1.5;
-
+const NODE_WIDTH = 180;
+const NODE_HEIGHT = 58;
+const NODE_RADIUS = 9;
 const BUTTON_SIZE = 28;
 
-// Icons for member works/creations
-const WORK_ICONS: Record<string, string> = {
-  book: "📚",
-  music: "🎵",
-  film: "🎬",
-  art: "🎨",
-  other: "⭐",
+const LINE_COLOR = "#c5b79f";
+const CHILD_LINE_COLOR = "#d0c3ad";
+const SPOUSE_LINE_COLOR = "#e8b400";
+
+type NodePalette = {
+  fill: string;
+  border: string;
+  text: string;
 };
+
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.arcTo(x + width, y, x + width, y + r, r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.arcTo(x + width, y + height, x + width - r, y + height, r);
+  ctx.lineTo(x + r, y + height);
+  ctx.arcTo(x, y + height, x, y + height - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function fitText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+): string {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let current = text.trim();
+  while (current.length > 1 && ctx.measureText(`${current}...`).width > maxWidth) {
+    current = current.slice(0, -1);
+  }
+  return `${current}...`;
+}
+
+function getNodePalette(node: FamilyNode, minGeneration: number): NodePalette {
+  const isSpouseOnly =
+    node.line === "union" ||
+    ((!node.parentIds || node.parentIds.length === 0) &&
+      !node.parentId &&
+      (node.partners?.length || 0) > 0 &&
+      (node.childrenIds?.length || 0) === 0 &&
+      node.line !== "self");
+
+  if (isSpouseOnly) {
+    return { fill: "#f5f5f5", border: "#7d7568", text: "#2e2a24" };
+  }
+
+  const level = (node.generation ?? 0) - minGeneration + 1;
+  if (level <= 1) {
+    return { fill: "#e5d308", border: "#8d7d25", text: "#26220f" };
+  }
+  if (level === 2) {
+    return { fill: "#a95d38", border: "#734126", text: "#ffffff" };
+  }
+  if (level === 3) {
+    return { fill: "#e00088", border: "#9f0f63", text: "#ffffff" };
+  }
+  return { fill: "#f5f5f5", border: "#8a7f69", text: "#2f2a21" };
+}
 
 const getQuickAddButtons = (node: FamilyNode) => [
   {
     type: "parent" as const,
     x: (node.x || 0),
-    y: (node.y || 0) - NODE_CIRCLE_SIZE / 2 - 24,
+    y: (node.y || 0) - NODE_HEIGHT / 2 - 24,
     icon: "↑",
-    label: "Orang Tua",
   },
   {
     type: "partner" as const,
-    x: (node.x || 0) + NODE_CIRCLE_SIZE / 2 + 30,
+    x: (node.x || 0) + NODE_WIDTH / 2 + 26,
     y: (node.y || 0),
     icon: "♥",
-    label: "Pasangan",
   },
   {
     type: "child" as const,
     x: (node.x || 0),
-    y: (node.y || 0) + NODE_CIRCLE_SIZE / 2 + 60,
+    y: (node.y || 0) + NODE_HEIGHT / 2 + 24,
     icon: "↓",
-    label: "Anak",
   },
   {
     type: "sibling" as const,
-    x: (node.x || 0) - NODE_CIRCLE_SIZE / 2 - 30,
+    x: (node.x || 0) - NODE_WIDTH / 2 - 26,
     y: (node.y || 0),
     icon: "↔",
-    label: "Saudara",
   },
 ];
-
-const imageCache = new Map<string, HTMLImageElement>();
 
 export default function FamilyTreeCanvas({
   layout,
@@ -90,6 +123,7 @@ export default function FamilyTreeCanvas({
   const { locale } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
   const copy =
     locale === "id"
       ? {
@@ -106,58 +140,32 @@ export default function FamilyTreeCanvas({
           resetView: "Reset view",
         };
 
-  // View state: Transform (pan x/y, scale)
   const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [imagesLoaded, setImagesLoaded] = useState(0);
 
-  const { nodes, edges, width, height } = layout;
+  const { nodes, edges, width } = layout;
+  const minGeneration = useMemo(() => {
+    if (!nodes.length) return 0;
+    return Math.min(...nodes.map((node) => node.generation ?? 0));
+  }, [nodes]);
 
-  // Initial centering
   useEffect(() => {
     if (nodes.length > 0 && wrapperRef.current) {
       const { clientWidth } = wrapperRef.current;
-      // Center the tree initially
       const initialScale = 0.8;
       const initialX = (clientWidth - width * initialScale) / 2;
-      const initialY = 100; // Top padding
+      const initialY = 80;
       setTransform({ x: initialX, y: initialY, k: initialScale });
     }
-  }, [width, height, nodes.length]);
+  }, [width, nodes.length]);
 
-  // Image preloading logic...
-  useEffect(() => {
-    let loadedCount = 0;
-    const toLoad = nodes.filter((n) => n.imageUrl && !imageCache.has(n.id));
-    if (toLoad.length === 0) return;
-
-    toLoad.forEach((node) => {
-      if (!node.imageUrl) return;
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        imageCache.set(node.id, img);
-        loadedCount++;
-        if (loadedCount === toLoad.length) setImagesLoaded((p) => p + 1);
-      };
-      img.onerror = () => {
-        loadedCount++;
-        if (loadedCount === toLoad.length) setImagesLoaded((p) => p + 1);
-      };
-      img.src = node.imageUrl;
-    });
-  }, [nodes]);
-
-  // --- HIT TESTING (Screen -> World) ---
   const screenToWorld = useCallback(
-    (sx: number, sy: number) => {
-      return {
-        x: (sx - transform.x) / transform.k,
-        y: (sy - transform.y) / transform.k,
-      };
-    },
+    (sx: number, sy: number) => ({
+      x: (sx - transform.x) / transform.k,
+      y: (sy - transform.y) / transform.k,
+    }),
     [transform]
   );
 
@@ -170,13 +178,13 @@ export default function FamilyTreeCanvas({
       const sy = clientY - rect.top;
       const { x, y } = screenToWorld(sx, sy);
 
-      // Check distance to nodes
       for (const node of nodes) {
-        if (typeof node.x !== "number" || typeof node.y !== "number") continue;
-        const dx = x - node.x;
-        const dy = y - node.y;
-        // Hit area slightly larger for easier selection
-        if (dx * dx + dy * dy <= (NODE_CIRCLE_SIZE / 2) ** 2) {
+        if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) continue;
+        const left = node.x! - NODE_WIDTH / 2;
+        const right = node.x! + NODE_WIDTH / 2;
+        const top = node.y! - NODE_HEIGHT / 2;
+        const bottom = node.y! + NODE_HEIGHT / 2;
+        if (x >= left && x <= right && y >= top && y <= bottom) {
           return node;
         }
       }
@@ -211,7 +219,6 @@ export default function FamilyTreeCanvas({
     [nodes, selectedId, screenToWorld]
   );
 
-  // --- DRAWING ---
   const drawTree = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !wrapperRef.current) return;
@@ -221,7 +228,6 @@ export default function FamilyTreeCanvas({
     const { clientWidth, clientHeight } = wrapperRef.current;
     const dpr = window.devicePixelRatio || 1;
 
-    // Resize canvas to full wrapper size
     if (
       canvas.width !== clientWidth * dpr ||
       canvas.height !== clientHeight * dpr
@@ -232,18 +238,16 @@ export default function FamilyTreeCanvas({
       canvas.style.height = `${clientHeight}px`;
     }
 
-    // Reset transform & clear
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, clientWidth, clientHeight);
 
-    // Apply Zoom/Pan Transform
     ctx.save();
     ctx.translate(transform.x, transform.y);
     ctx.scale(transform.k, transform.k);
 
-    // 1. Draw Edges
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
+
     edges.forEach((edge) => {
       const drawPath = (offsetX = 0, offsetY = 0) => {
         if (edge.path.length === 0) return;
@@ -264,8 +268,7 @@ export default function FamilyTreeCanvas({
         const mostlyHorizontal =
           start && end ? Math.abs(end.x - start.x) >= Math.abs(end.y - start.y) : true;
         const offset = 2.2;
-
-        ctx.strokeStyle = "#eab308";
+        ctx.strokeStyle = SPOUSE_LINE_COLOR;
         ctx.lineWidth = 1.8;
 
         if (mostlyHorizontal) {
@@ -278,156 +281,58 @@ export default function FamilyTreeCanvas({
         return;
       }
 
-      ctx.strokeStyle = edge.type === "spouse" ? "#b08e51" : LINE_COLOR;
-      ctx.lineWidth = edge.type === "spouse" ? 2 : LINE_WIDTH;
+      ctx.strokeStyle = edge.type === "spouse" ? LINE_COLOR : CHILD_LINE_COLOR;
+      ctx.lineWidth = edge.type === "spouse" ? 1.5 : 1.3;
       drawPath();
     });
 
-    // Determine Owner Node for Generation Color Calculation
-    const owner = nodes.find((n) => n.line === "self") || nodes[0];
-    const ownerGen = owner?.generation ?? 0;
-    const BASE_GEN = 1;
-
-    // 2. Draw Nodes
     for (const node of nodes) {
       if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) continue;
       const x = node.x!;
       const y = node.y!;
       const isSelected = node.id === selectedId;
       const isHovered = node.id === hoveredId;
+      const palette = getNodePalette(node, minGeneration);
+      const left = x - NODE_WIDTH / 2;
+      const top = y - NODE_HEIGHT / 2;
 
-      // Color info
-      const lineKey = (node.line as keyof typeof COLORS) || "default";
-      const colorSet = COLORS[lineKey] || COLORS.default;
-      const displayGen = (node.generation ?? 0) - ownerGen + BASE_GEN;
-      const genColor = GEN_COLORS[displayGen]?.border || "#be123c";
-
-      // --- Node Shadow ---
       ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,0.15)";
-      ctx.shadowBlur = 12;
-      ctx.shadowOffsetY = 6;
-      ctx.beginPath();
-      ctx.arc(x, y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
-      ctx.fillStyle = "white";
+      ctx.shadowColor = "rgba(0,0,0,0.16)";
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 5;
+      drawRoundedRect(ctx, left, top, NODE_WIDTH, NODE_HEIGHT, NODE_RADIUS);
+      ctx.fillStyle = palette.fill;
       ctx.fill();
       ctx.restore();
 
-      // --- Node Image / Initials ---
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(x, y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
-      ctx.clip();
-
-      const img = imageCache.get(node.id);
-      if (img && img.complete && img.naturalWidth > 0) {
-        // Cover-fit image
-        const scale = Math.max(
-          NODE_CIRCLE_SIZE / img.width,
-          NODE_CIRCLE_SIZE / img.height
-        );
-        const cw = img.width * scale;
-        const ch = img.height * scale;
-        ctx.drawImage(img, x - cw / 2, y - ch / 2, cw, ch);
-      } else {
-        // Fallback Initials
-        ctx.fillStyle = "#f9f6f1"; // bg-warm-50
-        ctx.fillRect(
-          x - NODE_CIRCLE_SIZE / 2,
-          y - NODE_CIRCLE_SIZE / 2,
-          NODE_CIRCLE_SIZE,
-          NODE_CIRCLE_SIZE
-        );
-        ctx.fillStyle = "#5b5346"; // text-warmMuted
-        ctx.font = `bold ${NODE_CIRCLE_SIZE * 0.4}px Inter, sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(node.label.charAt(0).toUpperCase(), x, y);
-      }
-      ctx.restore();
-
-      // --- Node Border ---
-      ctx.beginPath();
-      ctx.arc(x, y, NODE_CIRCLE_SIZE / 2, 0, Math.PI * 2);
-      // Highlights: Selected/Hovered gets Gold, else Generation Color
+      drawRoundedRect(ctx, left, top, NODE_WIDTH, NODE_HEIGHT, NODE_RADIUS);
       if (isSelected || isHovered) {
         ctx.strokeStyle = "#b08e51";
-        ctx.lineWidth = 4;
-      } else {
-        ctx.strokeStyle = genColor;
         ctx.lineWidth = 3;
+      } else {
+        ctx.strokeStyle = palette.border;
+        ctx.lineWidth = 2;
       }
       ctx.stroke();
 
-      // --- Badges (Story / Works) ---
-      // Story Icon (Top Right)
-      if (node.content?.description) {
-        const iconX = x + NODE_CIRCLE_SIZE / 2 * 0.7; // 45 deg approx
-        const iconY = y - NODE_CIRCLE_SIZE / 2 * 0.7;
-        ctx.beginPath();
-        ctx.arc(iconX, iconY, 12, 0, Math.PI * 2);
-        ctx.fillStyle = colorSet.base;
-        ctx.fill();
-        ctx.fillStyle = "white";
-        ctx.font = "12px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("📖", iconX, iconY + 1);
-      }
-      // Works Icon (Bottom Left) - moved slightly to avoid text overlap
-      if (node.works && node.works.length > 0) {
-        const iconX = x - NODE_CIRCLE_SIZE / 2 * 0.7;
-        const iconY = y - NODE_CIRCLE_SIZE / 2 * 0.7;
-        ctx.beginPath();
-        ctx.arc(iconX, iconY, 12, 0, Math.PI * 2);
-        ctx.fillStyle = "#b08e51"; // Gold
-        ctx.fill();
-
-        const firstWorkType = node.works[0].type || "other";
-        const workIcon = WORK_ICONS[firstWorkType] || WORK_ICONS.other;
-        ctx.fillStyle = "white";
-        ctx.font = "12px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(workIcon, iconX, iconY + 1);
-      }
-
-
-      // --- Text Labels (Under Node) ---
+      ctx.fillStyle = palette.text;
       ctx.textAlign = "center";
-      ctx.textBaseline = "top";
+      ctx.textBaseline = "middle";
+      ctx.font = "600 20px Inter, sans-serif";
+      const name = fitText(ctx, node.label, NODE_WIDTH - 20);
+      ctx.fillText(name, x, y - 2);
 
-      // Name
-      ctx.fillStyle = "#1d1a14";
-      ctx.font = `600 ${13 / transform.k}px Inter, sans-serif`; // Scale text slightly to readable constant size? No, keep it scaling naturally but maybe limit min size
-      // Actually standard scaling is better for zoom.
-      ctx.font = "600 13px Inter, sans-serif";
-      const textY = y + NODE_CIRCLE_SIZE / 2 + 10;
-      // Truncate overly long names? Or multiline?
-      // simple shadow for text readability against lines
-      ctx.save();
-      ctx.shadowColor = "rgba(255,255,255,0.8)";
-      ctx.shadowBlur = 4;
-      ctx.fillText(node.label, x, textY);
-      ctx.restore();
-
-      // Year
       if (node.year) {
         const yearText = node.deathYear
           ? `${node.year} - ${node.deathYear}`
           : `${node.year}`;
-        ctx.fillStyle = "#5b5346";
         ctx.font = "400 11px Inter, sans-serif";
-        ctx.fillText(yearText, x, textY + 18);
+        ctx.fillText(yearText, x, y + 15);
       }
 
-      // --- Quick Add Buttons (Only if selected) ---
       if (isSelected) {
         const buttons = getQuickAddButtons(node);
-        // Draw connecting lines to buttons? Optional.
-
         for (const btn of buttons) {
-          // Button cleanup
           ctx.beginPath();
           ctx.arc(btn.x, btn.y + 2, BUTTON_SIZE / 2, 0, Math.PI * 2);
           ctx.fillStyle = "rgba(0,0,0,0.2)";
@@ -435,7 +340,7 @@ export default function FamilyTreeCanvas({
 
           ctx.beginPath();
           ctx.arc(btn.x, btn.y, BUTTON_SIZE / 2, 0, Math.PI * 2);
-          ctx.fillStyle = "#82693c"; // Gold-700
+          ctx.fillStyle = "#82693c";
           ctx.fill();
           ctx.strokeStyle = "white";
           ctx.lineWidth = 1.5;
@@ -451,27 +356,22 @@ export default function FamilyTreeCanvas({
     }
 
     ctx.restore();
-  }, [nodes, edges, width, height, selectedId, hoveredId, transform, imagesLoaded]);
+  }, [nodes, edges, selectedId, hoveredId, transform, minGeneration]);
 
-  // Redraw on change
   useEffect(() => {
     drawTree();
-    // Also re-draw on window resize
     const handleResize = () => requestAnimationFrame(drawTree);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [drawTree]);
-
-
-  // --- INTERACTION HANDLERS ---
 
   const handleWheel = (e: React.WheelEvent) => {
     if (!wrapperRef.current) return;
     const rect = wrapperRef.current.getBoundingClientRect();
     const isZoomGesture = e.ctrlKey || e.metaKey;
-    const deltaMultiplier = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? rect.height : 1;
+    const deltaMultiplier =
+      e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? rect.height : 1;
 
-    // Trackpad/mouse wheel should pan by default; zoom only with pinch or Ctrl/Cmd+wheel.
     if (!isZoomGesture) {
       e.preventDefault();
       setTransform((prev) => ({
@@ -500,11 +400,9 @@ export default function FamilyTreeCanvas({
     });
   };
 
-
-  // Revised Mouse Handler for separation of Click vs Drag
   const dragDistanceRef = useRef(0);
 
-  const handleMouseDownRevised = (e: React.MouseEvent) => {
+  const handleMouseDown = (e: React.MouseEvent) => {
     const btnHit = findButtonAt(e.clientX, e.clientY);
     if (btnHit) {
       onAddNode(btnHit.nodeId, btnHit.type);
@@ -515,7 +413,7 @@ export default function FamilyTreeCanvas({
     dragDistanceRef.current = 0;
   };
 
-  const handleMouseMoveRevised = (e: React.MouseEvent) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (isDragging) {
       const dx = e.clientX - dragStart.x;
       const dy = e.clientY - dragStart.y;
@@ -527,26 +425,22 @@ export default function FamilyTreeCanvas({
         y: prev.y + dy,
       }));
       setDragStart({ x: e.clientX, y: e.clientY });
+      if (canvasRef.current) canvasRef.current.style.cursor = "grabbing";
+      return;
+    }
 
-      if (canvasRef.current) canvasRef.current.style.cursor = 'grabbing';
-    } else {
-      // Hover
-      const node = findNodeAt(e.clientX, e.clientY);
-      setHoveredId(node?.id || null);
-
-      // Buttons
-      const btnHit = findButtonAt(e.clientX, e.clientY);
-      if (canvasRef.current) {
-        canvasRef.current.style.cursor = (node || btnHit) ? 'pointer' : 'grab';
-      }
+    const node = findNodeAt(e.clientX, e.clientY);
+    setHoveredId(node?.id || null);
+    const btnHit = findButtonAt(e.clientX, e.clientY);
+    if (canvasRef.current) {
+      canvasRef.current.style.cursor = node || btnHit ? "pointer" : "grab";
     }
   };
 
-  const handleMouseUpRevised = (e: React.MouseEvent) => {
+  const handleMouseUp = (e: React.MouseEvent) => {
     setIsDragging(false);
-    if (canvasRef.current) canvasRef.current.style.cursor = 'grab';
+    if (canvasRef.current) canvasRef.current.style.cursor = "grab";
 
-    // If drag was small, treat as click
     if (dragDistanceRef.current < 5) {
       const node = findNodeAt(e.clientX, e.clientY);
       onSelectNode(node ? node.id : null);
@@ -561,42 +455,40 @@ export default function FamilyTreeCanvas({
   return (
     <div
       ref={wrapperRef}
-      className="w-full h-full relative overflow-hidden bg-[#f9f6f1] select-none"
+      className="relative h-full w-full select-none overflow-hidden bg-[#e8e5e0]"
       onWheel={handleWheel}
-      onMouseDown={handleMouseDownRevised}
-      onMouseMove={handleMouseMoveRevised}
-      onMouseUp={handleMouseUpRevised}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
     >
       <canvas ref={canvasRef} className="block" />
 
-      {/* Zoom Controls Overlay (Optional but good UX) */}
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2 p-2 bg-white/90 backdrop-blur rounded-lg shadow-md border border-warm-200">
+      <div className="absolute bottom-4 right-4 flex flex-col gap-2 rounded-lg border border-warm-200 bg-white/90 p-2 shadow-md backdrop-blur">
         <button
-          className="w-8 h-8 flex items-center justify-center rounded hover:bg-warm-100 text-warmMuted font-bold"
-          onClick={() => setTransform(t => ({ ...t, k: Math.min(t.k * 1.2, 5) }))}
+          className="flex h-8 w-8 items-center justify-center rounded font-bold text-warmMuted hover:bg-warm-100"
+          onClick={() => setTransform((t) => ({ ...t, k: Math.min(t.k * 1.2, 5) }))}
           title={copy.zoomIn}
           aria-label={copy.zoomIn}
         >
           +
         </button>
         <button
-          className="w-8 h-8 flex items-center justify-center rounded hover:bg-warm-100 text-warmMuted font-bold"
-          onClick={() => setTransform(t => ({ ...t, k: Math.max(t.k / 1.2, 0.1) }))}
+          className="flex h-8 w-8 items-center justify-center rounded font-bold text-warmMuted hover:bg-warm-100"
+          onClick={() => setTransform((t) => ({ ...t, k: Math.max(t.k / 1.2, 0.1) }))}
           title={copy.zoomOut}
           aria-label={copy.zoomOut}
         >
           -
         </button>
         <button
-          className="w-8 h-8 flex items-center justify-center rounded hover:bg-warm-100 text-warmMuted font-bold text-xs"
+          className="flex h-8 w-8 items-center justify-center rounded text-xs font-bold text-warmMuted hover:bg-warm-100"
           onClick={() => {
-            // Reset to center
             if (wrapperRef.current) {
               const { clientWidth } = wrapperRef.current;
               const initialScale = 0.8;
               const initialX = (clientWidth - width * initialScale) / 2;
-              const initialY = 100;
+              const initialY = 80;
               setTransform({ x: initialX, y: initialY, k: initialScale });
             }
           }}
