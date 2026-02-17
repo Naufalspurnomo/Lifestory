@@ -22,17 +22,26 @@ function hostMatches(host: string, allowedHost: string): boolean {
   return host === allowedHost || host.endsWith(`.${allowedHost}`);
 }
 
+function normalizeHost(value?: string | null): string {
+  if (!value) return "";
+  return value.split(",")[0].trim().split(":")[0].toLowerCase();
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
     const origin = req.headers.get("origin");
     const host = req.headers.get("host");
+    const forwardedHost = req.headers.get("x-forwarded-host");
+    const requestHost = normalizeHost(forwardedHost || host);
 
     if (origin && process.env.NODE_ENV === "production") {
       let normalizedOrigin = "";
+      let originHost = "";
       try {
         normalizedOrigin = new URL(origin).origin;
+        originHost = normalizeHost(new URL(origin).host);
       } catch {
         return NextResponse.json(
           { error: "Forbidden - Invalid origin header" },
@@ -45,7 +54,9 @@ export async function middleware(req: NextRequest) {
         ...parseCsvEnv(process.env.ALLOWED_ORIGINS),
       ];
 
-      const isSameOrigin = normalizedOrigin === req.nextUrl.origin;
+      const isSameOrigin =
+        normalizedOrigin === req.nextUrl.origin ||
+        (Boolean(originHost) && Boolean(requestHost) && originHost === requestHost);
       const isAllowedOrigin =
         isSameOrigin ||
         normalizedOrigin.includes("localhost") ||
@@ -62,7 +73,7 @@ export async function middleware(req: NextRequest) {
     if (host && process.env.NODE_ENV === "production") {
       const configuredHosts = parseCsvEnv(process.env.ALLOWED_HOSTS);
       if (configuredHosts.length > 0) {
-        const hostWithoutPort = host.split(":")[0];
+        const hostWithoutPort = normalizeHost(host);
         const isValidHost = configuredHosts.some((allowedHost) =>
           hostMatches(hostWithoutPort, allowedHost)
         );

@@ -7,6 +7,30 @@ import { applyRateLimit, rateLimitConfigs } from "../../../lib/rate-limit";
 const INVITE_EXPIRY_DAYS = 7;
 const MAX_TREE_PAYLOAD_BYTES = 350_000;
 
+function resolveRequestOrigin(request: Request): string {
+  const forwardedProto = request.headers
+    .get("x-forwarded-proto")
+    ?.split(",")[0]
+    ?.trim();
+  const forwardedHost = request.headers
+    .get("x-forwarded-host")
+    ?.split(",")[0]
+    ?.trim();
+  const host = request.headers.get("host")?.split(",")[0]?.trim();
+  const protocol = forwardedProto || "https";
+  const candidateHost = forwardedHost || host;
+
+  if (candidateHost) {
+    return `${protocol}://${candidateHost}`;
+  }
+
+  try {
+    return new URL(request.url).origin;
+  } catch {
+    return process.env.NEXTAUTH_URL || "";
+  }
+}
+
 export async function POST(request: Request) {
   const rateLimitError = applyRateLimit(
     request,
@@ -77,8 +101,8 @@ export async function POST(request: Request) {
       expiresAt: expiresAt.toISOString(),
     });
 
-    const origin = new URL(request.url).origin;
-    const inviteLink = `${origin}/invite/${token}`;
+    const origin = resolveRequestOrigin(request);
+    const inviteLink = origin ? `${origin}/invite/${token}` : `/invite/${token}`;
 
     return NextResponse.json({
       token,
