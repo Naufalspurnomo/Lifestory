@@ -434,9 +434,33 @@ function positionUnions(unions: Map<string, UnionNode>, runtime: Map<string, Run
   }
 }
 
+function buildUnionLaneMap(unions: Map<string, UnionNode>): Map<string, number> {
+  const unionsPerGeneration = new Map<number, UnionNode[]>();
+
+  for (const union of unions.values()) {
+    if (!union.childIds.length) continue;
+    if (!unionsPerGeneration.has(union.generation)) {
+      unionsPerGeneration.set(union.generation, []);
+    }
+    unionsPerGeneration.get(union.generation)!.push(union);
+  }
+
+  const laneByUnionId = new Map<string, number>();
+
+  for (const generationUnions of unionsPerGeneration.values()) {
+    generationUnions
+      .sort((a, b) => a.x - b.x)
+      .forEach((union, lane) => laneByUnionId.set(union.id, lane));
+  }
+
+  return laneByUnionId;
+}
+
 function buildEdges(runtime: Map<string, RuntimeNode>, unions: Map<string, UnionNode>): LayoutEdge[] {
   const edges: LayoutEdge[] = [];
   const spouseEdgeSeen = new Set<string>();
+  const laneByUnionId = buildUnionLaneMap(unions);
+  const laneStep = 14;
 
   for (const union of unions.values()) {
     if (union.partnerIds.length < 2) continue;
@@ -472,9 +496,11 @@ function buildEdges(runtime: Map<string, RuntimeNode>, unions: Map<string, Union
       .sort((a, b) => a.x - b.x);
     if (!children.length) continue;
 
+    const lane = laneByUnionId.get(union.id) ?? 0;
     const minChildTop = Math.min(...children.map((child) => child.y - NODE_DIAMETER / 2));
-    const midY = Math.min(startY + 36, minChildTop - 18);
-    const busY = Math.max(startY + 24, midY);
+    const preferredBusY = startY + 26 + lane * laneStep;
+    const maxBusY = minChildTop - 18;
+    const busY = Math.max(startY + 14, Math.min(preferredBusY, maxBusY));
 
     for (const child of children) {
       const childTop = child.y - NODE_DIAMETER / 2;
