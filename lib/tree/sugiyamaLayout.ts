@@ -501,17 +501,43 @@ function buildEdges(runtime: Map<string, RuntimeNode>, unions: Map<string, Union
     const preferredBusY = startY + 26 + lane * laneStep;
     const maxBusY = minChildTop - 18;
     const busY = Math.max(startY + 14, Math.min(preferredBusY, maxBusY));
+    const childXs = children.map((child) => child.x);
+    const busMinX = Math.min(startX, ...childXs);
+    const busMaxX = Math.max(startX, ...childXs);
+
+    // Draw shared trunk and bus once per union so connectors don't look tangled.
+    edges.push({
+      id: `edge-parent-trunk-${union.id}`,
+      source: union.id,
+      target: union.id,
+      type: "union-child",
+      path: [
+        { x: startX, y: startY },
+        { x: startX, y: busY },
+      ],
+    });
+
+    if (busMaxX > busMinX) {
+      edges.push({
+        id: `edge-parent-bus-${union.id}`,
+        source: union.id,
+        target: union.id,
+        type: "union-child",
+        path: [
+          { x: busMinX, y: busY },
+          { x: busMaxX, y: busY },
+        ],
+      });
+    }
 
     for (const child of children) {
       const childTop = child.y - NODE_DIAMETER / 2;
       edges.push({
-        id: `edge-parent-${union.id}-${child.id}`,
+        id: `edge-parent-drop-${union.id}-${child.id}`,
         source: union.id,
         target: child.id,
         type: "union-child",
         path: [
-          { x: startX, y: startY },
-          { x: startX, y: busY },
           { x: child.x, y: busY },
           { x: child.x, y: childTop },
         ],
