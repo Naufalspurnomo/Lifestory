@@ -25,6 +25,19 @@ function routeLabel(next: string, locale: Locale) {
   return next;
 }
 
+function normalizeNextPath(rawNext: string | null): string {
+  const fallback = "/app";
+  if (!rawNext) return fallback;
+
+  const value = rawNext.trim();
+  if (!value.startsWith("/")) return fallback;
+  if (value.startsWith("//")) return fallback;
+  if (value.startsWith("/auth")) return fallback;
+  if (value.startsWith("/api")) return fallback;
+
+  return value;
+}
+
 function LoadingState() {
   const { locale } = useLanguage();
   return (
@@ -59,7 +72,7 @@ function LoginPageContent() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/app";
+  const next = normalizeNextPath(searchParams.get("next"));
 
   const copy =
     locale === "id"
@@ -114,7 +127,11 @@ function LoginPageContent() {
 
   useEffect(() => {
     if (sessionStatus === "authenticated") {
-      router.push(next);
+      router.replace(next);
+      const fallbackTimer = window.setTimeout(() => {
+        window.location.href = next;
+      }, 1200);
+      return () => window.clearTimeout(fallbackTimer);
     }
   }, [sessionStatus, router, next]);
 
@@ -139,7 +156,7 @@ function LoginPageContent() {
       return;
     }
 
-    router.push(next);
+    router.replace(next);
     router.refresh();
   }
 
