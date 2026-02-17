@@ -33,6 +33,9 @@ const GEN_COLORS: Record<number, { border: string; label: string }> = {
 };
 
 const NODE_CIRCLE_SIZE = 70;
+const LABEL_MAX_WIDTH = 130;
+const LABEL_MAX_LINES = 2;
+const LABEL_LINE_HEIGHT = 15;
 
 const LINE_COLOR = "#e6dbc7"; // warmBorder
 const LINE_WIDTH = 1.5;
@@ -288,6 +291,46 @@ export default function FamilyTreeCanvas({
     const ownerGen = owner?.generation ?? 0;
     const BASE_GEN = 1;
 
+    const truncateToWidth = (text: string, maxWidth: number) => {
+      const trimmed = text.trim();
+      if (!trimmed) return "";
+      if (ctx.measureText(trimmed).width <= maxWidth) return trimmed;
+
+      let result = trimmed;
+      while (result.length > 1 && ctx.measureText(`${result}…`).width > maxWidth) {
+        result = result.slice(0, -1);
+      }
+      return `${result}…`;
+    };
+
+    const wrapLabel = (text: string) => {
+      const words = text.trim().split(/\s+/).filter(Boolean);
+      if (!words.length) return [""];
+
+      const lines: string[] = [];
+      let current = words[0];
+
+      for (let i = 1; i < words.length; i++) {
+        const candidate = `${current} ${words[i]}`;
+        if (ctx.measureText(candidate).width <= LABEL_MAX_WIDTH) {
+          current = candidate;
+          continue;
+        }
+
+        lines.push(truncateToWidth(current, LABEL_MAX_WIDTH));
+        current = words[i];
+
+        if (lines.length === LABEL_MAX_LINES - 1) {
+          const remaining = [current, ...words.slice(i + 1)].join(" ");
+          lines.push(truncateToWidth(remaining, LABEL_MAX_WIDTH));
+          return lines;
+        }
+      }
+
+      lines.push(truncateToWidth(current, LABEL_MAX_WIDTH));
+      return lines.slice(0, LABEL_MAX_LINES);
+    };
+
     // 2. Draw Nodes
     for (const node of nodes) {
       if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) continue;
@@ -399,16 +442,17 @@ export default function FamilyTreeCanvas({
 
       // Name
       ctx.fillStyle = "#1d1a14";
-      ctx.font = `600 ${13 / transform.k}px Inter, sans-serif`; // Scale text slightly to readable constant size? No, keep it scaling naturally but maybe limit min size
-      // Actually standard scaling is better for zoom.
       ctx.font = "600 13px Inter, sans-serif";
       const textY = y + NODE_CIRCLE_SIZE / 2 + 10;
+      const labelLines = wrapLabel(node.label);
       // Truncate overly long names? Or multiline?
       // simple shadow for text readability against lines
       ctx.save();
       ctx.shadowColor = "rgba(255,255,255,0.8)";
       ctx.shadowBlur = 4;
-      ctx.fillText(node.label, x, textY);
+      labelLines.forEach((line, index) => {
+        ctx.fillText(line, x, textY + index * LABEL_LINE_HEIGHT);
+      });
       ctx.restore();
 
       // Year
@@ -418,7 +462,8 @@ export default function FamilyTreeCanvas({
           : `${node.year}`;
         ctx.fillStyle = "#5b5346";
         ctx.font = "400 11px Inter, sans-serif";
-        ctx.fillText(yearText, x, textY + 18);
+        const yearY = textY + labelLines.length * LABEL_LINE_HEIGHT + 2;
+        ctx.fillText(yearText, x, yearY);
       }
 
       // --- Quick Add Buttons (Only if selected) ---

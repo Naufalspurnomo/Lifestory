@@ -2,7 +2,7 @@ import { FamilyNode, LayoutEdge, LayoutGraph } from "../types/tree";
 
 const NODE_DIAMETER = 70;
 const NODE_SPACING_X = 126;
-const PARTNER_SPACING_X = 92;
+const PARTNER_SPACING_X = 116;
 const ROW_GAP = 150;
 const GROUP_GAP = 72;
 const PADDING_X = 120;
