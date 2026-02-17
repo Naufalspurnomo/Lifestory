@@ -35,18 +35,19 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
     locale === "id"
       ? {
           title: "Import dari Excel",
-          subtitleUpload: "Upload file Excel dengan data anggota keluarga",
+          subtitleUpload: "Upload file Excel/CSV dengan data anggota keluarga",
           subtitlePreview: "Preview data yang akan diimport",
           subtitleImporting: "Mengimpor data...",
           downloadTemplate: "Download Template Excel",
-          invalidFileType: "File harus berformat Excel (.xlsx atau .xls)",
+          invalidFileType:
+            "File harus berformat Excel/CSV (.xlsx, .xls, atau .csv)",
           emptyExcel: "File Excel kosong atau tidak ada data valid",
           readExcelFailed: "Gagal membaca file Excel",
           convertFailed: "Gagal mengonversi data",
           dropHere: "Lepaskan file di sini",
-          dragDrop: "Drag & drop file Excel",
+          dragDrop: "Drag & drop file Excel/CSV",
           clickToSelect: "atau klik untuk memilih file",
-          format: "Format: .xlsx, .xls",
+          format: "Format: .xlsx, .xls, .csv",
           guideTitle: "Petunjuk:",
           guideItems: [
             "Download template Excel terlebih dahulu",
@@ -79,18 +80,19 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
         }
       : {
           title: "Import from Excel",
-          subtitleUpload: "Upload an Excel file with family member data",
+          subtitleUpload: "Upload an Excel/CSV file with family member data",
           subtitlePreview: "Preview data to be imported",
           subtitleImporting: "Importing data...",
           downloadTemplate: "Download Excel Template",
-          invalidFileType: "File must be an Excel format (.xlsx or .xls)",
+          invalidFileType:
+            "File must be an Excel/CSV format (.xlsx, .xls, or .csv)",
           emptyExcel: "Excel file is empty or contains no valid data",
           readExcelFailed: "Failed to read Excel file",
           convertFailed: "Failed to convert data",
           dropHere: "Drop file here",
-          dragDrop: "Drag & drop Excel file",
+          dragDrop: "Drag & drop Excel/CSV file",
           clickToSelect: "or click to choose a file",
-          format: "Format: .xlsx, .xls",
+          format: "Format: .xlsx, .xls, .csv",
           guideTitle: "Instructions:",
           guideItems: [
             "Download the Excel template first",
@@ -151,14 +153,19 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
   };
 
   const handleFileChange = async (selectedFile: File) => {
+    const lowerName = selectedFile.name.toLowerCase();
     const validTypes = [
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "application/vnd.ms-excel",
+      "text/csv",
+      "application/csv",
+      "text/plain",
     ];
     const isValidType =
       validTypes.includes(selectedFile.type) ||
-      selectedFile.name.endsWith(".xlsx") ||
-      selectedFile.name.endsWith(".xls");
+      lowerName.endsWith(".xlsx") ||
+      lowerName.endsWith(".xls") ||
+      lowerName.endsWith(".csv");
 
     if (!isValidType) {
       setError(copy.invalidFileType);
@@ -254,7 +261,7 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".xlsx,.xls"
+                  accept=".xlsx,.xls,.csv,text/csv"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) handleFileChange(f);
