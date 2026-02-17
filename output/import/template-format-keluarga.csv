@@ -1,0 +1,8 @@
+﻿id,nama,jenis_kelamin,tahun_lahir,tahun_wafat,generasi,parent_id,parent_ids,ayah_id,ibu_id,pasangan_ids,pasangan,garis,deskripsi,foto_url
+member_001,Kakek,M,1940,,1,,,,,member_002,member_001 ==== member_002,self,Generasi tertua,
+member_002,Nenek,F,1942,,1,,,,,member_001,member_001 ==== member_002,self,Generasi tertua,
+member_003,Ayah,M,1968,,2,member_001,"member_001, member_002",member_001,member_002,member_004,member_003 ==== member_004,paternal,Anak dari kakek nenek,
+member_004,Ibu,F,1971,,2,,,,,member_003,member_003 ==== member_004,maternal,Pasangan ayah,
+member_005,Saya,M,1995,,3,member_003,"member_003, member_004",member_003,member_004,member_006,member_005 ==== member_006,self,Owner,
+member_006,Pasangan Saya,F,1997,,3,,,,,member_005,member_005 ==== member_006,union,Pasangan owner,
+member_007,Anak 1,F,2020,,4,member_005,"member_005, member_006",member_005,member_006,,,descendant,Anak generasi berikutnya,

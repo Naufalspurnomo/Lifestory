@@ -245,18 +245,42 @@ export default function FamilyTreeCanvas({
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
     edges.forEach((edge) => {
-      ctx.beginPath();
-      // "spouse" edges get a special gold color, others standard
-      ctx.strokeStyle = edge.type === "spouse" ? "#b08e51" : LINE_COLOR;
-      ctx.lineWidth = (edge.type === "spouse" ? 2 : LINE_WIDTH); // visual thickness scales with zoom naturally
-
-      if (edge.path.length > 0) {
-        ctx.moveTo(edge.path[0].x, edge.path[0].y);
+      const drawPath = (offsetX = 0, offsetY = 0) => {
+        if (edge.path.length === 0) return;
+        ctx.beginPath();
+        ctx.moveTo(edge.path[0].x + offsetX, edge.path[0].y + offsetY);
         for (let i = 1; i < edge.path.length; i++) {
-          ctx.lineTo(edge.path[i].x, edge.path[i].y);
+          ctx.lineTo(edge.path[i].x + offsetX, edge.path[i].y + offsetY);
         }
+        ctx.stroke();
+      };
+
+      const isPrimarySpouseEdge =
+        edge.type === "spouse" && edge.id.startsWith("edge-spouse-");
+
+      if (isPrimarySpouseEdge) {
+        const start = edge.path[0];
+        const end = edge.path[edge.path.length - 1];
+        const mostlyHorizontal =
+          start && end ? Math.abs(end.x - start.x) >= Math.abs(end.y - start.y) : true;
+        const offset = 2.2;
+
+        ctx.strokeStyle = "#eab308";
+        ctx.lineWidth = 1.8;
+
+        if (mostlyHorizontal) {
+          drawPath(0, -offset);
+          drawPath(0, offset);
+        } else {
+          drawPath(-offset, 0);
+          drawPath(offset, 0);
+        }
+        return;
       }
-      ctx.stroke();
+
+      ctx.strokeStyle = edge.type === "spouse" ? "#b08e51" : LINE_COLOR;
+      ctx.lineWidth = edge.type === "spouse" ? 2 : LINE_WIDTH;
+      drawPath();
     });
 
     // Determine Owner Node for Generation Color Calculation

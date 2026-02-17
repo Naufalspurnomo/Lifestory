@@ -17,6 +17,8 @@ const COPY = {
     duplicateId: (id: string) => `ID "${id}" duplikat`,
     parentNotFound: (id: string) =>
       `Parent ID "${id}" tidak ditemukan dalam data`,
+    partnerNotFound: (id: string) =>
+      `Pasangan "${id}" tidak ditemukan dalam data`,
     deathBeforeBirth: "Tahun wafat tidak boleh lebih kecil dari tahun lahir",
     invalidLine: (line: string) =>
       `Garis "${line}" tidak valid, akan digunakan default`,
@@ -39,6 +41,11 @@ const COPY = {
         Keterangan: "Tahun wafat (kosongkan jika masih hidup)",
       },
       {
+        Kolom: "generasi",
+        Keterangan:
+          "Urutan generasi dari atas ke bawah (opsional, contoh: 1 = generasi tertua di data)",
+      },
+      {
         Kolom: "parent_id",
         Keterangan: "ID orang tua (referensi ke kolom id)",
       },
@@ -59,6 +66,11 @@ const COPY = {
         Keterangan: "ID pasangan, pisahkan dengan koma jika lebih dari satu",
       },
       {
+        Kolom: "pasangan",
+        Keterangan:
+          "Format relasi pasangan bebas, contoh: member_001 ==== member_002 atau Budi ==== Siti",
+      },
+      {
         Kolom: "garis",
         Keterangan:
           "Garis keturunan: paternal, maternal, self, descendant, union",
@@ -73,11 +85,13 @@ const COPY = {
         jenis_kelamin: "M",
         tahun_lahir: 1950,
         tahun_wafat: "",
+        generasi: 1,
         parent_id: "",
         parent_ids: "",
         ayah_id: "",
         ibu_id: "",
         pasangan_ids: "member_002",
+        pasangan: "member_001 ==== member_002",
         garis: "self",
         deskripsi: "Kepala keluarga",
         foto_url: "",
@@ -88,11 +102,13 @@ const COPY = {
         jenis_kelamin: "F",
         tahun_lahir: 1955,
         tahun_wafat: "",
+        generasi: 1,
         parent_id: "",
         parent_ids: "",
         ayah_id: "",
         ibu_id: "",
         pasangan_ids: "member_001",
+        pasangan: "member_001 ==== member_002",
         garis: "self",
         deskripsi: "Istri",
         foto_url: "",
@@ -103,6 +119,7 @@ const COPY = {
         jenis_kelamin: "M",
         tahun_lahir: 1980,
         tahun_wafat: "",
+        generasi: 2,
         parent_id: "member_001",
         parent_ids: "member_001, member_002",
         ayah_id: "member_001",
@@ -121,6 +138,8 @@ const COPY = {
     requiredName: "Name is required",
     duplicateId: (id: string) => `Duplicate ID "${id}"`,
     parentNotFound: (id: string) => `Parent ID "${id}" was not found in data`,
+    partnerNotFound: (id: string) =>
+      `Partner "${id}" was not found in data`,
     deathBeforeBirth: "Death year cannot be earlier than birth year",
     invalidLine: (line: string) =>
       `Line "${line}" is invalid, default will be used`,
@@ -141,6 +160,11 @@ const COPY = {
         Column: "tahun_wafat",
         Description: "Death year (leave empty if still alive)",
       },
+      {
+        Column: "generasi",
+        Description:
+          "Generation order from top to bottom (optional, example: 1 = oldest generation in the sheet)",
+      },
       { Column: "parent_id", Description: "Parent ID (reference to id column)" },
       {
         Column: "parent_ids",
@@ -151,6 +175,11 @@ const COPY = {
       {
         Column: "pasangan_ids",
         Description: "Partner IDs, separated by comma for multiple values",
+      },
+      {
+        Column: "pasangan",
+        Description:
+          "Flexible partner relation format, e.g. member_001 ==== member_002 or Michael ==== Sarah",
       },
       {
         Column: "garis",
@@ -167,11 +196,13 @@ const COPY = {
         jenis_kelamin: "M",
         tahun_lahir: 1950,
         tahun_wafat: "",
+        generasi: 1,
         parent_id: "",
         parent_ids: "",
         ayah_id: "",
         ibu_id: "",
         pasangan_ids: "member_002",
+        pasangan: "member_001 ==== member_002",
         garis: "self",
         deskripsi: "Head of family",
         foto_url: "",
@@ -182,11 +213,13 @@ const COPY = {
         jenis_kelamin: "F",
         tahun_lahir: 1955,
         tahun_wafat: "",
+        generasi: 1,
         parent_id: "",
         parent_ids: "",
         ayah_id: "",
         ibu_id: "",
         pasangan_ids: "member_001",
+        pasangan: "member_001 ==== member_002",
         garis: "self",
         deskripsi: "Spouse",
         foto_url: "",
@@ -197,6 +230,7 @@ const COPY = {
         jenis_kelamin: "M",
         tahun_lahir: 1980,
         tahun_wafat: "",
+        generasi: 2,
         parent_id: "member_001",
         parent_ids: "member_001, member_002",
         ayah_id: "member_001",
@@ -221,6 +255,7 @@ export interface ExcelMember {
   jenis_kelamin?: FamilyNode["sex"];
   tahun_lahir?: number;
   tahun_wafat?: number;
+  generasi?: number;
   parent_id?: string;
   parent_ids?: string;
   parent_nama?: string;
@@ -230,6 +265,7 @@ export interface ExcelMember {
   ibu_nama?: string;
   pasangan_ids?: string;
   pasangan_nama?: string;
+  pasangan?: string;
   garis?: string;
   deskripsi?: string;
   foto_url?: string;
@@ -267,6 +303,19 @@ function splitCsv(value?: string): string[] {
   );
 }
 
+function parseRelationRefs(value?: string): string[] {
+  if (!value) return [];
+  return Array.from(
+    new Set(
+      value
+        .replace(/\s*={2,}\s*/g, ",")
+        .split(/[,\n;|]/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  );
+}
+
 function sharesAnyParent(
   aId: string,
   bId: string,
@@ -298,6 +347,12 @@ function mergeCsvField(a?: string, b?: string): string | undefined {
   return Array.from(new Set(merged)).join(", ");
 }
 
+function mergeRelationField(a?: string, b?: string): string | undefined {
+  const merged = parseRelationRefs(a).concat(parseRelationRefs(b));
+  if (!merged.length) return undefined;
+  return Array.from(new Set(merged)).join(", ");
+}
+
 function mergeMember(base: ExcelMember, extra: ExcelMember): ExcelMember {
   return {
     id: base.id || extra.id,
@@ -305,6 +360,7 @@ function mergeMember(base: ExcelMember, extra: ExcelMember): ExcelMember {
     jenis_kelamin: base.jenis_kelamin || extra.jenis_kelamin,
     tahun_lahir: base.tahun_lahir ?? extra.tahun_lahir,
     tahun_wafat: base.tahun_wafat ?? extra.tahun_wafat,
+    generasi: base.generasi ?? extra.generasi,
     parent_id: base.parent_id || extra.parent_id,
     parent_ids: mergeCsvField(base.parent_ids, extra.parent_ids),
     parent_nama: mergeCsvField(base.parent_nama, extra.parent_nama),
@@ -312,8 +368,9 @@ function mergeMember(base: ExcelMember, extra: ExcelMember): ExcelMember {
     ayah_nama: base.ayah_nama || extra.ayah_nama,
     ibu_id: base.ibu_id || extra.ibu_id,
     ibu_nama: base.ibu_nama || extra.ibu_nama,
-    pasangan_ids: mergeCsvField(base.pasangan_ids, extra.pasangan_ids),
+    pasangan_ids: mergeRelationField(base.pasangan_ids, extra.pasangan_ids),
     pasangan_nama: mergeCsvField(base.pasangan_nama, extra.pasangan_nama),
+    pasangan: mergeRelationField(base.pasangan, extra.pasangan),
     garis: base.garis || extra.garis,
     deskripsi: base.deskripsi || extra.deskripsi,
     foto_url: base.foto_url || extra.foto_url,
@@ -366,27 +423,47 @@ export async function parseExcelFile(
           defval: "",
         });
 
-        const members: ExcelMember[] = jsonData.map((row) => ({
-          id: getCellString(row, ["id", "ID"]),
-          nama: getCellString(row, ["nama", "Nama", "name", "Name"]) || "",
-          jenis_kelamin: parseGender(
-            getCellString(row, ["jenis_kelamin", "gender", "sex", "Jenis_Kelamin"])
-          ),
-          tahun_lahir: parseYear(row.tahun_lahir ?? row.birth_year),
-          tahun_wafat: parseYear(row.tahun_wafat ?? row.death_year),
-          parent_id: getCellString(row, ["parent_id", "Parent_ID"]),
-          parent_ids: getCellString(row, ["parent_ids", "Parent_IDs", "parents_ids"]),
-          parent_nama: getCellString(row, ["parent_nama", "parent_names"]),
-          ayah_id: getCellString(row, ["ayah_id", "father_id"]),
-          ayah_nama: getCellString(row, ["ayah_nama", "father_name"]),
-          ibu_id: getCellString(row, ["ibu_id", "mother_id"]),
-          ibu_nama: getCellString(row, ["ibu_nama", "mother_name"]),
-          pasangan_ids: getCellString(row, ["pasangan_ids", "partner_ids", "pasangan_id"]),
-          pasangan_nama: getCellString(row, ["pasangan_nama", "partner_names"]),
-          garis: getCellString(row, ["garis", "line"]),
-          deskripsi: getCellString(row, ["deskripsi", "description"]),
-          foto_url: getCellString(row, ["foto_url", "image_url"]),
-        }));
+        const members: ExcelMember[] = jsonData.map((row) => {
+          const rawPartnerIds = getCellString(row, [
+            "pasangan_ids",
+            "partner_ids",
+            "pasangan_id",
+          ]);
+          const rawPartnerNames = getCellString(row, [
+            "pasangan_nama",
+            "partner_names",
+          ]);
+          const rawPartnerRelation = getCellString(row, [
+            "pasangan",
+            "partner",
+            "spouse",
+            "spouse_relation",
+          ]);
+
+          return {
+            id: getCellString(row, ["id", "ID"]),
+            nama: getCellString(row, ["nama", "Nama", "name", "Name"]) || "",
+            jenis_kelamin: parseGender(
+              getCellString(row, ["jenis_kelamin", "gender", "sex", "Jenis_Kelamin"])
+            ),
+            tahun_lahir: parseYear(row.tahun_lahir ?? row.birth_year),
+            tahun_wafat: parseYear(row.tahun_wafat ?? row.death_year),
+            generasi: parseYear(row.generasi ?? row.generation ?? row.gen),
+            parent_id: getCellString(row, ["parent_id", "Parent_ID"]),
+            parent_ids: getCellString(row, ["parent_ids", "Parent_IDs", "parents_ids"]),
+            parent_nama: getCellString(row, ["parent_nama", "parent_names"]),
+            ayah_id: getCellString(row, ["ayah_id", "father_id"]),
+            ayah_nama: getCellString(row, ["ayah_nama", "father_name"]),
+            ibu_id: getCellString(row, ["ibu_id", "mother_id"]),
+            ibu_nama: getCellString(row, ["ibu_nama", "mother_name"]),
+            pasangan_ids: mergeRelationField(rawPartnerIds, rawPartnerRelation),
+            pasangan_nama: mergeRelationField(rawPartnerNames, rawPartnerRelation),
+            pasangan: rawPartnerRelation,
+            garis: getCellString(row, ["garis", "line"]),
+            deskripsi: getCellString(row, ["deskripsi", "description"]),
+            foto_url: getCellString(row, ["foto_url", "image_url"]),
+          };
+        });
 
         resolve(mergeDuplicateMembers(members));
       } catch (error) {
@@ -465,6 +542,20 @@ export function validateImportData(
         warnings.push(
           `${t.row} ${rowNum}: ${t.parentNotFound(parentRef)}`
         );
+      }
+    }
+
+    const partnerRefs = uniqueIds([
+      ...parseRelationRefs(member.pasangan_ids),
+      ...parseRelationRefs(member.pasangan_nama),
+      ...parseRelationRefs(member.pasangan),
+    ]);
+    for (const partnerRef of partnerRefs) {
+      const normalizedRef = normalizeText(partnerRef);
+      const partnerExists =
+        existingIds.has(partnerRef) || existingNames.has(normalizedRef);
+      if (!partnerExists) {
+        warnings.push(`${t.row} ${rowNum}: ${t.partnerNotFound(partnerRef)}`);
       }
     }
 
@@ -556,8 +647,9 @@ export function convertToFamilyNodes(members: ExcelMember[]): FamilyNode[] {
       ...splitCsv(member.ibu_nama).map((value) => resolveReference(value)),
     ]).filter((id) => id !== nodeId);
     const partnerIds = uniqueIds([
-      ...splitCsv(member.pasangan_ids).map((value) => resolveReference(value)),
-      ...splitCsv(member.pasangan_nama).map((value) => resolveReference(value)),
+      ...parseRelationRefs(member.pasangan_ids).map((value) => resolveReference(value)),
+      ...parseRelationRefs(member.pasangan_nama).map((value) => resolveReference(value)),
+      ...parseRelationRefs(member.pasangan).map((value) => resolveReference(value)),
     ]).filter((id) => id !== nodeId);
 
     parentIdsByNode.set(nodeId, parentIds);
@@ -593,7 +685,7 @@ export function convertToFamilyNodes(members: ExcelMember[]): FamilyNode[] {
       partners: partnerIds,
       childrenIds: [],
       parentIds,
-      generation: 0,
+      generation: member.generasi ?? 0,
       line,
       imageUrl: member.foto_url || null,
       content,
@@ -669,11 +761,13 @@ export function generateExcelTemplate(locale: Locale = "id"): Blob {
     { width: 12 },
     { width: 12 },
     { width: 12 },
+    { width: 10 },
     { width: 15 },
     { width: 18 },
     { width: 15 },
     { width: 15 },
     { width: 20 },
+    { width: 28 },
     { width: 12 },
     { width: 30 },
     { width: 40 },
@@ -787,6 +881,12 @@ function namesToString(nodes: FamilyNode[]): string {
   return nodes.map((node) => node.label).join(", ");
 }
 
+function partnerRelationString(node: FamilyNode, partners: FamilyNode[]): string {
+  return partners
+    .map((partner) => `${node.label} ==== ${partner.label}`)
+    .join(" | ");
+}
+
 function publicImageUrl(imageUrl: string | null): string {
   if (!imageUrl) return "";
   return /^https?:\/\//i.test(imageUrl) ? imageUrl : "";
@@ -868,6 +968,7 @@ export function exportFamilyTreeToExcel(
       jenis_kelamin: node.sex || "X",
       tahun_lahir: node.year ?? "",
       tahun_wafat: node.deathYear ?? "",
+      generasi: node.generation ?? "",
       parent_id: primaryParentId,
       parent_ids: idsToString(parentIds),
       parent_nama: namesToString(parentNodes),
@@ -877,6 +978,7 @@ export function exportFamilyTreeToExcel(
       ibu_nama: mother?.label || "",
       pasangan_ids: idsToString(partnerIds),
       pasangan_nama: namesToString(partnerNodes),
+      pasangan: partnerRelationString(node, partnerNodes),
       garis: node.line || "default",
       deskripsi: node.content?.description || "",
       foto_url: publicImageUrl(node.imageUrl),
@@ -987,6 +1089,7 @@ export function exportFamilyTreeToExcel(
     { width: 14 },
     { width: 12 },
     { width: 12 },
+    { width: 10 },
     { width: 22 },
     { width: 28 },
     { width: 28 },
@@ -996,6 +1099,7 @@ export function exportFamilyTreeToExcel(
     { width: 24 },
     { width: 28 },
     { width: 28 },
+    { width: 34 },
     { width: 12 },
     { width: 45 },
     { width: 32 },

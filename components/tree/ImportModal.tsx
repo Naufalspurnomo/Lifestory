@@ -52,12 +52,22 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
             "Download template Excel terlebih dahulu",
             "Isi data anggota keluarga sesuai format",
             'Kolom "nama" wajib diisi',
+            'Kolom "pasangan" bisa pakai format "Nama A ==== Nama B"',
             "Data yang diimport akan mengganti semua data yang ada",
           ],
           foundMembers: (count: number) => `${count} anggota keluarga ditemukan`,
           errorTitle: "Error (tidak bisa import):",
           warningTitle: "Peringatan:",
-          columns: ["#", "Nama", "Lahir", "Wafat", "Parent ID", "Garis"],
+          columns: [
+            "#",
+            "Nama",
+            "Generasi",
+            "Lahir",
+            "Wafat",
+            "Parent ID",
+            "Pasangan",
+            "Garis",
+          ],
           empty: "Kosong",
           warningReplace:
             "Perhatian: Import akan mengganti semua data pohon keluarga yang ada saat ini.",
@@ -86,12 +96,22 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
             "Download the Excel template first",
             "Fill in family member data based on format",
             '"nama" column is required',
+            'Use "pasangan" column with format like "Name A ==== Name B"',
             "Imported data will replace all current tree data",
           ],
           foundMembers: (count: number) => `${count} family members found`,
           errorTitle: "Error (cannot import):",
           warningTitle: "Warnings:",
-          columns: ["#", "Name", "Birth", "Death", "Parent ID", "Line"],
+          columns: [
+            "#",
+            "Name",
+            "Generation",
+            "Birth",
+            "Death",
+            "Parent ID",
+            "Partner",
+            "Line",
+          ],
           empty: "Empty",
           warningReplace:
             "Attention: Import will replace all current family tree data.",
@@ -325,6 +345,9 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
                             )}
                           </td>
                           <td className="px-3 py-2 text-warmMuted">
+                            {member.generasi || "-"}
+                          </td>
+                          <td className="px-3 py-2 text-warmMuted">
                             {member.tahun_lahir || "-"}
                           </td>
                           <td className="px-3 py-2 text-warmMuted">
@@ -332,6 +355,9 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
                           </td>
                           <td className="px-3 py-2 text-warmMuted">
                             {member.parent_id || "-"}
+                          </td>
+                          <td className="px-3 py-2 text-warmMuted">
+                            {member.pasangan || member.pasangan_ids || member.pasangan_nama || "-"}
                           </td>
                           <td className="px-3 py-2 text-warmMuted">
                             {member.garis || "-"}
