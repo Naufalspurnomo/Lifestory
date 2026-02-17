@@ -13,7 +13,6 @@ import {
   calculateGeneration,
   calculateHierarchicalLayout,
 } from "../tree/layoutEngine";
-import { loadTrees, saveTrees, checkStorageQuota } from "../utils/storageUtils";
 
 const MAX_HISTORY = 50;
 
@@ -219,43 +218,122 @@ export function useTreeState(userId: string, userName: string) {
   });
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-
-  // Load from localStorage on mount + migrate
-  useEffect(() => {
-    const loaded = loadTrees();
-
-    // MIGRATION: ensure every node has parentIds + arrays normalized
-    const migrated = loaded.map((t: any) => {
-      const nodes = (t.nodes || []).map((n: any) => normalizeNode(n));
-      const sanitized = sanitizeGraph(nodes);
-      const withGen = recomputeAllGenerations(sanitized);
-      return { ...t, nodes: withGen };
-    });
-
-    setTrees(migrated);
-
-    const userTree = migrated.find((t) => t.ownerId === userId);
-    if (userTree) {
-      setCurrentTreeId(userTree.id);
-      setHistory({ past: [], present: userTree.nodes, future: [] });
-    }
-
-    setStorageInfo(checkStorageQuota());
-  }, [userId]);
-
-  // Save to localStorage whenever trees change
-  useEffect(() => {
-    if (trees.length > 0) {
-      const result = saveTrees(trees);
-      if (!result.success) setSaveError(result.error || null);
-      else setSaveError(null);
-
-      setStorageInfo(checkStorageQuota());
-    }
-  }, [trees]);
-
+  const [remoteReady, setRemoteReady] = useState(false);
   const currentTree = trees.find((t) => t.id === currentTreeId) || null;
   const userTree = trees.find((t) => t.ownerId === userId) || null;
+
+  // Load current user's tree from server on mount + user switch
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadRemoteTree() {
+      if (!userId) {
+        setTrees([]);
+        setCurrentTreeId(null);
+        setHistory({ past: [], present: [], future: [] });
+        setRemoteReady(false);
+        return;
+      }
+
+      setRemoteReady(false);
+      setSaveError(null);
+
+      try {
+        const response = await fetch("/api/tree", { method: "GET" });
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(payload?.error || "Failed to load tree");
+        }
+
+        const loadedTree = payload?.tree;
+        if (!loadedTree) {
+          if (!isCancelled) {
+            setTrees([]);
+            setCurrentTreeId(null);
+            setHistory({ past: [], present: [], future: [] });
+          }
+          return;
+        }
+
+        const normalizedNodes = (loadedTree.nodes || []).map((n: any) =>
+          normalizeNode(n)
+        );
+        const sanitized = sanitizeGraph(normalizedNodes);
+        const withGen = recomputeAllGenerations(sanitized);
+        const migratedTree: TreeData = {
+          ...loadedTree,
+          ownerId: userId,
+          nodes: withGen,
+        };
+
+        if (!isCancelled) {
+          setTrees([migratedTree]);
+          setCurrentTreeId(migratedTree.id);
+          setHistory({ past: [], present: migratedTree.nodes, future: [] });
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          console.error("Failed to load tree from server:", error);
+          setSaveError((error as Error).message || "Failed to load tree");
+          setTrees([]);
+          setCurrentTreeId(null);
+          setHistory({ past: [], present: [], future: [] });
+        }
+      } finally {
+        if (!isCancelled) {
+          setRemoteReady(true);
+        }
+      }
+    }
+
+    loadRemoteTree();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [userId]);
+
+  // Auto-save current tree to server
+  useEffect(() => {
+    if (!remoteReady) return;
+    if (!userId || !currentTree) return;
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const response = await fetch("/api/tree", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: currentTree.name,
+            nodes: currentTree.nodes,
+          }),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.error || "Failed to save tree");
+        }
+
+        setSaveError(null);
+      } catch (error) {
+        console.error("Failed to save tree to server:", error);
+        setSaveError((error as Error).message || "Failed to save tree");
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [currentTree, remoteReady, userId]);
+
+  useEffect(() => {
+    // Local storage quota is not used after moving to account-based cloud storage.
+    if (!remoteReady) return;
+    if (storageInfo !== null) {
+      setStorageInfo(null);
+    }
+  }, [remoteReady, storageInfo]);
 
   const layoutGraph: LayoutGraph = currentTree
     ? calculateHierarchicalLayout(currentTree.nodes)
@@ -299,7 +377,10 @@ export function useTreeState(userId: string, userName: string) {
       updatedAt: now,
     };
 
-    setTrees((prev) => [...prev, newTree]);
+    setTrees((prev) => [
+      ...prev.filter((tree) => tree.ownerId !== userId),
+      newTree,
+    ]);
     setCurrentTreeId(treeId);
     setHistory({ past: [], present: [rootNode], future: [] });
 

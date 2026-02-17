@@ -93,7 +93,7 @@ export default function AppHome() {
           statEarliest: "Earliest Record",
         };
 
-  const userId = user?.email || "";
+  const userId = user?.id || user?.email || "";
   const userName = user?.name || copy.fallbackUser;
 
   const {

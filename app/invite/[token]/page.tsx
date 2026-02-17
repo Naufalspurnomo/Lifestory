@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../../../components/providers/LanguageProvider";
 import { Button } from "../../../components/ui/Button";
 import type { TreeData } from "../../../lib/types/tree";
-import { loadTrees, saveTrees } from "../../../lib/utils/storageUtils";
 
 type InvitePayload = {
   treeName: string;
@@ -50,7 +49,7 @@ export default function InvitePage() {
           acceptBody: "Anda akan mengimpor pohon",
           intoYourAccount: "ke akun Anda.",
           importWarning:
-            "Import ini akan menyalin data pohon ke penyimpanan akun Anda saat ini.",
+            "Import ini akan menyalin data pohon ke akun Anda di cloud.",
           importing: "Mengimpor...",
           importToMyAccount: "Import ke Akun Saya",
           cancel: "Batal",
@@ -75,7 +74,7 @@ export default function InvitePage() {
           acceptBody: "You are about to import tree",
           intoYourAccount: "into your account.",
           importWarning:
-            "This import will copy the tree data into your current account storage.",
+            "This import will copy the tree data into your account cloud storage.",
           importing: "Importing...",
           importToMyAccount: "Import to My Account",
           cancel: "Cancel",
@@ -130,7 +129,7 @@ export default function InvitePage() {
   async function importTree() {
     if (!invite?.treeData) return;
 
-    const userId = session?.user?.email || session?.user?.id || "";
+    const userId = session?.user?.id || session?.user?.email || "";
     if (!userId) {
       setError(copy.invalidAccount);
       return;
@@ -142,8 +141,14 @@ export default function InvitePage() {
       return;
     }
 
-    const existingTrees = loadTrees();
-    const hasOwnTree = existingTrees.some((t) => t.ownerId === userId);
+    let hasOwnTree = false;
+    try {
+      const existingResponse = await fetch("/api/tree", { method: "GET" });
+      const existingPayload = await existingResponse.json().catch(() => ({}));
+      hasOwnTree = Boolean(existingPayload?.tree);
+    } catch {
+      hasOwnTree = false;
+    }
 
     if (hasOwnTree && !window.confirm(copy.replaceConfirm)) {
       return;
@@ -162,15 +167,24 @@ export default function InvitePage() {
       updatedAt: now,
     };
 
-    const mergedTrees = [
-      importedTree,
-      ...existingTrees.filter((t) => t.ownerId !== userId),
-    ];
-    const saveResult = saveTrees(mergedTrees);
-
-    if (!saveResult.success) {
+    try {
+      const saveResponse = await fetch("/api/tree", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: importedTree.name,
+          nodes: importedTree.nodes,
+        }),
+      });
+      const savePayload = await saveResponse.json().catch(() => ({}));
+      if (!saveResponse.ok) {
+        throw new Error(savePayload?.error || copy.saveFailed);
+      }
+    } catch (error) {
       setImporting(false);
-      setError(saveResult.error || copy.saveFailed);
+      setError((error as Error).message || copy.saveFailed);
       return;
     }
 
