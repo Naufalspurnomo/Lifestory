@@ -2,6 +2,7 @@ import { FamilyNode, LayoutEdge, LayoutGraph } from "../types/tree";
 
 const NODE_DIAMETER = 70;
 const NODE_SPACING_X = 126;
+const PARTNER_SPACING_X = 92;
 const ROW_GAP = 150;
 const GROUP_GAP = 72;
 const PADDING_X = 120;
@@ -146,6 +147,67 @@ function buildRuntime(nodes: FamilyNode[]): Map<string, RuntimeNode> {
   return runtime;
 }
 
+function harmonizePartnerGenerations(runtime: Map<string, RuntimeNode>): boolean {
+  const visited = new Set<string>();
+  let changed = false;
+
+  for (const node of runtime.values()) {
+    if (visited.has(node.id)) continue;
+
+    const stack = [node.id];
+    const component: RuntimeNode[] = [];
+
+    while (stack.length > 0) {
+      const currentId = stack.pop()!;
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      const current = runtime.get(currentId);
+      if (!current) continue;
+      component.push(current);
+
+      for (const partnerId of current.partners) {
+        if (!visited.has(partnerId)) {
+          stack.push(partnerId);
+        }
+      }
+    }
+
+    if (component.length <= 1) continue;
+
+    const targetGeneration = Math.max(...component.map((member) => member.generation));
+    for (const member of component) {
+      if (member.generation !== targetGeneration) {
+        member.generation = targetGeneration;
+        changed = true;
+      }
+    }
+  }
+
+  return changed;
+}
+
+function alignLeafSpouses(runtime: Map<string, RuntimeNode>): boolean {
+  let changed = false;
+
+  for (const node of runtime.values()) {
+    // Typical in-law leaf: no parents/children, only one spouse edge.
+    if (node.parents.length > 0 || node.children.length > 0 || node.partners.length !== 1) {
+      continue;
+    }
+
+    const spouse = runtime.get(node.partners[0]);
+    if (!spouse) continue;
+
+    if (node.generation !== spouse.generation) {
+      node.generation = spouse.generation;
+      changed = true;
+    }
+  }
+
+  return changed;
+}
+
 function assignGenerations(runtime: Map<string, RuntimeNode>): void {
   for (const r of runtime.values()) {
     const raw = Number.isFinite(r.node.generation) ? r.node.generation : 0;
@@ -154,7 +216,8 @@ function assignGenerations(runtime: Map<string, RuntimeNode>): void {
 
   // Main constraints:
   // 1) child >= max(parent) + 1
-  // 2) partners are on same generation (raise lower partner)
+  // 2) partner-connected nodes are on same generation
+  // 3) spouse-only leaf members should align with spouse generation
   const maxIterations = runtime.size * 6 + 32;
   for (let i = 0; i < maxIterations; i++) {
     let changed = false;
@@ -169,24 +232,15 @@ function assignGenerations(runtime: Map<string, RuntimeNode>): void {
       }
     }
 
-    for (const r of runtime.values()) {
-      for (const partnerId of r.partners) {
-        const partner = runtime.get(partnerId);
-        if (!partner) continue;
-        const target = Math.max(r.generation, partner.generation);
-        if (r.generation < target) {
-          r.generation = target;
-          changed = true;
-        }
-        if (partner.generation < target) {
-          partner.generation = target;
-          changed = true;
-        }
-      }
-    }
+    if (harmonizePartnerGenerations(runtime)) changed = true;
+    if (alignLeafSpouses(runtime)) changed = true;
 
     if (!changed) break;
   }
+
+  // Final guard for noisy import data to keep spouse rows consistent.
+  harmonizePartnerGenerations(runtime);
+  alignLeafSpouses(runtime);
 
   const minGen = Math.min(...Array.from(runtime.values()).map((r) => r.generation));
   if (minGen > 0) {
@@ -272,7 +326,14 @@ function buildGroupsForRow(
     const allParents = uniq(ids.flatMap((nid) => runtime.get(nid)?.parents || []));
     const parentKey = allParents.length ? canonicalParentKey(allParents) : `solo:${ids[0]}`;
     const minIndex = Math.min(...ids.map((nid) => runtime.get(nid)?.index ?? Number.MAX_SAFE_INTEGER));
-    const anchors = allParents.map((pid) => runtime.get(pid)?.x).filter((v): v is number => Number.isFinite(v));
+    const parentAnchors = allParents
+      .map((pid) => runtime.get(pid)?.x)
+      .filter((v): v is number => Number.isFinite(v));
+    const spouseAnchors = ids
+      .flatMap((nid) => runtime.get(nid)?.partners || [])
+      .map((pid) => runtime.get(pid)?.x)
+      .filter((v): v is number => Number.isFinite(v));
+    const anchors = parentAnchors.length ? parentAnchors : spouseAnchors;
     const anchor = anchors.length
       ? anchors.reduce((acc, x) => acc + x, 0) / anchors.length
       : Number.POSITIVE_INFINITY;
@@ -288,6 +349,31 @@ function buildGroupsForRow(
   return groups;
 }
 
+function isPartnerPair(ids: string[], runtime: Map<string, RuntimeNode>): boolean {
+  if (ids.length !== 2) return false;
+  const [a, b] = ids;
+  const left = runtime.get(a);
+  if (!left) return false;
+  return left.partners.includes(b);
+}
+
+function calculateRowWidth(groups: RowGroup[], runtime: Map<string, RuntimeNode>): number {
+  if (!groups.length) return 0;
+
+  let width = NODE_DIAMETER;
+
+  groups.forEach((group, groupIndex) => {
+    const intraGap = isPartnerPair(group.ids, runtime) ? PARTNER_SPACING_X : NODE_SPACING_X;
+    width += Math.max(0, group.ids.length - 1) * intraGap;
+
+    if (groupIndex < groups.length - 1) {
+      width += NODE_SPACING_X + GROUP_GAP;
+    }
+  });
+
+  return width;
+}
+
 function layoutNodes(runtime: Map<string, RuntimeNode>): { width: number; height: number } {
   const rowsByGen = new Map<number, string[]>();
   for (const r of runtime.values()) {
@@ -300,32 +386,24 @@ function layoutNodes(runtime: Map<string, RuntimeNode>): { width: number; height
     buildGroupsForRow(rowsByGen.get(gen) || [], runtime)
   );
 
-  const rowWidths = rowGroupMatrix.map((groups) => {
-    if (!groups.length) return 0;
-    const nodeCount = groups.reduce((acc, group) => acc + group.ids.length, 0);
-    const interNode = Math.max(0, nodeCount - 1) * NODE_SPACING_X;
-    const interGroup = Math.max(0, groups.length - 1) * GROUP_GAP;
-    return interNode + interGroup + NODE_DIAMETER;
-  });
+  const rowWidths = rowGroupMatrix.map((groups) => calculateRowWidth(groups, runtime));
   const maxRowWidth = Math.max(NODE_DIAMETER, ...rowWidths);
 
   rowGroupMatrix.forEach((groups, rowIndex) => {
-    const nodeCount = groups.reduce((acc, group) => acc + group.ids.length, 0);
-    const interNode = Math.max(0, nodeCount - 1) * NODE_SPACING_X;
-    const interGroup = Math.max(0, groups.length - 1) * GROUP_GAP;
-    const rowWidth = interNode + interGroup + (nodeCount ? NODE_DIAMETER : 0);
+    const rowWidth = calculateRowWidth(groups, runtime);
     const startX = PADDING_X + (maxRowWidth - rowWidth) / 2 + NODE_DIAMETER / 2;
     const y = PADDING_Y + rowIndex * ROW_GAP + NODE_DIAMETER / 2;
 
     let cursorX = startX;
     groups.forEach((group, groupIndex) => {
+      const intraGap = isPartnerPair(group.ids, runtime) ? PARTNER_SPACING_X : NODE_SPACING_X;
       group.ids.forEach((id, idx) => {
         const node = runtime.get(id);
         if (!node) return;
         node.x = cursorX;
         node.y = y;
         node.node.generation = rowIndex;
-        if (idx < group.ids.length - 1) cursorX += NODE_SPACING_X;
+        if (idx < group.ids.length - 1) cursorX += intraGap;
       });
 
       if (groupIndex < groups.length - 1) cursorX += NODE_SPACING_X + GROUP_GAP;
