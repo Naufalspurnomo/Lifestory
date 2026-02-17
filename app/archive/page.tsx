@@ -17,10 +17,11 @@ export default function ArchivePage() {
   const { data: session } = useSession();
   const { locale } = useLanguage();
   const user = session?.user;
-  const userId = user?.email || "";
+  const userId = user?.id || user?.email || "";
+  const userEmail = user?.email || "";
   const userName = user?.name || (locale === "id" ? "Pengguna" : "User");
 
-  const { currentTree } = useTreeState(userId, userName);
+  const { currentTree } = useTreeState(userId, userName, userEmail);
 
   const [selectedMedia, setSelectedMedia] = useState<MediaWithOwner | null>(
     null

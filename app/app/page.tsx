@@ -94,6 +94,7 @@ export default function AppHome() {
         };
 
   const userId = user?.id || user?.email || "";
+  const userEmail = user?.email || "";
   const userName = user?.name || copy.fallbackUser;
 
   const {
@@ -106,7 +107,7 @@ export default function AppHome() {
     deleteNode,
     getNode,
     importNodes,
-  } = useTreeState(userId, userName);
+  } = useTreeState(userId, userName, userEmail);
 
   useEffect(() => {
     (window as any).importNodes = importNodes;

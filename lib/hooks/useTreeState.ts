@@ -13,6 +13,7 @@ import {
   calculateGeneration,
   calculateHierarchicalLayout,
 } from "../tree/layoutEngine";
+import { loadTrees } from "../utils/storageUtils";
 
 const MAX_HISTORY = 50;
 
@@ -208,7 +209,11 @@ function recomputeAllGenerations(nodes: FamilyNode[]) {
 
 // ----------------------------
 
-export function useTreeState(userId: string, userName: string) {
+export function useTreeState(
+  userId: string,
+  userName: string,
+  userEmail?: string
+) {
   const [trees, setTrees] = useState<TreeData[]>([]);
   const [currentTreeId, setCurrentTreeId] = useState<string | null>(null);
   const [history, setHistory] = useState<TreeHistory>({
@@ -225,6 +230,25 @@ export function useTreeState(userId: string, userName: string) {
   // Load current user's tree from server on mount + user switch
   useEffect(() => {
     let isCancelled = false;
+
+    const loadLegacyLocalTree = (): TreeData | null => {
+      const allLocalTrees = loadTrees();
+      if (!allLocalTrees.length) return null;
+
+      const candidateKeys = [userId, userEmail]
+        .map((value) => value?.trim().toLowerCase())
+        .filter((value): value is string => Boolean(value));
+      if (!candidateKeys.length) return null;
+
+      const matched = allLocalTrees.filter((tree) =>
+        candidateKeys.includes(String(tree.ownerId || "").toLowerCase())
+      );
+      if (!matched.length) return null;
+
+      return matched.sort((a, b) =>
+        String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""))
+      )[0];
+    };
 
     async function loadRemoteTree() {
       if (!userId) {
@@ -248,6 +272,28 @@ export function useTreeState(userId: string, userName: string) {
 
         const loadedTree = payload?.tree;
         if (!loadedTree) {
+          const legacyTree = loadLegacyLocalTree();
+          if (legacyTree) {
+            const normalizedNodes = (legacyTree.nodes || []).map((n: any) =>
+              normalizeNode(n)
+            );
+            const sanitized = sanitizeGraph(normalizedNodes);
+            const withGen = recomputeAllGenerations(sanitized);
+            const migratedTree: TreeData = {
+              ...legacyTree,
+              ownerId: userId,
+              nodes: withGen,
+              updatedAt: new Date().toISOString(),
+            };
+
+            if (!isCancelled) {
+              setTrees([migratedTree]);
+              setCurrentTreeId(migratedTree.id);
+              setHistory({ past: [], present: migratedTree.nodes, future: [] });
+            }
+            return;
+          }
+
           if (!isCancelled) {
             setTrees([]);
             setCurrentTreeId(null);
@@ -292,7 +338,7 @@ export function useTreeState(userId: string, userName: string) {
     return () => {
       isCancelled = true;
     };
-  }, [userId]);
+  }, [userEmail, userId]);
 
   // Auto-save current tree to server
   useEffect(() => {
