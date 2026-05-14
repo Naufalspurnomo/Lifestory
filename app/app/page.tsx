@@ -106,6 +106,7 @@ export default function AppHome() {
     deleteNode,
     getNode,
     importNodes,
+    syncStatus,
   } = useTreeState(userId, userName);
 
   useEffect(() => {
@@ -628,6 +629,32 @@ export default function AppHome() {
           {notification && (
             <div className="fixed left-1/2 top-6 z-50 -translate-x-1/2 rounded-full bg-warmText/90 px-6 py-3 text-sm font-medium text-white shadow-xl backdrop-blur animate-[fadeIn_0.3s]">
               {notification}
+            </div>
+          )}
+
+          {(syncStatus === "saving" ||
+            syncStatus === "loading" ||
+            syncStatus === "offline") && (
+            <div
+              className={`fixed bottom-24 right-6 z-40 rounded-full px-4 py-2 text-xs font-semibold shadow-lg backdrop-blur ${
+                syncStatus === "offline"
+                  ? "bg-amber-500/90 text-white"
+                  : "bg-gold-700/90 text-white"
+              }`}
+              role="status"
+              aria-live="polite"
+            >
+              {syncStatus === "saving"
+                ? locale === "id"
+                  ? "Menyimpan..."
+                  : "Saving..."
+                : syncStatus === "loading"
+                ? locale === "id"
+                  ? "Memuat..."
+                  : "Loading..."
+                : locale === "id"
+                ? "Offline — perubahan tersimpan lokal"
+                : "Offline — changes saved locally"}
             </div>
           )}
         </>

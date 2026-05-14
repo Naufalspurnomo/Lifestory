@@ -54,7 +54,8 @@ export type FamilyNode = {
   year: number | null; // Birth year
   deathYear: number | null; // Death year (null = alive)
   parentId: string | null; // Primary Parent node ID (legacy)
-  parentIds?: string[]; // All Parent IDs (supports remarriage/adoption)
+  parentIds?: string[]; // Biological parent IDs (supports remarriage/multi-parent)
+  adoptiveParentIds?: string[]; // Adoptive/guardian parents (not used for generation calc)
   partners: string[]; // Partner IDs
   childrenIds: string[]; // Children IDs
   generation: number; // Depth level
@@ -84,7 +85,7 @@ export type LayoutEdge = {
   id: string;
   source: string;
   target: string;
-  type: "spouse" | "parent-union" | "union-child";
+  type: "spouse" | "parent-union" | "union-child" | "adoption";
   path: Point[]; // Orthogonal path points
 };
 

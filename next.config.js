@@ -45,27 +45,14 @@ const nextConfig = {
     ];
   },
 
-  // Production-only: Force HTTPS
-  async redirects() {
-    // Only in production
-    if (process.env.NODE_ENV !== "production") {
-      return [];
-    }
-    return [
-      {
-        source: "/:path*",
-        has: [
-          {
-            type: "header",
-            key: "x-forwarded-proto",
-            value: "http",
-          },
-        ],
-        destination: "https://:host/:path*",
-        permanent: true,
-      },
-    ];
-  },
+  // Note: HTTPS enforcement is delegated to the reverse proxy / CDN (Vercel,
+  // Cloudflare, Nginx, etc.) rather than Next's redirect config. Handling it
+  // here is fragile because Next's `redirects()` cannot cleanly interpolate
+  // the request host into the destination URL, and running `next start`
+  // directly (without a proxy) ends up crashing on every request.
+  //
+  // If you deploy to a platform that needs app-level enforcement, set it up
+  // there (e.g. via middleware.ts) — don't re-add it here.
 };
 
 module.exports = nextConfig;

@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Lifestory — Real Family Layout Preview</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      background: #f2ece1;
+      margin: 0;
+      color: #1d1a14;
+    }
+    header.page {
+      padding: 24px 32px;
+      background: linear-gradient(135deg, #1d1a14, #3f372b);
+      color: #f9f6f1;
+    }
+    header.page h1 { margin: 0 0 4px 0; font-size: 22px; }
+    header.page p { margin: 0; opacity: 0.8; font-size: 14px; }
+    main { padding: 24px; display: grid; gap: 24px; }
+    .card {
+      background: #fffaf2;
+      border-radius: 14px;
+      box-shadow: 0 6px 24px rgba(29,26,20,0.08);
+      padding: 18px 20px 22px;
+    }
+    .card > header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 6px;
+    }
+    .card h2 { font-size: 18px; margin: 0; }
+    .grade {
+      color: white; font-weight: 700; padding: 4px 10px;
+      border-radius: 999px; font-size: 12px; letter-spacing: 0.3px;
+    }
+    .desc { margin: 0 0 10px; color: #5b5346; font-size: 13px; }
+    .metrics {
+      display: flex; flex-wrap: wrap; gap: 8px 14px;
+      font-size: 11px; color: #5b5346; margin-bottom: 8px;
+    }
+    .metrics span {
+      background: #f2ece1; padding: 3px 8px; border-radius: 6px;
+    }
+    .issues {
+      margin: 4px 0 12px; padding-left: 18px;
+      font-size: 12px; color: #b45309;
+    }
+    .ok { margin: 0 0 10px; color: #15803d; font-size: 12px; }
+    .svg-wrap {
+      border: 1px solid #e6dbc7;
+      border-radius: 10px;
+      overflow: auto;
+      background: #f9f6f1;
+      max-height: 640px;
+    }
+    .svg-wrap object {
+      display: block; width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <header class="page">
+    <h1>Lifestory — Real Family Layout Preview</h1>
+    <p>Visual screenshot generated from the same Sugiyama layout engine used in production. Generated 2026-05-13T14:00:43.677Z.</p>
+  </header>
+  <main>
+    
+  <section class="card">
+    <header>
+      <h2>Asymmetric in-laws (regression)</h2>
+      <span class="grade" style="background:#22c55e">A · 100</span>
+    </header>
+    <p class="desc">Skenario nyata user: orang tua dua sisi + satu kakek di sisi istri. Sebelum anchor-based layering, menambah satu kakek membuat orang tua user naik dan saudara user sejajar dengan mertua. Setelah fix, Admin (self) jadi anchor — saudara user selalu sejajar dengan istri, kakek istri tampil sendirian di layer teratas.</p>
+    <div class="metrics">
+      <span>11 nodes</span>
+      <span>4 gens</span>
+      <span>4 unions</span>
+      <span>942×730px (aspect 1.29:1)</span>
+      <span>outlier 1.81×</span>
+      <span>union skew 87px</span>
+    </div>
+    <p class="ok">No quality concerns.</p>
+    <div class="svg-wrap">
+      <object type="image/svg+xml" data="00-asymmetric-in-laws.svg"></object>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <h2>House of Windsor</h2>
+      <span class="grade" style="background:#22c55e">A · 100</span>
+    </header>
+    <p class="desc">4 generasi Keluarga Kerajaan Inggris modern (Elizabeth II → Charles III → William/Harry → cucu). Cover remarriage, divorce, banyak pasangan per orang, cucu dari 4 cabang berbeda.</p>
+    <div class="metrics">
+      <span>36 nodes</span>
+      <span>4 gens</span>
+      <span>12 unions</span>
+      <span>2530×730px (aspect 3.47:1)</span>
+      <span>outlier 3.94×</span>
+      <span>union skew 178px</span>
+    </div>
+    <p class="ok">No quality concerns.</p>
+    <div class="svg-wrap">
+      <object type="image/svg+xml" data="01-house-of-windsor.svg"></object>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <h2>Descendants of Queen Victoria</h2>
+      <span class="grade" style="background:#84cc16">B · 85</span>
+    </header>
+    <p class="desc">Victoria & Albert + 9 anak + pasangan & cucu pilihan. Stress-test untuk pohon yang sangat melebar di Gen 2-3.</p>
+    <div class="metrics">
+      <span>27 nodes</span>
+      <span>3 gens</span>
+      <span>10 unions</span>
+      <span>3116×580px (aspect 5.37:1)</span>
+      <span>outlier 3.42×</span>
+      <span>union skew 204px</span>
+    </div>
+    <ul class="issues"><li>Canvas wider than ideal (aspect 5.4:1)</li><li>P95 edge length 1284px (ideal &lt; 900px)</li></ul>
+    <div class="svg-wrap">
+      <object type="image/svg+xml" data="02-queen-victoria-descendants.svg"></object>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <h2>House of Tudor</h2>
+      <span class="grade" style="background:#84cc16">B · 80</span>
+    </header>
+    <p class="desc">Dinasti Tudor dari Henry VII sampai Elizabeth I. Cover banyak pernikahan (Henry VIII 6 pasangan), anak dari ibu berbeda, dan nama berulang (Henry, Edward, Elizabeth).</p>
+    <div class="metrics">
+      <span>19 nodes</span>
+      <span>4 gens</span>
+      <span>11 unions</span>
+      <span>2024×730px (aspect 2.77:1)</span>
+      <span>outlier 3.06×</span>
+      <span>union skew 685px</span>
+    </div>
+    <ul class="issues"><li>Union drifted from its children's centre by 685px (ideal &lt; 240px)</li><li>P95 edge length 1530px (ideal &lt; 900px)</li></ul>
+    <div class="svg-wrap">
+      <object type="image/svg+xml" data="03-tudor-dynasty.svg"></object>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <h2>House of Habsburg</h2>
+      <span class="grade" style="background:#22c55e">A · 100</span>
+    </header>
+    <p class="desc">Dinasti Habsburg pilihan: Maximilian I → Philip I → Charles V / Ferdinand I → Philip II → Philip III → Philip IV → Charles II. Fokus pada pernikahan antar-kerabat.</p>
+    <div class="metrics">
+      <span>18 nodes</span>
+      <span>9 gens</span>
+      <span>9 unions</span>
+      <span>986×1480px (aspect 0.67:1)</span>
+      <span>outlier 1.99×</span>
+      <span>union skew 158px</span>
+    </div>
+    <p class="ok">No quality concerns.</p>
+    <div class="svg-wrap">
+      <object type="image/svg+xml" data="04-habsburg.svg"></object>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <h2>Ottoman Dynasty (selected)</h2>
+      <span class="grade" style="background:#22c55e">A · 100</span>
+    </header>
+    <p class="desc">Dinasti Ottoman pilihan: Osman I → Orhan → Murad I → Bayezid I → Mehmed I → Murad II → Mehmed II. Plus consort dan anak-anak utama.</p>
+    <div class="metrics">
+      <span>18 nodes</span>
+      <span>8 gens</span>
+      <span>8 unions</span>
+      <span>1121×1330px (aspect 0.84:1)</span>
+      <span>outlier 1.3×</span>
+      <span>union skew 90px</span>
+    </div>
+    <p class="ok">No quality concerns.</p>
+    <div class="svg-wrap">
+      <object type="image/svg+xml" data="05-ottoman-dynasty.svg"></object>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <h2>Genghis Khan lineage</h2>
+      <span class="grade" style="background:#22c55e">A · 100</span>
+    </header>
+    <p class="desc">Genghis Khan + 4 anak utama (Jochi, Chagatai, Ögedei, Tolui) + cucu-cucu kunci (Batu, Kublai, Möngke, Hulagu).</p>
+    <div class="metrics">
+      <span>16 nodes</span>
+      <span>4 gens</span>
+      <span>5 unions</span>
+      <span>1192×730px (aspect 1.63:1)</span>
+      <span>outlier 2.35×</span>
+      <span>union skew 105px</span>
+    </div>
+    <p class="ok">No quality concerns.</p>
+    <div class="svg-wrap">
+      <object type="image/svg+xml" data="06-genghis-khan.svg"></object>
+    </div>
+  </section>
+  </main>
+</body>
+</html>

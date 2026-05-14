@@ -163,10 +163,11 @@ export default function HomePage() {
       </section>
 
       <section className="mx-auto max-w-5xl px-6 py-24 text-center md:py-28">
+        <span className="mx-auto mb-6 block h-px w-16 bg-gradient-to-r from-transparent via-[#c7b289] to-transparent" />
         <h2 className="font-serif text-[clamp(2.1rem,5vw,4.1rem)] leading-[1.08] text-[#3f342d]">
           {copy.sectionTitle}
         </h2>
-        <p className="mx-auto mt-8 max-w-4xl text-[clamp(0.65rem,1.25vw,1.05rem)] leading-[1.65] text-[#72675f]">
+        <p className="mx-auto mt-6 max-w-3xl text-[clamp(0.95rem,1.4vw,1.15rem)] leading-[1.75] text-[#72675f]">
           {copy.sectionBody}
         </p>
       </section>
@@ -204,6 +205,14 @@ export default function HomePage() {
                 priority={index < 2}
               />
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),rgba(0,0,0,0.18))]" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[rgba(20,12,4,0.78)] via-[rgba(20,12,4,0.32)] to-transparent p-5 opacity-0 transition duration-500 group-hover:opacity-100">
+                <p className="font-serif text-xl leading-tight text-white">
+                  {book.title}
+                </p>
+                <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f3dfa9]">
+                  {copy.viewMore} <span aria-hidden>&rarr;</span>
+                </p>
+              </div>
             </Link>
           ))}
         </div>

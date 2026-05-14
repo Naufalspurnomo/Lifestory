@@ -56,3 +56,17 @@ a {
 ::-webkit-scrollbar-thumb:hover {
   background: #b39f85;
 }
+
+::selection {
+  background: rgba(228, 191, 112, 0.45);
+  color: #3f342d;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

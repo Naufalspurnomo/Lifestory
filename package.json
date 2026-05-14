@@ -7,10 +7,17 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "layout:test": "tsx scripts/verify-family-layout.ts",
+    "layout:report": "tsx scripts/real-family-report.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
     "db:push": "npx prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "npx prisma studio",
     "db:migrate": "npx prisma migrate dev",
+    "db:deploy": "npx prisma migrate deploy",
+    "db:status": "npx prisma migrate status",
     "postinstall": "npx prisma generate"
   },
   "dependencies": {
@@ -39,6 +46,7 @@
     "eslint": "^8.56.0",
     "eslint-config-next": "14.1.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.8"
   }
 }

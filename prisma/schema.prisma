@@ -1,5 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Lifestory - production schema
+// Every family is different: multi-tree per user, multi-user per tree (shared family trees).
 
 generator client {
   provider = "prisma-client-js"
@@ -11,6 +11,8 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ---------- Identity ----------
+
 model User {
   id                 String   @id @default(cuid())
   name               String
@@ -18,7 +20,104 @@ model User {
   passwordHash       String
   role               String   @default("user") // "admin" or "user"
   subscriptionActive Boolean  @default(false)
-  status             String   @default("inactive") // "active", "inactive", "suspended"
+  status             String   @default("inactive") // "active" | "inactive" | "suspended"
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
+  trees       Tree[]       @relation("TreeOwner")
+  memberships TreeMember[]
+}
+
+// ---------- Family Tree (tenant) ----------
+
+model Tree {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner       User         @relation("TreeOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  nodes       Node[]
+  edges       Edge[]
+  memberships TreeMember[]
+
+  @@index([ownerId])
+}
+
+// Join table: each tree can have multiple collaborators beyond the owner.
+model TreeMember {
+  id        String   @id @default(cuid())
+  treeId    String
+  userId    String
+  role      String   @default("viewer") // "owner" | "editor" | "viewer"
+  createdAt DateTime @default(now())
+
+  tree Tree @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([treeId, userId])
+  @@index([userId])
+}
+
+// NOTE: TreeInvite is still managed by lib/invites.ts via raw SQL because it
+// predates the Prisma family schema. A future migration can fold that table
+// into the Prisma model; for now we leave it outside Prisma's schema to avoid
+// conflicting column definitions.
+
+// ---------- Family graph ----------
+
+model Node {
+  id                String   @id @default(cuid())
+  treeId            String
+  label             String
+  sex               String? // "M" | "F" | "X"
+  birthYear         Int?
+  deathYear         Int?
+  line              String   @default("default")
+  imageUrl          String?
+  description       String   @default("")
+  // JSON blobs for rich content that doesn't need relational queries yet.
+  media             Json     @default("[]")
+  works             Json     @default("[]")
+  socialInstagram   String?
+  socialTiktok      String?
+  socialLinkedin    String?
+  generationCached  Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tree Tree @relation(fields: [treeId], references: [id], onDelete: Cascade)
+
+  // Relations (explicit) — computed by reading Edge rows, but we keep backrefs
+  // for faster traversal in app code.
+  outgoingEdges Edge[] @relation("EdgeFrom")
+  incomingEdges Edge[] @relation("EdgeTo")
+
+  @@index([treeId])
+}
+
+// Unified relationship table. Each row = one directed semantic link.
+// This lets us cleanly model biological parenting, adoption, partnership,
+// divorce history (with startYear/endYear), etc. without collapsing them
+// into a single union.
+model Edge {
+  id        String   @id @default(cuid())
+  treeId    String
+  fromId    String
+  toId      String
+  kind      String // "biological-parent" | "adoptive-parent" | "partner" | "ex-partner"
+  startYear Int?
+  endYear   Int?
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  tree Tree @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  from Node @relation("EdgeFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to   Node @relation("EdgeTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([treeId, fromId, toId, kind])
+  @@index([treeId, kind])
+  @@index([fromId])
+  @@index([toId])
 }
