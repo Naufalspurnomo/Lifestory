@@ -1,12 +1,15 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { galleryItems } from "../lib/content/galleryItems";
 import { useLanguage } from "../components/providers/LanguageProvider";
-
-const heroImage = "/hero-bg.jpg";
+import { HomeHero } from "../components/home/HomeHero";
+import { StatsStrip } from "../components/home/StatsStrip";
+import { HowItWorks } from "../components/home/HowItWorks";
+import { Deliverables } from "../components/home/Deliverables";
+import { FeaturedCollections } from "../components/home/FeaturedCollections";
+import { Testimonials } from "../components/home/Testimonials";
+import { FAQ } from "../components/home/FAQ";
+import { FinalCTA } from "../components/home/FinalCTA";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -15,208 +18,421 @@ export default function HomePage() {
   const isLoggedIn = status === "authenticated";
   const isAdmin = user?.role === "admin";
   const isSubscribed = Boolean(user?.subscriptionActive);
-  const copy =
-    locale === "id"
-      ? {
-          highlights: [
-            "Arsip keluarga privat",
-            "Tata letak biografi terkurasi",
-            "Ruang kerja pohon keluarga kolaboratif",
-          ],
-          welcomeBack: "Selamat datang kembali",
-          heroTitle: "Kami menjaganya untuk Anda.",
-          heroSubtitle:
-            "Menjaga cerita, kenangan, dan warisan paling berharga untuk generasi yang akan datang.",
-          startStory: "Mulai Cerita Anda",
-          exploreFamilyTrees: "JELAJAHI POHON KELUARGA",
-          accountMember: "Anggota",
-          openAdminDashboard: "Buka Dashboard Admin",
-          continueYourStory: "Lanjutkan Cerita Anda",
-          activatePlan: "Aktifkan Paket Anda",
-          openFamilyTrees: "Buka Pohon Keluarga",
-          exploreCollections: "Jelajahi Koleksi",
-          sectionTitle: "Cerita Anda Layak Untuk Diabadikan",
-          sectionBody:
-            "Lifestory.co adalah layanan penulisan biografi profesional yang didedikasikan untuk mengabadikan kisah dan kenangan manusia. Kami merangkai pengalaman, pencapaian, dan momen bermakna Anda menjadi biografi yang indah dan diwariskan lintas generasi.",
-          featuredTitle: "Koleksi Biografi Pilihan",
-          viewMore: "Lihat Lainnya",
-        }
-      : {
-          highlights: [
-            "Private family archive",
-            "Curated biography layouts",
-            "Shareable family tree workspace",
-          ],
-          welcomeBack: "Welcome back",
-          heroTitle: "We keep it for you.",
-          heroSubtitle:
-            "Preserving the most precious stories, memories, and legacies for generations to come.",
-          startStory: "Start Your Story",
-          exploreFamilyTrees: "EXPLORE FAMILY TREES",
-          accountMember: "Member",
-          openAdminDashboard: "Open Admin Dashboard",
-          continueYourStory: "Continue Your Story",
-          activatePlan: "Activate Your Plan",
-          openFamilyTrees: "Open Family Trees",
-          exploreCollections: "Explore Collections",
-          sectionTitle: "Your Story Deserves to Be Remembered",
-          sectionBody:
-            "Lifestory.co is a professional biography writing service dedicated to preserving human stories and memories. We transform your experiences, achievements, and cherished moments into beautifully crafted biographies that will be treasured for generations. Every life has a story worth telling, and we are here to help you tell yours.",
-          featuredTitle: "Featured Biography Collections",
-          viewMore: "View More",
-        };
-  const displayName = user?.name?.trim() || copy.accountMember;
+
+  const isId = locale === "id";
+  const displayName = user?.name?.trim() || (isId ? "Anggota" : "Member");
   const firstName = displayName.split(" ")[0];
 
-  const primaryCta = isAdmin
-    ? { href: "/dashboard", label: copy.openAdminDashboard }
+  const primaryCtaHref = !isLoggedIn
+    ? "/auth/register"
+    : isAdmin
+    ? "/dashboard"
     : isSubscribed
-    ? { href: "/app", label: copy.continueYourStory }
-    : { href: "/subscribe", label: copy.activatePlan };
+    ? "/app"
+    : "/subscribe";
 
-  const secondaryCta = isAdmin
-    ? { href: "/app", label: copy.openFamilyTrees }
-    : { href: "/gallery", label: copy.exploreCollections };
+  const secondaryCtaHref = !isLoggedIn
+    ? "/gallery"
+    : isAdmin
+    ? "/app"
+    : "/gallery";
+
+  // ---- COPY ----
+  const copy = isId
+    ? {
+        hero: {
+          welcomeBack: "Selamat datang kembali",
+          eyebrow: "Lifestory · Studio Biografi",
+          headlineLine1: "Kisah hidup",
+          headlineLine2: "yang berharga",
+          headlineAccent: "diabadikan",
+          headlineLine3: "untuk generasi.",
+          subheading:
+            "Kami merangkai memori, foto lama, dan suara keluarga menjadi buku biografi premium, video dokumenter, dan pohon silsilah yang siap diwariskan.",
+          primaryCta: !isLoggedIn
+            ? "Mulai Cerita Anda"
+            : isAdmin
+            ? "Buka Dashboard"
+            : isSubscribed
+            ? "Lanjutkan Cerita"
+            : "Aktifkan Paket",
+          secondaryCta: !isLoggedIn ? "Lihat Galeri" : "Jelajahi Galeri",
+          badge1: "Arsip privat keluarga",
+          badge2: "Layout terkurasi",
+          badge3: "Kolaborasi multi-perangkat",
+          scrollHint: "Gulir",
+        },
+        stats: {
+          eyebrow: "Karya yang berbicara",
+          title: "Lebih dari sekadar buku — sebuah warisan yang dirawat tangan demi tangan.",
+          stats: [
+            {
+              value: 50,
+              suffix: "+",
+              label: "Keluarga",
+              description: "Telah mempercayakan kisah mereka kepada studio kami.",
+            },
+            {
+              value: 200,
+              suffix: " thn",
+              label: "Cerita",
+              description: "Total rentang waktu kisah yang sudah diabadikan.",
+            },
+            {
+              value: 12000,
+              suffix: "+",
+              label: "Halaman ditulis",
+              description: "Kalimat demi kalimat ditulis tangan oleh tim editor.",
+            },
+            {
+              value: 8000,
+              suffix: "+",
+              label: "Foto direstorasi",
+              description: "Foto lama dipulihkan agar siap dicetak premium.",
+            },
+            {
+              value: 4,
+              suffix: "",
+              label: "Format",
+              description: "Buku, video, poster silsilah, dan arsip digital.",
+            },
+            {
+              value: 100,
+              suffix: "%",
+              label: "Kepuasan keluarga",
+              description: "Kami merilis hanya saat keluarga benar-benar bangga.",
+            },
+          ],
+        },
+        howItWorks: {
+          eyebrow: "Cara Kami Bekerja",
+          title: "Dari percakapan hangat menjadi buku yang abadi.",
+          lead: "Tiga babak yang dirancang untuk menjaga cerita tetap hidup, akurat, dan berhasil menyentuh siapa pun yang membacanya.",
+          steps: [
+            {
+              title: "Mendengarkan dengan tenang.",
+              body: "Kami memulai dengan sesi wawancara yang lambat dan hangat. Cerita yang lama tersimpan diberi ruang untuk muncul kembali tanpa dipaksa.",
+            },
+            {
+              title: "Merangkai narasi & visual.",
+              body: "Tim penulis dan art director kami menyusun alur, memilih foto, dan merancang halaman demi halaman yang terasa personal sekaligus sinematik.",
+            },
+            {
+              title: "Mewariskan dengan upacara kecil.",
+              body: "Buku, video, dan poster silsilah diserahkan dalam momen yang dirayakan bersama keluarga, lengkap dengan kemasan kelas heirloom.",
+            },
+          ],
+        },
+        deliverables: {
+          eyebrow: "Apa yang Anda terima",
+          title: "Empat keluaran yang dirancang sebagai satu kesatuan warisan.",
+          lead: "Setiap keluarga menerima paket fisik dan digital yang saling melengkapi — supaya cerita bisa dibaca, ditonton, dipajang, dan dilanjutkan.",
+          items: [
+            {
+              title: "Buku biografi premium",
+              body: "Sampul keras kelas heirloom, kertas berbobot tinggi, layout custom dengan bagian pop-up. Setiap eksemplar diberi nomor seri dan kemasan tahan air.",
+            },
+            {
+              title: "Foto direstorasi",
+              body: "Foto lama dipulihkan, foto baru sesi studio Lifestory.",
+            },
+            {
+              title: "Video dokumenter",
+              body: "Wawancara terarah dirangkum menjadi tayangan sinematik dengan flash disk eksklusif.",
+            },
+            {
+              title: "Pohon silsilah cetak & digital",
+              body: "Diagram keluarga yang dibingkai indah, lengkap dengan slot untuk menambahkan generasi berikutnya. Tersinkron dengan dashboard digital Lifestory.",
+            },
+          ],
+        },
+        featured: {
+          eyebrow: "Galeri biografi",
+          title: "Beberapa kisah yang sudah kami abadikan.",
+          lead: "Setiap sampul mewakili pendekatan berbeda — dari memoar personal hingga tribute lintas generasi. Klik untuk melihat detail dan baca naskahnya.",
+          viewMore: "Lihat detail",
+        },
+        testimonials: {
+          eyebrow: "Suara keluarga",
+          title: "Yang kami dengar setelah buku diserahkan.",
+          lead: "Beberapa kalimat tulus dari keluarga yang sudah memegang hasil akhirnya.",
+          items: [
+            {
+              quote:
+                "Buku ini terasa seperti mendengar suara ibu kembali. Anak cucu kami akhirnya tahu bagaimana beliau berbicara, bukan cuma seperti apa wajahnya.",
+              author: "Keluarga Tanuwijaya",
+              role: "Edisi Tribute Ibu",
+            },
+            {
+              quote:
+                "Tim Lifestory menjaga setiap detail. Mereka mau wawancara berkali-kali sampai ceritanya benar-benar utuh, bukan sekadar lengkap.",
+              author: "Pak Yohannes",
+              role: "Memoar Personal",
+            },
+            {
+              quote:
+                "Saya tidak menyangka bisa menangis hanya karena melihat layout halaman. Hasilnya jauh melebihi ekspektasi saya.",
+              author: "Suwati",
+              role: "Memoar Lintas Generasi",
+            },
+          ],
+          pressLabel: "Dipercaya oleh keluarga di",
+          pressLogos: [
+            "Jakarta",
+            "Bandung",
+            "Surabaya",
+            "Yogyakarta",
+            "Medan",
+            "Bali",
+            "Singapura",
+          ],
+        },
+        faq: {
+          eyebrow: "Pertanyaan",
+          title: "Yang biasanya ditanyakan keluarga sebelum memulai.",
+          items: [
+            {
+              q: "Berapa lama proses dari awal sampai buku diserahkan?",
+              a: "Rata-rata 12 sampai 16 minggu, tergantung kompleksitas keluarga, jumlah narasumber, dan banyaknya material foto yang harus direstorasi.",
+            },
+            {
+              q: "Apakah seluruh proses bisa dilakukan jarak jauh?",
+              a: "Bisa. Wawancara dan diskusi visual bisa dilakukan via video call. Untuk sesi foto kami punya tim mobile yang bisa datang ke kota Anda.",
+            },
+            {
+              q: "Siapa yang memiliki hak cipta atas naskah dan video?",
+              a: "Hak penuh ada di pihak keluarga. Lifestory hanya pemegang lisensi terbatas untuk dokumentasi portfolio jika Anda mengizinkan.",
+            },
+            {
+              q: "Bagaimana jika ada perbedaan ingatan antar anggota keluarga?",
+              a: "Itu normal. Kami merangkum berbagai versi, mengonfirmasi ulang, dan menulis dengan bahasa yang menghormati semua perspektif tanpa memaksa satu versi tunggal.",
+            },
+            {
+              q: "Apakah desain buku bisa disesuaikan?",
+              a: "Setiap buku dirancang khusus. Kami punya beberapa direction visual sebagai titik mulai, lalu disesuaikan dengan kepribadian dan estetika keluarga.",
+            },
+          ],
+          asideTitle: "Belum yakin paket mana yang cocok?",
+          asideBody:
+            "Kami punya sesi konsultasi 30 menit tanpa biaya untuk membahas keluarga Anda dan merancang pendekatan yang paling masuk akal.",
+          asideCta: "Jadwalkan konsultasi",
+        },
+        finalCta: {
+          eyebrow: "Mulai sekarang",
+          title: "Cerita yang berharga tidak menunggu lebih lama.",
+          lead: "Kami bisa mulai dari satu wawancara sederhana dengan orang tua atau kakek nenek Anda hari ini. Sisanya, biarkan kami yang menjaga.",
+          primaryCta: !isLoggedIn ? "Mulai Cerita" : "Lanjutkan Cerita",
+          secondaryCta: "Lihat semua paket",
+        },
+      }
+    : {
+        hero: {
+          welcomeBack: "Welcome back",
+          eyebrow: "Lifestory · Biography Studio",
+          headlineLine1: "Stories worth",
+          headlineLine2: "remembering",
+          headlineAccent: "preserved",
+          headlineLine3: "for generations.",
+          subheading:
+            "We weave memories, vintage photos, and family voices into premium biography books, documentary films, and lineage trees ready to be passed down.",
+          primaryCta: !isLoggedIn
+            ? "Start Your Story"
+            : isAdmin
+            ? "Open Dashboard"
+            : isSubscribed
+            ? "Continue Story"
+            : "Activate Plan",
+          secondaryCta: !isLoggedIn ? "View Gallery" : "Explore Gallery",
+          badge1: "Private family archive",
+          badge2: "Curated layouts",
+          badge3: "Multi-device collab",
+          scrollHint: "Scroll",
+        },
+        stats: {
+          eyebrow: "Work that speaks",
+          title: "More than a book — a legacy carried by careful hands.",
+          stats: [
+            {
+              value: 50,
+              suffix: "+",
+              label: "Families",
+              description: "Have trusted our studio with their life stories.",
+            },
+            {
+              value: 200,
+              suffix: " yrs",
+              label: "Stories",
+              description: "Of cumulative timeline preserved into archives.",
+            },
+            {
+              value: 12000,
+              suffix: "+",
+              label: "Pages written",
+              description: "Hand-edited paragraph by paragraph.",
+            },
+            {
+              value: 8000,
+              suffix: "+",
+              label: "Photos restored",
+              description: "Old photos brought back to print quality.",
+            },
+            {
+              value: 4,
+              suffix: "",
+              label: "Formats",
+              description: "Book, film, lineage poster, and digital archive.",
+            },
+            {
+              value: 100,
+              suffix: "%",
+              label: "Family approval",
+              description: "We only release when the family is truly proud.",
+            },
+          ],
+        },
+        howItWorks: {
+          eyebrow: "How we work",
+          title: "From a warm conversation to an heirloom book.",
+          lead: "Three acts designed to keep stories alive, accurate, and emotionally true to whoever reads them.",
+          steps: [
+            {
+              title: "Listen, slowly.",
+              body: "We open with calm, unhurried interviews. Stories that have been buried for decades are given space to surface again.",
+            },
+            {
+              title: "Shape the narrative & visuals.",
+              body: "Our writers and art director sequence the story, pick the photographs, and design pages that feel personal yet cinematic.",
+            },
+            {
+              title: "Pass it on with a small ceremony.",
+              body: "The book, film, and lineage poster are handed over in a moment celebrated with the family, finished with heirloom-grade packaging.",
+            },
+          ],
+        },
+        deliverables: {
+          eyebrow: "What you receive",
+          title: "Four deliverables designed as one cohesive heirloom.",
+          lead: "Each family receives a physical and digital set that complement each other — a story you can read, watch, display, and continue.",
+          items: [
+            {
+              title: "Premium biography book",
+              body: "Heirloom-grade hard cover, heavy weight paper, custom layout with pop-up sections. Each copy is numbered with waterproof packaging.",
+            },
+            {
+              title: "Restored photographs",
+              body: "Old photos restored, fresh studio photos by Lifestory.",
+            },
+            {
+              title: "Documentary film",
+              body: "Guided interviews edited into a cinematic short with an exclusive flash drive.",
+            },
+            {
+              title: "Printed & digital lineage tree",
+              body: "A beautifully framed family diagram with slots for next generations. Synced with your Lifestory digital dashboard.",
+            },
+          ],
+        },
+        featured: {
+          eyebrow: "Biography gallery",
+          title: "A few of the stories we have preserved.",
+          lead: "Each cover represents a different approach — from personal memoirs to multi-generation tributes. Tap to view details and read the manuscript.",
+          viewMore: "View detail",
+        },
+        testimonials: {
+          eyebrow: "Family voices",
+          title: "What we hear after the book is delivered.",
+          lead: "A few honest words from families who already hold the finished work.",
+          items: [
+            {
+              quote:
+                "It feels like hearing my mother's voice again. Our grandchildren now know how she actually spoke, not just how she looked.",
+              author: "The Tanuwijaya Family",
+              role: "Mother Tribute Edition",
+            },
+            {
+              quote:
+                "The Lifestory team protects every detail. They returned for several rounds of interviews until the story was truly whole, not just complete.",
+              author: "Pak Yohannes",
+              role: "Personal Memoir",
+            },
+            {
+              quote:
+                "I did not expect to cry over a page layout. The result far exceeded my expectations.",
+              author: "Suwati",
+              role: "Cross-Generation Memoir",
+            },
+          ],
+          pressLabel: "Trusted by families in",
+          pressLogos: [
+            "Jakarta",
+            "Bandung",
+            "Surabaya",
+            "Yogyakarta",
+            "Medan",
+            "Bali",
+            "Singapore",
+          ],
+        },
+        faq: {
+          eyebrow: "Questions",
+          title: "What families usually ask before starting.",
+          items: [
+            {
+              q: "How long does the full process take?",
+              a: "Typically 12 to 16 weeks, depending on family complexity, number of interviewees, and how much photo restoration is required.",
+            },
+            {
+              q: "Can the entire process be done remotely?",
+              a: "Yes. Interviews and visual reviews can happen over video calls. For photo sessions we have a mobile team that can travel to your city.",
+            },
+            {
+              q: "Who owns the rights to the manuscript and film?",
+              a: "Full rights remain with the family. Lifestory only holds limited license for portfolio documentation if you allow it.",
+            },
+            {
+              q: "What if family members remember things differently?",
+              a: "That is normal. We summarize multiple versions, cross-confirm, and write in a voice that honors every perspective without forcing a single version.",
+            },
+            {
+              q: "Can the book design be customized?",
+              a: "Every book is custom designed. We start from a few visual directions and tailor it to the family's personality and aesthetic.",
+            },
+          ],
+          asideTitle: "Not sure which package fits?",
+          asideBody:
+            "We offer a 30-minute discovery call at no cost to discuss your family and design the most sensible approach.",
+          asideCta: "Schedule consult",
+        },
+        finalCta: {
+          eyebrow: "Begin now",
+          title: "Stories worth telling do not wait any longer.",
+          lead: "We can start from a single simple interview with your parents or grandparents today. The rest, leave it to us.",
+          primaryCta: !isLoggedIn ? "Start the Story" : "Continue Story",
+          secondaryCta: "View all packages",
+        },
+      };
 
   return (
-    <div className="bg-[#f7f5f1] text-[#40342c]">
-      <section className="relative min-h-[86vh] overflow-hidden">
-        <div
-          className="absolute inset-0 scale-[1.02] bg-cover bg-center"
-          style={{ backgroundImage: `url("${heroImage}")` }}
-        />
-        <div className="absolute inset-0 bg-[rgba(245,236,219,0.5)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.62)_0%,rgba(245,236,219,0.14)_40%,rgba(247,245,241,0.92)_100%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(255,255,255,0.5),transparent_42%),radial-gradient(circle_at_84%_10%,rgba(228,191,112,0.2),transparent_32%)]" />
-
-        <div className="relative mx-auto flex min-h-[86vh] max-w-6xl items-center justify-center px-6 pb-28 pt-24 text-center">
-          <div className="max-w-4xl animate-[fade-in-up_0.7s_ease-out]">
-            {isLoggedIn && (
-              <p className="mx-auto mb-5 inline-flex items-center rounded-full border border-[#dccfb7] bg-[rgba(255,255,255,0.7)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7b6f63] backdrop-blur-sm">
-                {copy.welcomeBack}, {firstName}
-              </p>
-            )}
-            <h1 className="font-serif text-[clamp(3rem,8vw,6.2rem)] leading-[0.98] tracking-[-0.02em] text-[#3f342d]">
-              {copy.heroTitle}
-            </h1>
-            <p className="mx-auto mt-5 max-w-3xl text-[clamp(1.05rem,2vw,1.95rem)] leading-relaxed text-[#776b61]">
-              {copy.heroSubtitle}
-            </p>
-
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-              {status === "loading" && (
-                <>
-                  <div className="h-[58px] w-[250px] animate-pulse rounded-full border border-[#e2d4be] bg-white/70" />
-                  <div className="h-[58px] w-[250px] animate-pulse rounded-full border border-[#e2d4be] bg-white/70" />
-                </>
-              )}
-
-              {status === "unauthenticated" && (
-                <>
-                  <Link
-                    href="/auth/register"
-                    className="inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-9 py-3.5 text-lg font-semibold text-white shadow-[0_16px_36px_rgba(169,116,21,0.34)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_40px_rgba(169,116,21,0.42)]"
-                  >
-                    {copy.startStory}
-                    <span aria-hidden>&rarr;</span>
-                  </Link>
-                  <Link
-                    href="/app"
-                    className="inline-flex items-center rounded-full border border-[#d7c4a1] bg-[rgba(255,255,255,0.74)] px-7 py-3.5 text-sm font-semibold tracking-[0.08em] text-[#6a584a] backdrop-blur-sm transition hover:bg-white"
-                  >
-                    {copy.exploreFamilyTrees}
-                  </Link>
-                </>
-              )}
-
-              {isLoggedIn && (
-                <>
-                  <Link
-                    href={primaryCta.href}
-                    className="inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-9 py-3.5 text-lg font-semibold text-white shadow-[0_16px_36px_rgba(169,116,21,0.34)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_40px_rgba(169,116,21,0.42)]"
-                  >
-                    {primaryCta.label}
-                    <span aria-hidden>&rarr;</span>
-                  </Link>
-                  <Link
-                    href={secondaryCta.href}
-                    className="inline-flex items-center rounded-full border border-[#d7c4a1] bg-[rgba(255,255,255,0.74)] px-7 py-3.5 text-sm font-semibold tracking-[0.08em] text-[#6a584a] backdrop-blur-sm transition hover:bg-white"
-                  >
-                    {secondaryCta.label.toUpperCase()}
-                  </Link>
-                </>
-              )}
-            </div>
-
-            <div className="mt-9 flex flex-wrap items-center justify-center gap-2">
-              {copy.highlights.map((item) => (
-                <span
-                  key={item}
-                  className="rounded-full border border-[#dccfb7] bg-[rgba(255,255,255,0.68)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#7b6f63] backdrop-blur-sm"
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-5xl px-6 py-24 text-center md:py-28">
-        <span className="mx-auto mb-6 block h-px w-16 bg-gradient-to-r from-transparent via-[#c7b289] to-transparent" />
-        <h2 className="font-serif text-[clamp(2.1rem,5vw,4.1rem)] leading-[1.08] text-[#3f342d]">
-          {copy.sectionTitle}
-        </h2>
-        <p className="mx-auto mt-6 max-w-3xl text-[clamp(0.95rem,1.4vw,1.15rem)] leading-[1.75] text-[#72675f]">
-          {copy.sectionBody}
-        </p>
-      </section>
-
-      <section className="mx-auto max-w-[1320px] px-6 pb-24 md:pb-28">
-        <div>
-          <h2 className="text-center font-serif text-[clamp(2rem,4.8vw,3.85rem)] leading-[1.1] text-[#3f342d]">
-            {copy.featuredTitle}
-          </h2>
-          <div className="mt-4 flex justify-center sm:justify-end">
-            <Link
-              href="/gallery"
-              className="inline-flex items-center gap-2 rounded-full border border-[#dccfb7] bg-white/75 px-5 py-2 text-sm font-semibold text-[#6c5a49] transition hover:border-[#c7b289] hover:bg-white hover:text-[#4c3f34]"
-            >
-              {copy.viewMore}
-              <span aria-hidden>&rarr;</span>
-            </Link>
-          </div>
-        </div>
-
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:gap-8 xl:grid-cols-4">
-          {galleryItems.map((book, index) => (
-            <Link
-              key={book.id}
-              href={`/gallery?item=${book.id}`}
-              aria-label={`Open ${book.title} in gallery`}
-              className="group relative block aspect-[2/3] overflow-hidden rounded-[20px] border border-[#d2c5ad] bg-white transition duration-500 hover:-translate-y-1.5 hover:shadow-[0_24px_40px_rgba(49,35,15,0.22)]"
-            >
-              <Image
-                src={book.src}
-                alt={book.alt}
-                fill
-                className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
-                priority={index < 2}
-              />
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),rgba(0,0,0,0.18))]" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[rgba(20,12,4,0.78)] via-[rgba(20,12,4,0.32)] to-transparent p-5 opacity-0 transition duration-500 group-hover:opacity-100">
-                <p className="font-serif text-xl leading-tight text-white">
-                  {book.title}
-                </p>
-                <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f3dfa9]">
-                  {copy.viewMore} <span aria-hidden>&rarr;</span>
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-    </div>
+    <>
+      <HomeHero
+        status={status}
+        isLoggedIn={isLoggedIn}
+        firstName={firstName}
+        copy={copy.hero}
+        primaryCtaHref={primaryCtaHref}
+        secondaryCtaHref={secondaryCtaHref}
+      />
+      <StatsStrip copy={copy.stats} />
+      <HowItWorks copy={copy.howItWorks} />
+      <Deliverables copy={copy.deliverables} />
+      <FeaturedCollections copy={copy.featured} />
+      <Testimonials copy={copy.testimonials} />
+      <FAQ copy={copy.faq} />
+      <FinalCTA
+        copy={copy.finalCta}
+        primaryHref={primaryCtaHref}
+        secondaryHref="/subscribe"
+      />
+    </>
   );
 }

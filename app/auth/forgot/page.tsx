@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowLeft, KeyRound, MailCheck, Sparkles } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowLeft, ArrowRight, KeyRound, Mail, MailCheck, Sparkles } from "lucide-react";
 import { useLanguage } from "../../../components/providers/LanguageProvider";
+import { Button } from "../../../components/ui/Button";
+import { FloatingInput } from "../../../components/ui/FloatingField";
 
 export default function ForgotPasswordPage() {
   const { locale } = useLanguage();
+  const reduce = useReducedMotion();
   const [status, setStatus] = useState<"idle" | "loading" | "sent">("idle");
 
   const copy =
@@ -68,9 +71,9 @@ export default function ForgotPasswordPage() {
 
       <div className="relative mx-auto flex min-h-screen max-w-3xl items-center px-6 py-16">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: reduce ? 0 : 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          transition={{ duration: reduce ? 0.01 : 0.5, ease: "easeOut" }}
           className="w-full"
         >
           <Link
@@ -116,26 +119,26 @@ export default function ForgotPasswordPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#7b6f63]">
-                    {copy.email}
-                  </span>
-                  <input
-                    required
-                    name="email"
-                    type="email"
-                    placeholder={copy.emailPlaceholder}
-                    className="w-full rounded-xl border border-[#e2d4be] bg-white px-4 py-3 text-sm text-[#3f342d] placeholder:text-[#a99e8f] outline-none transition focus:border-[#c48b24] focus:ring-2 focus:ring-[#f6e5c1]"
-                  />
-                </label>
+                <FloatingInput
+                  required
+                  name="email"
+                  type="email"
+                  label={copy.email}
+                  hint={copy.emailPlaceholder}
+                  iconLeft={<Mail />}
+                  autoComplete="email"
+                />
 
-                <button
+                <Button
                   type="submit"
-                  disabled={status === "loading"}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-6 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-[0_14px_30px_rgba(169,116,21,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(169,116,21,0.4)] disabled:cursor-not-allowed disabled:opacity-70"
+                  block
+                  size="lg"
+                  loading={status === "loading"}
+                  iconRight={<ArrowRight className="h-4 w-4" />}
+                  animateRightIcon
                 >
-                  {status === "loading" ? copy.sending : copy.send}
-                </button>
+                  {copy.send}
+                </Button>
 
                 <p className="rounded-xl border border-[#eee1cb] bg-[#fffcf7] p-3 text-xs leading-relaxed text-[#7b6f63]">
                   <span className="font-semibold text-[#9b845f]">

@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
@@ -15,6 +15,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { useLanguage } from "../../components/providers/LanguageProvider";
+import { Button } from "../../components/ui/Button";
 
 const WHATSAPP_NUMBER = "6281234567890"; // Replace with actual number
 
@@ -24,6 +25,7 @@ export default function SubscribePage() {
   const user = session?.user;
   const isSubscribed = user?.subscriptionActive;
   const isId = locale === "id";
+  const reduce = useReducedMotion();
 
   const copy = isId
     ? {
@@ -183,43 +185,47 @@ export default function SubscribePage() {
 
   if (isSubscribed) {
     return (
-      <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf2e1] via-[#fbf8f2] to-[#f7f5f1] text-[#40342c]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#f1d99b]/55 blur-3xl" />
-          <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#e6ddc6]/70 blur-3xl" />
+      <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-cream-50 via-cream-100 to-cream-200 text-ink-700">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-32 top-20 h-[400px] w-[400px] rounded-full bg-brand-200/35 blur-3xl" />
+          <div className="absolute -right-32 bottom-16 h-[360px] w-[360px] rounded-full bg-accent-100/35 blur-3xl" />
+          <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-40" />
         </div>
         <section className="relative mx-auto flex min-h-screen max-w-3xl flex-col items-center justify-center px-6 py-16 text-center">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="w-full rounded-[30px] border border-[#dfd2be] bg-white/86 p-9 shadow-[0_22px_60px_rgba(88,74,51,0.18)] backdrop-blur-sm"
+            transition={{ duration: reduce ? 0.01 : 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full rounded-card-lg border border-cream-300 bg-white/86 p-9 shadow-elev backdrop-blur-sm"
           >
-            <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[#cfe3d2] bg-[linear-gradient(150deg,#f1faef_0%,#fbfff8_100%)] text-[#5a7d5e]">
+            <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-card-lg border border-[#cfe3d2] bg-[linear-gradient(150deg,#f1faef_0%,#fbfff8_100%)] text-success">
               <BadgeCheck className="h-6 w-6" />
             </div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9b845f]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700">
               {copy.activeBadge}
             </p>
-            <h1 className="mt-2 font-serif text-[clamp(2rem,4.4vw,3.2rem)] leading-tight text-[#3f342d]">
+            <h1 className="mt-2 font-serif text-[clamp(2rem,4.4vw,3.2rem)] leading-tight text-ink-800">
               {copy.activeTitle}
             </h1>
-            <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-[#73685f]">
+            <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-ink-500">
               {copy.activeBody}
             </p>
-            <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                href="/app"
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-[0_14px_30px_rgba(169,116,21,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(169,116,21,0.4)]"
-              >
-                {copy.activeCta}
-                <ArrowRight className="h-4 w-4" />
+            <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
+              <Link href="/app" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  block
+                  iconRight={<ArrowRight className="h-4 w-4" />}
+                  animateRightIcon
+                  className="sm:w-auto"
+                >
+                  {copy.activeCta}
+                </Button>
               </Link>
-              <Link
-                href="/gallery"
-                className="inline-flex items-center rounded-full border border-[#d7c4a1] bg-white/80 px-7 py-3 text-sm font-semibold uppercase tracking-[0.1em] text-[#6a584a] backdrop-blur-sm transition hover:bg-white"
-              >
-                {copy.exploreCta}
+              <Link href="/gallery" className="w-full sm:w-auto">
+                <Button size="lg" variant="secondary" block className="sm:w-auto">
+                  {copy.exploreCta}
+                </Button>
               </Link>
             </div>
           </motion.div>
@@ -238,9 +244,9 @@ export default function SubscribePage() {
 
       <section className="relative mx-auto max-w-5xl px-6 pb-12 pt-16 md:pt-20">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: reduce ? 0 : 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: "easeOut" }}
+          transition={{ duration: reduce ? 0.01 : 0.55, ease: "easeOut" }}
           className="space-y-4 text-center"
         >
           <p className="inline-flex items-center gap-2 rounded-full border border-[#dccfb7] bg-white/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b845f]">
@@ -270,10 +276,10 @@ export default function SubscribePage() {
         {copy.plans.map((plan) => (
           <motion.div
             key={plan.name}
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.55, ease: "easeOut" }}
+            transition={{ duration: reduce ? 0.01 : 0.55, ease: "easeOut" }}
             className="relative overflow-hidden rounded-[28px] border border-[#dfd2be] bg-[linear-gradient(150deg,#fff8ea_0%,#fffdf6_55%,#fff_100%)] p-8 shadow-[0_24px_50px_rgba(88,74,51,0.16)]"
           >
             <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[rgba(228,191,112,0.18)]" />
@@ -323,10 +329,10 @@ export default function SubscribePage() {
 
       <section className="relative mx-auto max-w-4xl px-6 pb-16 md:pb-24">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: reduce ? 0 : 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.55, ease: "easeOut" }}
+          transition={{ duration: reduce ? 0.01 : 0.55, ease: "easeOut" }}
           className="mb-8 max-w-2xl"
         >
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9b845f]">
@@ -339,10 +345,10 @@ export default function SubscribePage() {
 
         <div className="space-y-5">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.15 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            transition={{ duration: reduce ? 0.01 : 0.5, ease: "easeOut" }}
             className="rounded-3xl border border-[#dfd2be] bg-white/85 p-6 shadow-[0_14px_28px_rgba(59,43,24,0.08)] md:p-7"
           >
             <div className="flex flex-wrap items-start gap-4">
@@ -394,10 +400,10 @@ export default function SubscribePage() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.15 }}
-            transition={{ duration: 0.5, delay: 0.05, ease: "easeOut" }}
+            transition={{ duration: reduce ? 0.01 : 0.5, delay: reduce ? 0 : 0.05, ease: "easeOut" }}
             className="rounded-3xl border border-[#dfd2be] bg-white/85 p-6 shadow-[0_14px_28px_rgba(59,43,24,0.08)] md:p-7"
           >
             <div className="flex flex-wrap items-start gap-4">
@@ -436,10 +442,10 @@ export default function SubscribePage() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.15 }}
-            transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
+            transition={{ duration: reduce ? 0.01 : 0.5, delay: reduce ? 0 : 0.1, ease: "easeOut" }}
             className="rounded-3xl border border-[#dfd2be] bg-white/85 p-6 shadow-[0_14px_28px_rgba(59,43,24,0.08)] md:p-7"
           >
             <div className="flex flex-wrap items-start gap-4">
@@ -468,10 +474,10 @@ export default function SubscribePage() {
 
         {!user && (
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: reduce ? 0 : 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
+            transition={{ duration: reduce ? 0.01 : 0.5, delay: reduce ? 0 : 0.15 }}
             className="mx-auto mt-8 max-w-xl rounded-2xl border border-[#e9d4a3] bg-[linear-gradient(150deg,#fff7e3_0%,#fffdf6_100%)] p-5 text-center shadow-[0_14px_28px_rgba(149,110,33,0.14)]"
           >
             <p className="text-sm text-[#7e570f]">

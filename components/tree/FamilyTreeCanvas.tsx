@@ -537,7 +537,11 @@ export default function FamilyTreeCanvas({
   return (
     <div
       ref={wrapperRef}
-      className="w-full h-full relative overflow-hidden bg-[#f9f6f1] select-none"
+      className="w-full h-full relative overflow-hidden bg-[#faf8f4] select-none"
+      style={{
+        backgroundImage: "radial-gradient(circle at 1px 1px, rgba(164,146,117,0.12) 1px, transparent 0)",
+        backgroundSize: "28px 28px",
+      }}
       onWheel={handleWheel}
       onMouseDown={handleMouseDownRevised}
       onMouseMove={handleMouseMoveRevised}
@@ -546,28 +550,29 @@ export default function FamilyTreeCanvas({
     >
       <canvas ref={canvasRef} className="block" />
 
-      {/* Zoom Controls Overlay (Optional but good UX) */}
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2 p-2 bg-white/90 backdrop-blur rounded-lg shadow-md border border-warm-200">
+      {/* Zoom Controls */}
+      <div className="absolute bottom-4 right-4 flex flex-col gap-1.5 overflow-hidden rounded-2xl border border-[#e2d4be] bg-white/92 p-1.5 shadow-[0_8px_20px_rgba(59,43,24,0.12)] backdrop-blur">
         <button
-          className="w-8 h-8 flex items-center justify-center rounded hover:bg-warm-100 text-warmMuted font-bold"
+          className="flex h-8 w-8 items-center justify-center rounded-xl text-[#7b5a26] font-bold transition hover:bg-[#fff7e8] hover:text-[#5a3e10]"
           onClick={() => setTransform(t => ({ ...t, k: Math.min(t.k * 1.2, 5) }))}
           title={copy.zoomIn}
           aria-label={copy.zoomIn}
         >
           +
         </button>
+        <div className="mx-auto h-px w-5 bg-[#e2d4be]" />
         <button
-          className="w-8 h-8 flex items-center justify-center rounded hover:bg-warm-100 text-warmMuted font-bold"
+          className="flex h-8 w-8 items-center justify-center rounded-xl text-[#7b5a26] font-bold transition hover:bg-[#fff7e8] hover:text-[#5a3e10]"
           onClick={() => setTransform(t => ({ ...t, k: Math.max(t.k / 1.2, 0.1) }))}
           title={copy.zoomOut}
           aria-label={copy.zoomOut}
         >
-          -
+          −
         </button>
+        <div className="mx-auto h-px w-5 bg-[#e2d4be]" />
         <button
-          className="w-8 h-8 flex items-center justify-center rounded hover:bg-warm-100 text-warmMuted font-bold text-xs"
+          className="flex h-8 w-8 items-center justify-center rounded-xl text-[#7b5a26] text-sm font-bold transition hover:bg-[#fff7e8] hover:text-[#5a3e10]"
           onClick={() => {
-            // Reset to center
             if (wrapperRef.current) {
               const { clientWidth } = wrapperRef.current;
               const initialScale = 0.8;
@@ -582,7 +587,7 @@ export default function FamilyTreeCanvas({
           ⟲
         </button>
       </div>
-      <div className="pointer-events-none absolute bottom-4 left-4 rounded-lg border border-warm-200 bg-white/90 px-3 py-2 text-xs text-warmMuted shadow-sm backdrop-blur">
+      <div className="pointer-events-none absolute bottom-4 left-4 rounded-xl border border-[#e2d4be] bg-white/88 px-3 py-2 text-xs text-[#7b6f63] shadow-sm backdrop-blur">
         {copy.hintPanZoom}
       </div>
     </div>

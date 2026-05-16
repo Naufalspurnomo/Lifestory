@@ -188,8 +188,8 @@ export function NavBar() {
         </Link>
 
         <nav
-          className={`hidden items-center transition-all duration-300 xl:flex ${
-            isScrolled ? "gap-6" : "gap-8"
+          className={`hidden items-center transition-all duration-300 lg:flex ${
+            isScrolled ? "gap-5" : "gap-7"
           }`}
         >
           {navLinks.map((link) => {
@@ -215,7 +215,7 @@ export function NavBar() {
           })}
         </nav>
 
-        <div className="hidden items-center gap-2 xl:flex">
+        <div className="hidden items-center gap-2 lg:flex">
           <LanguageToggle />
 
           {status === "loading" && (
@@ -243,7 +243,7 @@ export function NavBar() {
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#efe3cc] text-sm font-bold text-[#6a5033]">
                   {userInitial}
                 </span>
-                <span className="max-w-[132px] truncate text-sm font-semibold text-[#4c3f34]">
+                <span className="hidden max-w-[120px] truncate text-sm font-semibold text-[#4c3f34] xl:inline">
                   {displayName}
                 </span>
                 <span
@@ -321,7 +321,7 @@ export function NavBar() {
 
         <button
           onClick={() => setMobileOpen((prev) => !prev)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#dfd8cc] text-[#5f5247] xl:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#dfd8cc] text-[#5f5247] lg:hidden"
           aria-label={copy.toggleMenu}
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -329,7 +329,7 @@ export function NavBar() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-[#ece6dd] bg-white px-6 py-4 xl:hidden">
+        <div className="border-t border-[#ece6dd] bg-white px-6 py-4 lg:hidden">
           <div className="mb-4">
             <LanguageToggle />
           </div>

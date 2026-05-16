@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   Clock3,
@@ -15,6 +15,8 @@ import {
 import { Suspense, useEffect, useState } from "react";
 import { useLanguage } from "../../../components/providers/LanguageProvider";
 import { Button } from "../../../components/ui/Button";
+import { FloatingInput } from "../../../components/ui/FloatingField";
+import { Mail, Lock } from "lucide-react";
 
 type Locale = "id" | "en";
 
@@ -55,6 +57,7 @@ function AuthenticatedState() {
 function LoginPageContent() {
   const { status: sessionStatus } = useSession();
   const { locale } = useLanguage();
+  const reduce = useReducedMotion();
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -156,9 +159,9 @@ function LoginPageContent() {
 
       <div className="relative mx-auto grid max-w-6xl gap-8 px-6 py-14 lg:grid-cols-[1fr_0.95fr] lg:py-20">
         <motion.section
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: reduce ? 0 : 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
+          transition={{ duration: reduce ? 0.01 : 0.45 }}
           className="rounded-[30px] border border-warmBorder bg-white/86 p-6 shadow-[0_24px_64px_rgba(88,74,51,0.18)] backdrop-blur-sm sm:p-8"
         >
           <div className="mb-8 space-y-3">
@@ -175,29 +178,25 @@ function LoginPageContent() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium text-warmText">{copy.email}</span>
-              <input
-                required
-                name="email"
-                type="email"
-                placeholder={copy.emailPlaceholder}
-                className="w-full rounded-xl border border-warmBorder bg-white px-4 py-3 text-sm text-warmText outline-none transition focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
-              />
-            </label>
+            <FloatingInput
+              required
+              name="email"
+              type="email"
+              label={copy.email}
+              hint={copy.emailPlaceholder}
+              iconLeft={<Mail />}
+              autoComplete="email"
+            />
 
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium text-warmText">
-                {copy.password}
-              </span>
-              <input
-                required
-                name="password"
-                type="password"
-                placeholder={copy.passwordPlaceholder}
-                className="w-full rounded-xl border border-warmBorder bg-white px-4 py-3 text-sm text-warmText outline-none transition focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
-              />
-            </label>
+            <FloatingInput
+              required
+              name="password"
+              type="password"
+              label={copy.password}
+              hint={copy.passwordPlaceholder}
+              iconLeft={<Lock />}
+              autoComplete="current-password"
+            />
 
             <div className="flex items-center justify-between pt-1 text-sm">
               <Link
@@ -212,14 +211,17 @@ function LoginPageContent() {
             <Button
               type="submit"
               block
-              disabled={status === "loading"}
-              className="h-12 rounded-xl text-sm"
+              loading={status === "loading"}
+              size="lg"
             >
-              {status === "loading" ? copy.processing : copy.signIn}
+              {copy.signIn}
             </Button>
 
             {error && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <div
+                role="alert"
+                className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+              >
                 {error}
               </div>
             )}
@@ -237,9 +239,9 @@ function LoginPageContent() {
         </motion.section>
 
         <motion.aside
-          initial={{ opacity: 0, y: 28 }}
+          initial={{ opacity: 0, y: reduce ? 0 : 28 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.08 }}
+          transition={{ duration: reduce ? 0.01 : 0.5, delay: reduce ? 0 : 0.08 }}
           className="relative overflow-hidden rounded-[30px] border border-accent-300 bg-gradient-to-br from-accent-900 via-accent-800 to-gold-800 p-6 text-white shadow-[0_22px_68px_rgba(19,45,42,0.4)] sm:p-8"
         >
           <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10 blur-3xl" />

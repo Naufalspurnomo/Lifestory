@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   CheckCircle2,
   Crown,
@@ -31,6 +31,7 @@ interface UserData {
 export default function DashboardPage() {
   const { data: session } = useSession();
   const { locale } = useLanguage();
+  const reduce = useReducedMotion();
   const user = session?.user;
   const [users, setUsers] = useState<UserData[]>([]);
   const [filter, setFilter] = useState<"all" | UserStatus>("all");
@@ -290,9 +291,9 @@ export default function DashboardPage() {
 
       <section className="relative mx-auto max-w-6xl space-y-8 px-6 py-12 md:py-14">
         <motion.div
-          initial={{ opacity: 0, y: 18 }}
+          initial={{ opacity: 0, y: reduce ? 0 : 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          transition={{ duration: reduce ? 0.01 : 0.5, ease: "easeOut" }}
           className="space-y-3"
         >
           <p className="inline-flex items-center gap-2 rounded-full border border-[#dccfb7] bg-white/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b845f] backdrop-blur-sm">
@@ -311,9 +312,9 @@ export default function DashboardPage() {
             return (
               <motion.div
                 key={card.label}
-                initial={{ opacity: 0, y: 14 }}
+                initial={{ opacity: 0, y: reduce ? 0 : 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.04 * idx }}
+                transition={{ duration: reduce ? 0.01 : 0.4, delay: reduce ? 0 : 0.04 * idx }}
                 className={`rounded-2xl border p-5 shadow-[0_14px_28px_rgba(59,43,24,0.06)] backdrop-blur-sm ${card.accent}`}
               >
                 <div className="flex items-start justify-between">

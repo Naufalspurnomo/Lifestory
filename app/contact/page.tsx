@@ -1,23 +1,29 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
+  CheckCircle2,
   Clock3,
   Mail,
   MapPin,
   MessageCircle,
   Phone,
   Sparkles,
+  User2,
 } from "lucide-react";
 import { useLanguage } from "../../components/providers/LanguageProvider";
-
-const heroImage = "/hero-bg.jpg";
+import { Button } from "../../components/ui/Button";
+import {
+  FloatingInput,
+  FloatingTextarea,
+} from "../../components/ui/FloatingField";
 
 export default function ContactPage() {
   const { locale } = useLanguage();
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
+  const reduce = useReducedMotion();
   const isId = locale === "id";
 
   const copy = isId
@@ -123,32 +129,124 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="bg-[#f7f5f1] text-[#40342c]">
-      <section className="relative overflow-hidden">
-        <div
-          className="absolute inset-0 scale-[1.02] bg-cover bg-center"
-          style={{ backgroundImage: `url("${heroImage}")` }}
-        />
-        <div className="absolute inset-0 bg-[rgba(245,236,219,0.7)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.74)_0%,rgba(245,236,219,0.18)_45%,rgba(247,245,241,0.96)_100%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,255,255,0.55),transparent_42%),radial-gradient(circle_at_82%_8%,rgba(228,191,112,0.22),transparent_34%)]" />
+    <div className="bg-cream-100 text-ink-700">
+      {/* Hero — editorial split, NO shared hero image */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-cream-50 to-cream-100">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-32 top-12 h-[400px] w-[400px] rounded-full bg-brand-200/30 blur-3xl" />
+          <div className="absolute -right-32 bottom-0 h-[360px] w-[360px] rounded-full bg-accent-100/35 blur-3xl" />
+          <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-40" />
+        </div>
 
-        <div className="relative mx-auto max-w-6xl px-6 pb-16 pt-20 md:pb-20 md:pt-24">
+        <div className="relative mx-auto grid max-w-[1320px] grid-cols-1 gap-10 px-6 pb-12 pt-20 lg:grid-cols-[1fr_0.85fr] lg:gap-16 lg:pt-28">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: reduce ? 0 : 28 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="max-w-3xl"
+            transition={{ duration: reduce ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="max-w-xl"
           >
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#dccfb7] bg-[rgba(255,255,255,0.72)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#7b6f63] backdrop-blur-sm">
-              <Sparkles className="h-3.5 w-3.5 text-[#c48b24]" />
+            <span className="inline-flex items-center gap-2 rounded-pill border border-cream-300 bg-white/80 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700 backdrop-blur-sm">
+              <Sparkles className="h-3 w-3" />
               {copy.badge}
-            </p>
-            <h1 className="font-serif text-[clamp(2.4rem,6vw,4.6rem)] leading-[1] tracking-[-0.02em] text-[#3f342d]">
+            </span>
+            <h1 className="mt-6 font-serif font-medium text-[clamp(2.4rem,6vw,4.6rem)] leading-[0.96] tracking-[-0.025em] text-ink-800">
               {copy.title}
             </h1>
-            <p className="mt-5 max-w-2xl text-[clamp(1rem,1.6vw,1.2rem)] leading-relaxed text-[#73685f]">
+            <p className="mt-6 text-base leading-relaxed text-ink-500 md:text-lg">
               {copy.subtitle}
+            </p>
+
+            {/* Quick contact rail */}
+            <div className="mt-9 grid gap-3 sm:grid-cols-2">
+              {copy.items.slice(0, 2).map((item) => {
+                const Icon = item.icon;
+                return (
+                  <a
+                    key={item.label}
+                    href={
+                      item.label === "Email" || item.label === "Email"
+                        ? `mailto:${item.value}`
+                        : "#"
+                    }
+                    className="group flex items-center gap-3 rounded-card border border-cream-300 bg-white p-4 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-soft"
+                  >
+                    <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-card border border-cream-300 bg-cream-100 text-brand-700">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-700">
+                        {item.label}
+                      </p>
+                      <p className="truncate text-sm font-semibold text-ink-800">
+                        {item.value}
+                      </p>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          </motion.div>
+
+          {/* Right — letter mock */}
+          <motion.div
+            initial={{ opacity: 0, y: reduce ? 0 : 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduce ? 0.01 : 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+            className="relative hidden lg:block"
+          >
+            <div className="absolute -left-6 top-6 h-full w-full rotate-[-3deg] rounded-card-lg border border-cream-300 bg-white/70 shadow-soft" />
+            <div className="relative rotate-[2deg] overflow-hidden rounded-card-lg border border-cream-300 bg-white p-8 shadow-deep">
+              <div className="flex items-center justify-between border-b border-cream-300 pb-4">
+                <span className="font-serif text-xl text-ink-800">
+                  Lifestory.co
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+                  Studio Note
+                </span>
+              </div>
+              <p className="mt-5 font-serif text-2xl leading-snug text-ink-800">
+                {isId
+                  ? "Halo, mari kita mulai dengan secangkir kopi."
+                  : "Hello, let’s begin with a cup of coffee."}
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-ink-500">
+                {isId
+                  ? "Setiap proyek Lifestory dimulai dari sesi konsultasi yang tenang. Tidak ada pitch deck, hanya percakapan untuk memahami keluarga Anda."
+                  : "Every Lifestory project begins with a calm consultation. No pitch deck, just a conversation to understand your family."}
+              </p>
+              <div className="mt-6 flex items-center gap-3">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-pill bg-brand-gradient text-white">
+                  <CheckCircle2 className="h-4 w-4" />
+                </span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-500">
+                  {isId ? "Konsultasi gratis 30 menit" : "Free 30-minute discovery"}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Mobile/tablet fallback — flat letter card */}
+          <motion.div
+            initial={{ opacity: 0, y: reduce ? 0 : 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduce ? 0.01 : 0.6, delay: reduce ? 0 : 0.18 }}
+            className="relative overflow-hidden rounded-card-lg border border-cream-300 bg-white p-6 shadow-soft lg:hidden"
+          >
+            <div className="flex items-center justify-between border-b border-cream-300 pb-3">
+              <span className="font-serif text-lg text-ink-800">Lifestory.co</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+                Studio Note
+              </span>
+            </div>
+            <p className="mt-4 font-serif text-xl leading-snug text-ink-800">
+              {isId
+                ? "Mari kita mulai dengan secangkir kopi."
+                : "Let’s begin with a cup of coffee."}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-ink-500">
+              {isId
+                ? "Konsultasi 30 menit, tanpa pitch deck — hanya percakapan."
+                : "A 30-minute consult, no pitch deck, just a conversation."}
             </p>
           </motion.div>
         </div>
@@ -157,77 +255,76 @@ export default function ContactPage() {
       <section className="mx-auto max-w-6xl px-6 pb-24">
         <div className="grid gap-7 lg:grid-cols-[1.15fr_0.85fr]">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.55, ease: "easeOut" }}
-            className="rounded-[28px] border border-[#dfd2be] bg-white/85 p-7 shadow-[0_22px_44px_rgba(59,43,24,0.1)] backdrop-blur-sm md:p-9"
+            transition={{ duration: reduce ? 0.01 : 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="rounded-card-lg border border-cream-300 bg-white/85 p-7 shadow-elev backdrop-blur-sm md:p-9"
           >
             <div className="mb-7 space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9b845f]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700">
                 {copy.formLabel}
               </p>
-              <h2 className="font-serif text-[clamp(1.7rem,3vw,2.3rem)] text-[#3f342d]">
+              <h2 className="font-serif text-[clamp(1.6rem,3vw,2.3rem)] text-ink-800">
                 {copy.formIntro}
               </h2>
             </div>
 
-            <form onSubmit={onSubmit} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#7b6f63]">
-                    {copy.name}
-                  </span>
-                  <input
-                    required
-                    name="name"
-                    placeholder={copy.namePlaceholder}
-                    className="w-full rounded-xl border border-[#e2d4be] bg-white px-4 py-3 text-sm text-[#3f342d] placeholder:text-[#a99e8f] outline-none transition focus:border-[#c48b24] focus:ring-2 focus:ring-[#f6e5c1]"
-                  />
-                </label>
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#7b6f63]">
-                    {copy.email}
-                  </span>
-                  <input
-                    required
-                    type="email"
-                    name="email"
-                    placeholder={copy.emailPlaceholder}
-                    className="w-full rounded-xl border border-[#e2d4be] bg-white px-4 py-3 text-sm text-[#3f342d] placeholder:text-[#a99e8f] outline-none transition focus:border-[#c48b24] focus:ring-2 focus:ring-[#f6e5c1]"
-                  />
-                </label>
+            <form onSubmit={onSubmit} className="space-y-5">
+              <div className="grid gap-5 md:grid-cols-2">
+                <FloatingInput
+                  required
+                  name="name"
+                  label={copy.name}
+                  hint={copy.namePlaceholder}
+                  iconLeft={<User2 />}
+                  autoComplete="name"
+                />
+                <FloatingInput
+                  required
+                  type="email"
+                  name="email"
+                  label={copy.email}
+                  hint={copy.emailPlaceholder}
+                  iconLeft={<Mail />}
+                  autoComplete="email"
+                />
               </div>
 
-              <label className="block space-y-1.5">
-                <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#7b6f63]">
-                  {copy.message}
-                </span>
-                <textarea
-                  required
-                  name="message"
-                  rows={5}
-                  placeholder={copy.messagePlaceholder}
-                  className="w-full resize-none rounded-xl border border-[#e2d4be] bg-white px-4 py-3 text-sm text-[#3f342d] placeholder:text-[#a99e8f] outline-none transition focus:border-[#c48b24] focus:ring-2 focus:ring-[#f6e5c1]"
-                />
-              </label>
+              <FloatingTextarea
+                required
+                name="message"
+                label={copy.message}
+                hint={copy.messagePlaceholder}
+                rows={6}
+              />
 
-              <div className="flex flex-wrap items-center gap-4 pt-2">
-                <button
+              <div className="flex flex-wrap items-center gap-4 pt-1">
+                <Button
                   type="submit"
-                  disabled={status === "sending"}
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-[0_14px_30px_rgba(169,116,21,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(169,116,21,0.4)] disabled:cursor-not-allowed disabled:opacity-70"
+                  loading={status === "sending"}
+                  iconRight={
+                    status === "sent" ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <ArrowRight className="h-4 w-4" />
+                    )
+                  }
+                  animateRightIcon
+                  size="lg"
                 >
                   {status === "sending"
                     ? copy.sending
                     : status === "sent"
                     ? copy.sent
                     : copy.send}
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+                </Button>
                 {status === "sent" && (
-                  <p className="inline-flex items-center gap-2 text-sm text-[#5a7d5e]">
-                    <span className="inline-flex h-2 w-2 rounded-full bg-[#5a7d5e]" />
+                  <p
+                    className="inline-flex items-center gap-2 text-sm text-success"
+                    role="status"
+                  >
+                    <span className="inline-flex h-2 w-2 rounded-full bg-success" />
                     {copy.thanks}
                   </p>
                 )}
@@ -236,10 +333,10 @@ export default function ContactPage() {
           </motion.div>
 
           <motion.aside
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.55, delay: 0.1, ease: "easeOut" }}
+            transition={{ duration: reduce ? 0.01 : 0.55, delay: reduce ? 0 : 0.1, ease: "easeOut" }}
             className="space-y-5"
           >
             <div className="rounded-[28px] border border-[#dfd2be] bg-[linear-gradient(150deg,#fff8ea_0%,#fffdf6_60%,#fff_100%)] p-7 shadow-[0_18px_36px_rgba(59,43,24,0.1)]">

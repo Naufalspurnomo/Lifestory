@@ -2,9 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   Lifestory.co — Design Tokens
+   Single source of truth for cross-component variables.
+   ============================================================ */
 :root {
+  /* Fonts */
   --font-inter: "Inter", sans-serif;
   --font-playfair: "Playfair Display", serif;
+
+  /* Surface */
+  --surface-page: #faf6ed;
+  --surface-elev: #ffffff;
+  --surface-quiet: #f5efe1;
+
+  /* Ink */
+  --ink-900: #1d1610;
+  --ink-800: #3f342d;
+  --ink-700: #40342c;
+  --ink-600: #5a4d42;
+  --ink-500: #73685f;
+  --ink-300: #9c8e7e;
+  --ink-100: #e9e0d0;
+
+  /* Brand */
+  --brand-400: #e6ab2f;
+  --brand-500: #cc8a12;
+  --brand-600: #a8741e;
+  --brand-700: #82693c;
+
+  /* Border */
+  --border-soft: #ece2cc;
+  --border-mid: #dccfb3;
+
+  /* Section rhythm */
+  --section-y-sm: clamp(3.5rem, 6vw, 5rem);
+  --section-y-md: clamp(5rem, 8vw, 7rem);
+  --section-y-lg: clamp(6rem, 10vw, 9rem);
+
+  /* Easing */
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 * {
@@ -17,13 +54,62 @@ body {
   padding: 0;
 }
 
-body {
-  background: #f7f5f1;
-  color: #3f342d;
-  font-family: var(--font-inter);
-  overflow-x: hidden;
+html {
+  scroll-behavior: smooth;
 }
 
+body {
+  background: var(--surface-page);
+  color: var(--ink-700);
+  font-family: var(--font-inter);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Headline rendering tightened */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+/* ============================================================
+   Scrollbar (premium feel)
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #f0ece5;
+}
+::-webkit-scrollbar-thumb {
+  background: #c5b395;
+  border-radius: 8px;
+  border: 2px solid #f0ece5;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a8896a;
+}
+
+/* ============================================================
+   Selection
+   ============================================================ */
+::selection {
+  background: rgba(228, 171, 47, 0.4);
+  color: var(--ink-800);
+}
+
+/* ============================================================
+   Keyframes (legacy compat — Tailwind animations also defined)
+   ============================================================ */
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -35,38 +121,130 @@ body {
   }
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f0ece5;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #c5b7a3;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #b39f85;
-}
-
-::selection {
-  background: rgba(228, 191, 112, 0.45);
-  color: #3f342d;
-}
-
 @keyframes fade-in {
   from {
     opacity: 0;
   }
   to {
     opacity: 1;
+  }
+}
+
+/* ============================================================
+   Focus ring (consistent across primitives)
+   ============================================================ */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--surface-elev),
+    0 0 0 4px var(--brand-400);
+}
+
+/* ============================================================
+   Utility classes consumed across primitives
+   ============================================================ */
+@layer components {
+  .container-page {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    max-width: 1320px;
+  }
+
+  .section-y-sm {
+    padding-top: var(--section-y-sm);
+    padding-bottom: var(--section-y-sm);
+  }
+  .section-y-md {
+    padding-top: var(--section-y-md);
+    padding-bottom: var(--section-y-md);
+  }
+  .section-y-lg {
+    padding-top: var(--section-y-lg);
+    padding-bottom: var(--section-y-lg);
+  }
+
+  /* Eyebrow / kicker — small uppercase label above headlines */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--brand-700);
+  }
+
+  /* Display heading */
+  .h-display {
+    font-family: var(--font-playfair);
+    font-weight: 500;
+    line-height: 0.98;
+    letter-spacing: -0.025em;
+    color: var(--ink-800);
+  }
+
+  /* Decorative thin gold rule */
+  .gold-rule {
+    height: 1px;
+    width: 64px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--brand-400),
+      transparent
+    );
+  }
+}
+
+/* ============================================================
+   Reduced motion respect
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ============================================================
+   Texture/noise overlay (used on dark sections)
+   ============================================================ */
+.noise-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(255, 255, 255, 0.5) 1px,
+    transparent 0
+  );
+  background-size: 4px 4px;
+}
+
+/* ============================================================
+   Utility: clip mask reveal for image enter animations
+   ============================================================ */
+.mask-reveal {
+  clip-path: inset(0 100% 0 0);
+  animation: mask-reveal 1s var(--ease-smooth) forwards;
+}
+
+@keyframes mask-reveal {
+  to {
+    clip-path: inset(0 0 0 0);
   }
 }

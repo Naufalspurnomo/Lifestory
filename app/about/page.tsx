@@ -17,8 +17,8 @@ import {
   Video,
 } from "lucide-react";
 import { useLanguage } from "../../components/providers/LanguageProvider";
-
-const heroImage = "/hero-bg.jpg";
+import { Button } from "../../components/ui/Button";
+import { RibbonBadge } from "../../components/ui/Ornament";
 
 const heroHighlights = [
   "Arsip memori keluarga",
@@ -508,38 +508,59 @@ export default function AboutPage() {
   const currentPackages = isId ? packages : packagesEn;
 
   return (
-    <div className="bg-[#f7f5f1] text-[#40342c]">
-      <section className="relative min-h-[88vh] overflow-hidden">
-        <div
-          className="absolute inset-0 scale-[1.02] bg-cover bg-center"
-          style={{ backgroundImage: `url("${heroImage}")` }}
-        />
-        <div className="absolute inset-0 bg-[rgba(245,236,219,0.72)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.74)_0%,rgba(245,236,219,0.3)_45%,rgba(247,245,241,0.96)_100%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_18%,rgba(255,255,255,0.55),transparent_42%),radial-gradient(circle_at_82%_4%,rgba(228,191,112,0.2),transparent_34%)]" />
+    <div className="bg-cream-100 text-ink-700">
+      <section className="relative overflow-hidden bg-gradient-to-b from-cream-50 via-cream-100 to-cream-200">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-40 top-32 h-[420px] w-[420px] rounded-full bg-brand-200/30 blur-3xl" />
+          <div className="absolute -right-32 -top-10 h-[360px] w-[360px] rounded-full bg-accent-100/35 blur-3xl" />
+          <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-40" />
+        </div>
 
-        <div className="relative mx-auto flex min-h-[88vh] max-w-6xl items-center px-6 pb-20 pt-24">
+        {/* Timeline strip at the top */}
+        <div className="relative border-b border-cream-300/60">
+          <div className="mx-auto flex max-w-[1320px] items-center gap-4 overflow-x-auto px-6 py-3">
+            <RibbonBadge className="hidden flex-none sm:inline-flex">
+              {isId ? "Sejarah" : "Heritage"}
+            </RibbonBadge>
+            <div className="flex min-w-0 flex-1 items-center gap-4 overflow-hidden text-[10px] font-bold uppercase tracking-[0.32em] text-ink-300">
+              <span>1899</span>
+              <span aria-hidden className="h-px flex-1 bg-cream-300" />
+              <span className="hidden sm:inline">1965</span>
+              <span aria-hidden className="hidden h-px flex-1 bg-cream-300 sm:inline-block" />
+              <span className="hidden md:inline">1992</span>
+              <span aria-hidden className="hidden h-px flex-1 bg-brand-400 md:inline-block" />
+              <span className="text-brand-700">{new Date().getFullYear()}</span>
+              <span aria-hidden className="h-px w-12 bg-cream-300" />
+              <span>{new Date().getFullYear() + 50}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative mx-auto grid max-w-[1320px] grid-cols-1 gap-10 px-6 pb-20 pt-16 md:pt-20 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:pb-28 lg:pt-24">
           <motion.div
-            initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }}
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 28 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduceMotion ? 0.01 : 0.8, ease: "easeOut" }}
-            className="max-w-4xl"
+            transition={{
+              duration: reduceMotion ? 0.01 : 0.8,
+              ease: [0.22, 1, 0.36, 1],
+            }}
           >
-            <p className="mb-6 inline-flex items-center rounded-full border border-[#dccfb7] bg-[rgba(255,255,255,0.72)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7b6f63] backdrop-blur-sm">
+            <span className="inline-flex items-center gap-2 rounded-pill border border-cream-300 bg-white/80 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700 backdrop-blur-sm">
+              <Sparkles className="h-3 w-3" />
               {pageCopy.aboutLabel}
-            </p>
-            <h1 className="font-serif text-[clamp(2.8rem,7.6vw,6rem)] leading-[0.96] tracking-[-0.02em] text-[#3f342d]">
+            </span>
+            <h1 className="mt-6 font-serif font-medium text-[clamp(2.6rem,7.2vw,5.6rem)] leading-[0.96] tracking-[-0.025em] text-ink-800">
               {pageCopy.heroTitle}
             </h1>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{
-                duration: reduceMotion ? 0.01 : 1.05,
-                delay: 0.12,
+                duration: reduceMotion ? 0.01 : 1,
+                delay: 0.18,
                 ease: "easeOut",
               }}
-              className="mt-6 max-w-3xl text-[clamp(1rem,2vw,1.45rem)] leading-relaxed text-[#73685f]"
+              className="mt-7 max-w-xl text-base leading-relaxed text-ink-500 md:text-lg"
             >
               {pageCopy.heroBody}
             </motion.p>
@@ -548,16 +569,16 @@ export default function AboutPage() {
               initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
-                duration: reduceMotion ? 0.01 : 0.7,
-                delay: 0.22,
+                duration: reduceMotion ? 0.01 : 0.6,
+                delay: 0.3,
                 ease: "easeOut",
               }}
-              className="mt-9 flex flex-wrap gap-2.5"
+              className="mt-8 flex flex-wrap gap-2"
             >
               {currentHeroHighlights.map((item) => (
                 <span
                   key={item}
-                  className="rounded-full border border-[#d8cab1] bg-white/75 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#6f645b]"
+                  className="rounded-pill border border-cream-300 bg-white/75 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-500"
                 >
                   {item}
                 </span>
@@ -569,25 +590,117 @@ export default function AboutPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{
                 duration: reduceMotion ? 0.01 : 0.6,
-                delay: 0.3,
+                delay: 0.42,
                 ease: "easeOut",
               }}
-              className="mt-8 flex flex-wrap items-center gap-3"
+              className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
             >
-              <Link
-                href="/contact"
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-7 py-3 text-sm font-semibold uppercase tracking-[0.1em] text-white shadow-[0_14px_30px_rgba(169,116,21,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(169,116,21,0.4)]"
-              >
-                {pageCopy.consultCta}
-                <ArrowRight className="h-4 w-4" />
+              <Link href="/contact" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  block
+                  iconRight={<ArrowRight className="h-4 w-4" />}
+                  animateRightIcon
+                  className="sm:w-auto"
+                >
+                  {pageCopy.consultCta}
+                </Button>
               </Link>
-              <Link
-                href="/app"
-                className="inline-flex items-center rounded-full border border-[#d7c4a1] bg-white px-7 py-3 text-sm font-semibold uppercase tracking-[0.1em] text-[#6a584a] transition hover:bg-[#fffaf0]"
-              >
-                {pageCopy.exploreCta}
+              <Link href="/app" className="w-full sm:w-auto">
+                <Button size="lg" variant="secondary" block className="sm:w-auto">
+                  {pageCopy.exploreCta}
+                </Button>
               </Link>
             </motion.div>
+          </motion.div>
+
+          {/* RIGHT — Polaroid-style photo cluster (no shared hero image) */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              duration: reduceMotion ? 0.01 : 0.8,
+              delay: 0.2,
+            }}
+            className="relative hidden h-[520px] lg:block"
+          >
+            {[
+              {
+                src: "/cover-gallery/cover-2.png",
+                style: "left-0 top-4 -rotate-6 z-10 h-[320px] w-[230px]",
+                tag: "1965",
+              },
+              {
+                src: "/cover-gallery/cover-3.png",
+                style:
+                  "left-1/2 top-12 -translate-x-1/2 rotate-2 z-30 h-[400px] w-[270px]",
+                tag: "1992",
+              },
+              {
+                src: "/cover-gallery/cover-4.png",
+                style: "right-0 top-32 rotate-6 z-20 h-[300px] w-[210px]",
+                tag: "Today",
+              },
+            ].map((p, i) => (
+              <motion.figure
+                key={p.src}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: reduceMotion ? 0.01 : 0.9,
+                  delay: 0.5 + i * 0.12,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className={`absolute overflow-hidden rounded-[12px] border border-cream-400 bg-white p-2 shadow-deep ${p.style}`}
+              >
+                <div className="relative h-full w-full overflow-hidden rounded-[6px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={p.src}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <figcaption className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-pill bg-white/95 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-soft">
+                  {p.tag}
+                </figcaption>
+              </motion.figure>
+            ))}
+          </motion.div>
+
+          {/* Mobile/tablet fallback — single horizontal photo strip */}
+          <motion.div
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: reduceMotion ? 0.01 : 0.7,
+              delay: reduceMotion ? 0 : 0.4,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="relative -mx-2 flex items-end gap-3 overflow-hidden lg:hidden"
+            aria-hidden
+          >
+            {["/cover-gallery/cover-2.png", "/cover-gallery/cover-3.png", "/cover-gallery/cover-4.png"].map(
+              (src, i) => {
+                const sizes = ["h-44 w-32", "h-56 w-36", "h-48 w-32"];
+                const rotations = ["-rotate-3", "rotate-1", "rotate-3"];
+                const tags = ["1965", "1992", "Today"];
+                return (
+                  <figure
+                    key={src}
+                    className={`relative flex-none overflow-hidden rounded-[10px] border border-cream-400 bg-white p-1.5 shadow-elev ${sizes[i]} ${rotations[i]}`}
+                  >
+                    <div className="relative h-full w-full overflow-hidden rounded-[6px]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt="" className="h-full w-full object-cover" />
+                    </div>
+                    <figcaption className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-pill bg-white/95 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-soft">
+                      {tags[i]}
+                    </figcaption>
+                  </figure>
+                );
+              }
+            )}
           </motion.div>
         </div>
       </section>
@@ -944,19 +1057,22 @@ export default function AboutPage() {
           <p className="mx-auto mt-4 max-w-3xl text-[#685d53]">
             {pageCopy.priorityBody}
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-7 py-3 text-sm font-semibold uppercase tracking-[0.1em] text-white shadow-[0_14px_30px_rgba(169,116,21,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(169,116,21,0.4)]"
-            >
-              {pageCopy.consultCta}
-              <ArrowRight className="h-4 w-4" />
+          <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
+            <Link href="/contact" className="w-full sm:w-auto">
+              <Button
+                size="lg"
+                block
+                iconRight={<ArrowRight className="h-4 w-4" />}
+                animateRightIcon
+                className="sm:w-auto"
+              >
+                {pageCopy.consultCta}
+              </Button>
             </Link>
-            <Link
-              href="/app"
-              className="inline-flex items-center rounded-full border border-[#d7c4a1] bg-white px-7 py-3 text-sm font-semibold uppercase tracking-[0.1em] text-[#6a584a] transition hover:bg-[#fffaf0]"
-            >
-              {pageCopy.exploreCta}
+            <Link href="/app" className="w-full sm:w-auto">
+              <Button size="lg" variant="secondary" block className="sm:w-auto">
+                {pageCopy.exploreCta}
+              </Button>
             </Link>
           </div>
         </motion.div>

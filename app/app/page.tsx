@@ -20,7 +20,7 @@ import { exportFamilyTreeToExcel } from "../../lib/utils/excelParser";
 import type { FamilyNode } from "../../lib/types/tree";
 
 export default function AppHome() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { locale } = useLanguage();
   const user = session?.user;
 
@@ -93,7 +93,7 @@ export default function AppHome() {
           statEarliest: "Earliest Record",
         };
 
-  const userId = user?.email || "";
+  const userId = (user as any)?.id || user?.email || "";
   const userName = user?.name || copy.fallbackUser;
 
   const {
@@ -254,7 +254,7 @@ export default function AppHome() {
   };
 
   const selectedNode = selectedId ? getNode(selectedId) : null;
-  const showTree = userTree && currentTree;
+  const showTree = Boolean(currentTree);
   const coParentOptions = useMemo(() => {
     if (!currentTree || !addParentId || addType !== "child" || editingNode) {
       return [];
@@ -309,8 +309,40 @@ export default function AppHome() {
     if (years.length > 0) stats.earliestRecord = Math.min(...years);
   }
 
+  // ── Loading state: session or tree data still hydrating ──────────────────
+  const isSessionLoading = status === "loading";
+  const isTreeLoading = syncStatus === "loading";
+  const showLoading = isSessionLoading || (isTreeLoading && !currentTree && !hasCreatedTree);
+
+  if (showLoading) {
+    return (
+      <div className="relative flex min-h-[70vh] items-center justify-center overflow-hidden bg-[#f7f5f1]">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#f1d99b]/45 blur-3xl" />
+          <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#e6ddc6]/65 blur-3xl" />
+        </div>
+        <div className="relative flex flex-col items-center gap-5 text-center">
+          <div className="relative h-16 w-16">
+            <div className="absolute inset-0 animate-ping rounded-full bg-[#e6ab2f]/30" />
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[#ddc7a2] bg-[linear-gradient(150deg,#fff8ea_0%,#f6e5c1_100%)] shadow-[0_14px_30px_rgba(169,116,21,0.2)]">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#b07f2f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22v-8" /><path d="M12 14c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" /><path d="M12 14c4.42 0 8 3.58 8 8h-16c0-4.42 3.58-8 8-8z" />
+              </svg>
+            </div>
+          </div>
+          <p className="font-serif text-2xl text-[#3f342d]">
+            {locale === "id" ? "Memuat pohon keluarga…" : "Loading family tree…"}
+          </p>
+          <p className="text-sm text-[#7b6f63]">
+            {locale === "id" ? "Menyiapkan ruang arsip Anda" : "Preparing your archive space"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-warm-50 pb-32">
+    <div className="min-h-screen bg-[#f7f5f1] pb-32">
       {!showTree && !hasCreatedTree && (
         <WelcomeScreen userName={userName} onStart={handleStartTree} />
       )}
@@ -318,16 +350,16 @@ export default function AppHome() {
       {showTree && (
         <>
           <div className="container mx-auto max-w-6xl p-4 md:p-8">
-            <header className="mb-12 text-center">
+            <header className="mb-10 text-center">
               <div className="mx-auto max-w-7xl">
-                <div className="mx-auto mb-4 h-16 w-16 text-gold-600">
+                <div className="mx-auto mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-[#ddc7a2] bg-[linear-gradient(150deg,#fff8ea_0%,#f6e5c1_100%)] shadow-[0_14px_30px_rgba(169,116,21,0.2)] text-[#b07f2f]">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="100%"
-                    height="100%"
+                    width="32"
+                    height="32"
                     viewBox="0 -2 24 26"
                     fill="none"
-                    stroke="#b08e51"
+                    stroke="currentColor"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -338,42 +370,32 @@ export default function AppHome() {
                   </svg>
                 </div>
 
-                <h1 className="mb-6 font-playfair text-5xl font-bold text-warmText md:text-6xl">
+                <h1 className="mb-3 font-serif text-5xl font-bold text-[#3f342d] md:text-6xl">
                   {copy.pageTitle}
                 </h1>
-                <p className="mx-auto mb-8 max-w-3xl text-lg leading-relaxed text-warmMuted md:text-xl">
-                  {currentTree.name} - {copy.pageDescription}
+                <p className="mx-auto mb-6 max-w-3xl text-lg leading-relaxed text-[#73685f] md:text-xl">
+                  {currentTree!.name} — {copy.pageDescription}
                 </p>
 
                 <div className="mx-auto max-w-md">
-                  <SearchBar nodes={currentTree.nodes} onSelect={setSelectedId} />
+                  {currentTree && <SearchBar nodes={currentTree.nodes} onSelect={setSelectedId} />}
                 </div>
               </div>
             </header>
 
             <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
               <div className="flex flex-wrap items-center gap-3">
-                <div className="inline-flex rounded-xl border border-warm-200 bg-white p-1 shadow-sm">
+                <div className="inline-flex rounded-xl border border-[#e2d4be] bg-white p-1 shadow-sm">
                   <button
                     onClick={() => setViewMode("tree")}
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
                       viewMode === "tree"
-                        ? "bg-gradient-to-br from-gold-500 to-gold-700 text-white shadow-md"
-                        : "text-warmMuted hover:bg-warm-100"
+                        ? "bg-gradient-to-br from-[#e6ab2f] to-[#cc8a12] text-white shadow-md"
+                        : "text-[#6c5a49] hover:bg-[#f8f2e7]"
                     }`}
                   >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                      />
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
                     {copy.viewTree}
                   </button>
@@ -381,33 +403,23 @@ export default function AppHome() {
                     onClick={() => setViewMode("timeline")}
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
                       viewMode === "timeline"
-                        ? "bg-gradient-to-br from-gold-500 to-gold-700 text-white shadow-md"
-                        : "text-warmMuted hover:bg-warm-100"
+                        ? "bg-gradient-to-br from-[#e6ab2f] to-[#cc8a12] text-white shadow-md"
+                        : "text-[#6c5a49] hover:bg-[#f8f2e7]"
                     }`}
                   >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     {copy.viewTimeline}
                   </button>
                 </div>
 
-                <div className="ml-2 hidden rounded-xl border border-warm-200 bg-white p-1 shadow-sm lg:inline-flex">
-                  <button className="rounded-lg border border-warm-200 bg-warm-100 px-4 py-2 text-sm font-semibold text-warmText shadow-sm">
+                <div className="ml-2 hidden rounded-xl border border-[#e2d4be] bg-white p-1 shadow-sm lg:inline-flex">
+                  <button className="rounded-lg border border-[#e2d4be] bg-[#f8f2e7] px-4 py-2 text-sm font-semibold text-[#3f342d] shadow-sm">
                     {copy.filterAll}
                   </button>
                   <button
-                    className="cursor-not-allowed rounded-lg px-4 py-2 text-sm font-semibold text-warmMuted/50 hover:bg-warm-100"
+                    className="cursor-not-allowed rounded-lg px-4 py-2 text-sm font-semibold text-[#a99e8f]/60 hover:bg-[#f8f2e7]"
                     title={copy.comingSoon}
                   >
                     {copy.filterCore}
@@ -415,68 +427,33 @@ export default function AppHome() {
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowInviteModal(true)}
-                  className="flex items-center gap-2 rounded-xl border-2 border-gold-200 bg-white px-4 py-2.5 text-sm font-semibold text-gold-700 transition-colors hover:bg-gold-50"
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
+              <div className="flex gap-2">
+                {[
+                  { label: copy.invite, onClick: () => setShowInviteModal(true), icon: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8 12 3 7 8 M12 3v12" },
+                  { label: copy.import, onClick: () => setShowImportModal(true), icon: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3" },
+                  { label: copy.export, onClick: handleExportTree, icon: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6" },
+                ].map((btn) => (
+                  <button
+                    key={btn.label}
+                    onClick={btn.onClick}
+                    className="flex items-center gap-2 rounded-xl border border-[#dcc28e] bg-white px-4 py-2.5 text-sm font-semibold text-[#7b5a26] transition hover:border-[#c7a050] hover:bg-[#fffaf0] hover:text-[#5a3e10]"
                   >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                  {copy.invite}
-                </button>
-                <button
-                  onClick={() => setShowImportModal(true)}
-                  className="flex items-center gap-2 rounded-xl border-2 border-gold-200 bg-white px-4 py-2.5 text-sm font-semibold text-gold-700 transition-colors hover:bg-gold-50"
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  {copy.import}
-                </button>
-                <button
-                  onClick={handleExportTree}
-                  className="flex items-center gap-2 rounded-xl border-2 border-gold-200 bg-white px-4 py-2.5 text-sm font-semibold text-gold-700 transition-colors hover:bg-gold-50"
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                  </svg>
-                  {copy.export}
-                </button>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      {btn.icon.split(" M").map((d, i) => (
+                        <path key={i} d={i === 0 ? d : `M${d}`} />
+                      ))}
+                    </svg>
+                    {btn.label}
+                  </button>
+                ))}
               </div>
             </div>
 
             <main
-              className={`relative w-full overflow-hidden rounded-2xl bg-white shadow-xl transition-all duration-300 ${
+              className={`relative w-full overflow-hidden rounded-2xl bg-white shadow-[0_18px_40px_rgba(59,43,24,0.12)] transition-all duration-300 ${
                 isFullscreen
                   ? "fixed inset-0 z-[60] h-screen rounded-none"
-                  : "h-[600px] border border-warm-200"
+                  : "h-[600px] border border-[#e2d4be]"
               }`}
             >
               {viewMode === "tree" ? (
@@ -489,7 +466,7 @@ export default function AppHome() {
               ) : (
                 <div className="h-full overflow-y-auto bg-warm-50">
                   <TimelineView
-                    nodes={currentTree.nodes}
+                    nodes={currentTree!.nodes}
                     onSelectNode={(node) => setSelectedId(node.id)}
                   />
                 </div>
@@ -520,7 +497,7 @@ export default function AppHome() {
               {viewMode === "tree" && (
                 <button
                   onClick={() => {
-                    const rootNode = currentTree.nodes.find(
+                    const rootNode = currentTree!.nodes.find(
                       (n) => !n.parentIds?.length && !n.parentId
                     );
                     if (rootNode) {
@@ -537,7 +514,7 @@ export default function AppHome() {
 
             <section className="mt-12">
               <GlobalStories
-                nodes={currentTree.nodes}
+                nodes={currentTree!.nodes}
                 onSelectNode={(node) => setSelectedId(node.id)}
               />
             </section>
@@ -573,8 +550,8 @@ export default function AppHome() {
             <InviteModal
               isOpen={showInviteModal}
               onClose={() => setShowInviteModal(false)}
-              treeName={currentTree.name}
-              treeData={currentTree}
+              treeName={currentTree!.name}
+              treeData={currentTree!}
             />
           )}
 
@@ -587,47 +564,30 @@ export default function AppHome() {
             }}
           />
 
-          <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-warm-200 bg-white/95 backdrop-blur-xl">
+          <footer className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#e4dccf] bg-[rgba(255,253,249,0.96)] backdrop-blur-xl">
             <div className="container mx-auto max-w-6xl">
-              <div className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-4">
-                <div className="text-center">
-                  <div className="bg-gradient-to-br from-gold-500 to-gold-700 bg-clip-text text-2xl font-bold text-transparent">
-                    {stats.generations}
+              <div className="grid grid-cols-2 gap-4 py-3 sm:grid-cols-4">
+                {[
+                  { value: stats.generations, label: copy.statGenerations },
+                  { value: stats.members, label: copy.statMembers },
+                  { value: stats.lines, label: copy.statLines },
+                  { value: stats.earliestRecord, label: copy.statEarliest },
+                ].map((stat) => (
+                  <div key={stat.label} className="text-center">
+                    <div className="bg-gradient-to-br from-[#e6ab2f] to-[#cc8a12] bg-clip-text text-2xl font-bold text-transparent">
+                      {stat.value}
+                    </div>
+                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-[#7b6f63]">
+                      {stat.label}
+                    </p>
                   </div>
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-warmMuted">
-                    {copy.statGenerations}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="bg-gradient-to-br from-gold-500 to-gold-700 bg-clip-text text-2xl font-bold text-transparent">
-                    {stats.members}
-                  </div>
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-warmMuted">
-                    {copy.statMembers}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="bg-gradient-to-br from-gold-500 to-gold-700 bg-clip-text text-2xl font-bold text-transparent">
-                    {stats.lines}
-                  </div>
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-warmMuted">
-                    {copy.statLines}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="bg-gradient-to-br from-gold-500 to-gold-700 bg-clip-text text-2xl font-bold text-transparent">
-                    {stats.earliestRecord}
-                  </div>
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-warmMuted">
-                    {copy.statEarliest}
-                  </p>
-                </div>
+                ))}
               </div>
             </div>
           </footer>
 
           {notification && (
-            <div className="fixed left-1/2 top-6 z-50 -translate-x-1/2 rounded-full bg-warmText/90 px-6 py-3 text-sm font-medium text-white shadow-xl backdrop-blur animate-[fadeIn_0.3s]">
+            <div className="fixed left-1/2 top-6 z-50 -translate-x-1/2 rounded-full border border-[#ddc7a2] bg-[rgba(33,22,10,0.88)] px-6 py-3 text-sm font-medium text-white shadow-xl backdrop-blur">
               {notification}
             </div>
           )}
@@ -638,23 +598,17 @@ export default function AppHome() {
             <div
               className={`fixed bottom-24 right-6 z-40 rounded-full px-4 py-2 text-xs font-semibold shadow-lg backdrop-blur ${
                 syncStatus === "offline"
-                  ? "bg-amber-500/90 text-white"
-                  : "bg-gold-700/90 text-white"
+                  ? "border border-[#e9d4a3] bg-[#fff7e3] text-[#9d6e1c]"
+                  : "border border-[#ddc7a2] bg-[rgba(255,248,234,0.95)] text-[#7b5a26]"
               }`}
               role="status"
               aria-live="polite"
             >
               {syncStatus === "saving"
-                ? locale === "id"
-                  ? "Menyimpan..."
-                  : "Saving..."
+                ? locale === "id" ? "Menyimpan…" : "Saving…"
                 : syncStatus === "loading"
-                ? locale === "id"
-                  ? "Memuat..."
-                  : "Loading..."
-                : locale === "id"
-                ? "Offline — perubahan tersimpan lokal"
-                : "Offline — changes saved locally"}
+                ? locale === "id" ? "Memuat…" : "Loading…"
+                : locale === "id" ? "Offline — tersimpan lokal" : "Offline — saved locally"}
             </div>
           )}
         </>

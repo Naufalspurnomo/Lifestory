@@ -6,6 +6,7 @@ import { Footer } from "../components/site/Footer";
 import { PageTransition } from "../components/site/PageTransition";
 import { AuthProvider } from "../components/providers/AuthProvider";
 import { LanguageProvider } from "../components/providers/LanguageProvider";
+import { ScrollProgress } from "../components/ui/ScrollProgress";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const playfair = Playfair_Display({
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       >
         <LanguageProvider>
           <AuthProvider>
+            <ScrollProgress />
             <div className="flex min-h-screen flex-col">
               <NavBar />
               <main className="flex-1">
