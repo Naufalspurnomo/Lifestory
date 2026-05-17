@@ -16,7 +16,7 @@ export function LanguageToggle({ className = "" }: Props) {
 
   return (
     <div
-      className={`inline-flex items-center rounded-full border border-[#dfcfb4] bg-white/88 p-1 ${className}`.trim()}
+      className={`inline-flex items-center rounded-pill border border-cream-300 bg-white/85 p-1 shadow-soft ${className}`.trim()}
       aria-label="Language switcher"
     >
       {(["id", "en"] as Locale[]).map((item) => {
@@ -26,10 +26,10 @@ export function LanguageToggle({ className = "" }: Props) {
             key={item}
             type="button"
             onClick={() => setLocale(item)}
-            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] transition ${
+            className={`relative rounded-pill px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
               active
-                ? "bg-[#e4a429] text-white shadow-sm"
-                : "text-[#6f6358] hover:bg-[#f8f2e7]"
+                ? "bg-brand-gradient text-white shadow-cta"
+                : "text-ink-500 hover:text-ink-800"
             }`}
             aria-pressed={active}
           >

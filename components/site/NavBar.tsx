@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -19,6 +18,9 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../providers/LanguageProvider";
 import { LanguageToggle } from "./LanguageToggle";
+import { BrandLogo } from "./BrandLogo";
+import { Button } from "../ui/Button";
+import { ArrowRight } from "lucide-react";
 
 type AccountLink = {
   href: string;
@@ -149,43 +151,16 @@ export function NavBar() {
     <header
       className={`sticky top-0 z-50 border-b transition-all duration-300 ${
         isScrolled
-          ? "border-[#e2d7c5] bg-[#fffdf9] shadow-[0_10px_24px_rgba(62,48,28,0.12)]"
-          : "border-[#e8e1d6] bg-[rgba(255,253,249,0.96)]"
+          ? "border-cream-300 bg-cream-50/95 shadow-soft backdrop-blur-md"
+          : "border-cream-300/60 bg-cream-100/85 backdrop-blur-sm"
       }`}
     >
       <div
-        className={`mx-auto flex max-w-[1320px] items-center justify-between px-6 transition-all duration-300 ${
-          isScrolled ? "h-[62px]" : "h-[74px]"
+        className={`mx-auto flex max-w-[1320px] items-center justify-between px-4 transition-all duration-300 sm:px-6 ${
+          isScrolled ? "h-[64px]" : "h-[78px]"
         }`}
       >
-        <Link
-          href="/"
-          className="inline-flex items-center gap-3 rounded-full border border-[#e8dece] bg-white/95 px-3 py-1.5 shadow-[0_8px_18px_rgba(76,58,33,0.08)]"
-        >
-          <span
-            className={`relative inline-flex transition-all duration-300 ${
-              isScrolled ? "h-8 w-8" : "h-9 w-9"
-            }`}
-          >
-            <Image
-              src="/brand/ferachanna-logo.png"
-              alt="Ferachanna logo"
-              fill
-              className="object-contain"
-              sizes="40px"
-              priority
-            />
-          </span>
-          <span
-            className={`font-serif leading-none tracking-[-0.03em] text-[#3f342d] transition-all duration-300 ${
-              isScrolled
-                ? "text-[clamp(1.45rem,2.1vw,1.95rem)]"
-                : "text-[clamp(1.65rem,2.6vw,2.2rem)]"
-            }`}
-          >
-            Lifestory<span className="text-[#e3a621]">.co</span>
-          </span>
-        </Link>
+        <BrandLogo variant={isScrolled ? "navbar-compact" : "navbar"} />
 
         <nav
           className={`hidden items-center transition-all duration-300 lg:flex ${
@@ -201,12 +176,12 @@ export function NavBar() {
                 className={`group relative pb-1.5 font-semibold tracking-[0.02em] transition ${
                   isScrolled ? "text-[14px]" : "text-[15px]"
                 } ${
-                  active ? "text-[#cf8f16]" : "text-[#6a5f56] hover:text-[#3f342d]"
+                  active ? "text-brand-500" : "text-ink-500 hover:text-ink-800"
                 }`}
               >
                 {link.label}
                 <span
-                  className={`absolute bottom-0 left-0 h-[2px] bg-[#d7991e] transition-all duration-300 ${
+                  className={`absolute bottom-0 left-0 h-[2px] bg-brand-gradient transition-all duration-300 ${
                     active ? "w-full" : "w-0 group-hover:w-full"
                   }`}
                 />
@@ -223,13 +198,15 @@ export function NavBar() {
           )}
 
           {status === "unauthenticated" && (
-            <Link
-              href="/auth/register"
-              className={`inline-flex items-center rounded-full border border-[#e3cca1] bg-[linear-gradient(180deg,#f9e6bf,#f2d69d)] font-semibold uppercase tracking-[0.12em] text-[#6f552d] transition-all duration-300 hover:shadow-[0_10px_20px_rgba(164,117,35,0.22)] ${
-                isScrolled ? "px-4 py-2 text-[11px]" : "px-5 py-2.5 text-xs"
-              }`}
-            >
-              {copy.startStory}
+            <Link href="/auth/register">
+              <Button
+                size={isScrolled ? "sm" : "md"}
+                iconRight={<ArrowRight className="h-3.5 w-3.5" />}
+                animateRightIcon
+                className="uppercase tracking-[0.14em]"
+              >
+                {copy.startStory}
+              </Button>
             </Link>
           )}
 
@@ -360,12 +337,16 @@ export function NavBar() {
             )}
 
             {status === "unauthenticated" && (
-              <Link
-                href="/auth/register"
-                onClick={() => setMobileOpen(false)}
-                className="inline-flex w-full items-center justify-center rounded-md bg-[#e4a429] px-3 py-2 text-sm font-semibold text-white"
-              >
-                {copy.startStory}
+              <Link href="/auth/register" onClick={() => setMobileOpen(false)}>
+                <Button
+                  block
+                  size="md"
+                  iconRight={<ArrowRight className="h-3.5 w-3.5" />}
+                  animateRightIcon
+                  className="uppercase tracking-[0.14em]"
+                >
+                  {copy.startStory}
+                </Button>
               </Link>
             )}
 

@@ -8,6 +8,7 @@ import {
   useReducedMotion,
   useScroll,
   useTransform,
+  type MotionValue,
 } from "framer-motion";
 import { useRef, useState } from "react";
 import {
@@ -40,6 +41,15 @@ type Props = {
 
 const ICONS = [Feather, Camera, HeartHandshake];
 
+/**
+ * HowItWorks — responsive storytelling section.
+ *
+ * Mobile / tablet (<lg): each step shows its OWN image inline above the text.
+ *   No sticky, no scroll-bound transitions. Reads as a vertical magazine layout.
+ *
+ * Desktop (lg+): left column has a sticky image that swaps based on scroll
+ *   progress; right column is the long-form story copy.
+ */
 export function HowItWorks({ copy }: Props) {
   const reduce = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
@@ -57,7 +67,7 @@ export function HowItWorks({ copy }: Props) {
     alt: galleryItems[(i + 1) % galleryItems.length].alt,
   }));
 
-  // We treat the section as 3 vertical "steps" → image swaps based on progress
+  // Treat the section as 3 vertical "steps" → desktop image swaps based on progress.
   const activeIndex = useTransform(scrollYProgress, (v): number => {
     if (v < 0.33) return 0;
     if (v < 0.66) return 1;
@@ -65,14 +75,11 @@ export function HowItWorks({ copy }: Props) {
   });
 
   return (
-    <section
-      ref={sectionRef}
-      className="relative bg-cream-50 section-y-md"
-    >
+    <section ref={sectionRef} className="relative bg-cream-50 section-y-md">
       <Container>
-        <div className="mb-14 max-w-3xl">
+        <div className="mb-12 max-w-3xl md:mb-14">
           <Eyebrow>{copy.eyebrow}</Eyebrow>
-          <h2 className="mt-4 font-serif text-[clamp(2rem,4.6vw,3.6rem)] leading-[1.05] tracking-[-0.02em] text-ink-800">
+          <h2 className="mt-4 font-serif text-[clamp(1.85rem,4.6vw,3.6rem)] leading-[1.05] tracking-[-0.02em] text-ink-800">
             {copy.title}
           </h2>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink-500 md:text-lg">
@@ -80,11 +87,19 @@ export function HowItWorks({ copy }: Props) {
           </p>
         </div>
 
-        <div className="grid gap-12 lg:grid-cols-[1fr_1.05fr] lg:gap-16">
+        {/* === MOBILE / TABLET layout (<lg) === */}
+        <div className="space-y-12 lg:hidden">
+          {steps.map((step, idx) => (
+            <MobileStep key={step.n} step={step} index={idx} total={steps.length} />
+          ))}
+        </div>
+
+        {/* === DESKTOP layout (lg+) === */}
+        <div className="hidden gap-16 lg:grid lg:grid-cols-[1fr_1.05fr]">
           {/* LEFT — Sticky image stack */}
           <div className="relative">
-            <div className="lg:sticky lg:top-24">
-              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-card-lg border border-cream-300 bg-white shadow-elev md:aspect-[3/4]">
+            <div className="sticky top-24">
+              <div className="relative aspect-[3/4] w-full overflow-hidden rounded-card-lg border border-cream-300 bg-white shadow-elev">
                 {steps.map((step, idx) => (
                   <StickyImage
                     key={step.n}
@@ -96,13 +111,11 @@ export function HowItWorks({ copy }: Props) {
                   />
                 ))}
 
-                {/* Step indicator chip */}
                 <div className="absolute left-5 top-5 z-30 inline-flex items-center gap-2 rounded-pill bg-white/95 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-700 shadow-soft backdrop-blur-sm">
                   <ActiveStepLabel activeIndex={activeIndex} steps={steps} />
                 </div>
               </div>
 
-              {/* Progress dots */}
               <div className="mt-6 flex items-center justify-center gap-3">
                 {steps.map((_, i) => (
                   <ProgressDot key={i} index={i} activeIndex={activeIndex} />
@@ -111,10 +124,10 @@ export function HowItWorks({ copy }: Props) {
             </div>
           </div>
 
-          {/* RIGHT — Steps */}
-          <div className="space-y-14 md:space-y-20 lg:space-y-28">
+          {/* RIGHT — Steps copy */}
+          <div className="space-y-28">
             {steps.map((step, idx) => (
-              <StepBlock key={step.n} step={step} index={idx} />
+              <DesktopStepBlock key={step.n} step={step} index={idx} />
             ))}
           </div>
         </div>
@@ -123,6 +136,91 @@ export function HowItWorks({ copy }: Props) {
   );
 }
 
+// =============================================================
+// Mobile / tablet step — image lives inline above text, no scroll trickery.
+// =============================================================
+function MobileStep({
+  step,
+  index,
+  total,
+}: {
+  step: Step;
+  index: number;
+  total: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { amount: 0.25, margin: "0px 0px -10% 0px" });
+  const reduce = useReducedMotion();
+  const Icon = step.icon;
+
+  return (
+    <motion.article
+      ref={ref}
+      initial={{ opacity: 0, y: reduce ? 0 : 28 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{
+        duration: reduce ? 0.01 : 0.7,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      className="relative"
+    >
+      {/* Image card */}
+      <div className="relative aspect-[4/5] w-full overflow-hidden rounded-card-lg border border-cream-300 bg-white shadow-elev sm:aspect-[5/6]">
+        <Image
+          src={step.image}
+          alt={step.alt}
+          fill
+          sizes="(max-width: 1024px) 100vw, 40vw"
+          className="object-cover"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-900/40 via-transparent to-transparent"
+        />
+        <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-pill bg-white/95 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-700 shadow-soft backdrop-blur-sm">
+          <span>
+            {step.n} · {step.title.replace(/\.$/, "")}
+          </span>
+        </div>
+      </div>
+
+      {/* Text block */}
+      <div className="mt-6 flex gap-4">
+        <span
+          className={`mt-1 inline-flex h-12 w-12 flex-none items-center justify-center rounded-pill border transition-colors duration-500 ${
+            inView
+              ? "border-transparent bg-brand-gradient text-white shadow-cta"
+              : "border-cream-300 bg-white text-brand-700 shadow-soft"
+          }`}
+        >
+          <Icon className="h-5 w-5" />
+        </span>
+        <div className="flex-1">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700">
+            Step {step.n}
+          </p>
+          <h3 className="mt-2 font-serif text-2xl leading-tight text-ink-800 sm:text-3xl">
+            {step.title}
+          </h3>
+          <p className="mt-3 text-base leading-relaxed text-ink-500">
+            {step.body}
+          </p>
+        </div>
+      </div>
+
+      {index < total - 1 && (
+        <span
+          aria-hidden
+          className="mt-10 block h-px w-20 bg-gradient-to-r from-cream-300 via-brand-300 to-transparent"
+        />
+      )}
+    </motion.article>
+  );
+}
+
+// =============================================================
+// Desktop sticky-image swap helpers
+// =============================================================
 function StickyImage({
   image,
   alt,
@@ -133,7 +231,7 @@ function StickyImage({
   image: string;
   alt: string;
   index: number;
-  activeIndex: ReturnType<typeof useTransform<number, number>>;
+  activeIndex: MotionValue<number>;
   reduce: boolean;
 }) {
   const opacity = useTransform(activeIndex, (v) =>
@@ -156,7 +254,7 @@ function StickyImage({
         src={image}
         alt={alt}
         fill
-        sizes="(max-width: 768px) 100vw, 40vw"
+        sizes="(max-width: 1024px) 0px, 40vw"
         className="object-cover"
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-900/30 via-transparent to-transparent" />
@@ -168,7 +266,7 @@ function ActiveStepLabel({
   activeIndex,
   steps,
 }: {
-  activeIndex: ReturnType<typeof useTransform<number, number>>;
+  activeIndex: MotionValue<number>;
   steps: Step[];
 }) {
   const [cur, setCur] = useState(0);
@@ -188,7 +286,7 @@ function ProgressDot({
   activeIndex,
 }: {
   index: number;
-  activeIndex: ReturnType<typeof useTransform<number, number>>;
+  activeIndex: MotionValue<number>;
 }) {
   const w = useTransform(activeIndex, (v) =>
     Math.round(v) === index ? 28 : 8
@@ -205,7 +303,7 @@ function ProgressDot({
   );
 }
 
-function StepBlock({ step, index }: { step: Step; index: number }) {
+function DesktopStepBlock({ step, index }: { step: Step; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount: 0.4, margin: "0px 0px -20% 0px" });
   const reduce = useReducedMotion();
@@ -220,11 +318,13 @@ function StepBlock({ step, index }: { step: Step; index: number }) {
         duration: reduce ? 0.01 : 0.7,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="relative pl-16 md:pl-20"
+      className="relative pl-20"
     >
       <span
-        className={`absolute left-0 top-0 inline-flex h-12 w-12 items-center justify-center rounded-pill border border-cream-300 bg-white text-brand-700 shadow-soft transition-colors duration-500 md:h-14 md:w-14 ${
-          inView ? "bg-brand-gradient text-white border-transparent" : ""
+        className={`absolute left-0 top-0 inline-flex h-14 w-14 items-center justify-center rounded-pill border transition-colors duration-500 ${
+          inView
+            ? "border-transparent bg-brand-gradient text-white shadow-cta"
+            : "border-cream-300 bg-white text-brand-700 shadow-soft"
         }`}
       >
         <Icon className="h-5 w-5" />
@@ -232,14 +332,17 @@ function StepBlock({ step, index }: { step: Step; index: number }) {
       <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700">
         Step {step.n}
       </p>
-      <h3 className="mt-2 font-serif text-2xl leading-tight text-ink-800 md:text-3xl">
+      <h3 className="mt-2 font-serif text-3xl leading-tight text-ink-800">
         {step.title}
       </h3>
       <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-500">
         {step.body}
       </p>
       {index < 2 && (
-        <span className="mt-10 block h-px w-16 bg-cream-300" aria-hidden />
+        <span
+          aria-hidden
+          className="mt-10 block h-px w-16 bg-gradient-to-r from-cream-300 via-brand-300 to-transparent"
+        />
       )}
     </motion.div>
   );

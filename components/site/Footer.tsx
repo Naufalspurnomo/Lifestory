@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Mail, MapPin, Phone, Sparkles } from "lucide-react";
 import { useLanguage } from "../providers/LanguageProvider";
+import { BrandLogo } from "./BrandLogo";
 
 export function Footer() {
   const { locale } = useLanguage();
@@ -63,20 +63,7 @@ export function Footer() {
       <div className="relative mx-auto max-w-[1320px] px-6 py-14 md:py-16">
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr] md:gap-12">
           <div className="space-y-5">
-            <div className="inline-flex items-center gap-3">
-              <span className="relative inline-flex h-10 w-10 items-center justify-center">
-                <Image
-                  src="/brand/ferachanna-logo.png"
-                  alt="Ferachanna logo"
-                  fill
-                  className="object-contain"
-                  sizes="40px"
-                />
-              </span>
-              <span className="font-serif text-[clamp(1.7rem,2.6vw,2.1rem)] leading-none tracking-[-0.03em] text-[#3f342d]">
-                Lifestory<span className="text-[#e3a621]">.co</span>
-              </span>
-            </div>
+            <BrandLogo variant="footer" />
             <p className="max-w-xl text-sm leading-relaxed text-[#6e6258]">
               {copy.tagline}
             </p>
