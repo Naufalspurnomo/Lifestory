@@ -1,16 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import {
-  motion,
-  useInView,
-  useMotionValueEvent,
-  useReducedMotion,
-  useScroll,
-  useTransform,
-  type MotionValue,
-} from "framer-motion";
-import { useRef, useState } from "react";
+import { motion, useInView, useReducedMotion } from "framer-motion";
+import { useRef } from "react";
 import {
   Camera,
   Feather,
@@ -19,10 +11,12 @@ import {
 } from "lucide-react";
 import { Container } from "../ui/Container";
 import { Eyebrow } from "../ui/Eyebrow";
-import { galleryItems } from "../../lib/content/galleryItems";
+import { CornerFlourish } from "../ui/Ornament";
+import { cn } from "../../lib/utils";
 
 type Step = {
   n: string;
+  numeral: string;
   icon: LucideIcon;
   title: string;
   body: string;
@@ -35,49 +29,36 @@ type Props = {
     eyebrow: string;
     title: string;
     lead: string;
-    steps: Array<{ title: string; body: string }>;
+    steps: Array<{ title: string; body: string; image?: string; alt?: string }>;
   };
 };
 
 const ICONS = [Feather, Camera, HeartHandshake];
 
 /**
- * HowItWorks — responsive storytelling section.
+ * HowItWorks — editorial alternating step rows.
  *
- * Mobile / tablet (<lg): each step shows its OWN image inline above the text.
- *   No sticky, no scroll-bound transitions. Reads as a vertical magazine layout.
+ * One layout for every device: each step has its own image, image and text
+ * alternate sides at lg+ for Z-pattern reading, stacked vertical on mobile.
  *
- * Desktop (lg+): left column has a sticky image that swaps based on scroll
- *   progress; right column is the long-form story copy.
+ * No scroll-bound transitions. No sticky tricks. The visual interest comes
+ * from rhythm, big serif numerals, image entrance scale, and ornament accents.
  */
 export function HowItWorks({ copy }: Props) {
-  const reduce = useReducedMotion();
-  const sectionRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start start", "end end"],
-  });
-
   const steps: Step[] = copy.steps.map((s, i) => ({
     n: `0${i + 1}`,
+    numeral: String(i + 1).padStart(2, "0"),
     icon: ICONS[i] ?? Feather,
     title: s.title,
     body: s.body,
-    image: galleryItems[(i + 1) % galleryItems.length].src,
-    alt: galleryItems[(i + 1) % galleryItems.length].alt,
+    image: s.image || "/image/home-step-" + (i + 1) + ".png",
+    alt: s.alt || s.title,
   }));
 
-  // Treat the section as 3 vertical "steps" → desktop image swaps based on progress.
-  const activeIndex = useTransform(scrollYProgress, (v): number => {
-    if (v < 0.33) return 0;
-    if (v < 0.66) return 1;
-    return 2;
-  });
-
   return (
-    <section ref={sectionRef} className="relative bg-cream-50 section-y-md">
+    <section className="relative bg-cream-50 section-y-md">
       <Container>
-        <div className="mb-12 max-w-3xl md:mb-14">
+        <div className="mb-16 max-w-3xl md:mb-20">
           <Eyebrow>{copy.eyebrow}</Eyebrow>
           <h2 className="mt-4 font-serif text-[clamp(1.85rem,4.6vw,3.6rem)] leading-[1.05] tracking-[-0.02em] text-ink-800">
             {copy.title}
@@ -87,59 +68,17 @@ export function HowItWorks({ copy }: Props) {
           </p>
         </div>
 
-        {/* === MOBILE / TABLET layout (<lg) === */}
-        <div className="space-y-12 lg:hidden">
+        <div className="space-y-20 md:space-y-24 lg:space-y-32">
           {steps.map((step, idx) => (
-            <MobileStep key={step.n} step={step} index={idx} total={steps.length} />
+            <StepRow key={step.n} step={step} index={idx} total={steps.length} />
           ))}
-        </div>
-
-        {/* === DESKTOP layout (lg+) === */}
-        <div className="hidden gap-16 lg:grid lg:grid-cols-[1fr_1.05fr]">
-          {/* LEFT — Sticky image stack */}
-          <div className="relative">
-            <div className="sticky top-24">
-              <div className="relative aspect-[3/4] w-full overflow-hidden rounded-card-lg border border-cream-300 bg-white shadow-elev">
-                {steps.map((step, idx) => (
-                  <StickyImage
-                    key={step.n}
-                    image={step.image}
-                    alt={step.alt}
-                    index={idx}
-                    activeIndex={activeIndex}
-                    reduce={reduce ?? false}
-                  />
-                ))}
-
-                <div className="absolute left-5 top-5 z-30 inline-flex items-center gap-2 rounded-pill bg-white/95 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-700 shadow-soft backdrop-blur-sm">
-                  <ActiveStepLabel activeIndex={activeIndex} steps={steps} />
-                </div>
-              </div>
-
-              <div className="mt-6 flex items-center justify-center gap-3">
-                {steps.map((_, i) => (
-                  <ProgressDot key={i} index={i} activeIndex={activeIndex} />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT — Steps copy */}
-          <div className="space-y-28">
-            {steps.map((step, idx) => (
-              <DesktopStepBlock key={step.n} step={step} index={idx} />
-            ))}
-          </div>
         </div>
       </Container>
     </section>
   );
 }
 
-// =============================================================
-// Mobile / tablet step — image lives inline above text, no scroll trickery.
-// =============================================================
-function MobileStep({
+function StepRow({
   step,
   index,
   total,
@@ -148,202 +87,103 @@ function MobileStep({
   index: number;
   total: number;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { amount: 0.25, margin: "0px 0px -10% 0px" });
   const reduce = useReducedMotion();
   const Icon = step.icon;
+  const reversed = index % 2 === 1;
 
   return (
     <motion.article
       ref={ref}
-      initial={{ opacity: 0, y: reduce ? 0 : 28 }}
+      initial={{ opacity: 0, y: reduce ? 0 : 36 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{
-        duration: reduce ? 0.01 : 0.7,
+        duration: reduce ? 0.01 : 0.8,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="relative"
+      className={cn(
+        "grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-16",
+        reversed && "lg:[&>*:first-child]:order-2"
+      )}
     >
-      {/* Image card */}
-      <div className="relative aspect-[4/5] w-full overflow-hidden rounded-card-lg border border-cream-300 bg-white shadow-elev sm:aspect-[5/6]">
-        <Image
-          src={step.image}
-          alt={step.alt}
-          fill
-          sizes="(max-width: 1024px) 100vw, 40vw"
-          className="object-cover"
-        />
-        <div
+      {/* === Image column === */}
+      <motion.div
+        initial={{ opacity: 0, scale: reduce ? 1 : 0.96 }}
+        animate={inView ? { opacity: 1, scale: 1 } : {}}
+        transition={{ duration: reduce ? 0.01 : 0.9, ease: [0.22, 1, 0.36, 1] }}
+        className="relative"
+      >
+        <div className="relative aspect-[4/5] overflow-hidden rounded-card-lg border border-cream-300 bg-white shadow-elev sm:aspect-[5/6] lg:aspect-[4/5]">
+          <Image
+            src={step.image}
+            alt={step.alt}
+            fill
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            className="object-cover"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-900/40 via-transparent to-transparent"
+          />
+          {/* Big floating numeral overlay */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -bottom-3 left-2 font-serif text-[clamp(6rem,13vw,10rem)] leading-none text-white/80 mix-blend-overlay drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)] sm:-bottom-5 sm:left-4"
+          >
+            {step.numeral}
+          </span>
+          {/* Phase chip */}
+          <span
+            className={cn(
+              "absolute left-5 top-5 inline-flex items-center gap-2 rounded-pill px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] shadow-soft backdrop-blur-sm transition-colors duration-500",
+              inView
+                ? "bg-brand-gradient text-white shadow-cta"
+                : "bg-white/95 text-brand-700"
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            Step {step.n}
+          </span>
+        </div>
+      </motion.div>
+
+      {/* === Text column === */}
+      <div className="relative">
+        <CornerFlourish
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-900/40 via-transparent to-transparent"
+          className="pointer-events-none absolute -left-4 -top-4 hidden lg:block"
         />
-        <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-pill bg-white/95 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-700 shadow-soft backdrop-blur-sm">
-          <span>
-            {step.n} · {step.title.replace(/\.$/, "")}
+        <p
+          aria-hidden
+          className="font-serif text-7xl leading-none text-brand-200/80 md:text-8xl"
+        >
+          {step.numeral}.
+        </p>
+        <h3 className="mt-2 font-serif text-[clamp(1.85rem,3.4vw,2.6rem)] leading-[1.1] tracking-[-0.02em] text-ink-800">
+          {step.title}
+        </h3>
+        <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-500 md:text-lg">
+          {step.body}
+        </p>
+
+        {/* Step indicator rail */}
+        <div className="mt-7 flex items-center gap-3">
+          {Array.from({ length: total }).map((_, i) => (
+            <span
+              key={i}
+              aria-hidden
+              className={cn(
+                "h-[3px] rounded-full transition-all duration-500 ease-smooth",
+                i === index ? "w-10 bg-brand-gradient" : "w-3 bg-cream-300"
+              )}
+            />
+          ))}
+          <span className="ml-2 text-[11px] font-bold uppercase tracking-[0.18em] text-ink-300">
+            {step.n} / {String(total).padStart(2, "0")}
           </span>
         </div>
       </div>
-
-      {/* Text block */}
-      <div className="mt-6 flex gap-4">
-        <span
-          className={`mt-1 inline-flex h-12 w-12 flex-none items-center justify-center rounded-pill border transition-colors duration-500 ${
-            inView
-              ? "border-transparent bg-brand-gradient text-white shadow-cta"
-              : "border-cream-300 bg-white text-brand-700 shadow-soft"
-          }`}
-        >
-          <Icon className="h-5 w-5" />
-        </span>
-        <div className="flex-1">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700">
-            Step {step.n}
-          </p>
-          <h3 className="mt-2 font-serif text-2xl leading-tight text-ink-800 sm:text-3xl">
-            {step.title}
-          </h3>
-          <p className="mt-3 text-base leading-relaxed text-ink-500">
-            {step.body}
-          </p>
-        </div>
-      </div>
-
-      {index < total - 1 && (
-        <span
-          aria-hidden
-          className="mt-10 block h-px w-20 bg-gradient-to-r from-cream-300 via-brand-300 to-transparent"
-        />
-      )}
     </motion.article>
-  );
-}
-
-// =============================================================
-// Desktop sticky-image swap helpers
-// =============================================================
-function StickyImage({
-  image,
-  alt,
-  index,
-  activeIndex,
-  reduce,
-}: {
-  image: string;
-  alt: string;
-  index: number;
-  activeIndex: MotionValue<number>;
-  reduce: boolean;
-}) {
-  const opacity = useTransform(activeIndex, (v) =>
-    Math.round(v) === index ? 1 : 0
-  );
-  const scale = useTransform(activeIndex, (v) =>
-    Math.round(v) === index ? 1 : 1.04
-  );
-
-  return (
-    <motion.div
-      style={{
-        opacity: reduce ? (index === 0 ? 1 : 0) : opacity,
-        scale: reduce ? 1 : scale,
-      }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="absolute inset-0"
-    >
-      <Image
-        src={image}
-        alt={alt}
-        fill
-        sizes="(max-width: 1024px) 0px, 40vw"
-        className="object-cover"
-      />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-900/30 via-transparent to-transparent" />
-    </motion.div>
-  );
-}
-
-function ActiveStepLabel({
-  activeIndex,
-  steps,
-}: {
-  activeIndex: MotionValue<number>;
-  steps: Step[];
-}) {
-  const [cur, setCur] = useState(0);
-  useMotionValueEvent(activeIndex, "change", (v) => {
-    const next = Math.max(0, Math.min(steps.length - 1, Math.round(v)));
-    setCur(next);
-  });
-  return (
-    <span>
-      {steps[cur].n} · {steps[cur].title}
-    </span>
-  );
-}
-
-function ProgressDot({
-  index,
-  activeIndex,
-}: {
-  index: number;
-  activeIndex: MotionValue<number>;
-}) {
-  const w = useTransform(activeIndex, (v) =>
-    Math.round(v) === index ? 28 : 8
-  );
-  const bg = useTransform(activeIndex, (v) =>
-    Math.round(v) === index ? "#cc8a12" : "#dccfb3"
-  );
-  return (
-    <motion.span
-      style={{ width: w, backgroundColor: bg }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="inline-block h-2 rounded-full"
-    />
-  );
-}
-
-function DesktopStepBlock({ step, index }: { step: Step; index: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { amount: 0.4, margin: "0px 0px -20% 0px" });
-  const reduce = useReducedMotion();
-  const Icon = step.icon;
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: reduce ? 0 : 30 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{
-        duration: reduce ? 0.01 : 0.7,
-        ease: [0.22, 1, 0.36, 1],
-      }}
-      className="relative pl-20"
-    >
-      <span
-        className={`absolute left-0 top-0 inline-flex h-14 w-14 items-center justify-center rounded-pill border transition-colors duration-500 ${
-          inView
-            ? "border-transparent bg-brand-gradient text-white shadow-cta"
-            : "border-cream-300 bg-white text-brand-700 shadow-soft"
-        }`}
-      >
-        <Icon className="h-5 w-5" />
-      </span>
-      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700">
-        Step {step.n}
-      </p>
-      <h3 className="mt-2 font-serif text-3xl leading-tight text-ink-800">
-        {step.title}
-      </h3>
-      <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-500">
-        {step.body}
-      </p>
-      {index < 2 && (
-        <span
-          aria-hidden
-          className="mt-10 block h-px w-16 bg-gradient-to-r from-cream-300 via-brand-300 to-transparent"
-        />
-      )}
-    </motion.div>
   );
 }

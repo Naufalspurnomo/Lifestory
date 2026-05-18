@@ -10,6 +10,7 @@ import { FeaturedCollections } from "../components/home/FeaturedCollections";
 import { Testimonials } from "../components/home/Testimonials";
 import { FAQ } from "../components/home/FAQ";
 import { FinalCTA } from "../components/home/FinalCTA";
+import { ScrollScale, SectionZoom } from "../components/ui/ScrollAnimations";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -43,7 +44,10 @@ export default function HomePage() {
         hero: {
           welcomeBack: "Selamat datang kembali",
           eyebrow: "Lifestory · Studio Biografi",
-          headlineLine1: "Kisah hidup",
+          studioCity: "Surabaya",
+          featuredLabel: "Featured",
+          headlineLine1: "Kisah",
+          headlineRotators: ["hidup", "ayah", "ibu", "keluarga", "warisan"],
           headlineLine2: "yang berharga",
           headlineAccent: "diabadikan",
           headlineLine3: "untuk generasi.",
@@ -112,14 +116,23 @@ export default function HomePage() {
             {
               title: "Mendengarkan dengan tenang.",
               body: "Kami memulai dengan sesi wawancara yang lambat dan hangat. Cerita yang lama tersimpan diberi ruang untuk muncul kembali tanpa dipaksa.",
+              /* TODO: Taruh file di public/image/home-step-1.png */
+              image: "/image/home-step-1.png",
+              alt: "Sesi wawancara mendengarkan dengan tenang",
             },
             {
               title: "Merangkai narasi & visual.",
               body: "Tim penulis dan art director kami menyusun alur, memilih foto, dan merancang halaman demi halaman yang terasa personal sekaligus sinematik.",
+              /* TODO: Taruh file di public/image/home-step-2.png */
+              image: "/image/home-step-2.png",
+              alt: "Proses merangkai narasi dan visual",
             },
             {
               title: "Mewariskan dengan upacara kecil.",
               body: "Buku, video, dan poster silsilah diserahkan dalam momen yang dirayakan bersama keluarga, lengkap dengan kemasan kelas heirloom.",
+              /* TODO: Taruh file di public/image/home-step-3.png */
+              image: "/image/home-step-3.png",
+              alt: "Momen mewariskan dengan upacara kecil",
             },
           ],
         },
@@ -229,8 +242,11 @@ export default function HomePage() {
         hero: {
           welcomeBack: "Welcome back",
           eyebrow: "Lifestory · Biography Studio",
-          headlineLine1: "Stories worth",
-          headlineLine2: "remembering",
+          studioCity: "Jakarta",
+          featuredLabel: "Featured",
+          headlineLine1: "Stories of",
+          headlineRotators: ["a life", "a father", "a mother", "a family", "a lineage"],
+          headlineLine2: "remembered",
           headlineAccent: "preserved",
           headlineLine3: "for generations.",
           subheading:
@@ -298,14 +314,20 @@ export default function HomePage() {
             {
               title: "Listen, slowly.",
               body: "We open with calm, unhurried interviews. Stories that have been buried for decades are given space to surface again.",
+              image: "/image/home-step-1.png",
+              alt: "Calm interview session listening slowly",
             },
             {
               title: "Shape the narrative & visuals.",
               body: "Our writers and art director sequence the story, pick the photographs, and design pages that feel personal yet cinematic.",
+              image: "/image/home-step-2.png",
+              alt: "Shaping narrative and visuals process",
             },
             {
               title: "Pass it on with a small ceremony.",
               body: "The book, film, and lineage poster are handed over in a moment celebrated with the family, finished with heirloom-grade packaging.",
+              image: "/image/home-step-3.png",
+              alt: "Handover moment with a small ceremony",
             },
           ],
         },
@@ -422,17 +444,31 @@ export default function HomePage() {
         primaryCtaHref={primaryCtaHref}
         secondaryCtaHref={secondaryCtaHref}
       />
-      <StatsStrip copy={copy.stats} />
-      <HowItWorks copy={copy.howItWorks} />
-      <Deliverables copy={copy.deliverables} />
-      <FeaturedCollections copy={copy.featured} />
-      <Testimonials copy={copy.testimonials} />
-      <FAQ copy={copy.faq} />
-      <FinalCTA
-        copy={copy.finalCta}
-        primaryHref={primaryCtaHref}
-        secondaryHref="/subscribe"
-      />
+      <ScrollScale from={0.94} to={1}>
+        <StatsStrip copy={copy.stats} />
+      </ScrollScale>
+      <SectionZoom>
+        <HowItWorks copy={copy.howItWorks} />
+      </SectionZoom>
+      <ScrollScale from={0.95} to={1}>
+        <Deliverables copy={copy.deliverables} />
+      </ScrollScale>
+      <SectionZoom from={0.96}>
+        <FeaturedCollections copy={copy.featured} />
+      </SectionZoom>
+      <ScrollScale from={0.94} to={1}>
+        <Testimonials copy={copy.testimonials} />
+      </ScrollScale>
+      <SectionZoom>
+        <FAQ copy={copy.faq} />
+      </SectionZoom>
+      <ScrollScale from={0.93} to={1}>
+        <FinalCTA
+          copy={copy.finalCta}
+          primaryHref={primaryCtaHref}
+          secondaryHref="/subscribe"
+        />
+      </ScrollScale>
     </>
   );
 }

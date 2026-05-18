@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useId } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "../../lib/utils";
 
 type Variant = "navbar" | "navbar-compact" | "footer" | "hero";
@@ -69,14 +70,17 @@ export function BrandLogo({
   const dims = dimensionMap[variant];
   const gradId = useId();
   const innerGradId = useId();
+  const reduce = useReducedMotion();
 
   const content = (
-    <span
+    <motion.span
       className={cn(
         "group inline-flex items-center",
         dims.gap,
         className
       )}
+      whileHover={reduce ? {} : { scale: 1.02 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
     >
       {/* === Monogram seal === */}
       <span
@@ -87,10 +91,12 @@ export function BrandLogo({
         aria-hidden
       >
         {/* Outer rotating ring */}
-        <svg
+        <motion.svg
           viewBox="0 0 48 48"
           className="absolute inset-0 h-full w-full"
           fill="none"
+          whileHover={reduce ? {} : { rotate: 360 }}
+          transition={{ duration: 20, ease: "linear", repeat: Infinity }}
         >
           <defs>
             <linearGradient
@@ -155,7 +161,7 @@ export function BrandLogo({
           {/* Side dots */}
           <circle cx="6.5" cy="24" r="0.9" fill="#cc8a12" fillOpacity="0.7" />
           <circle cx="41.5" cy="24" r="0.9" fill="#cc8a12" fillOpacity="0.7" />
-        </svg>
+        </motion.svg>
 
         {/* Subtle hover gleam */}
         <span
@@ -166,14 +172,16 @@ export function BrandLogo({
         </span>
 
         {/* Center "L" letter */}
-        <span
+        <motion.span
           className={cn(
             "relative z-10 font-serif font-semibold leading-none text-ink-800 transition-colors duration-300 group-hover:text-brand-700",
             dims.letter
           )}
+          whileHover={reduce ? {} : { scale: 1.1 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         >
           L
-        </span>
+        </motion.span>
       </span>
 
       {/* === Wordmark === */}
@@ -184,12 +192,12 @@ export function BrandLogo({
             dims.word
           )}
         >
-          Lifestory<span className="text-brand-500">.co</span>
+          Lifestory<span className="text-brand-500 transition-colors duration-300 group-hover:text-brand-600">.co</span>
         </span>
         {dims.showTag && (
           <span
             className={cn(
-              "mt-1 hidden font-bold uppercase leading-none tracking-[0.32em] text-brand-700/65 sm:inline",
+              "mt-1 hidden font-bold uppercase leading-none tracking-[0.32em] text-brand-700/65 transition-colors duration-300 group-hover:text-brand-700 sm:inline",
               dims.tag
             )}
           >
@@ -197,7 +205,7 @@ export function BrandLogo({
           </span>
         )}
       </span>
-    </span>
+    </motion.span>
   );
 
   if (asPlain) return content;

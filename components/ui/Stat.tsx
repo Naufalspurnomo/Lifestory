@@ -59,7 +59,7 @@ export function Stat({
       transition={{ duration: reduceMotion ? 0.01 : 0.5, ease: [0.22, 1, 0.36, 1] }}
       className={cn("flex flex-col", className)}
     >
-      <span className="font-serif text-[clamp(2.4rem,5vw,3.8rem)] leading-none text-ink-800">
+      <span className="font-serif text-[clamp(2.0rem,4vw,3.2rem)] leading-none text-ink-800">
         {prefix}
         {formatted}
         {suffix}

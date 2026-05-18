@@ -1,526 +1,342 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { motion, useReducedMotion, type Variants } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   BookOpenText,
-  Building2,
-  Camera,
-  Check,
-  Gem,
+  Feather,
   HeartHandshake,
-  Quote,
   Sparkles,
-  Target,
-  TreePine,
-  Video,
 } from "lucide-react";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 import { Button } from "../../components/ui/Button";
 import { RibbonBadge } from "../../components/ui/Ornament";
-
-const heroHighlights = [
-  "Arsip memori keluarga",
-  "Narasi biografi berlapis emosi",
-  "Warisan visual lintas generasi",
-];
-
-const heroHighlightsEn = [
-  "Family memory archive",
-  "Emotion-led biography narrative",
-  "Cross-generation visual legacy",
-];
-
-const storyMoments = [
-  {
-    phase: "Babak 01",
-    title: "Mendengar sebelum menulis.",
-    body: "Kami membuka ruang percakapan yang tenang agar cerita lama yang sempat tersembunyi bisa muncul kembali.",
-    note: "Setiap detail kecil bisa menjadi benih warisan besar.",
-    icon: Quote,
-    className:
-      "lg:col-span-2 bg-[linear-gradient(140deg,#fff8ea_0%,#fffdf6_56%,#fff_100%)]",
-  },
-  {
-    phase: "Babak 02",
-    title: "Merangkai makna.",
-    body: "Momen hidup disusun menjadi alur yang utuh, sehingga keluarga tidak hanya membaca fakta, tetapi merasakan perjalanan.",
-    note: "Cerita yang rapi membuat nilai hidup lebih mudah diwariskan.",
-    icon: Target,
-    className:
-      "lg:col-span-1 bg-[linear-gradient(145deg,#f3efe6_0%,#fffaf3_100%)]",
-  },
-  {
-    phase: "Babak 03",
-    title: "Mewariskan dengan hangat.",
-    body: "Hasil akhir disajikan dalam format fisik dan digital agar generasi berikutnya dapat terus terhubung dengan akar keluarga.",
-    note: "Warisan terbaik adalah kisah yang bisa disentuh dan dibaca ulang.",
-    icon: HeartHandshake,
-    className:
-      "lg:col-span-2 bg-[linear-gradient(150deg,#f5f8ee_0%,#ffffff_100%)]",
-  },
-];
-
-const storyMomentsEn = [
-  {
-    phase: "Act 01",
-    title: "Listen before we write.",
-    body: "We begin with calm conversations so long-held memories can return and be captured with care.",
-    note: "Small details often become the strongest family legacy.",
-    icon: Quote,
-    className:
-      "lg:col-span-2 bg-[linear-gradient(140deg,#fff8ea_0%,#fffdf6_56%,#fff_100%)]",
-  },
-  {
-    phase: "Act 02",
-    title: "Shape the meaning.",
-    body: "Life moments are arranged into a clear flow, so families do not only read facts but also feel the journey.",
-    note: "Structured stories preserve values more effectively.",
-    icon: Target,
-    className:
-      "lg:col-span-1 bg-[linear-gradient(145deg,#f3efe6_0%,#fffaf3_100%)]",
-  },
-  {
-    phase: "Act 03",
-    title: "Pass it on with warmth.",
-    body: "Final deliverables are prepared in physical and digital formats, keeping future generations connected to their roots.",
-    note: "The best legacy is a story that can be revisited anytime.",
-    icon: HeartHandshake,
-    className:
-      "lg:col-span-2 bg-[linear-gradient(150deg,#f5f8ee_0%,#ffffff_100%)]",
-  },
-];
-
-const whyPoints = [
-  "Manusia cuma hidup sekali, dan hidup terlalu berharga jika berlalu tanpa warisan cerita.",
-  "Banyak anak dan cucu tidak mengenal moyang, kakek, atau neneknya secara utuh.",
-  "Pelajaran hidup tiap orang unik, dan bisa menjadi bekal berharga untuk generasi berikutnya.",
-];
-
-const purposePoints = [
-  "Mengabadikan kisah hidup seseorang untuk sanak keluarga.",
-  "Mewariskan warisan keluarga, bukan hanya harta tetapi juga kisah hidup.",
-  "Mengolah pelajaran nyata dari perjalanan hidup agar tidak hilang sia-sia.",
-  "Mempererat ikatan persaudaraan lewat memori, pesan, dan catatan garis keturunan.",
-  "Mempermudah keluarga melacak silsilah dari waktu ke waktu.",
-];
-
-const benefitPoints = [
-  "Kisah hidup tidak hilang, tetapi meninggalkan nama baik dan jejak inspiratif.",
-  "Anak-cucu dan saudara mendapat pelajaran yang memperkaya pengalaman hidup.",
-  "Keeratan keluarga terjaga lewat pesan, nilai, dan memori orang tua.",
-  "Mengurangi simpang siur cerita turun-temurun karena arsip lebih jelas dan rapi.",
-  "Membangun kesadaran untuk menjaga cerita hidup sebagai sumber inspirasi.",
-];
-
-const visionPoints = [
-  "Menjadi perusahaan penulisan kisah hidup yang kreatif dan terdepan di Indonesia.",
-  "Menciptakan tren aktualisasi diri melalui penulisan kisah hidup profesional.",
-  "Mempererat hubungan dalam keluarga besar.",
-  "Membuat kisah hidup setiap klien terabadikan.",
-  "Menjadi alat dan saluran berkat bagi klien dan orang lain.",
-  "Memiliki kantor dengan galeri yang bisa diakses umum.",
-];
-
-const missionPoints = [
-  "Selalu memberikan konsep dan kemasan yang berbeda.",
-  "Memberikan pelayanan yang profesional dan eksklusif.",
-  "Memberikan layanan purna jual untuk menjaga hubungan jangka panjang.",
-  "Memberikan momen penyerahan produk akhir yang berkesan bagi keluarga.",
-];
-
-const marketPoints = [
-  "Produk ini relatif baru sehingga ada peluang menjadi pemimpin pasar.",
-  "Ada budaya dokumentasi diri pada orang tua maupun generasi muda.",
-  "Setiap orang membutuhkan aktualisasi diri dan ruang untuk menyalurkan warisan.",
-  "Hampir semua orang ingin meninggalkan sesuatu yang berharga untuk anak-cucu.",
-];
-
-const fromForPoints = [
-  "Dari Ayah untuk anaknya",
-  "Dari Anak untuk ayahnya",
-  "Dari Saudara untuk saudaranya",
-  "Dari keluarga untuk generasi berikutnya",
-];
-
-const productBento = [
-  {
-    title: "Buku Autobiografi Eksklusif",
-    icon: BookOpenText,
-    className:
-      "lg:col-span-2 bg-[linear-gradient(140deg,#fff5df_0%,#fffaf0_58%,#fff_100%)]",
-    points: [
-      "Sampul keras premium, kertas berkualitas, kemasan tahan air dan dikustomisasi.",
-      "Foto lama, dokumen, dan foto baru dari sesi Lifestory.",
-      "Tata letak personal, alur cerita kuat, plus karikatur pop-up.",
-    ],
-  },
-  {
-    title: "Video Wawancara & Dokumentasi",
-    icon: Video,
-    className:
-      "lg:col-span-1 bg-[linear-gradient(145deg,#f4efe6_0%,#fffaf4_100%)]",
-    points: [
-      "Wawancara terarah dan dokumentasi aktivitas bermakna.",
-      "Rangkuman momen terbaik dalam kemasan eksklusif + flash disk.",
-    ],
-  },
-  {
-    title: "Poster Pohon Keturunan",
-    icon: TreePine,
-    className:
-      "lg:col-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fbfffa_100%)]",
-    points: [
-      "Dicetak dan dibingkai, dengan slot tambahan untuk periode selanjutnya.",
-      "Mendukung pelacakan silsilah secara visual dan mudah dipahami.",
-    ],
-  },
-  {
-    title: "Sesi Foto & Cetak Besar",
-    icon: Camera,
-    className:
-      "lg:col-span-2 bg-[linear-gradient(145deg,#f7f3eb_0%,#ffffff_100%)]",
-    points: [
-      "Output foto 20R, 30 file digital, plus bonus 2 foto kecil berbingkai.",
-      "Dokumentasi visual artistik untuk melengkapi narasi keluarga.",
-    ],
-  },
-];
-
-const packages = [
-  {
-    title: "Buku Biografi Kustom",
-    tag: "Unggulan",
-    desc: "Buku kisah hidup yang dirancang personal untuk warisan keluarga.",
-    className:
-      "lg:col-span-2 bg-[linear-gradient(145deg,#fff9ef_0%,#fff_100%)]",
-    icon: BookOpenText,
-    features: [
-      "Sampul keras, foto lama + foto baru, penulisan, desain, dan tata letak.",
-      "Kemasan tahan air dan unik.",
-      "Karikatur pop-up dan kertas berkualitas tinggi.",
-    ],
-  },
-  {
-    title: "Sesi Foto",
-    tag: "Warisan Visual",
-    desc: "Sesi foto profesional untuk melengkapi kisah hidup.",
-    className:
-      "lg:col-span-2 bg-[linear-gradient(145deg,#f4f0e8_0%,#fffaf4_100%)]",
-    icon: Camera,
-    features: [
-      "Hasil akhir foto 20R.",
-      "30 file digital resolusi tinggi.",
-      "Bonus 2 foto kecil dengan frame.",
-    ],
-  },
-  {
-    title: "Paket Video",
-    tag: "Dokumenter",
-    desc: "Wawancara, dokumentasi kegiatan, dan rangkuman momen penting.",
-    className:
-      "lg:col-span-1 bg-[linear-gradient(145deg,#f8f4ec_0%,#fff_100%)]",
-    icon: Video,
-    features: [
-      "Pengemasan video secara eksklusif.",
-      "Termasuk flash disk dan kemasan premium.",
-      "Narasi yang menjaga pesan asli keluarga.",
-    ],
-  },
-  {
-    title: "Pohon Keluarga Cetak & Bingkai",
-    tag: "Peta Warisan",
-    desc: "Silsilah keluarga dalam bentuk visual elegan yang mudah dilanjutkan.",
-    className:
-      "lg:col-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fff_100%)]",
-    icon: TreePine,
-    features: [
-      "Dicetak dan dibingkai.",
-      "Slot lanjutan untuk update generasi berikutnya.",
-      "Tercatat di database Lifestory + ucapan terima kasih simbolis.",
-    ],
-  },
-];
-
-const whyPointsEn = [
-  "Life is only lived once, and it is too valuable to pass without a meaningful story left behind.",
-  "Many children and grandchildren do not truly know their grandparents and ancestors.",
-  "Every life journey is unique and can become valuable wisdom for the next generation.",
-];
-
-const purposePointsEn = [
-  "Preserve a person's life story for their extended family.",
-  "Build a family legacy that is not only wealth, but also lived experiences.",
-  "Transform real-life lessons into stories that remain useful for years to come.",
-  "Strengthen family bonds through shared memories, values, and lineage records.",
-  "Make family tree tracking easier and clearer over time.",
-];
-
-const benefitPointsEn = [
-  "A person's life is not forgotten, but remembered through a meaningful legacy.",
-  "Children, grandchildren, and relatives gain lessons that enrich their perspective.",
-  "Family closeness is maintained through preserved messages and memories.",
-  "Reduces conflicting family narratives by keeping structured archives.",
-  "Builds awareness to preserve life stories as inspiration for others.",
-];
-
-const visionPointsEn = [
-  "Become Indonesia's most creative and leading life-story writing company.",
-  "Set a trend for self-actualization through professional biography writing.",
-  "Strengthen relationships within large families.",
-  "Ensure each client's life story is preserved with dignity.",
-  "Become a channel of blessing for clients and wider communities.",
-  "Build a public-access gallery office in the future.",
-];
-
-const missionPointsEn = [
-  "Always deliver distinctive concepts and premium packaging.",
-  "Provide professional and exclusive services in every project.",
-  "Maintain strong after-sales service to build long-term trust.",
-  "Create a memorable final handover experience for each family.",
-];
-
-const marketPointsEn = [
-  "This is still a relatively new category with market-leader potential.",
-  "There is a growing culture of personal documentation across generations.",
-  "People seek self-actualization and meaningful channels to express legacy.",
-  "Most people want to leave something valuable for their children and grandchildren.",
-];
-
-const fromForPointsEn = [
-  "From a father to his children",
-  "From a child to their father",
-  "From siblings to each other",
-  "From one generation to the next",
-];
-
-const productBentoEn = [
-  {
-    title: "Exclusive Autobiography Book",
-    icon: BookOpenText,
-    className:
-      "lg:col-span-2 bg-[linear-gradient(140deg,#fff5df_0%,#fffaf0_58%,#fff_100%)]",
-    points: [
-      "Premium hard cover, high-quality paper, water-resistant custom packaging.",
-      "Includes old photos, documents, and new photos from Lifestory sessions.",
-      "Personal layout design with strong narrative flow and pop-up caricature.",
-    ],
-  },
-  {
-    title: "Interview & Documentary Video",
-    icon: Video,
-    className:
-      "lg:col-span-1 bg-[linear-gradient(145deg,#f4efe6_0%,#fffaf4_100%)]",
-    points: [
-      "Guided interviews and meaningful life-activity documentation.",
-      "Curated highlight summary with premium packaging and flash disk.",
-    ],
-  },
-  {
-    title: "Family Lineage Poster",
-    icon: TreePine,
-    className:
-      "lg:col-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fbfffa_100%)]",
-    points: [
-      "Printed and framed, with expandable slots for future periods.",
-      "Supports visual and accessible family-tree tracking.",
-    ],
-  },
-  {
-    title: "Photo Session & Large Prints",
-    icon: Camera,
-    className:
-      "lg:col-span-2 bg-[linear-gradient(145deg,#f7f3eb_0%,#ffffff_100%)]",
-    points: [
-      "20R print output, 30 digital files, and 2 framed mini photos.",
-      "Artistic visual documentation to complete each family's narrative.",
-    ],
-  },
-];
-
-const packagesEn = [
-  {
-    title: "Customized Biography Book",
-    tag: "Signature",
-    desc: "A personalized life-story book crafted as a timeless family legacy.",
-    className:
-      "lg:col-span-2 bg-[linear-gradient(145deg,#fff9ef_0%,#fff_100%)]",
-    icon: BookOpenText,
-    features: [
-      "Hard cover, old + new photos, writing, design, and layout.",
-      "Waterproof and unique packaging.",
-      "Pop-up caricature and high-quality paper.",
-    ],
-  },
-  {
-    title: "Photo Session",
-    tag: "Visual Legacy",
-    desc: "Professional photo sessions to enrich every biography project.",
-    className:
-      "lg:col-span-2 bg-[linear-gradient(145deg,#f4f0e8_0%,#fffaf4_100%)]",
-    icon: Camera,
-    features: [
-      "Final output in 20R print.",
-      "30 high-resolution digital files.",
-      "2 bonus smaller framed photos.",
-    ],
-  },
-  {
-    title: "Video Package",
-    tag: "Documentary",
-    desc: "Interview, activity documentation, and life-memory highlights.",
-    className:
-      "lg:col-span-1 bg-[linear-gradient(145deg,#f8f4ec_0%,#fff_100%)]",
-    icon: Video,
-    features: [
-      "Premium video packaging.",
-      "Includes flash disk and final package box.",
-      "Narrative that protects the family's original message.",
-    ],
-  },
-  {
-    title: "Family Tree Printed & Framed",
-    tag: "Legacy Map",
-    desc: "Elegant lineage visualization that can grow across generations.",
-    className:
-      "lg:col-span-1 bg-[linear-gradient(145deg,#eef5ec_0%,#fff_100%)]",
-    icon: TreePine,
-    features: [
-      "Printed and framed output.",
-      "Additional slots for future generation updates.",
-      "Recorded in Lifestory database with symbolic thank-you message.",
-    ],
-  },
-];
-
-const sectionVariant: Variants = {
-  hidden: { opacity: 0, y: 30 },
-  show: (index = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.7,
-      delay: index * 0.08,
-      ease: [0.22, 1, 0.36, 1],
-    },
-  }),
-};
-
-const staggerVariant: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.08, delayChildren: 0.04 } },
-};
+import { Container } from "../../components/ui/Container";
+import { ScrollScale, SectionZoom, ParallaxLayer } from "../../components/ui/ScrollAnimations";
+import { Eyebrow } from "../../components/ui/Eyebrow";
+import { ChapterRow } from "../../components/about/ChapterRow";
+import { PullQuote } from "../../components/about/PullQuote";
+import { WhyNowDark } from "../../components/about/WhyNowDark";
+import { PromiseGrid } from "../../components/about/PromiseGrid";
+import { VisionMissionSplit } from "../../components/about/VisionMissionSplit";
+import { ValuesMarquee } from "../../components/about/ValuesMarquee";
 
 export default function AboutPage() {
   const { locale } = useLanguage();
   const isId = locale === "id";
-  const reduceMotion = useReducedMotion();
-  const viewportAmount = reduceMotion ? 0.16 : 0.24;
-  const pageCopy = isId
+  const reduce = useReducedMotion();
+
+  // ============================================================
+  //  COPY
+  // ============================================================
+  const copy = isId
     ? {
         aboutLabel: "Tentang Lifestory Co.",
-        heroTitle: "Kisah hidup bukan untuk berhenti di satu generasi.",
+        heritage: "Sejarah",
+        heroTitle: "Kisah hidup tidak berhenti di satu generasi.",
         heroBody:
-          "Lifestory Company adalah jasa pengabadian kisah hidup dan kenangan lama yang didedikasikan terutama untuk keturunan serta sanak saudara, agar jati diri dan keberadaan seseorang tetap hidup sebagai inspirasi dan pengetahuan keluarga.",
-        storyLabel: "Emotional Storytelling",
-        storyTitle: "Perjalanan kisah yang terasa sinematis saat digulir.",
-        storyBody:
-          "Setiap section hadir bertahap dengan transisi lembut agar pengunjung merasakan alur cerita, bukan sekadar membaca informasi.",
-        whyLabel: "Mengapa Butuh Lifestory?",
-        whyTitle: "Karena setiap orang hanya hidup sekali.",
-        purposeLabel: "Apa Tujuan Lifestory?",
-        purposeTitle: "Membangun warisan keluarga yang hidup, rapi, dan bermakna.",
-        benefitLabel: "Apa Manfaatnya?",
-        benefitTitle:
-          "Memori keluarga jadi sumber pelajaran, bukan cerita yang hilang.",
-        bentoLabel: "Grid Produk Bento",
-        bentoTitle: "Berupa apa hasil akhirnya?",
-        bentoBody:
-          "Kombinasi produk fisik dan digital untuk menjaga cerita tetap utuh, mudah dibaca, dan bisa diwariskan lintas generasi.",
-        packageLabel: "Bento Paket Layanan",
-        packageTitle: "Pilihan paket yang fleksibel dengan layout modern.",
-        packageBody:
-          "Setiap kartu paket memiliki prioritas visual berbeda agar pengguna langsung memahami produk utama dan pendukung.",
-        sideEffectLabel: "Efek Positif",
-        sideEffectBody:
-          "Kita bisa mengerti kehidupan orang lain, belajar dari pengalaman mereka, dan perlahan membagikan kasih Kristus saat hati mulai terbuka.",
+          "Lifestory Company merangkai kenangan, percakapan, dan dokumen keluarga menjadi karya warisan — supaya identitas dan jejak hidup tetap dikenal generasi berikutnya.",
+        heroHighlights: [
+          "Arsip memori keluarga",
+          "Narasi biografi berlapis emosi",
+          "Warisan visual lintas generasi",
+        ],
+        heroPrimary: "Konsultasi paket",
+        heroSecondary: "Lihat ruang kerja",
+
+        // Manifesto pull quote
+        manifestoEyebrow: "Manifesto Studio",
+        manifestoQuote:
+          "Hidup hanya satu kali. Cerita yang tidak ditulis akan hilang bersama orang yang membawanya.",
+        manifestoBy: "Lifestory Studio · Sejak 2018",
+
+        // 3 Chapters
+        chaptersEyebrow: "Cara Kami Bekerja",
+        chaptersTitle: "Tiga babak. Satu warisan.",
+        chaptersLead:
+          "Setiap proyek dijalankan sebagai pertunjukan editorial — terstruktur, tidak terburu, dan menjaga emosi keluarga sebagai pusatnya.",
+        chapters: [
+          {
+            phase: "Babak — Mendengar",
+            title: "Sebelum kalimat pertama ditulis.",
+            body: "Kami memulai dengan sesi wawancara hangat di rumah keluarga Anda. Tidak ada daftar pertanyaan kaku — hanya percakapan yang membiarkan ingatan lama muncul kembali secara alami.",
+            note: "Cerita yang baik selalu dimulai dari telinga, bukan dari pena.",
+            icon: Feather,
+            image: "/image/about-mendengar.png",
+          },
+          {
+            phase: "Babak — Merangkai",
+            title: "Memori menjadi narasi sinematik.",
+            body: "Tim penulis dan art director menyusun alur, memilih foto, dan merancang halaman demi halaman. Kami merestorasi foto lama, mengoreksi tanggal, dan mengkonfirmasi setiap fakta dengan keluarga.",
+            note: "Detail kecil — bau dapur, lagu favorit, panggilan keluarga — itu yang membuat halaman terasa hidup.",
+            icon: BookOpenText,
+            image: "/image/about-merangkai.png",
+          },
+          {
+            phase: "Babak — Mewariskan",
+            title: "Diserahkan dengan upacara kecil.",
+            body: "Buku, video, dan poster silsilah dipresentasikan langsung di hadapan keluarga, dalam kemasan kelas heirloom. Momen ini sengaja kami rayakan — karena warisan layak diperlakukan seperti permata.",
+            note: "Kami merilis hanya saat keluarga benar-benar bangga atas hasilnya.",
+            icon: HeartHandshake,
+            image: "/image/about-waris.png",
+          },
+        ],
+
+        // Why Now — dark section
+        whyNowEyebrow: "Kenapa Sekarang",
+        whyNowTitle: "Tiga alasan kami tidak menunggu.",
+        whyNowItems: [
+          {
+            number: "01",
+            title: "Hidup terlalu berharga untuk diingat sekedar lewat foto.",
+            body: "Tanpa cerita yang menyertai, foto hanya jadi gambar. Kami menyelamatkan suara, gestur, dan filosofi hidup di baliknya.",
+          },
+          {
+            number: "02",
+            title: "Banyak cucu tidak mengenal kakek-nenek mereka secara utuh.",
+            body: "Generasi penghubung sering kehilangan kosa kata untuk bercerita. Kami menjadi penerjemahnya.",
+          },
+          {
+            number: "03",
+            title: "Pelajaran hidup yang tidak dicatat akan dipelajari ulang oleh keturunan dengan harga mahal.",
+            body: "Pengalaman keluarga adalah modal pendidikan paling murah — asal sempat ditulis ulang dengan rapi.",
+          },
+        ],
+
+        // Promises (replacement for Purpose+Benefit list-walls)
+        promisesEyebrow: "Yang Kami Janjikan",
+        promisesTitle: "Lima janji yang membentuk semua keputusan kami.",
+        promisesLead:
+          "Setiap detail proses — dari pemilihan kertas hingga jadwal handover — dijaga oleh lima prinsip ini.",
+        promiseItems: [
+          {
+            title: "Cerita lebih utuh, bukan sekedar lengkap.",
+            body: "Kami merangkai konteks, emosi, dan latar belakang — bukan cuma daftar peristiwa kronologis.",
+          },
+          {
+            title: "Warisan yang lebih dari harta.",
+            body: "Yang kami wariskan adalah cara berpikir, prinsip, dan rasa hangat keluarga — bukan benda mati.",
+          },
+          {
+            title: "Arsip yang rapi, bisa dilanjutkan.",
+            body: "Format dirancang agar generasi berikutnya bisa menambahkan bab mereka sendiri.",
+          },
+          {
+            title: "Hubungan keluarga yang lebih dekat.",
+            body: "Sesi wawancara sering menjadi reuni emosional — itu bonus yang kami sengaja jaga.",
+          },
+          {
+            title: "Inspirasi melampaui keluarga.",
+            body: "Banyak buku Lifestory akhirnya dibaca oleh tetangga, kolega, bahkan orang asing yang merasa terhubung.",
+          },
+        ],
+
+        // Vision Mission
         visionLabel: "Visi",
+        visionTitle: "Menjadi rumah penulisan kisah hidup paling dicari di Indonesia.",
+        visionPoints: [
+          "Memimpin kategori penulisan biografi keluarga premium.",
+          "Menjadikan dokumentasi diri sebagai gerakan budaya, bukan privilese.",
+          "Mempererat keluarga besar lewat cerita yang terdokumentasi.",
+          "Memiliki galeri publik tempat masyarakat bisa membaca koleksi.",
+        ],
         missionLabel: "Misi",
-        marketLabel: "Peluang Pasar",
-        fromForLabel: "Dari dan Untuk Siapa",
+        missionTitle: "Setiap proyek diselesaikan seperti ini, tanpa pengecualian.",
+        missionPoints: [
+          "Konsep dan kemasan yang berbeda untuk setiap keluarga.",
+          "Layanan profesional dengan kerahasiaan tingkat studio.",
+          "Pendampingan purna jual untuk hubungan jangka panjang.",
+          "Momen handover yang berkesan dan dirayakan.",
+        ],
+
+        // Marquee + stats
+        marqueeEyebrow: "Untuk Siapa",
+        marqueeTitle: "Lifestory adalah jembatan antar generasi.",
+        marqueePoints: [
+          "Dari Ayah untuk anaknya",
+          "Dari Anak untuk ayahnya",
+          "Dari Saudara untuk saudaranya",
+          "Dari Generasi ini untuk Generasi nanti",
+          "Dari Cucu untuk Kakeknya",
+          "Dari Ibu untuk anaknya",
+        ],
+        stats: [
+          { value: 50, suffix: "+", label: "Keluarga dilayani" },
+          { value: 200, suffix: " thn", label: "Cerita diabadikan" },
+          { value: 12000, suffix: "+", label: "Halaman ditulis" },
+          { value: 100, suffix: "%", label: "Kepuasan keluarga" },
+        ],
+
+        // Final CTA
         priorityLabel: "Yang Kami Utamakan",
-        priorityTitle: "Selalu memberi yang spesial dan berkualitas.",
+        priorityTitle: "Spesial. Berkualitas. Selalu.",
         priorityBody:
-          "Kami membentuk citra merek yang kuat sambil mengedukasi masyarakat bahwa cerita kehidupan adalah sesuatu yang berharga untuk dicatat dan diabadikan.",
-        consultCta: "Konsultasi Paket",
-        exploreCta: "Jelajahi Pohon Keluarga",
+          "Kami membentuk citra brand yang kuat dengan pekerjaan yang kuat — bukan sebaliknya. Kalau Anda merasa keluarga Anda layak diabadikan, mari kita bicara.",
+        consultCta: "Konsultasi paket",
+        exploreCta: "Lihat ruang kerja",
       }
     : {
         aboutLabel: "About Lifestory Co.",
+        heritage: "Heritage",
         heroTitle: "A life story should not stop at one generation.",
         heroBody:
-          "Lifestory Company is a life-story preservation service dedicated not only to individuals, but especially to their descendants and relatives, so identity and legacy remain an inspiration for future families.",
-        storyLabel: "Emotional Storytelling",
-        storyTitle: "A cinematic story journey revealed while scrolling.",
-        storyBody:
-          "Each section appears progressively with soft transitions, so visitors can feel the narrative flow instead of consuming static blocks.",
-        whyLabel: "Why We Need Lifestory",
-        whyTitle: "Because each life is lived only once.",
-        purposeLabel: "What Is Lifestory's Purpose?",
-        purposeTitle:
-          "To build a living, meaningful, and structured family legacy.",
-        benefitLabel: "What Are the Benefits?",
-        benefitTitle:
-          "Family memories become lessons, not stories lost over time.",
-        bentoLabel: "Product Bento Grid",
-        bentoTitle: "What are the final deliverables?",
-        bentoBody:
-          "A blend of physical and digital products designed to preserve stories, improve readability, and pass legacy across generations.",
-        packageLabel: "Service Package Bento",
-        packageTitle: "Flexible packages presented with a modern layout.",
-        packageBody:
-          "Each package card has distinct visual weight to make flagship and supporting services clearer at a glance.",
-        sideEffectLabel: "Positive Side Effect",
-        sideEffectBody:
-          "We can understand other people's lives, learn from their journeys, and gently share the love of Christ as hearts become open.",
-        visionLabel: "Vision",
-        missionLabel: "Mission",
-        marketLabel: "Market Opportunity",
-        fromForLabel: "From and For",
-        priorityLabel: "What We Prioritize",
-        priorityTitle: "Always delivering something special and high quality.",
-        priorityBody:
-          "We are building a strong brand image while educating the public that life stories are valuable records worth preserving.",
-        consultCta: "Consult Packages",
-        exploreCta: "Explore Family Tree",
-      };
-  const currentHeroHighlights = isId ? heroHighlights : heroHighlightsEn;
-  const currentStoryMoments = isId ? storyMoments : storyMomentsEn;
-  const currentWhyPoints = isId ? whyPoints : whyPointsEn;
-  const currentPurposePoints = isId ? purposePoints : purposePointsEn;
-  const currentBenefitPoints = isId ? benefitPoints : benefitPointsEn;
-  const currentVisionPoints = isId ? visionPoints : visionPointsEn;
-  const currentMissionPoints = isId ? missionPoints : missionPointsEn;
-  const currentMarketPoints = isId ? marketPoints : marketPointsEn;
-  const currentFromForPoints = isId ? fromForPoints : fromForPointsEn;
-  const currentProductBento = isId ? productBento : productBentoEn;
-  const currentPackages = isId ? packages : packagesEn;
+          "Lifestory Company weaves family memories, conversations, and documents into heirloom works — so identity and life traces remain known to the next generation.",
+        heroHighlights: [
+          "Family memory archive",
+          "Emotion-led biography narrative",
+          "Cross-generation visual legacy",
+        ],
+        heroPrimary: "Consult packages",
+        heroSecondary: "View workspace",
 
+        manifestoEyebrow: "Studio Manifesto",
+        manifestoQuote:
+          "Life happens once. Stories that remain unwritten will disappear with the person who carries them.",
+        manifestoBy: "Lifestory Studio · Since 2018",
+
+        chaptersEyebrow: "How We Work",
+        chaptersTitle: "Three acts. One legacy.",
+        chaptersLead:
+          "Every project is run like an editorial production — structured, never rushed, with the family's emotion at the center.",
+        chapters: [
+          {
+            phase: "Act — Listening",
+            title: "Before the first sentence is written.",
+            body: "We begin with warm interview sessions at your family's home. No rigid question list — only conversations that let dormant memories return naturally.",
+            note: "Good stories begin in the ear, not the pen.",
+            icon: Feather,
+            image: "/image/about-mendengar.png",
+          },
+          {
+            phase: "Act — Shaping",
+            title: "Memories become cinematic narrative.",
+            body: "Our writers and art director sequence the story, choose photographs, and design pages. We restore old photos, correct dates, and confirm every fact with the family.",
+            note: "Small details — kitchen aromas, favorite songs, family nicknames — that's what brings pages to life.",
+            icon: BookOpenText,
+            image: "/image/about-merangkai.png",
+          },
+          {
+            phase: "Act — Handover",
+            title: "Delivered with a small ceremony.",
+            body: "The book, film, and lineage poster are presented to the family in heirloom-grade packaging. We celebrate this moment intentionally — because legacy deserves to be treated like a jewel.",
+            note: "We only release when the family is genuinely proud of the result.",
+            icon: HeartHandshake,
+            image: "/image/about-waris.png",
+          },
+        ],
+
+        whyNowEyebrow: "Why Now",
+        whyNowTitle: "Three reasons we don't wait.",
+        whyNowItems: [
+          {
+            number: "01",
+            title: "Life is too valuable to be remembered through photos alone.",
+            body: "Without context, photos remain images. We rescue the voice, gesture, and life philosophy behind them.",
+          },
+          {
+            number: "02",
+            title: "Many grandchildren do not know their grandparents fully.",
+            body: "The connecting generation often loses the vocabulary to tell. We become the translator.",
+          },
+          {
+            number: "03",
+            title: "Life lessons left unrecorded will be re-learned the expensive way.",
+            body: "Family experience is the cheapest education capital — if it's written down properly in time.",
+          },
+        ],
+
+        promisesEyebrow: "Our Promises",
+        promisesTitle: "Five promises that shape every decision.",
+        promisesLead:
+          "Every process detail — from paper choice to handover schedule — is guarded by these five principles.",
+        promiseItems: [
+          {
+            title: "Stories that feel whole, not merely complete.",
+            body: "We weave context, emotion, and background — not just chronological lists of events.",
+          },
+          {
+            title: "A legacy beyond wealth.",
+            body: "What we pass on is mindset, principle, and family warmth — not inert objects.",
+          },
+          {
+            title: "Archives that are clean and continuable.",
+            body: "Format is designed so the next generation can append their own chapters.",
+          },
+          {
+            title: "Tighter family bonds.",
+            body: "Interview sessions often become emotional reunions — a bonus we deliberately preserve.",
+          },
+          {
+            title: "Inspiration beyond the family.",
+            body: "Many Lifestory books end up read by neighbors, colleagues, even strangers who feel connected.",
+          },
+        ],
+
+        visionLabel: "Vision",
+        visionTitle: "To become Indonesia's most sought-after life-story studio.",
+        visionPoints: [
+          "Lead the premium family biography category.",
+          "Make personal documentation a cultural movement, not a privilege.",
+          "Strengthen large families through documented stories.",
+          "Build a public-access gallery for the broader community.",
+        ],
+        missionLabel: "Mission",
+        missionTitle: "Every project is delivered like this, no exceptions.",
+        missionPoints: [
+          "Distinct concept and packaging for every family.",
+          "Professional service with studio-grade confidentiality.",
+          "Long-term after-sales accompaniment.",
+          "A handover moment that is celebrated and remembered.",
+        ],
+
+        marqueeEyebrow: "Who It's For",
+        marqueeTitle: "Lifestory is a bridge between generations.",
+        marqueePoints: [
+          "From a Father to his children",
+          "From a Child to their father",
+          "From a Sibling to their sibling",
+          "From this Generation to the next",
+          "From a Grandchild to their grandparent",
+          "From a Mother to her children",
+        ],
+        stats: [
+          { value: 50, suffix: "+", label: "Families served" },
+          { value: 200, suffix: " yrs", label: "Stories preserved" },
+          { value: 12000, suffix: "+", label: "Pages written" },
+          { value: 100, suffix: "%", label: "Family approval" },
+        ],
+
+        priorityLabel: "What We Prioritize",
+        priorityTitle: "Special. High quality. Always.",
+        priorityBody:
+          "We build a strong brand image through strong work — not the other way around. If you feel your family deserves to be preserved, let's talk.",
+        consultCta: "Consult packages",
+        exploreCta: "View workspace",
+      };
+
+  // ============================================================
+  //  RENDER
+  // ============================================================
   return (
     <div className="bg-cream-100 text-ink-700">
+      {/* ============= HERO ============= */}
       <section className="relative overflow-hidden bg-gradient-to-b from-cream-50 via-cream-100 to-cream-200">
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-40 top-32 h-[420px] w-[420px] rounded-full bg-brand-200/30 blur-3xl" />
-          <div className="absolute -right-32 -top-10 h-[360px] w-[360px] rounded-full bg-accent-100/35 blur-3xl" />
+          <ParallaxLayer offset={30} className="absolute -left-40 top-32 h-[420px] w-[420px]">
+            <div className="h-full w-full rounded-full bg-brand-200/30 blur-3xl" />
+          </ParallaxLayer>
+          <ParallaxLayer offset={-20} className="absolute -right-32 -top-10 h-[360px] w-[360px]">
+            <div className="h-full w-full rounded-full bg-accent-100/35 blur-3xl" />
+          </ParallaxLayer>
           <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-40" />
         </div>
 
-        {/* Timeline strip at the top */}
+        {/* Timeline strip */}
         <div className="relative border-b border-cream-300/60">
           <div className="mx-auto flex max-w-[1320px] items-center gap-4 overflow-x-auto px-6 py-3">
             <RibbonBadge className="hidden flex-none sm:inline-flex">
-              {isId ? "Sejarah" : "Heritage"}
+              {copy.heritage}
             </RibbonBadge>
             <div className="flex min-w-0 flex-1 items-center gap-4 overflow-hidden text-[10px] font-bold uppercase tracking-[0.32em] text-ink-300">
               <span>1899</span>
@@ -536,159 +352,136 @@ export default function AboutPage() {
           </div>
         </div>
 
-        <div className="relative mx-auto grid max-w-[1320px] grid-cols-1 gap-10 px-6 pb-20 pt-16 md:pt-20 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:pb-28 lg:pt-24">
-          <motion.div
-            initial={{ opacity: 0, y: reduceMotion ? 0 : 28 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: reduceMotion ? 0.01 : 0.8,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-          >
-            <span className="inline-flex items-center gap-2 rounded-pill border border-cream-300 bg-white/80 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700 backdrop-blur-sm">
-              <Sparkles className="h-3 w-3" />
-              {pageCopy.aboutLabel}
-            </span>
-            <h1 className="mt-6 font-serif font-medium text-[clamp(2.6rem,7.2vw,5.6rem)] leading-[0.96] tracking-[-0.025em] text-ink-800">
-              {pageCopy.heroTitle}
-            </h1>
-            <motion.p
+        <Container size="xl">
+          <div className="grid grid-cols-1 gap-10 pb-20 pt-14 md:pt-20 lg:grid-cols-[1fr_0.8fr] lg:gap-16 lg:pb-24 lg:pt-20">
+            <motion.div
+              initial={{ opacity: 0, y: reduce ? 0 : 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: reduce ? 0.01 : 0.8, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Eyebrow icon={<Sparkles className="h-3 w-3" />}>{copy.aboutLabel}</Eyebrow>
+              <h1 className="mt-6 font-serif font-medium text-[clamp(2.5rem,7vw,5.4rem)] leading-[0.96] tracking-[-0.025em] text-ink-800">
+                {copy.heroTitle}
+              </h1>
+              <p className="mt-7 max-w-xl text-base leading-relaxed text-ink-500 md:text-lg">
+                {copy.heroBody}
+              </p>
+
+              <div className="mt-8 flex flex-wrap gap-2">
+                {copy.heroHighlights.map((item) => (
+                  <span
+                    key={item}
+                    className="rounded-pill border border-cream-300 bg-white/75 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-500"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <Link href="/contact" className="w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    block
+                    iconRight={<ArrowRight className="h-4 w-4" />}
+                    animateRightIcon
+                    className="sm:w-auto"
+                  >
+                    {copy.heroPrimary}
+                  </Button>
+                </Link>
+                <Link href="/app" className="w-full sm:w-auto">
+                  <Button size="lg" variant="secondary" block className="sm:w-auto">
+                    {copy.heroSecondary}
+                  </Button>
+                </Link>
+              </div>
+            </motion.div>
+
+            {/* RIGHT — Visual cluster with heritage stamp */}
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{
-                duration: reduceMotion ? 0.01 : 1,
-                delay: 0.18,
-                ease: "easeOut",
-              }}
-              className="mt-7 max-w-xl text-base leading-relaxed text-ink-500 md:text-lg"
+              transition={{ duration: reduce ? 0.01 : 0.8, delay: 0.2 }}
+              className="relative hidden h-[520px] lg:flex lg:items-center lg:justify-center"
             >
-              {pageCopy.heroBody}
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: reduceMotion ? 0.01 : 0.6,
-                delay: 0.3,
-                ease: "easeOut",
-              }}
-              className="mt-8 flex flex-wrap gap-2"
-            >
-              {currentHeroHighlights.map((item) => (
-                <span
-                  key={item}
-                  className="rounded-pill border border-cream-300 bg-white/75 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-500"
+              {/* Heritage stamp background */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                <svg
+                  aria-hidden
+                  width="280"
+                  height="280"
+                  viewBox="0 0 80 80"
+                  fill="none"
+                  className="text-brand-700"
                 >
-                  {item}
-                </span>
-              ))}
+                  <circle cx="40" cy="40" r="38" stroke="currentColor" strokeOpacity="0.3" strokeWidth="1" strokeDasharray="4 2" />
+                  <circle cx="40" cy="40" r="32" stroke="currentColor" strokeOpacity="0.5" strokeWidth="1.5" />
+                </svg>
+              </div>
+
+              {/* Polaroid cluster — flex overlap layout */}
+              {/* TODO: Taruh file di: public/image/about-hero-1.png, about-hero-2.png, about-hero-3.png */}
+              <div className="relative flex items-center justify-center">
+                {[
+                  {
+                    src: "/image/about-hero-1.png",
+                    className: "-rotate-6 z-10 h-[270px] w-[185px] -mr-8 self-start mt-12",
+                    tag: "1965",
+                  },
+                  {
+                    src: "/image/about-hero-2.png",
+                    className: "rotate-2 z-30 h-[320px] w-[220px]",
+                    tag: "1992",
+                  },
+                  {
+                    src: "/image/about-hero-3.png",
+                    className: "rotate-6 z-20 h-[250px] w-[175px] -ml-8 self-end mb-12",
+                    tag: isId ? "Sekarang" : "Today",
+                  },
+                ].map((p, i) => (
+                  <motion.figure
+                    key={p.src}
+                    initial={{ opacity: 0, y: reduce ? 0 : 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: reduce ? 0.01 : 0.9,
+                      delay: reduce ? 0 : 0.5 + i * 0.12,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                    className={`relative flex-none overflow-hidden rounded-[12px] border border-cream-400 bg-white p-2 shadow-deep ${p.className}`}
+                  >
+                    <div className="relative h-full w-full overflow-hidden rounded-[6px]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.src} alt="" className="h-full w-full object-cover" />
+                    </div>
+                    <figcaption className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-pill bg-white/95 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-soft">
+                      {p.tag}
+                    </figcaption>
+                  </motion.figure>
+                ))}
+              </div>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: reduceMotion ? 0.01 : 0.6,
-                delay: 0.42,
-                ease: "easeOut",
-              }}
-              className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
+            {/* Mobile/tablet — horizontal photo strip */}
+            <div
+              aria-hidden
+              className="relative flex items-end justify-center gap-3 lg:hidden"
             >
-              <Link href="/contact" className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  block
-                  iconRight={<ArrowRight className="h-4 w-4" />}
-                  animateRightIcon
-                  className="sm:w-auto"
-                >
-                  {pageCopy.consultCta}
-                </Button>
-              </Link>
-              <Link href="/app" className="w-full sm:w-auto">
-                <Button size="lg" variant="secondary" block className="sm:w-auto">
-                  {pageCopy.exploreCta}
-                </Button>
-              </Link>
-            </motion.div>
-          </motion.div>
-
-          {/* RIGHT — Polaroid-style photo cluster (no shared hero image) */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{
-              duration: reduceMotion ? 0.01 : 0.8,
-              delay: 0.2,
-            }}
-            className="relative hidden h-[520px] lg:block"
-          >
-            {[
-              {
-                src: "/cover-gallery/cover-2.png",
-                style: "left-0 top-4 -rotate-6 z-10 h-[320px] w-[230px]",
-                tag: "1965",
-              },
-              {
-                src: "/cover-gallery/cover-3.png",
-                style:
-                  "left-1/2 top-12 -translate-x-1/2 rotate-2 z-30 h-[400px] w-[270px]",
-                tag: "1992",
-              },
-              {
-                src: "/cover-gallery/cover-4.png",
-                style: "right-0 top-32 rotate-6 z-20 h-[300px] w-[210px]",
-                tag: "Today",
-              },
-            ].map((p, i) => (
-              <motion.figure
-                key={p.src}
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: reduceMotion ? 0.01 : 0.9,
-                  delay: 0.5 + i * 0.12,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                className={`absolute overflow-hidden rounded-[12px] border border-cream-400 bg-white p-2 shadow-deep ${p.style}`}
-              >
-                <div className="relative h-full w-full overflow-hidden rounded-[6px]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={p.src}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <figcaption className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-pill bg-white/95 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-soft">
-                  {p.tag}
-                </figcaption>
-              </motion.figure>
-            ))}
-          </motion.div>
-
-          {/* Mobile/tablet fallback — single horizontal photo strip */}
-          <motion.div
-            initial={{ opacity: 0, y: reduceMotion ? 0 : 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: reduceMotion ? 0.01 : 0.7,
-              delay: reduceMotion ? 0 : 0.4,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            className="relative -mx-2 flex items-end gap-3 overflow-hidden lg:hidden"
-            aria-hidden
-          >
-            {["/cover-gallery/cover-2.png", "/cover-gallery/cover-3.png", "/cover-gallery/cover-4.png"].map(
-              (src, i) => {
-                const sizes = ["h-44 w-32", "h-56 w-36", "h-48 w-32"];
+              {/* TODO: Ganti path gambar di bawah ini (sama dengan polaroid cluster di atas)
+                 Taruh file di: public/image/about-hero-1.png, about-hero-2.png, about-hero-3.png */}
+              {[
+                "/image/about-hero-1.png",
+                "/image/about-hero-2.png",
+                "/image/about-hero-3.png",
+              ].map((src, i) => {
+                const sizes = ["h-40 w-28 sm:h-44 sm:w-32", "h-48 w-32 sm:h-56 sm:w-36", "h-40 w-28 sm:h-48 sm:w-32"];
                 const rotations = ["-rotate-3", "rotate-1", "rotate-3"];
-                const tags = ["1965", "1992", "Today"];
+                const tags = ["1965", "1992", isId ? "Sekarang" : "Today"];
                 return (
                   <figure
                     key={src}
-                    className={`relative flex-none overflow-hidden rounded-[10px] border border-cream-400 bg-white p-1.5 shadow-elev ${sizes[i]} ${rotations[i]}`}
+                    className={`relative flex-shrink-0 overflow-hidden rounded-[10px] border border-cream-400 bg-white p-1.5 shadow-elev ${sizes[i]} ${rotations[i]}`}
                   >
                     <div className="relative h-full w-full overflow-hidden rounded-[6px]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -699,385 +492,157 @@ export default function AboutPage() {
                     </figcaption>
                   </figure>
                 );
-              }
-            )}
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-6 py-24 md:py-28">
-        <motion.div
-          variants={staggerVariant}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: viewportAmount }}
-        >
-          <motion.div variants={sectionVariant} custom={0} className="max-w-3xl">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-              {pageCopy.storyLabel}
-            </p>
-            <h2 className="mt-3 font-serif text-[clamp(2rem,4.6vw,3.6rem)] leading-[1.05] text-[#3f342d]">
-              {pageCopy.storyTitle}
-            </h2>
-            <p className="mt-4 text-[#6c6055]">{pageCopy.storyBody}</p>
-          </motion.div>
-
-          <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {currentStoryMoments.map((moment, index) => {
-              const Icon = moment.icon;
-              return (
-                <motion.article
-                  key={moment.title}
-                  variants={sectionVariant}
-                  custom={index + 1}
-                  className={`group relative flex h-full flex-col overflow-hidden rounded-3xl border border-[#dfd3c2] p-6 shadow-[0_16px_30px_rgba(59,43,24,0.1)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_34px_rgba(59,43,24,0.14)] ${moment.className}`}
-                >
-                  <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[rgba(202,162,79,0.12)] transition group-hover:scale-110" />
-                  <div className="relative flex h-full flex-col">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a7c4e]">
-                        {moment.phase}
-                      </span>
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#ddc7a2] bg-white/80 text-[#b07f2f]">
-                        <Icon className="h-4 w-4" />
-                      </span>
-                    </div>
-                    <h3 className="font-serif text-2xl leading-tight text-[#3f342d]">
-                      {moment.title}
-                    </h3>
-                    <p className="mt-3 text-sm leading-relaxed text-[#6a5f55]">
-                      {moment.body}
-                    </p>
-                    <p className="mt-auto pt-4 text-sm italic text-[#7b6d61]">
-                      "{moment.note}"
-                    </p>
-                  </div>
-                </motion.article>
-              );
-            })}
+              })}
+            </div>
           </div>
-        </motion.div>
+        </Container>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-20 md:pb-24">
-        <motion.div
-          variants={staggerVariant}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: viewportAmount }}
-        >
-          <div className="grid gap-5 lg:grid-cols-2">
-            <motion.article
-              variants={sectionVariant}
-              custom={0}
-              className="rounded-3xl border border-[#dfd2be] bg-white/80 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.08)]"
-            >
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-                {pageCopy.whyLabel}
-              </p>
-              <h2 className="mt-3 font-serif text-[clamp(1.7rem,3.6vw,2.35rem)] text-[#3f342d]">
-                {pageCopy.whyTitle}
+      {/* ============= MANIFESTO PULL QUOTE ============= */}
+      <PullQuote
+        eyebrow={copy.manifestoEyebrow}
+        quote={copy.manifestoQuote}
+        attribution={copy.manifestoBy}
+      />
+
+      {/* ============= 3 CHAPTERS — alternating editorial rows ============= */}
+      <SectionZoom>
+        <section className="relative bg-cream-100 section-y-md">
+          <Container>
+            <div className="mb-16 max-w-3xl md:mb-20">
+              <Eyebrow>{copy.chaptersEyebrow}</Eyebrow>
+              <h2 className="mt-4 font-serif text-[clamp(1.85rem,4.6vw,3.6rem)] leading-[1.05] tracking-[-0.02em] text-ink-800">
+                {copy.chaptersTitle}
               </h2>
-              <div className="mt-5 space-y-3 text-[#6e6258]">
-                {currentWhyPoints.map((point) => (
-                  <p key={point} className="leading-relaxed">
-                    {point}
-                  </p>
-                ))}
-              </div>
-            </motion.article>
-
-            <motion.article
-              variants={sectionVariant}
-              custom={1}
-              className="rounded-3xl border border-[#dfd2be] bg-white/80 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.08)]"
-            >
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-                {pageCopy.purposeLabel}
-              </p>
-              <h2 className="mt-3 font-serif text-[clamp(1.7rem,3.6vw,2.35rem)] text-[#3f342d]">
-                {pageCopy.purposeTitle}
-              </h2>
-              <div className="mt-5 grid gap-2.5">
-                {currentPurposePoints.map((point) => (
-                  <p
-                    key={point}
-                    className="flex items-start gap-2.5 rounded-xl border border-[#eee1cb] bg-[#fffcf7] p-3 text-[#6e6258]"
-                  >
-                    <Check className="mt-0.5 h-4 w-4 flex-none text-[#c48b24]" />
-                    <span>{point}</span>
-                  </p>
-                ))}
-              </div>
-            </motion.article>
-
-            <motion.article
-              variants={sectionVariant}
-              custom={2}
-              className="rounded-3xl border border-[#dfd2be] bg-white/82 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.08)] lg:col-span-2"
-            >
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-                {pageCopy.benefitLabel}
-              </p>
-              <h2 className="mt-3 font-serif text-[clamp(1.7rem,3.3vw,2.2rem)] text-[#3f342d]">
-                {pageCopy.benefitTitle}
-              </h2>
-              <div className="mt-5 grid gap-2.5 md:grid-cols-2">
-                {currentBenefitPoints.map((point) => (
-                  <p
-                    key={point}
-                    className="flex items-start gap-2.5 rounded-xl border border-[#eee1cb] bg-[#fffcf7] p-3 text-[#6e6258]"
-                  >
-                    <Gem className="mt-0.5 h-4 w-4 flex-none text-[#c48b24]" />
-                    <span>{point}</span>
-                  </p>
-                ))}
-              </div>
-            </motion.article>
-          </div>
-        </motion.div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-6 pb-20 md:pb-24">
-        <motion.div
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: viewportAmount }}
-          variants={staggerVariant}
-        >
-          <motion.div variants={sectionVariant} custom={0} className="mb-10 max-w-3xl">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-              {pageCopy.bentoLabel}
-            </p>
-            <h2 className="mt-3 font-serif text-[clamp(2rem,4.5vw,3.4rem)] leading-[1.06] text-[#3f342d]">
-              {pageCopy.bentoTitle}
-            </h2>
-            <p className="mt-4 text-[#6d6157]">
-              {pageCopy.bentoBody}
-            </p>
-          </motion.div>
-
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {currentProductBento.map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <motion.article
-                  key={item.title}
-                  variants={sectionVariant}
-                  custom={index + 1}
-                  className={`group relative overflow-hidden rounded-3xl border border-[#dfd3c2] p-6 shadow-[0_18px_32px_rgba(61,47,28,0.12)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_36px_rgba(61,47,28,0.18)] ${item.className}`}
-                >
-                  <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[rgba(202,162,79,0.1)] transition group-hover:scale-110" />
-                  <div className="relative">
-                    <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#ddc7a2] bg-white/78 text-[#b07f2f]">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <h3 className="font-serif text-xl text-[#3f342d]">
-                      {item.title}
-                    </h3>
-                    <div className="mt-4 space-y-2.5 text-sm leading-relaxed text-[#665b51]">
-                      {item.points.map((point) => (
-                        <p key={point}>{point}</p>
-                      ))}
-                    </div>
-                  </div>
-                </motion.article>
-              );
-            })}
-          </div>
-        </motion.div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-6 pb-20 md:pb-24">
-        <motion.div
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: viewportAmount }}
-          variants={staggerVariant}
-        >
-          <motion.div variants={sectionVariant} custom={0} className="mb-10 max-w-3xl">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-              {pageCopy.packageLabel}
-            </p>
-            <h2 className="mt-3 font-serif text-[clamp(2rem,4.5vw,3.4rem)] leading-[1.06] text-[#3f342d]">
-              {pageCopy.packageTitle}
-            </h2>
-            <p className="mt-4 text-[#6d6157]">
-              {pageCopy.packageBody}
-            </p>
-          </motion.div>
-
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {currentPackages.map((pkg, index) => {
-              const Icon = pkg.icon;
-              return (
-                <motion.article
-                  key={pkg.title}
-                  variants={sectionVariant}
-                  custom={index + 1}
-                  whileHover={{ y: -6, transition: { duration: 0.25 } }}
-                  className={`group rounded-3xl border border-[#dfd2be] p-7 shadow-[0_14px_24px_rgba(59,43,24,0.09)] transition hover:border-[#cda15a] hover:shadow-[0_20px_34px_rgba(59,43,24,0.15)] ${pkg.className}`}
-                >
-                  <div className="mb-4 flex items-center justify-between gap-3">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#dfc9a1] bg-white/80 text-[#9d7641]">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span className="rounded-full border border-[#dfc9a1] bg-[#fff7e8] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9d7641]">
-                      {pkg.tag}
-                    </span>
-                  </div>
-                  <h3 className="font-serif text-2xl text-[#3f342d]">
-                    {pkg.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-[#6f645a]">
-                    {pkg.desc}
-                  </p>
-                  <div className="mt-5 grid gap-2.5">
-                    {pkg.features.map((feature) => (
-                      <p
-                        key={feature}
-                        className="flex items-start gap-2.5 rounded-xl bg-[#faf6ef] px-3 py-2.5 text-sm text-[#60554c]"
-                      >
-                        <Sparkles className="mt-0.5 h-4 w-4 flex-none text-[#bd892f]" />
-                        <span>{feature}</span>
-                      </p>
-                    ))}
-                  </div>
-                </motion.article>
-              );
-            })}
-          </div>
-        </motion.div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-6 pb-24">
-        <motion.div
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: viewportAmount }}
-          variants={staggerVariant}
-          className="grid gap-6 lg:grid-cols-3"
-        >
-          <motion.article
-            variants={sectionVariant}
-            custom={0}
-            className="rounded-3xl border border-[#dfd2be] bg-white/85 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.09)] lg:col-span-2"
-          >
-            <div className="flex items-center gap-2 text-[#9b845f]">
-              <Quote className="h-4 w-4" />
-              <p className="text-xs font-bold uppercase tracking-[0.16em]">
-                {pageCopy.sideEffectLabel}
+              <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink-500 md:text-lg">
+                {copy.chaptersLead}
               </p>
             </div>
-            <p className="mt-4 text-lg leading-relaxed text-[#5f544b]">
-              {pageCopy.sideEffectBody}
-            </p>
 
-            <div className="mt-8 grid gap-5 md:grid-cols-2">
-              <div>
-                <p className="mb-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-                  <Target className="h-4 w-4" />
-                  {pageCopy.visionLabel}
-                </p>
-                <div className="space-y-2.5">
-                  {currentVisionPoints.map((point) => (
-                    <p key={point} className="text-sm leading-relaxed text-[#64584e]">
-                      {point}
-                    </p>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="mb-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-                  <HeartHandshake className="h-4 w-4" />
-                  {pageCopy.missionLabel}
-                </p>
-                <div className="space-y-2.5">
-                  {currentMissionPoints.map((point) => (
-                    <p key={point} className="text-sm leading-relaxed text-[#64584e]">
-                      {point}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.article>
-
-          <motion.article
-            variants={sectionVariant}
-            custom={1}
-            className="rounded-3xl border border-[#dfd2be] bg-white/85 p-7 shadow-[0_14px_24px_rgba(59,43,24,0.09)]"
-          >
-            <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-              <Building2 className="h-4 w-4" />
-              {pageCopy.marketLabel}
-            </p>
-            <div className="mt-4 space-y-2.5">
-              {currentMarketPoints.map((point) => (
-                <p
-                  key={point}
-                  className="rounded-xl border border-[#ece2d3] bg-[#fffcf8] p-3 text-sm leading-relaxed text-[#65594f]"
-                >
-                  {point}
-                </p>
+            <div className="space-y-20 md:space-y-28 lg:space-y-32">
+              {copy.chapters.map((chapter, idx) => (
+                <ChapterRow
+                  key={chapter.title}
+                  index={idx}
+                  phase={chapter.phase}
+                  title={chapter.title}
+                  body={chapter.body}
+                  note={chapter.note}
+                  image={chapter.image}
+                  imageAlt={chapter.title}
+                  icon={chapter.icon}
+                  reversed={idx % 2 === 1}
+                />
               ))}
             </div>
+          </Container>
+        </section>
+      </SectionZoom>
 
-            <div className="mt-6 border-t border-[#ebe0cf] pt-6">
-              <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-                {pageCopy.fromForLabel}
+      {/* ============= WHY NOW — dark interlude ============= */}
+      <ScrollScale from={0.94} to={1}>
+        <WhyNowDark
+          copy={{
+            eyebrow: copy.whyNowEyebrow,
+            title: copy.whyNowTitle,
+            items: copy.whyNowItems,
+          }}
+        />
+      </ScrollScale>
+
+      {/* ============= PROMISES — icon grid replaces bullet wall ============= */}
+      <SectionZoom from={0.96}>
+        <PromiseGrid
+          copy={{
+            eyebrow: copy.promisesEyebrow,
+            title: copy.promisesTitle,
+            lead: copy.promisesLead,
+            items: copy.promiseItems,
+          }}
+        />
+      </SectionZoom>
+
+      {/* ============= VISION vs MISSION split ============= */}
+      <ScrollScale from={0.93} to={1}>
+        <VisionMissionSplit
+          copy={{
+            visionLabel: copy.visionLabel,
+            visionTitle: copy.visionTitle,
+            visionPoints: copy.visionPoints,
+            missionLabel: copy.missionLabel,
+            missionTitle: copy.missionTitle,
+            missionPoints: copy.missionPoints,
+          }}
+        />
+      </ScrollScale>
+
+      {/* ============= VALUES MARQUEE + STATS ============= */}
+      <SectionZoom>
+        <ValuesMarquee
+          copy={{
+            eyebrow: copy.marqueeEyebrow,
+            title: copy.marqueeTitle,
+            fromForLabel: copy.marqueeEyebrow,
+            fromForPoints: copy.marqueePoints,
+            stats: copy.stats,
+          }}
+        />
+      </SectionZoom>
+
+      {/* ============= FINAL CTA ============= */}
+      <ScrollScale from={0.93} to={1}>
+        <section className="relative bg-cream-50 section-y-md">
+        <Container size="md">
+          <motion.div
+            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: reduce ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="relative overflow-hidden rounded-[36px] border border-ink-800/30 bg-gradient-to-br from-ink-900 via-ink-800 to-brand-800 px-8 py-14 text-center text-white shadow-deep md:px-16 md:py-20"
+          >
+            <div aria-hidden className="pointer-events-none absolute inset-0">
+              <div className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-brand-400/20 blur-3xl" />
+              <div className="absolute -right-20 -bottom-20 h-72 w-72 rounded-full bg-accent-500/20 blur-3xl" />
+              <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-25" />
+            </div>
+
+            <div className="relative">
+              <Eyebrow tone="white">{copy.priorityLabel}</Eyebrow>
+              <h2 className="mt-5 font-serif text-[clamp(2rem,4.6vw,3.6rem)] leading-[1.04] tracking-[-0.02em]">
+                {copy.priorityTitle}
+              </h2>
+              <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-white/75 md:text-lg">
+                {copy.priorityBody}
               </p>
-              <div className="flex flex-wrap gap-2">
-                {currentFromForPoints.map((point) => (
-                  <span
-                    key={point}
-                    className="rounded-full border border-[#dfcfb4] bg-[#fdf6ea] px-3 py-1.5 text-[11px] font-semibold text-[#786657]"
+
+              <div className="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <Link href="/contact" className="w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    block
+                    iconRight={<ArrowRight className="h-4 w-4" />}
+                    animateRightIcon
+                    className="sm:w-auto"
                   >
-                    {point}
-                  </span>
-                ))}
+                    {copy.consultCta}
+                  </Button>
+                </Link>
+                <Link href="/app" className="w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    block
+                    className="text-white/85 hover:bg-white/10 hover:text-white sm:w-auto"
+                  >
+                    {copy.exploreCta}
+                  </Button>
+                </Link>
               </div>
             </div>
-          </motion.article>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: viewportAmount }}
-          transition={{ duration: reduceMotion ? 0.01 : 0.6, ease: "easeOut" }}
-          className="mt-10 rounded-[30px] border border-[#d9c8ad] bg-[linear-gradient(140deg,#fff8ed_0%,#fff_100%)] px-6 py-10 text-center shadow-[0_18px_34px_rgba(59,43,24,0.12)] md:px-12"
-        >
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9b845f]">
-            {pageCopy.priorityLabel}
-          </p>
-          <h3 className="mt-4 font-serif text-[clamp(1.9rem,4vw,3rem)] text-[#3f342d]">
-            {pageCopy.priorityTitle}
-          </h3>
-          <p className="mx-auto mt-4 max-w-3xl text-[#685d53]">
-            {pageCopy.priorityBody}
-          </p>
-          <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
-            <Link href="/contact" className="w-full sm:w-auto">
-              <Button
-                size="lg"
-                block
-                iconRight={<ArrowRight className="h-4 w-4" />}
-                animateRightIcon
-                className="sm:w-auto"
-              >
-                {pageCopy.consultCta}
-              </Button>
-            </Link>
-            <Link href="/app" className="w-full sm:w-auto">
-              <Button size="lg" variant="secondary" block className="sm:w-auto">
-                {pageCopy.exploreCta}
-              </Button>
-            </Link>
-          </div>
-        </motion.div>
+          </motion.div>
+        </Container>
       </section>
+      </ScrollScale>
     </div>
   );
 }
-

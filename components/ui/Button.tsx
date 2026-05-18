@@ -1,7 +1,8 @@
 "use client";
 
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { forwardRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { cn } from "../../lib/utils";
 
 type ButtonVariant =
@@ -39,15 +40,15 @@ const sizeMap: Record<ButtonSize, string> = {
 
 const variantMap: Record<ButtonVariant, string> = {
   primary:
-    "bg-brand-gradient text-white shadow-cta hover:shadow-cta-hover hover:-translate-y-0.5 active:translate-y-0",
+    "bg-brand-gradient text-white shadow-cta hover:shadow-cta-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]",
   secondary:
-    "border border-cream-300 bg-white/85 text-ink-700 hover:border-brand-300 hover:bg-white",
-  ghost: "text-ink-600 hover:bg-cream-100 hover:text-ink-800",
+    "border border-cream-300 bg-white/85 text-ink-700 hover:border-brand-300 hover:bg-white hover:shadow-soft active:scale-[0.98]",
+  ghost: "text-ink-600 hover:bg-cream-100 hover:text-ink-800 active:scale-[0.98]",
   outline:
-    "border border-ink-700/15 bg-transparent text-ink-700 hover:bg-cream-100 hover:border-ink-700/35",
-  dark: "bg-ink-900 text-cream-50 hover:bg-ink-800 shadow-elev",
-  danger: "bg-danger text-white hover:opacity-90 shadow-elev",
-  success: "bg-success text-white hover:opacity-90 shadow-elev",
+    "border border-ink-700/15 bg-transparent text-ink-700 hover:bg-cream-100 hover:border-ink-700/35 active:scale-[0.98]",
+  dark: "bg-ink-900 text-cream-50 hover:bg-ink-800 shadow-elev active:scale-[0.98]",
+  danger: "bg-danger text-white hover:opacity-90 shadow-elev active:scale-[0.98]",
+  success: "bg-success text-white hover:opacity-90 shadow-elev active:scale-[0.98]",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -62,15 +63,37 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     animateRightIcon,
     children,
     disabled,
+    onClick,
     ...rest
   },
   ref
 ) {
+  const [ripples, setRipples] = useState<Array<{ x: number; y: number; id: number }>>([]);
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (disabled || loading) return;
+
+    // Create ripple effect
+    const button = e.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const id = Date.now();
+
+    setRipples((prev) => [...prev, { x, y, id }]);
+    setTimeout(() => {
+      setRipples((prev) => prev.filter((r) => r.id !== id));
+    }, 600);
+
+    onClick?.(e);
+  };
+
   return (
     <button
       ref={ref}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
+      onClick={handleClick}
       className={cn(
         base,
         sizeMap[size],
@@ -83,6 +106,27 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       )}
       {...rest}
     >
+      {/* Ripple effects */}
+      {ripples.map((ripple) => (
+        <motion.span
+          key={ripple.id}
+          initial={{ scale: 0, opacity: 0.5 }}
+          animate={{ scale: 4, opacity: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          style={{
+            position: "absolute",
+            left: ripple.x,
+            top: ripple.y,
+            width: 20,
+            height: 20,
+            borderRadius: "50%",
+            backgroundColor: variant === "primary" ? "rgba(255,255,255,0.6)" : "rgba(204,138,18,0.3)",
+            pointerEvents: "none",
+            transform: "translate(-50%, -50%)",
+          }}
+        />
+      ))}
+
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
       ) : (

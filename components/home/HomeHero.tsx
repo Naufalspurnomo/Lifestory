@@ -4,10 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, BookOpenText, Sparkles } from "lucide-react";
-import { useRef } from "react";
+import { Fragment, useRef } from "react";
 import { Button } from "../ui/Button";
 import { Eyebrow } from "../ui/Eyebrow";
 import { FrameCorner } from "../ui/Ornament";
+import { WordRotator } from "../ui/WordRotator";
+import { MagneticButton } from "../ui/MagneticButton";
+import { StudioPulse } from "../ui/StudioPulse";
+import { ParallaxLayer } from "../ui/ScrollAnimations";
 import { galleryItems } from "../../lib/content/galleryItems";
 
 type Props = {
@@ -18,6 +22,7 @@ type Props = {
     welcomeBack: string;
     eyebrow: string;
     headlineLine1: string;
+    headlineRotators: string[];
     headlineLine2: string;
     headlineAccent: string;
     headlineLine3: string;
@@ -28,34 +33,53 @@ type Props = {
     badge2: string;
     badge3: string;
     scrollHint: string;
+    studioCity: string;
+    featuredLabel: string;
   };
   primaryCtaHref: string;
   secondaryCtaHref: string;
 };
 
-const SplitWords = ({ text, delay = 0 }: { text: string; delay?: number }) => {
+/**
+ * Word-by-word mask reveal that PRESERVES spaces between words.
+ * Each word lives in its own overflow-hidden frame; an actual whitespace
+ * node sits between each frame so flow + line-wrapping work naturally.
+ */
+function SplitWords({
+  text,
+  delay = 0,
+  perWord = 0.06,
+}: {
+  text: string;
+  delay?: number;
+  perWord?: number;
+}) {
   const reduce = useReducedMotion();
+  const words = text.split(" ");
   return (
-    <span className="inline-block">
-      {text.split(" ").map((word, i) => (
-        <span key={i} className="inline-block overflow-hidden align-bottom pb-1">
-          <motion.span
-            initial={{ y: reduce ? 0 : "100%" }}
-            animate={{ y: 0 }}
-            transition={{
-              duration: reduce ? 0.01 : 0.7,
-              delay: reduce ? 0 : delay + i * 0.06,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            className="inline-block pr-[0.22em]"
-          >
-            {word}
-          </motion.span>
-        </span>
+    <>
+      {words.map((word, i) => (
+        <Fragment key={`${word}-${i}`}>
+          <span className="inline-flex overflow-hidden align-bottom pb-[0.08em]">
+            <motion.span
+              initial={{ y: reduce ? 0 : "110%" }}
+              animate={{ y: 0 }}
+              transition={{
+                duration: reduce ? 0.01 : 0.75,
+                delay: reduce ? 0 : delay + i * perWord,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="inline-block will-change-transform"
+            >
+              {word}
+            </motion.span>
+          </span>
+          {i < words.length - 1 ? " " : null}
+        </Fragment>
       ))}
-    </span>
+    </>
   );
-};
+}
 
 export function HomeHero({
   status,
@@ -82,8 +106,12 @@ export function HomeHero({
     >
       {/* Decorative ornaments */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-32 top-20 h-[420px] w-[420px] rounded-full bg-brand-200/35 blur-3xl" />
-        <div className="absolute -right-32 top-40 h-[360px] w-[360px] rounded-full bg-accent-100/40 blur-3xl" />
+        <ParallaxLayer offset={25} className="absolute -left-32 top-20 h-[420px] w-[420px]">
+          <div className="h-full w-full rounded-full bg-brand-200/35 blur-3xl" />
+        </ParallaxLayer>
+        <ParallaxLayer offset={-20} className="absolute -right-32 top-40 h-[360px] w-[360px]">
+          <div className="h-full w-full rounded-full bg-accent-100/40 blur-3xl" />
+        </ParallaxLayer>
         <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-50" />
       </div>
 
@@ -92,24 +120,10 @@ export function HomeHero({
         aria-hidden
         className="pointer-events-none absolute inset-x-6 top-6 hidden h-[calc(100%-3rem)] rounded-[36px] border border-cream-300/50 md:block"
       />
-
-      {/* Frame corners */}
-      <FrameCorner
-        className="pointer-events-none absolute left-10 top-10 hidden md:block"
-        size={36}
-      />
-      <FrameCorner
-        className="pointer-events-none absolute right-10 top-10 hidden rotate-90 md:block"
-        size={36}
-      />
-      <FrameCorner
-        className="pointer-events-none absolute bottom-10 left-10 hidden -rotate-90 md:block"
-        size={36}
-      />
-      <FrameCorner
-        className="pointer-events-none absolute bottom-10 right-10 hidden rotate-180 md:block"
-        size={36}
-      />
+      <FrameCorner className="pointer-events-none absolute left-10 top-10 hidden md:block" size={36} />
+      <FrameCorner className="pointer-events-none absolute right-10 top-10 hidden rotate-90 md:block" size={36} />
+      <FrameCorner className="pointer-events-none absolute bottom-10 left-10 hidden -rotate-90 md:block" size={36} />
+      <FrameCorner className="pointer-events-none absolute bottom-10 right-10 hidden rotate-180 md:block" size={36} />
 
       <motion.div
         style={{ y: heroY }}
@@ -117,56 +131,76 @@ export function HomeHero({
       >
         {/* LEFT — Editorial copy */}
         <div className="relative z-10 flex flex-col justify-center">
-          {isLoggedIn && (
-            <motion.p
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            <motion.div
               initial={{ opacity: 0, y: reduce ? 0 : 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: reduce ? 0.01 : 0.5 }}
-              className="mb-5 inline-flex w-fit items-center gap-2 rounded-pill border border-cream-300 bg-white/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-500"
             >
-              <span className="inline-block h-2 w-2 rounded-full bg-success" />
-              {copy.welcomeBack}, {firstName}
-            </motion.p>
-          )}
+              <Eyebrow icon={<Sparkles className="h-3 w-3" />}>{copy.eyebrow}</Eyebrow>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: reduce ? 0 : 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: reduce ? 0.01 : 0.5, delay: reduce ? 0 : 0.1 }}
+            >
+              <StudioPulse city={copy.studioCity} />
+            </motion.div>
+            {isLoggedIn && (
+              <motion.span
+                initial={{ opacity: 0, y: reduce ? 0 : 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: reduce ? 0.01 : 0.5, delay: reduce ? 0 : 0.2 }}
+                className="inline-flex items-center gap-2 rounded-pill border border-cream-300 bg-white/80 px-3 py-1 text-[10px] font-bold uppercase leading-none tracking-[0.18em] text-ink-500"
+              >
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
+                {copy.welcomeBack} · {firstName}
+              </motion.span>
+            )}
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4 }}
-          >
-            <Eyebrow icon={<Sparkles className="h-3 w-3" />}>{copy.eyebrow}</Eyebrow>
-          </motion.div>
-
-          <h1 className="mt-6 font-serif font-medium text-[clamp(2.6rem,7vw,5.6rem)] leading-[0.96] tracking-[-0.025em] text-ink-800">
+          <h1 className="font-serif font-medium text-[clamp(2.6rem,7vw,5.6rem)] leading-[0.98] tracking-[-0.025em] text-ink-800">
+            {/* Line 1: prefix + word rotator */}
             <span className="block">
               <SplitWords text={copy.headlineLine1} delay={0.05} />
+              <span className="mx-2 inline-block h-[0.7em] w-[0.04em] -translate-y-[0.06em] rounded-full bg-brand-400 align-middle" />
+              <WordRotator
+                words={copy.headlineRotators}
+                outerClassName="align-baseline"
+                className="font-serif italic text-brand-600"
+                interval={2400}
+                startDelay={1400}
+              />
             </span>
+            {/* Line 2 */}
             <span className="block">
-              <SplitWords text={copy.headlineLine2} delay={0.18} />
+              <SplitWords text={copy.headlineLine2} delay={0.22} />
             </span>
+            {/* Accent */}
             <span className="relative inline-block">
-              <SplitWords text={copy.headlineAccent} delay={0.32} />
+              <SplitWords text={copy.headlineAccent} delay={0.4} />
               <motion.span
                 aria-hidden
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
                 transition={{
                   duration: reduce ? 0.01 : 0.9,
-                  delay: reduce ? 0 : 0.85,
+                  delay: reduce ? 0 : 1,
                   ease: [0.22, 1, 0.36, 1],
                 }}
                 className="absolute -bottom-1 left-0 h-[6px] w-full origin-left rounded-full bg-brand-gradient"
               />
             </span>
+            {/* Line 3 */}
             <span className="block">
-              <SplitWords text={copy.headlineLine3} delay={0.48} />
+              <SplitWords text={copy.headlineLine3} delay={0.56} />
             </span>
           </h1>
 
           <motion.p
             initial={{ opacity: 0, y: reduce ? 0 : 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0.01 : 0.7, delay: reduce ? 0 : 0.7 }}
+            transition={{ duration: reduce ? 0.01 : 0.7, delay: reduce ? 0 : 0.85 }}
             className="mt-7 max-w-xl text-base leading-relaxed text-ink-500 md:text-lg"
           >
             {copy.subheading}
@@ -175,7 +209,7 @@ export function HomeHero({
           <motion.div
             initial={{ opacity: 0, y: reduce ? 0 : 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0.01 : 0.6, delay: reduce ? 0 : 0.85 }}
+            transition={{ duration: reduce ? 0.01 : 0.6, delay: reduce ? 0 : 1 }}
             className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
           >
             {status === "loading" ? (
@@ -186,15 +220,17 @@ export function HomeHero({
             ) : (
               <>
                 <Link href={primaryCtaHref} className="w-full sm:w-auto">
-                  <Button
-                    size="lg"
-                    block
-                    iconRight={<ArrowRight className="h-4 w-4" />}
-                    animateRightIcon
-                    className="sm:w-auto"
-                  >
-                    {copy.primaryCta}
-                  </Button>
+                  <MagneticButton strength={0.32} distance={140} className="w-full sm:w-auto">
+                    <Button
+                      size="lg"
+                      block
+                      iconRight={<ArrowRight className="h-4 w-4" />}
+                      animateRightIcon
+                      className="sm:w-auto"
+                    >
+                      {copy.primaryCta}
+                    </Button>
+                  </MagneticButton>
                 </Link>
                 <Link href={secondaryCtaHref} className="w-full sm:w-auto">
                   <Button
@@ -214,7 +250,7 @@ export function HomeHero({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 1.05 }}
+            transition={{ duration: reduce ? 0.01 : 0.6, delay: reduce ? 0 : 1.2 }}
             className="mt-9 flex flex-wrap gap-2"
           >
             {[copy.badge1, copy.badge2, copy.badge3].map((b) => (
@@ -233,7 +269,6 @@ export function HomeHero({
           style={{ y: stackY, rotate: stackRotate }}
           className="relative mx-auto flex h-[420px] w-full max-w-md items-center justify-center sm:h-[520px] lg:h-auto lg:max-w-none"
         >
-          {/* Glow ring behind the stack */}
           <div
             aria-hidden
             className="absolute inset-x-8 inset-y-8 rounded-full bg-brand-200/40 blur-3xl"
@@ -253,7 +288,7 @@ export function HomeHero({
             return (
               <motion.div
                 key={book.id}
-                initial={{ opacity: 0, y: reduce ? 0 : 60, rotate: 0 }}
+                initial={{ opacity: 0, y: reduce ? 0 : 60 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
                   duration: reduce ? 0.01 : 0.9,
@@ -288,7 +323,7 @@ export function HomeHero({
               </span>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-700">
-                  Featured
+                  {copy.featuredLabel}
                 </p>
                 <p className="font-serif text-sm leading-tight text-ink-800">
                   {galleryItems[1].title}
@@ -303,19 +338,13 @@ export function HomeHero({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 1.4 }}
+        transition={{ duration: reduce ? 0.01 : 0.6, delay: reduce ? 0 : 1.5 }}
         className="relative mx-auto mt-16 flex w-fit flex-col items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.32em] text-ink-300"
       >
         <span>{copy.scrollHint}</span>
         <motion.span
           aria-hidden
-          animate={
-            reduce
-              ? {}
-              : {
-                  y: [0, 8, 0],
-                }
-          }
+          animate={reduce ? {} : { y: [0, 8, 0] }}
           transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
           className="block h-8 w-[1px] bg-gradient-to-b from-transparent via-brand-400 to-transparent"
         />
