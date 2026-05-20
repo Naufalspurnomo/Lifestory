@@ -16,7 +16,7 @@ export type GalleryItem = {
 export const galleryItems: GalleryItem[] = [
   {
     id: "ivory-classic",
-    src: "/cover-gallery/cover-1.png",
+    src: "/cover-gallery/cover-1.webp",
     alt: "Cover portrait monokrom Wang Li Jien",
     title: "Wang Li Jien",
     subtitle: "Personal life memoir",
@@ -27,7 +27,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "royal-navy",
-    src: "/cover-gallery/cover-2.png",
+    src: "/cover-gallery/cover-2.webp",
     alt: "Cover Kisah Ibu Kami dengan siluet wajah",
     title: "Kisah Ibu Kami",
     subtitle: "Family tribute edition",
@@ -38,7 +38,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "crimson-legacy",
-    src: "/cover-gallery/cover-3.png",
+    src: "/cover-gallery/cover-3.webp",
     alt: "Cover Kisah Pak Yohannes Ayah Kami dengan foto keluarga",
     title: "Kisah Pak Yohannes",
     subtitle: "Family photo chronicle",
@@ -49,7 +49,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "emerald-vault",
-    src: "/cover-gallery/cover-4.png",
+    src: "/cover-gallery/cover-4.webp",
     alt: "Cover Bara yang hangat dan angin yang sejuk karya Suwati",
     title: "Bara yang Hangat & Angin yang Sejuk",
     subtitle: "Legacy memory edition",

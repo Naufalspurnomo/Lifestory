@@ -63,7 +63,7 @@ export default function AboutPage() {
             body: "Kami memulai dengan sesi wawancara hangat di rumah keluarga Anda. Tidak ada daftar pertanyaan kaku — hanya percakapan yang membiarkan ingatan lama muncul kembali secara alami.",
             note: "Cerita yang baik selalu dimulai dari telinga, bukan dari pena.",
             icon: Feather,
-            image: "/image/about-mendengar.png",
+            image: "/image/about-mendengar.webp",
           },
           {
             phase: "Babak — Merangkai",
@@ -71,7 +71,7 @@ export default function AboutPage() {
             body: "Tim penulis dan art director menyusun alur, memilih foto, dan merancang halaman demi halaman. Kami merestorasi foto lama, mengoreksi tanggal, dan mengkonfirmasi setiap fakta dengan keluarga.",
             note: "Detail kecil — bau dapur, lagu favorit, panggilan keluarga — itu yang membuat halaman terasa hidup.",
             icon: BookOpenText,
-            image: "/image/about-merangkai.png",
+            image: "/image/about-merangkai.webp",
           },
           {
             phase: "Babak — Mewariskan",
@@ -79,7 +79,7 @@ export default function AboutPage() {
             body: "Buku, video, dan poster silsilah dipresentasikan langsung di hadapan keluarga, dalam kemasan kelas heirloom. Momen ini sengaja kami rayakan — karena warisan layak diperlakukan seperti permata.",
             note: "Kami merilis hanya saat keluarga benar-benar bangga atas hasilnya.",
             icon: HeartHandshake,
-            image: "/image/about-waris.png",
+            image: "/image/about-waris.webp",
           },
         ],
 
@@ -206,7 +206,7 @@ export default function AboutPage() {
             body: "We begin with warm interview sessions at your family's home. No rigid question list — only conversations that let dormant memories return naturally.",
             note: "Good stories begin in the ear, not the pen.",
             icon: Feather,
-            image: "/image/about-mendengar.png",
+            image: "/image/about-mendengar.webp",
           },
           {
             phase: "Act — Shaping",
@@ -214,7 +214,7 @@ export default function AboutPage() {
             body: "Our writers and art director sequence the story, choose photographs, and design pages. We restore old photos, correct dates, and confirm every fact with the family.",
             note: "Small details — kitchen aromas, favorite songs, family nicknames — that's what brings pages to life.",
             icon: BookOpenText,
-            image: "/image/about-merangkai.png",
+            image: "/image/about-merangkai.webp",
           },
           {
             phase: "Act — Handover",
@@ -222,7 +222,7 @@ export default function AboutPage() {
             body: "The book, film, and lineage poster are presented to the family in heirloom-grade packaging. We celebrate this moment intentionally — because legacy deserves to be treated like a jewel.",
             note: "We only release when the family is genuinely proud of the result.",
             icon: HeartHandshake,
-            image: "/image/about-waris.png",
+            image: "/image/about-waris.webp",
           },
         ],
 
@@ -421,21 +421,21 @@ export default function AboutPage() {
               </div>
 
               {/* Polaroid cluster — flex overlap layout */}
-              {/* TODO: Taruh file di: public/image/about-hero-1.png, about-hero-2.png, about-hero-3.png */}
+              {/* TODO: Taruh file di: public/image/about-hero-1.webp, about-hero-2.webp, about-hero-3.webp */}
               <div className="relative flex items-center justify-center">
                 {[
                   {
-                    src: "/image/about-hero-1.png",
+                    src: "/image/about-hero-1.webp",
                     className: "-rotate-6 z-10 h-[270px] w-[185px] -mr-8 self-start mt-12",
                     tag: "1965",
                   },
                   {
-                    src: "/image/about-hero-2.png",
+                    src: "/image/about-hero-2.webp",
                     className: "rotate-2 z-30 h-[320px] w-[220px]",
                     tag: "1992",
                   },
                   {
-                    src: "/image/about-hero-3.png",
+                    src: "/image/about-hero-3.webp",
                     className: "rotate-6 z-20 h-[250px] w-[175px] -ml-8 self-end mb-12",
                     tag: isId ? "Sekarang" : "Today",
                   },
@@ -469,11 +469,11 @@ export default function AboutPage() {
               className="relative flex items-end justify-center gap-3 lg:hidden"
             >
               {/* TODO: Ganti path gambar di bawah ini (sama dengan polaroid cluster di atas)
-                 Taruh file di: public/image/about-hero-1.png, about-hero-2.png, about-hero-3.png */}
+                 Taruh file di: public/image/about-hero-1.webp, about-hero-2.webp, about-hero-3.webp */}
               {[
-                "/image/about-hero-1.png",
-                "/image/about-hero-2.png",
-                "/image/about-hero-3.png",
+                "/image/about-hero-1.webp",
+                "/image/about-hero-2.webp",
+                "/image/about-hero-3.webp",
               ].map((src, i) => {
                 const sizes = ["h-40 w-28 sm:h-44 sm:w-32", "h-48 w-32 sm:h-56 sm:w-36", "h-40 w-28 sm:h-48 sm:w-32"];
                 const rotations = ["-rotate-3", "rotate-1", "rotate-3"];

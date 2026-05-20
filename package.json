@@ -9,6 +9,7 @@
     "lint": "next lint",
     "layout:test": "tsx scripts/verify-family-layout.ts",
     "layout:report": "tsx scripts/real-family-report.ts",
+    "optimize:images": "node scripts/convert-images-to-webp.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

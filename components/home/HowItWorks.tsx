@@ -51,7 +51,7 @@ export function HowItWorks({ copy }: Props) {
     icon: ICONS[i] ?? Feather,
     title: s.title,
     body: s.body,
-    image: s.image || "/image/home-step-" + (i + 1) + ".png",
+    image: s.image || "/image/home-step-" + (i + 1) + ".webp",
     alt: s.alt || s.title,
   }));
 

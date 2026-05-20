@@ -24,13 +24,13 @@ import { cn } from "../../lib/utils";
 const ICONS: LucideIcon[] = [BookOpenText, Camera, Clapperboard, TreePine];
 
 /* TODO: Ganti path gambar di bawah ini dengan foto khusus Deliverables section
-   Taruh file di: public/image/home-deliverable-1.png, ...-2.png, ...-3.png, ...-4.png
+   Taruh file di: public/image/home-deliverable-1.webp, ...-2.webp, ...-3.webp, ...-4.webp
    Urutan: 1=Buku, 2=Foto, 3=Video, 4=Pohon Silsilah */
 const IMAGES = [
-  "/image/home-deliverable-1.png",
-  "/image/home-deliverable-2.png",
-  "/image/home-deliverable-3.png",
-  "/image/home-deliverable-4.png",
+  "/image/home-deliverable-1.webp",
+  "/image/home-deliverable-2.webp",
+  "/image/home-deliverable-3.webp",
+  "/image/home-deliverable-4.webp",
 ];
 
 const ACCENTS = [
