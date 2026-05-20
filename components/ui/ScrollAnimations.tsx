@@ -13,9 +13,9 @@ type ParallaxProps = {
 };
 
 export function ParallaxLayer(props: ParallaxProps) {
-  const { reduced } = useMotionGuard();
+  const { shouldReduceScrollMotion } = useMotionGuard();
 
-  if (reduced) {
+  if (shouldReduceScrollMotion) {
     return <div className={cn(props.className)}>{props.children}</div>;
   }
 
@@ -61,9 +61,9 @@ type ScrollScaleProps = {
 };
 
 export function ScrollScale(props: ScrollScaleProps) {
-  const { reduced } = useMotionGuard();
+  const { shouldReduceScrollMotion } = useMotionGuard();
 
-  if (reduced) {
+  if (shouldReduceScrollMotion) {
     return <div className={cn(props.className)}>{props.children}</div>;
   }
 
@@ -108,9 +108,9 @@ type ScrollFadeProps = {
 };
 
 export function ScrollFadeIn(props: ScrollFadeProps) {
-  const { reduced } = useMotionGuard();
+  const { shouldReduceScrollMotion } = useMotionGuard();
 
-  if (reduced) {
+  if (shouldReduceScrollMotion) {
     return <div className={cn(props.className)}>{props.children}</div>;
   }
 
@@ -151,9 +151,9 @@ type SectionZoomProps = {
 };
 
 export function SectionZoom(props: SectionZoomProps) {
-  const { reduced } = useMotionGuard();
+  const { shouldReduceScrollMotion } = useMotionGuard();
 
-  if (reduced) {
+  if (shouldReduceScrollMotion) {
     return <section className={cn(props.className)}>{props.children}</section>;
   }
 

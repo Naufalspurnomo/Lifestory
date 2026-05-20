@@ -8,9 +8,9 @@ import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
  * Mounted once in root layout; thin gold line that grows as you scroll.
  */
 export function ScrollProgress() {
-  const { reduced } = useMotionGuard();
+  const { shouldReduceScrollMotion } = useMotionGuard();
 
-  if (reduced) return null;
+  if (shouldReduceScrollMotion) return null;
 
   return <ScrollProgressMotion />;
 }

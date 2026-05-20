@@ -91,14 +91,23 @@ export function HomeHero({
   secondaryCtaHref,
 }: Props) {
   const ref = useRef<HTMLElement>(null);
-  const { reduced } = useMotionGuard();
+  const { reduced, shouldReduceScrollMotion } = useMotionGuard();
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
   });
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, reduced ? 0 : 80]);
-  const stackRotate = useTransform(scrollYProgress, [0, 1], [0, reduced ? 0 : -8]);
-  const stackY = useTransform(scrollYProgress, [0, 1], [0, reduced ? 0 : -120]);
+  const heroY = useTransform(scrollYProgress, [0, 1], [
+    0,
+    shouldReduceScrollMotion ? 0 : 80,
+  ]);
+  const stackRotate = useTransform(scrollYProgress, [0, 1], [
+    0,
+    shouldReduceScrollMotion ? 0 : -8,
+  ]);
+  const stackY = useTransform(scrollYProgress, [0, 1], [
+    0,
+    shouldReduceScrollMotion ? 0 : -120,
+  ]);
 
   return (
     <section

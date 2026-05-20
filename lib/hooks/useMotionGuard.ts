@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useReducedMotion, type Target, type Transition } from "framer-motion";
 
 /**
- * Standardizes motion handling. Touch-first devices get the reduced path too
- * because scroll-linked transforms can feel sticky on mid-range phones/tablets.
+ * Standardizes motion handling. Lightweight entrance and hover-safe animation
+ * should only honor prefers-reduced-motion. Scroll-linked transforms get a
+ * stricter touch guard because they can feel sticky on mid-range phones/tablets.
  */
 export function useCoarsePointer() {
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
@@ -28,7 +29,8 @@ export function useCoarsePointer() {
 export function useMotionGuard() {
   const prefersReducedMotion = useReducedMotion();
   const isCoarsePointer = useCoarsePointer();
-  const reduced = Boolean(prefersReducedMotion || isCoarsePointer);
+  const reduced = Boolean(prefersReducedMotion);
+  const shouldReduceScrollMotion = Boolean(prefersReducedMotion || isCoarsePointer);
 
   function mInitial(target: Target | undefined): Target | undefined {
     if (!reduced || !target) return target;
@@ -50,6 +52,7 @@ export function useMotionGuard() {
 
   return {
     reduced,
+    shouldReduceScrollMotion,
     prefersReducedMotion: Boolean(prefersReducedMotion),
     isCoarsePointer,
     mInitial,
