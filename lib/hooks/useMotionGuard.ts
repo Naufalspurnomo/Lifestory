@@ -1,18 +1,34 @@
 "use client";
 
-import { useReducedMotion, type Transition, type Target } from "framer-motion";
+import { useEffect, useState } from "react";
+import { useReducedMotion, type Target, type Transition } from "framer-motion";
 
 /**
- * useMotionGuard — small helper to standardize prefers-reduced-motion handling
- * across framer-motion call sites.
- *
- * Returns:
- *   - reduced: boolean
- *   - mInitial(target): collapses y/x/rotate/scale away when reduce-motion is on
- *   - mTransition(transition): clamps duration to ~0 when reduce-motion is on
+ * Standardizes motion handling. Touch-first devices get the reduced path too
+ * because scroll-linked transforms can feel sticky on mid-range phones/tablets.
  */
+export function useCoarsePointer() {
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(hover: none), (pointer: coarse)");
+
+    function update() {
+      setIsCoarsePointer(media.matches || navigator.maxTouchPoints > 0);
+    }
+
+    update();
+    media.addEventListener?.("change", update);
+    return () => media.removeEventListener?.("change", update);
+  }, []);
+
+  return isCoarsePointer;
+}
+
 export function useMotionGuard() {
-  const reduced = useReducedMotion();
+  const prefersReducedMotion = useReducedMotion();
+  const isCoarsePointer = useCoarsePointer();
+  const reduced = Boolean(prefersReducedMotion || isCoarsePointer);
 
   function mInitial(target: Target | undefined): Target | undefined {
     if (!reduced || !target) return target;
@@ -32,5 +48,11 @@ export function useMotionGuard() {
     return { ...(transition ?? {}), duration: 0.01, delay: 0 };
   }
 
-  return { reduced, mInitial, mTransition };
+  return {
+    reduced,
+    prefersReducedMotion: Boolean(prefersReducedMotion),
+    isCoarsePointer,
+    mInitial,
+    mTransition,
+  };
 }

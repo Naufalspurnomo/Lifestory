@@ -1,8 +1,9 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { cn } from "../../lib/utils";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Props = {
   words: string[];
@@ -28,27 +29,27 @@ export function WordRotator({
   outerClassName,
   startDelay = 1200,
 }: Props) {
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
   const safe = words ?? [];
   const [i, setI] = useState(0);
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    if (reduce || safe.length <= 1) return;
+    if (reduced || safe.length <= 1) return;
     const start = window.setTimeout(() => setStarted(true), startDelay);
     return () => window.clearTimeout(start);
-  }, [reduce, startDelay, safe.length]);
+  }, [reduced, startDelay, safe.length]);
 
   useEffect(() => {
-    if (reduce || !started || safe.length <= 1) return;
+    if (reduced || !started || safe.length <= 1) return;
     const t = window.setInterval(() => {
       setI((p) => (p + 1) % safe.length);
     }, interval);
     return () => window.clearInterval(t);
-  }, [reduce, started, interval, safe.length]);
+  }, [reduced, started, interval, safe.length]);
 
   if (!safe.length) return null;
-  if (reduce || safe.length === 1) {
+  if (reduced || safe.length === 1) {
     return <span className={className}>{safe[0]}</span>;
   }
 

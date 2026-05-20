@@ -5,7 +5,6 @@ import {
   AnimatePresence,
   motion,
   useMotionValue,
-  useReducedMotion,
 } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -20,6 +19,7 @@ import { Eyebrow } from "../ui/Eyebrow";
 import { Reveal } from "../ui/Reveal";
 import { TiltCard } from "../ui/TiltCard";
 import { cn } from "../../lib/utils";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 const ICONS: LucideIcon[] = [BookOpenText, Camera, Clapperboard, TreePine];
 
@@ -80,7 +80,7 @@ type Props = {
 };
 
 export function Deliverables({ copy }: Props) {
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
   const items = copy.items.slice(0, 4);
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -92,7 +92,7 @@ export function Deliverables({ copy }: Props) {
 
   // Auto-progress engine using rAF — pauses cleanly, resets on active change.
   useEffect(() => {
-    if (reduce || paused) return;
+    if (reduced || paused) return;
     let frame = 0;
     const start = performance.now();
     const total = AUTO_ROTATE_MS;
@@ -110,7 +110,7 @@ export function Deliverables({ copy }: Props) {
     }
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [active, reduce, paused, items.length, progress]);
+  }, [active, reduced, paused, items.length, progress]);
 
   // Reset progress whenever active changes (both auto and manual)
   useEffect(() => {
@@ -139,7 +139,7 @@ export function Deliverables({ copy }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: reduce ? 0.01 : 1.2 }}
+            transition={{ duration: reduced ? 0.01 : 1.2 }}
             className="absolute -left-32 top-1/4 h-[520px] w-[520px] rounded-full blur-[120px]"
             style={{ background: accent.glow }}
           />
@@ -170,7 +170,7 @@ export function Deliverables({ copy }: Props) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: reduce ? 0.01 : 0.7 }}
+                  transition={{ duration: reduced ? 0.01 : 0.7 }}
                   className={cn(
                     "absolute inset-0 bg-gradient-to-br",
                     accent.bgFrom,
@@ -195,10 +195,10 @@ export function Deliverables({ copy }: Props) {
                 <AnimatePresence mode="wait">
                   <motion.span
                     key={`num-${active}`}
-                    initial={{ opacity: 0, y: reduce ? 0 : 20 }}
+                    initial={{ opacity: 0, y: reduced ? 0 : 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: reduce ? 0 : -20 }}
-                    transition={{ duration: reduce ? 0.01 : 0.55, ease: [0.22, 1, 0.36, 1] }}
+                    exit={{ opacity: 0, y: reduced ? 0 : -20 }}
+                    transition={{ duration: reduced ? 0.01 : 0.55, ease: [0.22, 1, 0.36, 1] }}
                     className="inline-block"
                   >
                     {String(active + 1).padStart(2, "0")}
@@ -217,10 +217,10 @@ export function Deliverables({ copy }: Props) {
                   <AnimatePresence mode="wait">
                     <motion.span
                       key={`label-${active}`}
-                      initial={{ opacity: 0, y: reduce ? 0 : 6 }}
+                      initial={{ opacity: 0, y: reduced ? 0 : 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: reduce ? 0 : -6 }}
-                      transition={{ duration: reduce ? 0.01 : 0.35 }}
+                      exit={{ opacity: 0, y: reduced ? 0 : -6 }}
+                      transition={{ duration: reduced ? 0.01 : 0.35 }}
                       className="inline-block"
                     >
                       {accent.label}
@@ -234,10 +234,10 @@ export function Deliverables({ copy }: Props) {
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`img-${active}`}
-                    initial={{ opacity: 0, scale: reduce ? 1 : 1.06, y: reduce ? 0 : 12 }}
+                    initial={{ opacity: 0, scale: reduced ? 1 : 1.06, y: reduced ? 0 : 12 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: reduce ? 1 : 0.96, y: reduce ? 0 : -12 }}
-                    transition={{ duration: reduce ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+                    exit={{ opacity: 0, scale: reduced ? 1 : 0.96, y: reduced ? 0 : -12 }}
+                    transition={{ duration: reduced ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
                     className="relative h-full w-full max-w-[260px] sm:max-w-[300px] md:max-w-[340px]"
                   >
                     <TiltCard
@@ -281,7 +281,7 @@ export function Deliverables({ copy }: Props) {
                 style={{
                   transform: `scaleX(${progressTick})`,
                   transformOrigin: "left",
-                  opacity: paused || reduce ? 0 : 0.95,
+                  opacity: paused || reduced ? 0 : 0.95,
                   transition: "opacity 0.3s ease",
                 }}
               />
@@ -318,7 +318,7 @@ export function Deliverables({ copy }: Props) {
                   item={item}
                   Icon={ICONS[idx] ?? BookOpenText}
                   onSelect={() => select(idx)}
-                  reduce={reduce ?? false}
+                  reduce={reduced}
                 />
               ))}
             </ol>

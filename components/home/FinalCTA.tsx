@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Container } from "../ui/Container";
 import { Monogram } from "../ui/Ornament";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Props = {
   copy: {
@@ -21,7 +22,7 @@ type Props = {
 };
 
 export function FinalCTA({ copy, primaryHref, secondaryHref }: Props) {
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
 
   return (
     <section className="relative bg-cream-50 section-y-md">
@@ -30,7 +31,7 @@ export function FinalCTA({ copy, primaryHref, secondaryHref }: Props) {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: reduce ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: reduced ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="relative overflow-hidden rounded-[36px] border border-ink-800/30 bg-gradient-to-br from-ink-900 via-ink-800 to-brand-800 px-8 py-14 text-white shadow-deep md:px-16 md:py-20"
         >
           <div aria-hidden className="pointer-events-none absolute inset-0">

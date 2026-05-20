@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   BookOpen,
   HeartHandshake,
@@ -13,6 +13,7 @@ import { Container } from "../ui/Container";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Reveal } from "../ui/Reveal";
 import { cn } from "../../lib/utils";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Item = {
   title: string;
@@ -35,7 +36,7 @@ const ICONS: LucideIcon[] = [BookOpen, HeartHandshake, Library, Users, TreePine]
  * Replaces the bullet-list "Apa Tujuan Lifestory" section so it scans visually, not as prose.
  */
 export function PromiseGrid({ copy }: Props) {
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
   return (
     <section className="relative bg-cream-100 section-y-md">
       <Container>
@@ -56,12 +57,12 @@ export function PromiseGrid({ copy }: Props) {
             return (
               <motion.article
                 key={item.title}
-                initial={{ opacity: 0, y: reduce ? 0 : 22 }}
+                initial={{ opacity: 0, y: reduced ? 0 : 22 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{
-                  duration: reduce ? 0.01 : 0.6,
-                  delay: reduce ? 0 : idx * 0.06,
+                  duration: reduced ? 0.01 : 0.6,
+                  delay: reduced ? 0 : idx * 0.06,
                   ease: [0.22, 1, 0.36, 1],
                 }}
                 className={cn(

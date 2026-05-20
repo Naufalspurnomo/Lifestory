@@ -127,13 +127,27 @@ export function NavBar() {
   }, [copy, isAdmin, isSubscribed]);
 
   useEffect(() => {
+    let current = window.scrollY > 24;
+    let frame = 0;
+
     function onScroll() {
-      setIsScrolled(window.scrollY > 24);
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const next = window.scrollY > 24;
+        if (next !== current) {
+          current = next;
+          setIsScrolled(next);
+        }
+      });
     }
 
-    onScroll();
+    setIsScrolled(current);
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
   }, []);
 
   useEffect(() => {

@@ -1,47 +1,46 @@
 "use client";
 
-import { motion, useScroll, useTransform, useSpring, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { useRef, type ReactNode } from "react";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 import { cn } from "../../lib/utils";
 
-// ============================================================
-// ParallaxLayer — element moves at a different rate than scroll
-// Great for background blobs, decorative elements, images
-// ============================================================
 type ParallaxProps = {
   children: ReactNode;
   className?: string;
-  /** How much to offset in px. Positive = moves up slower (lags). Negative = moves down. */
   offset?: number;
-  /** Scale range: [start, end]. E.g. [0.95, 1.05] for subtle zoom */
   scale?: [number, number];
 };
 
-export function ParallaxLayer({
+export function ParallaxLayer(props: ParallaxProps) {
+  const { reduced } = useMotionGuard();
+
+  if (reduced) {
+    return <div className={cn(props.className)}>{props.children}</div>;
+  }
+
+  return <ParallaxLayerMotion {...props} />;
+}
+
+function ParallaxLayerMotion({
   children,
   className,
   offset = 60,
   scale,
 }: ParallaxProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start end", "end start"],
   });
 
-  const y = useTransform(
-    scrollYProgress,
-    [0, 1],
-    reduce ? [0, 0] : [offset, -offset]
-  );
+  const y = useTransform(scrollYProgress, [0, 1], [offset, -offset]);
   const smoothY = useSpring(y, { stiffness: 80, damping: 20, mass: 0.5 });
-
-  const scaleVal = useTransform(
-    scrollYProgress,
-    [0, 0.5, 1],
-    reduce ? [1, 1, 1] : [scale?.[0] ?? 1, 1, scale?.[1] ?? 1]
-  );
+  const scaleVal = useTransform(scrollYProgress, [0, 0.5, 1], [
+    scale?.[0] ?? 1,
+    1,
+    scale?.[1] ?? 1,
+  ]);
 
   return (
     <motion.div
@@ -54,43 +53,42 @@ export function ParallaxLayer({
   );
 }
 
-// ============================================================
-// ScrollScale — element scales up/down as it enters viewport
-// Used for hero images, CTA cards, featured sections
-// ============================================================
 type ScrollScaleProps = {
   children: ReactNode;
   className?: string;
-  /** Scale when element is just entering view */
   from?: number;
-  /** Scale when element is centered in view */
   to?: number;
 };
 
-export function ScrollScale({
+export function ScrollScale(props: ScrollScaleProps) {
+  const { reduced } = useMotionGuard();
+
+  if (reduced) {
+    return <div className={cn(props.className)}>{props.children}</div>;
+  }
+
+  return <ScrollScaleMotion {...props} />;
+}
+
+function ScrollScaleMotion({
   children,
   className,
   from = 0.92,
   to = 1,
 }: ScrollScaleProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start end", "center center"],
   });
 
-  const scale = useTransform(
-    scrollYProgress,
-    [0, 1],
-    reduce ? [1, 1] : [from, to]
-  );
-  const opacity = useTransform(
-    scrollYProgress,
-    [0, 0.4],
-    reduce ? [1, 1] : [0.6, 1]
-  );
-  const smoothScale = useSpring(scale, { stiffness: 100, damping: 20, mass: 0.4 });
+  const scale = useTransform(scrollYProgress, [0, 1], [from, to]);
+  const opacity = useTransform(scrollYProgress, [0, 0.4], [0.6, 1]);
+  const smoothScale = useSpring(scale, {
+    stiffness: 100,
+    damping: 20,
+    mass: 0.4,
+  });
 
   return (
     <motion.div
@@ -103,35 +101,35 @@ export function ScrollScale({
   );
 }
 
-// ============================================================
-// ScrollFadeIn — progressive opacity+translateY tied to scroll position
-// Smoother than threshold-based whileInView for continuous feel
-// ============================================================
 type ScrollFadeProps = {
   children: ReactNode;
   className?: string;
-  /** Y offset in px when starting (default 40) */
   y?: number;
 };
 
-export function ScrollFadeIn({
+export function ScrollFadeIn(props: ScrollFadeProps) {
+  const { reduced } = useMotionGuard();
+
+  if (reduced) {
+    return <div className={cn(props.className)}>{props.children}</div>;
+  }
+
+  return <ScrollFadeInMotion {...props} />;
+}
+
+function ScrollFadeInMotion({
   children,
   className,
   y: yOffset = 40,
 }: ScrollFadeProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start 0.9", "start 0.5"],
   });
 
-  const opacity = useTransform(scrollYProgress, [0, 1], reduce ? [1, 1] : [0, 1]);
-  const translateY = useTransform(
-    scrollYProgress,
-    [0, 1],
-    reduce ? [0, 0] : [yOffset, 0]
-  );
+  const opacity = useTransform(scrollYProgress, [0, 1], [0, 1]);
+  const translateY = useTransform(scrollYProgress, [0, 1], [yOffset, 0]);
   const smoothOpacity = useSpring(opacity, { stiffness: 80, damping: 18 });
   const smoothY = useSpring(translateY, { stiffness: 80, damping: 18 });
 
@@ -146,31 +144,35 @@ export function ScrollFadeIn({
   );
 }
 
-// ============================================================
-// SectionZoom — entire section subtly scales as you scroll into it
-// Creates a "diving into content" feel
-// ============================================================
 type SectionZoomProps = {
   children: ReactNode;
   className?: string;
-  /** Scale start (default 0.97) */
   from?: number;
 };
 
-export function SectionZoom({
+export function SectionZoom(props: SectionZoomProps) {
+  const { reduced } = useMotionGuard();
+
+  if (reduced) {
+    return <section className={cn(props.className)}>{props.children}</section>;
+  }
+
+  return <SectionZoomMotion {...props} />;
+}
+
+function SectionZoomMotion({
   children,
   className,
   from = 0.97,
 }: SectionZoomProps) {
   const ref = useRef<HTMLElement>(null);
-  const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start end", "start 0.3"],
   });
 
-  const scale = useTransform(scrollYProgress, [0, 1], reduce ? [1, 1] : [from, 1]);
-  const opacity = useTransform(scrollYProgress, [0, 0.5], reduce ? [1, 1] : [0.7, 1]);
+  const scale = useTransform(scrollYProgress, [0, 1], [from, 1]);
+  const opacity = useTransform(scrollYProgress, [0, 0.5], [0.7, 1]);
 
   return (
     <motion.section

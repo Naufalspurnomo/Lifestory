@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 import { Button } from "../../components/ui/Button";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 const WHATSAPP_NUMBER = "6281234567890"; // Replace with actual number
 
@@ -25,7 +26,7 @@ export default function SubscribePage() {
   const user = session?.user;
   const isSubscribed = user?.subscriptionActive;
   const isId = locale === "id";
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
 
   const copy = isId
     ? {
@@ -193,9 +194,9 @@ export default function SubscribePage() {
         </div>
         <section className="relative mx-auto flex min-h-screen max-w-3xl flex-col items-center justify-center px-6 py-16 text-center">
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0.01 : 0.5, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: reduced ? 0.01 : 0.5, ease: [0.22, 1, 0.36, 1] }}
             className="w-full rounded-card-lg border border-cream-300 bg-white/86 p-9 shadow-elev backdrop-blur-sm"
           >
             <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-card-lg border border-[#cfe3d2] bg-[linear-gradient(150deg,#f1faef_0%,#fbfff8_100%)] text-success">
@@ -244,9 +245,9 @@ export default function SubscribePage() {
 
       <section className="relative mx-auto max-w-5xl px-6 pb-12 pt-16 md:pt-20">
         <motion.div
-          initial={{ opacity: 0, y: reduce ? 0 : 24 }}
+          initial={{ opacity: 0, y: reduced ? 0 : 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduce ? 0.01 : 0.55, ease: "easeOut" }}
+          transition={{ duration: reduced ? 0.01 : 0.55, ease: "easeOut" }}
           className="space-y-4 text-center"
         >
           <p className="inline-flex items-center gap-2 rounded-full border border-[#dccfb7] bg-white/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b845f]">
@@ -276,10 +277,10 @@ export default function SubscribePage() {
         {copy.plans.map((plan) => (
           <motion.div
             key={plan.name}
-            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: reduce ? 0.01 : 0.55, ease: "easeOut" }}
+            transition={{ duration: reduced ? 0.01 : 0.55, ease: "easeOut" }}
             className="relative overflow-hidden rounded-[28px] border border-[#dfd2be] bg-[linear-gradient(150deg,#fff8ea_0%,#fffdf6_55%,#fff_100%)] p-8 shadow-[0_24px_50px_rgba(88,74,51,0.16)]"
           >
             <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[rgba(228,191,112,0.18)]" />
@@ -329,10 +330,10 @@ export default function SubscribePage() {
 
       <section className="relative mx-auto max-w-4xl px-6 pb-16 md:pb-24">
         <motion.div
-          initial={{ opacity: 0, y: reduce ? 0 : 24 }}
+          initial={{ opacity: 0, y: reduced ? 0 : 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: reduce ? 0.01 : 0.55, ease: "easeOut" }}
+          transition={{ duration: reduced ? 0.01 : 0.55, ease: "easeOut" }}
           className="mb-8 max-w-2xl"
         >
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9b845f]">
@@ -345,10 +346,10 @@ export default function SubscribePage() {
 
         <div className="space-y-5">
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.15 }}
-            transition={{ duration: reduce ? 0.01 : 0.5, ease: "easeOut" }}
+            transition={{ duration: reduced ? 0.01 : 0.5, ease: "easeOut" }}
             className="rounded-3xl border border-[#dfd2be] bg-white/85 p-6 shadow-[0_14px_28px_rgba(59,43,24,0.08)] md:p-7"
           >
             <div className="flex flex-wrap items-start gap-4">
@@ -400,10 +401,10 @@ export default function SubscribePage() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.15 }}
-            transition={{ duration: reduce ? 0.01 : 0.5, delay: reduce ? 0 : 0.05, ease: "easeOut" }}
+            transition={{ duration: reduced ? 0.01 : 0.5, delay: reduced ? 0 : 0.05, ease: "easeOut" }}
             className="rounded-3xl border border-[#dfd2be] bg-white/85 p-6 shadow-[0_14px_28px_rgba(59,43,24,0.08)] md:p-7"
           >
             <div className="flex flex-wrap items-start gap-4">
@@ -442,10 +443,10 @@ export default function SubscribePage() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.15 }}
-            transition={{ duration: reduce ? 0.01 : 0.5, delay: reduce ? 0 : 0.1, ease: "easeOut" }}
+            transition={{ duration: reduced ? 0.01 : 0.5, delay: reduced ? 0 : 0.1, ease: "easeOut" }}
             className="rounded-3xl border border-[#dfd2be] bg-white/85 p-6 shadow-[0_14px_28px_rgba(59,43,24,0.08)] md:p-7"
           >
             <div className="flex flex-wrap items-start gap-4">
@@ -474,10 +475,10 @@ export default function SubscribePage() {
 
         {!user && (
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 16 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: reduce ? 0.01 : 0.5, delay: reduce ? 0 : 0.15 }}
+            transition={{ duration: reduced ? 0.01 : 0.5, delay: reduced ? 0 : 0.15 }}
             className="mx-auto mt-8 max-w-xl rounded-2xl border border-[#e9d4a3] bg-[linear-gradient(150deg,#fff7e3_0%,#fffdf6_100%)] p-5 text-center shadow-[0_14px_28px_rgba(149,110,33,0.14)]"
           >
             <p className="text-sm text-[#7e570f]">

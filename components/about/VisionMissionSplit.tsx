@@ -1,9 +1,10 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Compass, Flame } from "lucide-react";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Container } from "../ui/Container";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Props = {
   copy: {
@@ -21,17 +22,17 @@ type Props = {
  * Inspired by editorial split-spreads. Uses big serif headers, minimal body.
  */
 export function VisionMissionSplit({ copy }: Props) {
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
   return (
     <section className="relative bg-cream-50 section-y-md">
       <Container>
         <div className="grid gap-5 lg:grid-cols-2 lg:gap-7">
           {/* VISION — Dark */}
           <motion.article
-            initial={{ opacity: 0, x: reduce ? 0 : -20 }}
+            initial={{ opacity: 0, x: reduced ? 0 : -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: reduce ? 0.01 : 0.8, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: reduced ? 0.01 : 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="relative overflow-hidden rounded-card-lg border border-ink-900/40 bg-gradient-to-br from-ink-900 via-ink-800 to-brand-900 p-8 text-white shadow-deep md:p-10 lg:p-12"
           >
             <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -64,12 +65,12 @@ export function VisionMissionSplit({ copy }: Props) {
 
           {/* MISSION — Light */}
           <motion.article
-            initial={{ opacity: 0, x: reduce ? 0 : 20 }}
+            initial={{ opacity: 0, x: reduced ? 0 : 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{
-              duration: reduce ? 0.01 : 0.8,
-              delay: reduce ? 0 : 0.1,
+              duration: reduced ? 0.01 : 0.8,
+              delay: reduced ? 0 : 0.1,
               ease: [0.22, 1, 0.36, 1],
             }}
             className="relative overflow-hidden rounded-card-lg border border-cream-300 bg-[linear-gradient(140deg,#fff8ea_0%,#fffdf6_55%,#ffffff_100%)] p-8 shadow-elev md:p-10 lg:p-12"

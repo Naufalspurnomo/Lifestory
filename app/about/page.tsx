@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   BookOpenText,
@@ -21,11 +21,12 @@ import { WhyNowDark } from "../../components/about/WhyNowDark";
 import { PromiseGrid } from "../../components/about/PromiseGrid";
 import { VisionMissionSplit } from "../../components/about/VisionMissionSplit";
 import { ValuesMarquee } from "../../components/about/ValuesMarquee";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 export default function AboutPage() {
   const { locale } = useLanguage();
   const isId = locale === "id";
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
 
   // ============================================================
   //  COPY
@@ -355,9 +356,9 @@ export default function AboutPage() {
         <Container size="xl">
           <div className="grid grid-cols-1 gap-10 pb-20 pt-14 md:pt-20 lg:grid-cols-[1fr_0.8fr] lg:gap-16 lg:pb-24 lg:pt-20">
             <motion.div
-              initial={{ opacity: 0, y: reduce ? 0 : 28 }}
+              initial={{ opacity: 0, y: reduced ? 0 : 28 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduce ? 0.01 : 0.8, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: reduced ? 0.01 : 0.8, ease: [0.22, 1, 0.36, 1] }}
             >
               <Eyebrow icon={<Sparkles className="h-3 w-3" />}>{copy.aboutLabel}</Eyebrow>
               <h1 className="mt-6 font-serif font-medium text-[clamp(2.5rem,7vw,5.4rem)] leading-[0.96] tracking-[-0.025em] text-ink-800">
@@ -402,7 +403,7 @@ export default function AboutPage() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: reduce ? 0.01 : 0.8, delay: 0.2 }}
+              transition={{ duration: reduced ? 0.01 : 0.8, delay: reduced ? 0 : 0.2 }}
               className="relative hidden h-[520px] lg:flex lg:items-center lg:justify-center"
             >
               {/* Heritage stamp background */}
@@ -442,11 +443,11 @@ export default function AboutPage() {
                 ].map((p, i) => (
                   <motion.figure
                     key={p.src}
-                    initial={{ opacity: 0, y: reduce ? 0 : 40 }}
+                    initial={{ opacity: 0, y: reduced ? 0 : 40 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{
-                      duration: reduce ? 0.01 : 0.9,
-                      delay: reduce ? 0 : 0.5 + i * 0.12,
+                      duration: reduced ? 0.01 : 0.9,
+                      delay: reduced ? 0 : 0.5 + i * 0.12,
                       ease: [0.22, 1, 0.36, 1],
                     }}
                     className={`relative flex-none overflow-hidden rounded-[12px] border border-cream-400 bg-white p-2 shadow-deep ${p.className}`}
@@ -594,10 +595,10 @@ export default function AboutPage() {
         <section className="relative bg-cream-50 section-y-md">
         <Container size="md">
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: reduce ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: reduced ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="relative overflow-hidden rounded-[36px] border border-ink-800/30 bg-gradient-to-br from-ink-900 via-ink-800 to-brand-800 px-8 py-14 text-center text-white shadow-deep md:px-16 md:py-20"
           >
             <div aria-hidden className="pointer-events-none absolute inset-0">

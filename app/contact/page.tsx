@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   CheckCircle2,
@@ -19,11 +19,12 @@ import {
   FloatingInput,
   FloatingTextarea,
 } from "../../components/ui/FloatingField";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 export default function ContactPage() {
   const { locale } = useLanguage();
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
   const isId = locale === "id";
 
   const copy = isId
@@ -140,9 +141,9 @@ export default function ContactPage() {
 
         <div className="relative mx-auto grid max-w-[1320px] grid-cols-1 gap-10 px-6 pb-12 pt-20 lg:grid-cols-[1fr_0.85fr] lg:gap-16 lg:pt-28">
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 28 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 28 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: reduced ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="max-w-xl"
           >
             <span className="inline-flex items-center gap-2 rounded-pill border border-cream-300 bg-white/80 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700 backdrop-blur-sm">
@@ -189,9 +190,9 @@ export default function ContactPage() {
 
           {/* Right — letter mock */}
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 28 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 28 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0.01 : 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: reduced ? 0.01 : 0.7, delay: reduced ? 0 : 0.12, ease: [0.22, 1, 0.36, 1] }}
             className="relative hidden lg:block"
           >
             <div className="absolute -left-6 top-6 h-full w-full rotate-[-3deg] rounded-card-lg border border-cream-300 bg-white/70 shadow-soft" />
@@ -227,9 +228,9 @@ export default function ContactPage() {
 
           {/* Mobile/tablet fallback — flat letter card */}
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 20 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0.01 : 0.6, delay: reduce ? 0 : 0.18 }}
+            transition={{ duration: reduced ? 0.01 : 0.6, delay: reduced ? 0 : 0.18 }}
             className="relative overflow-hidden rounded-card-lg border border-cream-300 bg-white p-6 shadow-soft lg:hidden"
           >
             <div className="flex items-center justify-between border-b border-cream-300 pb-3">
@@ -255,10 +256,10 @@ export default function ContactPage() {
       <section className="mx-auto max-w-6xl px-6 pb-24">
         <div className="grid gap-7 lg:grid-cols-[1.15fr_0.85fr]">
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: reduce ? 0.01 : 0.55, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: reduced ? 0.01 : 0.55, ease: [0.22, 1, 0.36, 1] }}
             className="rounded-card-lg border border-cream-300 bg-white/85 p-7 shadow-elev backdrop-blur-sm md:p-9"
           >
             <div className="mb-7 space-y-2">
@@ -333,10 +334,10 @@ export default function ContactPage() {
           </motion.div>
 
           <motion.aside
-            initial={{ opacity: 0, y: reduce ? 0 : 24 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: reduce ? 0.01 : 0.55, delay: reduce ? 0 : 0.1, ease: "easeOut" }}
+            transition={{ duration: reduced ? 0.01 : 0.55, delay: reduced ? 0 : 0.1, ease: "easeOut" }}
             className="space-y-5"
           >
             <div className="rounded-[28px] border border-[#dfd2be] bg-[linear-gradient(150deg,#fff8ea_0%,#fffdf6_60%,#fff_100%)] p-7 shadow-[0_18px_36px_rgba(59,43,24,0.1)]">

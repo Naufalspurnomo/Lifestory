@@ -1,9 +1,10 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Container } from "../ui/Container";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Reveal } from "../ui/Reveal";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Item = {
   number: string;
@@ -24,7 +25,7 @@ type Props = {
  * Designed as a "tonal break" between cream sections (Von Restorff isolation effect).
  */
 export function WhyNowDark({ copy }: Props) {
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
   return (
     <section className="relative overflow-hidden bg-ink-900 text-cream-50 section-y-md">
       <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -45,12 +46,12 @@ export function WhyNowDark({ copy }: Props) {
           {copy.items.map((item, idx) => (
             <motion.article
               key={item.title}
-              initial={{ opacity: 0, y: reduce ? 0 : 30 }}
+              initial={{ opacity: 0, y: reduced ? 0 : 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
               transition={{
-                duration: reduce ? 0.01 : 0.7,
-                delay: reduce ? 0 : idx * 0.12,
+                duration: reduced ? 0.01 : 0.7,
+                delay: reduced ? 0 : idx * 0.12,
                 ease: [0.22, 1, 0.36, 1],
               }}
               className="relative"

@@ -1,8 +1,9 @@
 "use client";
 
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type StatProps = {
   value: number;
@@ -25,12 +26,12 @@ export function Stat({
 }: StatProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.4 });
-  const reduceMotion = useReducedMotion();
-  const [display, setDisplay] = useState(reduceMotion ? value : 0);
+  const { reduced } = useMotionGuard();
+  const [display, setDisplay] = useState(reduced ? value : 0);
 
   useEffect(() => {
-    if (!inView || reduceMotion) {
-      if (reduceMotion) setDisplay(value);
+    if (!inView || reduced) {
+      if (reduced) setDisplay(value);
       return;
     }
 
@@ -47,16 +48,16 @@ export function Stat({
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [inView, value, reduceMotion]);
+  }, [inView, value, reduced]);
 
   const formatted = decimals > 0 ? display.toFixed(decimals) : Math.round(display).toString();
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: reduceMotion ? 0 : 20 }}
+      initial={{ opacity: 0, y: reduced ? 0 : 20 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: reduceMotion ? 0.01 : 0.5, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: reduced ? 0.01 : 0.5, ease: [0.22, 1, 0.36, 1] }}
       className={cn("flex flex-col", className)}
     >
       <span className="font-serif text-[clamp(2.0rem,4vw,3.2rem)] leading-none text-ink-800">

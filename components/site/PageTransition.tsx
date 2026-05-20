@@ -1,12 +1,13 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 export function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
 
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -14,7 +15,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
         key={pathname}
         initial={{
           opacity: 0,
-          y: reduce ? 0 : 8,
+          y: reduced ? 0 : 8,
         }}
         animate={{
           opacity: 1,
@@ -22,10 +23,10 @@ export function PageTransition({ children }: { children: ReactNode }) {
         }}
         exit={{
           opacity: 0,
-          y: reduce ? 0 : -6,
+          y: reduced ? 0 : -6,
         }}
         transition={{
-          duration: reduce ? 0.01 : 0.28,
+          duration: reduced ? 0.01 : 0.28,
           ease: [0.22, 1, 0.36, 1],
         }}
       >

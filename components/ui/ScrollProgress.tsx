@@ -1,12 +1,21 @@
 "use client";
 
 import { motion, useScroll, useSpring } from "framer-motion";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 /**
  * Top-of-viewport scroll progress indicator.
  * Mounted once in root layout; thin gold line that grows as you scroll.
  */
 export function ScrollProgress() {
+  const { reduced } = useMotionGuard();
+
+  if (reduced) return null;
+
+  return <ScrollProgressMotion />;
+}
+
+function ScrollProgressMotion() {
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 140,

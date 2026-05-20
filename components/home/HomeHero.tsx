@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, BookOpenText, Sparkles } from "lucide-react";
 import { Fragment, useRef } from "react";
 import { Button } from "../ui/Button";
@@ -13,6 +13,7 @@ import { MagneticButton } from "../ui/MagneticButton";
 import { StudioPulse } from "../ui/StudioPulse";
 import { ParallaxLayer } from "../ui/ScrollAnimations";
 import { galleryItems } from "../../lib/content/galleryItems";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Props = {
   status: "loading" | "authenticated" | "unauthenticated";
@@ -54,7 +55,7 @@ function SplitWords({
   delay?: number;
   perWord?: number;
 }) {
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
   const words = text.split(" ");
   return (
     <>
@@ -62,11 +63,11 @@ function SplitWords({
         <Fragment key={`${word}-${i}`}>
           <span className="inline-flex overflow-hidden align-bottom pb-[0.08em]">
             <motion.span
-              initial={{ y: reduce ? 0 : "110%" }}
+              initial={{ y: reduced ? 0 : "110%" }}
               animate={{ y: 0 }}
               transition={{
-                duration: reduce ? 0.01 : 0.75,
-                delay: reduce ? 0 : delay + i * perWord,
+                duration: reduced ? 0.01 : 0.75,
+                delay: reduced ? 0 : delay + i * perWord,
                 ease: [0.22, 1, 0.36, 1],
               }}
               className="inline-block will-change-transform"
@@ -90,14 +91,14 @@ export function HomeHero({
   secondaryCtaHref,
 }: Props) {
   const ref = useRef<HTMLElement>(null);
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
   });
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, reduce ? 0 : 80]);
-  const stackRotate = useTransform(scrollYProgress, [0, 1], [0, reduce ? 0 : -8]);
-  const stackY = useTransform(scrollYProgress, [0, 1], [0, reduce ? 0 : -120]);
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, reduced ? 0 : 80]);
+  const stackRotate = useTransform(scrollYProgress, [0, 1], [0, reduced ? 0 : -8]);
+  const stackY = useTransform(scrollYProgress, [0, 1], [0, reduced ? 0 : -120]);
 
   return (
     <section
@@ -133,24 +134,24 @@ export function HomeHero({
         <div className="relative z-10 flex flex-col justify-center">
           <div className="mb-5 flex flex-wrap items-center gap-3">
             <motion.div
-              initial={{ opacity: 0, y: reduce ? 0 : 8 }}
+              initial={{ opacity: 0, y: reduced ? 0 : 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduce ? 0.01 : 0.5 }}
+              transition={{ duration: reduced ? 0.01 : 0.5 }}
             >
               <Eyebrow icon={<Sparkles className="h-3 w-3" />}>{copy.eyebrow}</Eyebrow>
             </motion.div>
             <motion.div
-              initial={{ opacity: 0, y: reduce ? 0 : 8 }}
+              initial={{ opacity: 0, y: reduced ? 0 : 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduce ? 0.01 : 0.5, delay: reduce ? 0 : 0.1 }}
+              transition={{ duration: reduced ? 0.01 : 0.5, delay: reduced ? 0 : 0.1 }}
             >
               <StudioPulse city={copy.studioCity} />
             </motion.div>
             {isLoggedIn && (
               <motion.span
-                initial={{ opacity: 0, y: reduce ? 0 : 8 }}
+                initial={{ opacity: 0, y: reduced ? 0 : 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: reduce ? 0.01 : 0.5, delay: reduce ? 0 : 0.2 }}
+                transition={{ duration: reduced ? 0.01 : 0.5, delay: reduced ? 0 : 0.2 }}
                 className="inline-flex items-center gap-2 rounded-pill border border-cream-300 bg-white/80 px-3 py-1 text-[10px] font-bold uppercase leading-none tracking-[0.18em] text-ink-500"
               >
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
@@ -184,8 +185,8 @@ export function HomeHero({
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
                 transition={{
-                  duration: reduce ? 0.01 : 0.9,
-                  delay: reduce ? 0 : 1,
+                  duration: reduced ? 0.01 : 0.9,
+                  delay: reduced ? 0 : 1,
                   ease: [0.22, 1, 0.36, 1],
                 }}
                 className="absolute -bottom-1 left-0 h-[6px] w-full origin-left rounded-full bg-brand-gradient"
@@ -198,18 +199,18 @@ export function HomeHero({
           </h1>
 
           <motion.p
-            initial={{ opacity: 0, y: reduce ? 0 : 12 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0.01 : 0.7, delay: reduce ? 0 : 0.85 }}
+            transition={{ duration: reduced ? 0.01 : 0.7, delay: reduced ? 0 : 0.85 }}
             className="mt-7 max-w-xl text-base leading-relaxed text-ink-500 md:text-lg"
           >
             {copy.subheading}
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 12 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0.01 : 0.6, delay: reduce ? 0 : 1 }}
+            transition={{ duration: reduced ? 0.01 : 0.6, delay: reduced ? 0 : 1 }}
             className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
           >
             {status === "loading" ? (
@@ -250,7 +251,7 @@ export function HomeHero({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: reduce ? 0.01 : 0.6, delay: reduce ? 0 : 1.2 }}
+            transition={{ duration: reduced ? 0.01 : 0.6, delay: reduced ? 0 : 1.2 }}
             className="mt-9 flex flex-wrap gap-2"
           >
             {[copy.badge1, copy.badge2, copy.badge3].map((b) => (
@@ -288,11 +289,11 @@ export function HomeHero({
             return (
               <motion.div
                 key={book.id}
-                initial={{ opacity: 0, y: reduce ? 0 : 60 }}
+                initial={{ opacity: 0, y: reduced ? 0 : 60 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
-                  duration: reduce ? 0.01 : 0.9,
-                  delay: reduce ? 0 : 0.5 + i * 0.12,
+                  duration: reduced ? 0.01 : 0.9,
+                  delay: reduced ? 0 : 0.5 + i * 0.12,
                   ease: [0.22, 1, 0.36, 1],
                 }}
                 className={`absolute ${offsets[i]} ${sizes[i]} overflow-hidden rounded-[14px] border border-cream-400 bg-white shadow-deep`}
@@ -312,9 +313,9 @@ export function HomeHero({
 
           {/* Floating quote chip */}
           <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 20 }}
+            initial={{ opacity: 0, y: reduced ? 0 : 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0.01 : 0.7, delay: reduce ? 0 : 1.1 }}
+            transition={{ duration: reduced ? 0.01 : 0.7, delay: reduced ? 0 : 1.1 }}
             className="absolute -bottom-2 left-1/2 z-30 hidden max-w-[260px] -translate-x-1/2 rounded-card border border-cream-300 bg-white/95 p-4 shadow-elev backdrop-blur-sm sm:bottom-2 sm:left-2 sm:block sm:translate-x-0 lg:left-6"
           >
             <div className="flex items-center gap-3">
@@ -338,13 +339,13 @@ export function HomeHero({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: reduce ? 0.01 : 0.6, delay: reduce ? 0 : 1.5 }}
+        transition={{ duration: reduced ? 0.01 : 0.6, delay: reduced ? 0 : 1.5 }}
         className="relative mx-auto mt-16 flex w-fit flex-col items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.32em] text-ink-300"
       >
         <span>{copy.scrollHint}</span>
         <motion.span
           aria-hidden
-          animate={reduce ? {} : { y: [0, 8, 0] }}
+          animate={reduced ? {} : { y: [0, 8, 0] }}
           transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
           className="block h-8 w-[1px] bg-gradient-to-b from-transparent via-brand-400 to-transparent"
         />

@@ -1,8 +1,9 @@
 "use client";
 
-import { motion, useReducedMotion, type Variants } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import type { ReactNode } from "react";
 import { cn } from "../../lib/utils";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type RevealProps = {
   children: ReactNode;
@@ -27,19 +28,23 @@ export function Reveal({
   once = true,
   amount = 0.2,
 }: RevealProps) {
-  const reduceMotion = useReducedMotion();
+  const { reduced } = useMotionGuard();
+
+  if (reduced) {
+    return <div className={cn(className)}>{children}</div>;
+  }
 
   const variants: Variants = {
     hidden: {
       opacity: 0,
-      y: reduceMotion ? 0 : y,
+      y,
     },
     show: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: reduceMotion ? 0.01 : duration,
-        delay: reduceMotion ? 0 : delay,
+        duration,
+        delay,
         ease: [0.22, 1, 0.36, 1],
       },
     },

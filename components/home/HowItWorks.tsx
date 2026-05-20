@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import {
   Camera,
@@ -13,6 +13,7 @@ import { Container } from "../ui/Container";
 import { Eyebrow } from "../ui/Eyebrow";
 import { CornerFlourish } from "../ui/Ornament";
 import { cn } from "../../lib/utils";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Step = {
   n: string;
@@ -89,17 +90,17 @@ function StepRow({
 }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { amount: 0.25, margin: "0px 0px -10% 0px" });
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
   const Icon = step.icon;
   const reversed = index % 2 === 1;
 
   return (
     <motion.article
       ref={ref}
-      initial={{ opacity: 0, y: reduce ? 0 : 36 }}
+      initial={{ opacity: 0, y: reduced ? 0 : 36 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{
-        duration: reduce ? 0.01 : 0.8,
+        duration: reduced ? 0.01 : 0.8,
         ease: [0.22, 1, 0.36, 1],
       }}
       className={cn(
@@ -109,9 +110,9 @@ function StepRow({
     >
       {/* === Image column === */}
       <motion.div
-        initial={{ opacity: 0, scale: reduce ? 1 : 0.96 }}
+        initial={{ opacity: 0, scale: reduced ? 1 : 0.96 }}
         animate={inView ? { opacity: 1, scale: 1 } : {}}
-        transition={{ duration: reduce ? 0.01 : 0.9, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: reduced ? 0.01 : 0.9, ease: [0.22, 1, 0.36, 1] }}
         className="relative"
       >
         <div className="relative aspect-[4/5] overflow-hidden rounded-card-lg border border-cream-300 bg-white shadow-elev sm:aspect-[5/6] lg:aspect-[4/5]">

@@ -1,9 +1,10 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Quote } from "lucide-react";
 import { Container } from "../ui/Container";
 import { GoldRule } from "../ui/Ornament";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Props = {
   quote: string;
@@ -16,7 +17,7 @@ type Props = {
  * Used to break monotony between text-heavy sections (Von Restorff effect).
  */
 export function PullQuote({ quote, attribution, eyebrow }: Props) {
-  const reduce = useReducedMotion();
+  const { reduced } = useMotionGuard();
   return (
     <section className="relative overflow-hidden bg-cream-50 section-y-md">
       <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -26,10 +27,10 @@ export function PullQuote({ quote, attribution, eyebrow }: Props) {
 
       <Container size="md">
         <motion.div
-          initial={{ opacity: 0, y: reduce ? 0 : 30 }}
+          initial={{ opacity: 0, y: reduced ? 0 : 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: reduce ? 0.01 : 0.8, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: reduced ? 0.01 : 0.8, ease: [0.22, 1, 0.36, 1] }}
           className="relative text-center"
         >
           <Quote
