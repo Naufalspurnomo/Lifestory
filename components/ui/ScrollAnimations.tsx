@@ -5,6 +5,11 @@ import { useRef, type ReactNode } from "react";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 import { cn } from "../../lib/utils";
 
+const TOUCH_TRANSITION = {
+  duration: 0.58,
+  ease: [0.22, 1, 0.36, 1] as const,
+};
+
 type ParallaxProps = {
   children: ReactNode;
   className?: string;
@@ -13,13 +18,33 @@ type ParallaxProps = {
 };
 
 export function ParallaxLayer(props: ParallaxProps) {
-  const { shouldReduceScrollMotion } = useMotionGuard();
+  const { reduced, shouldReduceScrollMotion } = useMotionGuard();
 
-  if (shouldReduceScrollMotion) {
+  if (reduced) {
     return <div className={cn(props.className)}>{props.children}</div>;
   }
 
+  if (shouldReduceScrollMotion) {
+    return <TouchParallaxLayer {...props} />;
+  }
+
   return <ParallaxLayerMotion {...props} />;
+}
+
+function TouchParallaxLayer({ children, className, offset = 60 }: ParallaxProps) {
+  const y = Math.max(-18, Math.min(18, offset * 0.18));
+
+  return (
+    <motion.div
+      className={cn(className)}
+      initial={{ opacity: 0, y }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.25 }}
+      transition={TOUCH_TRANSITION}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 function ParallaxLayerMotion({
@@ -61,13 +86,35 @@ type ScrollScaleProps = {
 };
 
 export function ScrollScale(props: ScrollScaleProps) {
-  const { shouldReduceScrollMotion } = useMotionGuard();
+  const { reduced, shouldReduceScrollMotion } = useMotionGuard();
 
-  if (shouldReduceScrollMotion) {
+  if (reduced) {
     return <div className={cn(props.className)}>{props.children}</div>;
   }
 
+  if (shouldReduceScrollMotion) {
+    return <TouchScrollScale {...props} />;
+  }
+
   return <ScrollScaleMotion {...props} />;
+}
+
+function TouchScrollScale({
+  children,
+  className,
+  from = 0.97,
+}: ScrollScaleProps) {
+  return (
+    <motion.div
+      className={cn(className)}
+      initial={{ opacity: 0.72, scale: Math.max(0.96, from) }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true, amount: 0.18 }}
+      transition={TOUCH_TRANSITION}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 function ScrollScaleMotion({
@@ -108,13 +155,37 @@ type ScrollFadeProps = {
 };
 
 export function ScrollFadeIn(props: ScrollFadeProps) {
-  const { shouldReduceScrollMotion } = useMotionGuard();
+  const { reduced, shouldReduceScrollMotion } = useMotionGuard();
 
-  if (shouldReduceScrollMotion) {
+  if (reduced) {
     return <div className={cn(props.className)}>{props.children}</div>;
   }
 
+  if (shouldReduceScrollMotion) {
+    return <TouchScrollFadeIn {...props} />;
+  }
+
   return <ScrollFadeInMotion {...props} />;
+}
+
+function TouchScrollFadeIn({
+  children,
+  className,
+  y: yOffset = 40,
+}: ScrollFadeProps) {
+  const y = Math.min(28, yOffset);
+
+  return (
+    <motion.div
+      className={cn(className)}
+      initial={{ opacity: 0, y }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={TOUCH_TRANSITION}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 function ScrollFadeInMotion({
@@ -151,13 +222,35 @@ type SectionZoomProps = {
 };
 
 export function SectionZoom(props: SectionZoomProps) {
-  const { shouldReduceScrollMotion } = useMotionGuard();
+  const { reduced, shouldReduceScrollMotion } = useMotionGuard();
 
-  if (shouldReduceScrollMotion) {
+  if (reduced) {
     return <section className={cn(props.className)}>{props.children}</section>;
   }
 
+  if (shouldReduceScrollMotion) {
+    return <TouchSectionZoom {...props} />;
+  }
+
   return <SectionZoomMotion {...props} />;
+}
+
+function TouchSectionZoom({
+  children,
+  className,
+  from = 0.98,
+}: SectionZoomProps) {
+  return (
+    <motion.section
+      className={cn(className)}
+      initial={{ opacity: 0.78, y: 18, scale: Math.max(0.97, from) }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, amount: 0.14 }}
+      transition={TOUCH_TRANSITION}
+    >
+      {children}
+    </motion.section>
+  );
 }
 
 function SectionZoomMotion({
