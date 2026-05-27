@@ -46,9 +46,10 @@ export function NavBar() {
   const isLoggedIn = status === "authenticated";
   const isAdmin = user?.role === "admin";
   const isSubscribed = Boolean(user?.subscriptionActive);
-  const copy =
-    locale === "id"
-      ? {
+  const copy = useMemo(
+    () =>
+      locale === "id"
+        ? {
           nav: {
             home: "Beranda",
             gallery: "Galeri",
@@ -72,7 +73,7 @@ export function NavBar() {
           closeAccountMenu: "Tutup latar menu akun",
           toggleMenu: "Buka/tutup menu",
         }
-      : {
+        : {
           nav: {
             home: "Home",
             gallery: "Gallery",
@@ -95,7 +96,9 @@ export function NavBar() {
           pendingMember: "Pending Member",
           closeAccountMenu: "Close account menu backdrop",
           toggleMenu: "Toggle menu",
-        };
+        },
+    [locale]
+  );
   const navLinks = [
     { href: "/", label: copy.nav.home },
     { href: "/gallery", label: copy.nav.gallery },

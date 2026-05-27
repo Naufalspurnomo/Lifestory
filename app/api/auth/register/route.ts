@@ -35,6 +35,7 @@ export async function POST(request: Request) {
 
   const name = validation.data.name.trim();
   const email = validation.data.email.toLowerCase().trim();
+  const phone = validation.data.phone.trim();
   const password = validation.data.password;
 
   if (!name) {
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
       data: {
         name,
         email,
+        phone,
         passwordHash,
         role: "user",
         subscriptionActive: false,
@@ -60,6 +62,7 @@ export async function POST(request: Request) {
         id: true,
         name: true,
         email: true,
+        phone: true,
         role: true,
         subscriptionActive: true,
         status: true,

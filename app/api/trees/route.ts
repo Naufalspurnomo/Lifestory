@@ -4,6 +4,11 @@ import { getServerSession } from "next-auth";
 import { Prisma } from "@prisma/client";
 import { authOptions } from "../../../lib/auth/options";
 import { createTreeForUser, listTreesForUser } from "../../../lib/tree/repository";
+import {
+  formatZodErrors,
+  treeCreateSchema,
+  validateBody,
+} from "../../../lib/validations";
 
 // Graceful fallback for P2021 (table does not exist). This lets the app
 // keep working in local/offline mode even when the family-tree migration
@@ -43,13 +48,19 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const name = typeof body?.name === "string" ? body.name.trim() : "";
-  if (!name) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  const validation = validateBody(treeCreateSchema, body);
+  if (!validation.success) {
+    return NextResponse.json(
+      {
+        error: "Validation failed",
+        details: formatZodErrors(validation.errors),
+      },
+      { status: 400 }
+    );
   }
 
   try {
-    const tree = await createTreeForUser(session.user.id, name);
+    const tree = await createTreeForUser(session.user.id, validation.data.name);
     return NextResponse.json({ tree }, { status: 201 });
   } catch (error) {
     if (isMissingTableError(error)) {

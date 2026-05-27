@@ -67,6 +67,13 @@ export async function PATCH(request: Request, { params }: Params) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    if (existingUser.role === "admin" && status === "suspended") {
+      return NextResponse.json(
+        { error: "Admin accounts cannot be suspended" },
+        { status: 400 }
+      );
+    }
+
     // Build update data
     const updateData: {
       status?: string;
@@ -95,6 +102,7 @@ export async function PATCH(request: Request, { params }: Params) {
         id: true,
         name: true,
         email: true,
+        phone: true,
         role: true,
         subscriptionActive: true,
         status: true,
@@ -139,6 +147,7 @@ export async function GET(request: Request, { params }: Params) {
         id: true,
         name: true,
         email: true,
+        phone: true,
         role: true,
         subscriptionActive: true,
         status: true,

@@ -12,7 +12,6 @@ import { WordRotator } from "../ui/WordRotator";
 import { MagneticButton } from "../ui/MagneticButton";
 import { StudioPulse } from "../ui/StudioPulse";
 import { ParallaxLayer } from "../ui/ScrollAnimations";
-import { galleryItems } from "../../lib/content/galleryItems";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Props = {
@@ -33,6 +32,7 @@ type Props = {
     badge1: string;
     badge2: string;
     badge3: string;
+    badge4: string;
     scrollHint: string;
     studioCity: string;
     featuredLabel: string;
@@ -100,13 +100,13 @@ export function HomeHero({
     0,
     shouldReduceScrollMotion ? 0 : 80,
   ]);
-  const stackRotate = useTransform(scrollYProgress, [0, 1], [
+  const coverY = useTransform(scrollYProgress, [0, 1], [
     0,
-    shouldReduceScrollMotion ? 0 : -8,
+    shouldReduceScrollMotion ? 0 : -40,
   ]);
-  const stackY = useTransform(scrollYProgress, [0, 1], [
-    0,
-    shouldReduceScrollMotion ? 0 : -120,
+  const coverScale = useTransform(scrollYProgress, [0, 1], [
+    1,
+    shouldReduceScrollMotion ? 1 : 0.99,
   ]);
 
   return (
@@ -137,10 +137,10 @@ export function HomeHero({
 
       <motion.div
         style={{ y: heroY }}
-        className="relative mx-auto grid max-w-[1320px] grid-cols-1 gap-12 px-6 pt-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 lg:pt-12"
+        className="relative mx-auto grid w-full min-w-0 max-w-[1320px] grid-cols-1 gap-12 px-6 pt-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 lg:pt-12"
       >
         {/* LEFT — Editorial copy */}
-        <div className="relative z-10 flex flex-col justify-center">
+        <div className="relative z-10 flex min-w-0 w-full max-w-[calc(100vw-3rem)] flex-col justify-center lg:max-w-none">
           <div className="mb-5 flex flex-wrap items-center gap-3">
             <motion.div
               initial={{ opacity: 0, y: reduced ? 0 : 8 }}
@@ -169,7 +169,7 @@ export function HomeHero({
             )}
           </div>
 
-          <h1 className="font-serif font-medium text-[clamp(2.6rem,7vw,5.6rem)] leading-[0.98] tracking-[-0.025em] text-ink-800">
+          <h1 className="w-full max-w-full font-serif font-medium text-[clamp(2.6rem,7vw,4.8rem)] leading-[0.98] tracking-[-0.025em] text-ink-800">
             {/* Line 1: prefix + word rotator */}
             <span className="block">
               <SplitWords text={copy.headlineLine1} delay={0.05} />
@@ -211,7 +211,7 @@ export function HomeHero({
             initial={{ opacity: 0, y: reduced ? 0 : 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: reduced ? 0.01 : 0.7, delay: reduced ? 0 : 0.85 }}
-            className="mt-7 max-w-xl text-base leading-relaxed text-ink-500 md:text-lg"
+            className="mt-7 w-full max-w-xl text-base leading-relaxed text-ink-500 md:text-lg"
           >
             {copy.subheading}
           </motion.p>
@@ -263,7 +263,7 @@ export function HomeHero({
             transition={{ duration: reduced ? 0.01 : 0.6, delay: reduced ? 0 : 1.2 }}
             className="mt-9 flex flex-wrap gap-2"
           >
-            {[copy.badge1, copy.badge2, copy.badge3].map((b) => (
+            {[copy.badge1, copy.badge2, copy.badge3, copy.badge4].map((b) => (
               <span
                 key={b}
                 className="rounded-pill border border-cream-300 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-500 backdrop-blur-sm"
@@ -274,70 +274,69 @@ export function HomeHero({
           </motion.div>
         </div>
 
-        {/* RIGHT — Stacked covers visual */}
+        {/* RIGHT — Warm cover visual */}
         <motion.div
-          style={{ y: stackY, rotate: stackRotate }}
-          className="relative mx-auto flex h-[420px] w-full max-w-md items-center justify-center sm:h-[520px] lg:h-auto lg:max-w-none"
+          style={{ y: coverY, scale: coverScale }}
+          className="relative mx-auto flex min-h-[430px] w-full max-w-[calc(100vw-3rem)] items-center justify-center sm:min-h-[560px] sm:max-w-[31rem] lg:min-h-[640px] lg:max-w-none"
         >
           <div
             aria-hidden
-            className="absolute inset-x-8 inset-y-8 rounded-full bg-brand-200/40 blur-3xl"
+            className="absolute left-1/2 top-1/2 h-[76%] w-[76%] -translate-x-1/2 -translate-y-1/2 rounded-[34px] bg-brand-200/30 blur-3xl"
           />
 
-          {galleryItems.slice(0, 3).map((book, i) => {
-            const offsets = [
-              "left-[6%] top-[6%] -rotate-[8deg] z-10",
-              "left-1/2 top-[14%] -translate-x-1/2 rotate-[1deg] z-20",
-              "right-[4%] top-[10%] rotate-[7deg] z-10",
-            ];
-            const sizes = [
-              "h-[220px] w-[150px] sm:h-[300px] sm:w-[210px] lg:h-[320px] lg:w-[220px]",
-              "h-[280px] w-[200px] sm:h-[380px] sm:w-[260px] lg:h-[400px] lg:w-[270px]",
-              "h-[220px] w-[150px] sm:h-[300px] sm:w-[210px] lg:h-[320px] lg:w-[220px]",
-            ];
-            return (
-              <motion.div
-                key={book.id}
-                initial={{ opacity: 0, y: reduced ? 0 : 60 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: reduced ? 0.01 : 0.9,
-                  delay: reduced ? 0 : 0.5 + i * 0.12,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                className={`absolute ${offsets[i]} ${sizes[i]} overflow-hidden rounded-[14px] border border-cream-400 bg-white shadow-deep`}
-              >
-                <Image
-                  src={book.src}
-                  alt={book.alt}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 30vw"
-                  className="object-cover"
-                  priority={i === 1}
-                />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-black/15 via-transparent to-white/10" />
-              </motion.div>
-            );
-          })}
-
-          {/* Floating quote chip */}
           <motion.div
-            initial={{ opacity: 0, y: reduced ? 0 : 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduced ? 0.01 : 0.7, delay: reduced ? 0 : 1.1 }}
-            className="absolute -bottom-2 left-1/2 z-30 hidden max-w-[260px] -translate-x-1/2 rounded-card border border-cream-300 bg-white/95 p-4 shadow-elev backdrop-blur-sm sm:bottom-2 sm:left-2 sm:block sm:translate-x-0 lg:left-6"
+            initial={{ opacity: 0, y: reduced ? 0 : 34 }}
+            animate={{ opacity: 1, y: 0, rotate: 0 }}
+            transition={{
+              duration: reduced ? 0.01 : 0.9,
+              delay: reduced ? 0 : 0.48,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="relative z-20 w-full max-w-[335px] sm:max-w-[420px] lg:max-w-[470px]"
           >
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-9 w-9 flex-none items-center justify-center rounded-pill bg-brand-gradient text-white">
-                <BookOpenText className="h-4 w-4" />
-              </span>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-700">
-                  {copy.featuredLabel}
-                </p>
-                <p className="font-serif text-sm leading-tight text-ink-800">
-                  {galleryItems[1].title}
-                </p>
+            <div
+              aria-hidden
+              className="absolute -left-5 top-8 hidden h-[82%] w-6 rounded-l-[24px] border border-cream-300 bg-cream-200 sm:block"
+            />
+            <div
+              aria-hidden
+              className="absolute -right-4 bottom-10 hidden h-[70%] w-4 rounded-r-[18px] border border-cream-300 bg-cream-100 sm:block"
+            />
+
+            <div className="relative rounded-[30px] border border-cream-300 bg-white/80 p-3 shadow-[0_26px_70px_rgba(63,52,45,0.18)]">
+              <div className="relative aspect-[3/4] overflow-hidden rounded-[22px] bg-cream-200">
+                <Image
+                  src="/image/home-cover.webp"
+                  alt="Storytime warmth in rustic serenity"
+                  fill
+                  sizes="(max-width: 640px) 335px, (max-width: 1024px) 420px, 470px"
+                  className="object-cover"
+                  priority
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,250,240,0.06),rgba(63,52,45,0.08))]" />
+                <div className="absolute inset-0 ring-1 ring-inset ring-white/45" />
+              </div>
+
+              <div className="grid grid-cols-[1fr_auto] items-end gap-5 px-2 pb-1 pt-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700">
+                    {copy.featuredLabel}
+                  </p>
+                  <p className="mt-1 font-serif text-[clamp(1.35rem,4.8vw,2.05rem)] leading-[1.02] text-ink-800">
+                    Storytime warmth
+                  </p>
+                </div>
+                <motion.span
+                  aria-hidden
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{
+                    duration: reduced ? 0.01 : 0.75,
+                    delay: reduced ? 0 : 1,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  className="mb-2 hidden h-px w-16 origin-left bg-brand-400 sm:block"
+                />
               </div>
             </div>
           </motion.div>

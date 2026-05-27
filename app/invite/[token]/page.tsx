@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../../../components/providers/LanguageProvider";
 import { Button } from "../../../components/ui/Button";
 import type { TreeData } from "../../../lib/types/tree";
+import { createTreeApi, saveTreeNodes } from "../../../lib/tree/apiClient";
 import { loadTrees, saveTrees } from "../../../lib/utils/storageUtils";
 
 type InvitePayload = {
@@ -130,7 +131,7 @@ export default function InvitePage() {
   async function importTree() {
     if (!invite?.treeData) return;
 
-    const userId = session?.user?.email || session?.user?.id || "";
+    const userId = session?.user?.id || session?.user?.email || "";
     if (!userId) {
       setError(copy.invalidAccount);
       return;
@@ -153,26 +154,31 @@ export default function InvitePage() {
     setError(null);
 
     const now = new Date().toISOString();
-    const importedTree: TreeData = {
-      ...sourceTree,
-      id: `tree-${Date.now()}`,
-      ownerId: userId,
-      name: invite.treeName,
-      createdAt: now,
-      updatedAt: now,
-    };
+    let importedTree: TreeData;
+
+    try {
+      const createdTree = await createTreeApi(invite.treeName);
+      await saveTreeNodes(createdTree.id, sourceTree.nodes);
+
+      importedTree = {
+        ...sourceTree,
+        id: createdTree.id,
+        ownerId: createdTree.ownerId,
+        name: createdTree.name,
+        createdAt: createdTree.createdAt,
+        updatedAt: now,
+      };
+    } catch {
+      setImporting(false);
+      setError(copy.saveFailed);
+      return;
+    }
 
     const mergedTrees = [
       importedTree,
       ...existingTrees.filter((t) => t.ownerId !== userId),
     ];
-    const saveResult = saveTrees(mergedTrees);
-
-    if (!saveResult.success) {
-      setImporting(false);
-      setError(saveResult.error || copy.saveFailed);
-      return;
-    }
+    saveTrees(mergedTrees);
 
     router.push("/app");
     router.refresh();

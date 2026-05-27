@@ -9,6 +9,7 @@ import { Deliverables } from "../components/home/Deliverables";
 import { FeaturedCollections } from "../components/home/FeaturedCollections";
 import { Testimonials } from "../components/home/Testimonials";
 import { FAQ } from "../components/home/FAQ";
+import { PhilosophyDeaths } from "../components/home/PhilosophyDeaths";
 import { FinalCTA } from "../components/home/FinalCTA";
 import { ScrollScale, SectionZoom } from "../components/ui/ScrollAnimations";
 
@@ -25,7 +26,7 @@ export default function HomePage() {
   const firstName = displayName.split(" ")[0];
 
   const primaryCtaHref = !isLoggedIn
-    ? "/auth/register"
+    ? "/auth/login"
     : isAdmin
     ? "/dashboard"
     : isSubscribed
@@ -50,112 +51,124 @@ export default function HomePage() {
           headlineRotators: ["hidup", "ayah", "ibu", "keluarga", "warisan"],
           headlineLine2: "yang berharga",
           headlineAccent: "diabadikan",
-          headlineLine3: "untuk generasi.",
+          headlineLine3: "untuk generasi selanjutnya.",
           subheading:
-            "Kami merangkai memori, foto lama, dan suara keluarga menjadi buku biografi premium, video dokumenter, dan pohon silsilah yang siap diwariskan.",
+            "Jangan biarkan kisah hidupmu menghilang ditelan waktu. Setiap memori, setiap suara, setiap momen berharga layak diabadikan — sebelum terlambat.",
           primaryCta: !isLoggedIn
-            ? "Mulai Cerita Anda"
+            ? "Lihat Keluarga Mu!"
             : isAdmin
             ? "Buka Dashboard"
             : isSubscribed
-            ? "Lanjutkan Cerita"
+            ? "Lihat Keluarga Mu!"
             : "Aktifkan Paket",
-          secondaryCta: !isLoggedIn ? "Lihat Galeri" : "Jelajahi Galeri",
-          badge1: "Arsip privat keluarga",
-          badge2: "Layout terkurasi",
-          badge3: "Kolaborasi multi-perangkat",
+          secondaryCta: !isLoggedIn ? "Galeri Lifestory" : "Galeri Lifestory",
+          badge1: "Server yang aman",
+          badge2: "Integrated family tree",
+          badge3: "Reprint anytime",
+          badge4: "Rewatch anytime",
           scrollHint: "Gulir",
         },
         stats: {
-          eyebrow: "Karya yang berbicara",
-          title: "Lebih dari sekadar buku — sebuah warisan yang dirawat tangan demi tangan.",
-          stats: [
+          eyebrow: "Karya Kami",
+          title: "Setiap keluarga, satu cerita unik yang diabadikan.",
+          items: [
             {
-              value: 50,
-              suffix: "+",
-              label: "Keluarga",
-              description: "Telah mempercayakan kisah mereka kepada studio kami.",
+              src: "/cover-gallery/cover-1.webp",
+              alt: "Buku biografi Wang Li Jien",
+              title: "Wang Li Jien",
+              subtitle: "Personal life memoir",
+              type: "photo" as const,
             },
             {
-              value: 200,
-              suffix: " thn",
-              label: "Cerita",
-              description: "Total rentang waktu kisah yang sudah diabadikan.",
+              src: "/cover-gallery/cover-2.webp",
+              alt: "Buku tribute Kisah Ibu Kami",
+              title: "Kisah Ibu Kami",
+              subtitle: "Family tribute edition",
+              type: "photo" as const,
             },
             {
-              value: 12000,
-              suffix: "+",
-              label: "Halaman ditulis",
-              description: "Kalimat demi kalimat ditulis tangan oleh tim editor.",
+              src: "/cover-gallery/cover-3.webp",
+              alt: "Buku kronik Pak Yohannes",
+              title: "Kisah Pak Yohannes",
+              subtitle: "Family photo chronicle",
+              type: "photo" as const,
             },
             {
-              value: 8000,
-              suffix: "+",
-              label: "Foto direstorasi",
-              description: "Foto lama dipulihkan agar siap dicetak premium.",
+              src: "/cover-gallery/cover-4.webp",
+              alt: "Buku memoar Bara yang Hangat",
+              title: "Bara yang Hangat & Angin yang Sejuk",
+              subtitle: "Legacy memory edition",
+              type: "photo" as const,
             },
             {
-              value: 4,
-              suffix: "",
-              label: "Format",
-              description: "Buku, video, poster silsilah, dan arsip digital.",
+              src: "/image/home-step-2.webp",
+              alt: "Proses pembuatan video dokumenter keluarga",
+              title: "Dokumenter Keluarga",
+              subtitle: "Cinematic family film",
+              type: "video" as const,
             },
             {
-              value: 100,
-              suffix: "%",
-              label: "Kepuasan keluarga",
-              description: "Kami merilis hanya saat keluarga benar-benar bangga.",
+              src: "/image/home-step-1.webp",
+              alt: "Sesi wawancara dan foto keluarga",
+              title: "Sesi Keluarga",
+              subtitle: "Behind the scenes",
+              type: "photo" as const,
             },
           ],
         },
         howItWorks: {
           eyebrow: "Cara Kami Bekerja",
-          title: "Dari percakapan hangat menjadi buku yang abadi.",
-          lead: "Tiga babak yang dirancang untuk menjaga cerita tetap hidup, akurat, dan berhasil menyentuh siapa pun yang membacanya.",
+          title: "Tiga langkah sederhana menuju warisan abadi.",
+          lead: "Dari pertemuan pertama hingga momen penyerahan — semuanya kami rancang agar bermakna.",
           steps: [
             {
-              title: "Mendengarkan dengan tenang.",
-              body: "Kami memulai dengan sesi wawancara yang lambat dan hangat. Cerita yang lama tersimpan diberi ruang untuk muncul kembali tanpa dipaksa.",
-              /* TODO: Taruh file di public/image/home-step-1.webp */
+              title: "Terkoneksi & merangkai narasi visual.",
+              body: "Kami bertemu, mendengarkan, dan bersama-sama menyusun cerita keluarga Anda menjadi narasi visual yang utuh — dari foto lama hingga rekaman suara.",
               image: "/image/home-step-1.webp",
-              alt: "Sesi wawancara mendengarkan dengan tenang",
+              alt: "Terkoneksi bersama dan merangkai narasi visual",
             },
             {
-              title: "Merangkai narasi & visual.",
-              body: "Tim penulis dan art director kami menyusun alur, memilih foto, dan merancang halaman demi halaman yang terasa personal sekaligus sinematik.",
-              /* TODO: Taruh file di public/image/home-step-2.webp */
+              title: "Upacara kecil penyerahan.",
+              body: "Hasil akhir diserahkan dalam momen intim bersama keluarga — sebuah perayaan kecil yang menandai warisan resmi telah lahir.",
               image: "/image/home-step-2.webp",
-              alt: "Proses merangkai narasi dan visual",
+              alt: "Upacara kecil penyerahan karya",
             },
             {
-              title: "Mewariskan dengan upacara kecil.",
-              body: "Buku, video, dan poster silsilah diserahkan dalam momen yang dirayakan bersama keluarga, lengkap dengan kemasan kelas heirloom.",
-              /* TODO: Taruh file di public/image/home-step-3.webp */
+              title: "Update pohon keluarga secara bebas.",
+              body: "Setelah selesai, Anda bebas memperbarui pohon silsilah digital kapan saja — tambah anggota baru, perbarui cerita, tanpa biaya tambahan.",
               image: "/image/home-step-3.webp",
-              alt: "Momen mewariskan dengan upacara kecil",
+              alt: "Update pohon keluarga secara mandiri",
             },
           ],
         },
         deliverables: {
           eyebrow: "Apa yang Anda terima",
-          title: "Empat keluaran yang dirancang sebagai satu kesatuan warisan.",
-          lead: "Setiap keluarga menerima paket fisik dan digital yang saling melengkapi — supaya cerita bisa dibaca, ditonton, dipajang, dan dilanjutkan.",
+          title: "Enam karya warisan untuk keluarga Anda.",
+          lead: "Setiap keluarga menerima paket lengkap yang saling melengkapi — cerita yang bisa dibaca, ditonton, dirayakan, dan diteruskan lintas generasi.",
           items: [
             {
-              title: "Buku biografi premium",
-              body: "Sampul keras kelas heirloom, kertas berbobot tinggi, layout custom dengan bagian pop-up. Setiap eksemplar diberi nomor seri dan kemasan tahan air.",
+              title: "Buku biografi & album foto premium",
+              body: "Naskah kehidupan ditulis dengan penuh kedalaman, dicetak di atas kertas berkualitas arsip, dan dilengkapi album foto yang dikurasi serta direstorasi secara profesional.",
             },
             {
-              title: "Foto direstorasi",
-              body: "Foto lama dipulihkan, foto baru sesi studio Lifestory.",
+              title: "Sesi foto keluarga bersama Lifestory",
+              body: "Pemotretan profesional yang mengabadikan potret keluarga Anda hari ini — momen autentik yang kelak menjadi harta karun visual generasi berikutnya.",
             },
             {
-              title: "Video dokumenter",
-              body: "Wawancara terarah dirangkum menjadi tayangan sinematik dengan flash disk eksklusif.",
+              title: "Video dokumenter sinematik",
+              body: "Film pendek berkualitas sinema yang menghidupkan kembali suara, ekspresi, dan emosi — sebuah warisan bergerak yang tak bisa ditangkap oleh tulisan saja.",
             },
             {
-              title: "Pohon silsilah cetak & digital",
-              body: "Diagram keluarga yang dibingkai indah, lengkap dengan slot untuk menambahkan generasi berikutnya. Tersinkron dengan dashboard digital Lifestory.",
+              title: "Pohon keluarga digital interaktif",
+              body: "Akses seumur hidup ke silsilah digital Lifestory. Tambah anggota baru, perbarui cerita, dan kembangkan warisan Anda secara mandiri tanpa biaya tambahan.",
+            },
+            {
+              title: "Makan malam perayaan keluarga",
+              body: "Momen intim bersama orang-orang tercinta — merayakan kisah yang telah diabadikan sambil menikmati hidangan istimewa dan menyaksikan hasil karya untuk pertama kalinya.",
+            },
+            {
+              title: "Karya seni kustom eksklusif",
+              body: "Ilustrasi, lukisan, atau karya seni pilihan yang terinspirasi dari kisah keluarga Anda — sebuah sentuhan artistik unik yang menjadikan paket warisan benar-benar personal.",
             },
           ],
         },
@@ -199,6 +212,30 @@ export default function HomePage() {
             "Bali",
             "Singapura",
           ],
+        },
+        philosophy: {
+          eyebrow: "Filosofi",
+          title: "Tiga kematian yang menanti setiap manusia.",
+          lead: "Dalam banyak tradisi dan pemikiran, manusia tidak hanya mati sekali. Ada tiga momen kepergian — dan hanya satu yang benar-benar bisa kita lawan.",
+          items: [
+            {
+              title: "Kematian pertama — tubuh berhenti",
+              body: "Saat jantung berhenti berdetak dan napas terakhir dihembuskan. Ini adalah kematian biologis yang tak bisa dihindari siapa pun.",
+              reflection: "Setiap manusia akan mengalami ini. Tidak ada pengecualian, tidak ada penundaan yang abadi.",
+            },
+            {
+              title: "Kematian kedua — dimakamkan dan dilupakan dunia",
+              body: "Saat tubuh dikembalikan ke tanah dan dunia luar mulai melanjutkan hidup tanpa kehadiran Anda. Perlahan, nama Anda menghilang dari percakapan sehari-hari.",
+              reflection: "Dunia terus berputar. Yang tersisa hanyalah ruang kosong di meja makan dan foto yang mulai berdebu.",
+            },
+            {
+              title: "Kematian ketiga — nama Anda disebut untuk terakhir kalinya",
+              body: "Inilah kematian sejati. Saat tidak ada lagi yang mengingat nama Anda, menceritakan kisah Anda, atau tahu bahwa Anda pernah ada di dunia ini.",
+              reflection: "Kematian ketiga adalah yang paling tragis — dan satu-satunya yang bisa kita cegah. Itulah mengapa Lifestory ada.",
+            },
+          ],
+          closing: "Lifestory hadir untuk memastikan kematian ketiga tidak pernah terjadi pada keluarga Anda. Karena selama cerita masih diceritakan, seseorang tidak benar-benar pergi.",
+          badge: "Lifestory mencegah ini",
         },
         faq: {
           eyebrow: "Pertanyaan",
@@ -248,109 +285,124 @@ export default function HomePage() {
           headlineRotators: ["a life", "a father", "a mother", "a family", "a lineage"],
           headlineLine2: "remembered",
           headlineAccent: "preserved",
-          headlineLine3: "for generations.",
+          headlineLine3: "for next generations.",
           subheading:
-            "We weave memories, vintage photos, and family voices into premium biography books, documentary films, and lineage trees ready to be passed down.",
+            "Don't let your story fade into silence. Every memory, every voice, every precious moment deserves to be preserved — before it's too late.",
           primaryCta: !isLoggedIn
-            ? "Start Your Story"
+            ? "See Your Family!"
             : isAdmin
             ? "Open Dashboard"
             : isSubscribed
-            ? "Continue Story"
+            ? "See Your Family!"
             : "Activate Plan",
-          secondaryCta: !isLoggedIn ? "View Gallery" : "Explore Gallery",
-          badge1: "Private family archive",
-          badge2: "Curated layouts",
-          badge3: "Multi-device collab",
+          secondaryCta: !isLoggedIn ? "Lifestory Gallery" : "Lifestory Gallery",
+          badge1: "Secure servers",
+          badge2: "Integrated family tree",
+          badge3: "Reprint anytime",
+          badge4: "Rewatch anytime",
           scrollHint: "Scroll",
         },
         stats: {
-          eyebrow: "Work that speaks",
-          title: "More than a book — a legacy carried by careful hands.",
-          stats: [
+          eyebrow: "Our Work",
+          title: "Every family, one unique story preserved.",
+          items: [
             {
-              value: 50,
-              suffix: "+",
-              label: "Families",
-              description: "Have trusted our studio with their life stories.",
+              src: "/cover-gallery/cover-1.webp",
+              alt: "Biography book Wang Li Jien",
+              title: "Wang Li Jien",
+              subtitle: "Personal life memoir",
+              type: "photo" as const,
             },
             {
-              value: 200,
-              suffix: " yrs",
-              label: "Stories",
-              description: "Of cumulative timeline preserved into archives.",
+              src: "/cover-gallery/cover-2.webp",
+              alt: "Tribute book Kisah Ibu Kami",
+              title: "Kisah Ibu Kami",
+              subtitle: "Family tribute edition",
+              type: "photo" as const,
             },
             {
-              value: 12000,
-              suffix: "+",
-              label: "Pages written",
-              description: "Hand-edited paragraph by paragraph.",
+              src: "/cover-gallery/cover-3.webp",
+              alt: "Chronicle book Pak Yohannes",
+              title: "Kisah Pak Yohannes",
+              subtitle: "Family photo chronicle",
+              type: "photo" as const,
             },
             {
-              value: 8000,
-              suffix: "+",
-              label: "Photos restored",
-              description: "Old photos brought back to print quality.",
+              src: "/cover-gallery/cover-4.webp",
+              alt: "Memoir book Bara yang Hangat",
+              title: "Bara yang Hangat & Angin yang Sejuk",
+              subtitle: "Legacy memory edition",
+              type: "photo" as const,
             },
             {
-              value: 4,
-              suffix: "",
-              label: "Formats",
-              description: "Book, film, lineage poster, and digital archive.",
+              src: "/image/home-step-2.webp",
+              alt: "Family documentary film production",
+              title: "Family Documentary",
+              subtitle: "Cinematic family film",
+              type: "video" as const,
             },
             {
-              value: 100,
-              suffix: "%",
-              label: "Family approval",
-              description: "We only release when the family is truly proud.",
+              src: "/image/home-step-1.webp",
+              alt: "Family interview and photo session",
+              title: "Family Session",
+              subtitle: "Behind the scenes",
+              type: "photo" as const,
             },
           ],
         },
         howItWorks: {
           eyebrow: "How we work",
-          title: "From a warm conversation to an heirloom book.",
-          lead: "Three acts designed to keep stories alive, accurate, and emotionally true to whoever reads them.",
+          title: "Three simple steps toward a lasting legacy.",
+          lead: "From our first meeting to the handover moment — every step is designed to be meaningful.",
           steps: [
             {
-              title: "Listen, slowly.",
-              body: "We open with calm, unhurried interviews. Stories that have been buried for decades are given space to surface again.",
+              title: "Connect & craft the visual narrative.",
+              body: "We meet, listen, and together shape your family story into a complete visual narrative — from old photographs to voice recordings.",
               image: "/image/home-step-1.webp",
-              alt: "Calm interview session listening slowly",
+              alt: "Connecting together and crafting the visual narrative",
             },
             {
-              title: "Shape the narrative & visuals.",
-              body: "Our writers and art director sequence the story, pick the photographs, and design pages that feel personal yet cinematic.",
+              title: "A small handover ceremony.",
+              body: "The finished work is presented in an intimate family moment — a small celebration marking the official birth of your legacy.",
               image: "/image/home-step-2.webp",
-              alt: "Shaping narrative and visuals process",
+              alt: "Small ceremony handing over the work",
             },
             {
-              title: "Pass it on with a small ceremony.",
-              body: "The book, film, and lineage poster are handed over in a moment celebrated with the family, finished with heirloom-grade packaging.",
+              title: "Update your family tree freely.",
+              body: "Once complete, you can update your digital family tree anytime — add new members, refresh stories, at no extra cost.",
               image: "/image/home-step-3.webp",
-              alt: "Handover moment with a small ceremony",
+              alt: "Freely updating the family tree",
             },
           ],
         },
         deliverables: {
           eyebrow: "What you receive",
-          title: "Four deliverables designed as one cohesive heirloom.",
-          lead: "Each family receives a physical and digital set that complement each other — a story you can read, watch, display, and continue.",
+          title: "Six legacy pieces crafted for your family.",
+          lead: "Each family receives a complete package that works together — a story you can read, watch, celebrate, and pass down across generations.",
           items: [
             {
-              title: "Premium biography book",
-              body: "Heirloom-grade hard cover, heavy weight paper, custom layout with pop-up sections. Each copy is numbered with waterproof packaging.",
+              title: "Biography book & premium photo album",
+              body: "A life story written with depth, printed on archival-quality paper, paired with a professionally curated and restored photo album.",
             },
             {
-              title: "Restored photographs",
-              body: "Old photos restored, fresh studio photos by Lifestory.",
+              title: "Family portrait session with Lifestory",
+              body: "A professional photoshoot capturing your family as you are today — authentic moments that become the next generation's visual treasure.",
             },
             {
-              title: "Documentary film",
-              body: "Guided interviews edited into a cinematic short with an exclusive flash drive.",
+              title: "Cinematic documentary film",
+              body: "A cinema-grade short film that brings back voices, expressions, and emotions — a living legacy that words alone cannot capture.",
             },
             {
-              title: "Printed & digital lineage tree",
-              body: "A beautifully framed family diagram with slots for next generations. Synced with your Lifestory digital dashboard.",
+              title: "Interactive digital family tree",
+              body: "Lifetime access to your Lifestory digital family tree. Add new members, refresh stories, and grow your legacy independently at no extra cost.",
+            },
+            {
+              title: "Family celebration dinner",
+              body: "An intimate moment with your loved ones — celebrating the story that has been preserved over a special meal while witnessing the finished work for the first time.",
+            },
+            {
+              title: "Exclusive custom artwork",
+              body: "Illustrations, paintings, or bespoke art pieces inspired by your family's story — a unique artistic touch that makes your legacy package truly personal.",
             },
           ],
         },
@@ -394,6 +446,30 @@ export default function HomePage() {
             "Bali",
             "Singapore",
           ],
+        },
+        philosophy: {
+          eyebrow: "Philosophy",
+          title: "Three deaths that await every human being.",
+          lead: "Across many traditions and schools of thought, a person does not die just once. There are three moments of departure — and only one can truly be defied.",
+          items: [
+            {
+              title: "The first death — the body stops",
+              body: "When the heart ceases to beat and the final breath is drawn. This is the biological death that no one can escape.",
+              reflection: "Every human will face this. No exceptions, no eternal postponement.",
+            },
+            {
+              title: "The second death — buried and forgotten by the world",
+              body: "When the body is returned to the earth and the outside world moves on without your presence. Slowly, your name fades from everyday conversation.",
+              reflection: "The world keeps turning. All that remains is an empty chair at the table and a photo gathering dust.",
+            },
+            {
+              title: "The third death — your name is spoken for the last time",
+              body: "This is the true death. When no one remembers your name, tells your story, or knows you ever existed in this world.",
+              reflection: "The third death is the most tragic — and the only one we can prevent. That is why Lifestory exists.",
+            },
+          ],
+          closing: "Lifestory exists to ensure the third death never happens to your family. Because as long as a story is still being told, a person never truly leaves.",
+          badge: "Lifestory prevents this",
         },
         faq: {
           eyebrow: "Questions",
@@ -444,9 +520,7 @@ export default function HomePage() {
         primaryCtaHref={primaryCtaHref}
         secondaryCtaHref={secondaryCtaHref}
       />
-      <ScrollScale from={0.94} to={1}>
-        <StatsStrip copy={copy.stats} />
-      </ScrollScale>
+      <StatsStrip copy={copy.stats} />
       <SectionZoom>
         <HowItWorks copy={copy.howItWorks} />
       </SectionZoom>
@@ -459,6 +533,7 @@ export default function HomePage() {
       <ScrollScale from={0.94} to={1}>
         <Testimonials copy={copy.testimonials} />
       </ScrollScale>
+      <PhilosophyDeaths copy={copy.philosophy} />
       <SectionZoom>
         <FAQ copy={copy.faq} />
       </SectionZoom>

@@ -1,90 +1,104 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, ArrowRight, KeyRound, Mail, MailCheck, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  KeyRound,
+  Lock,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { useLanguage } from "../../../components/providers/LanguageProvider";
 import { Button } from "../../../components/ui/Button";
 import { FloatingInput } from "../../../components/ui/FloatingField";
 
-export default function ForgotPasswordPage() {
+function ResetPasswordContent() {
   const { locale } = useLanguage();
   const reduce = useReducedMotion();
-  const [status, setStatus] = useState<"idle" | "loading" | "sent">("idle");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token") || "";
+  const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
   const [error, setError] = useState<string | null>(null);
-  const [devResetUrl, setDevResetUrl] = useState<string | null>(null);
 
   const copy =
     locale === "id"
       ? {
-          badge: "Reset Password",
-          title: "Lupa password?",
+          badge: "Password Baru",
+          title: "Buat password baru.",
           subtitle:
-            "Masukkan email yang terdaftar dan kami kirimkan instruksi reset langsung ke kotak masuk Anda.",
-          email: "Email",
-          emailPlaceholder: "nama@email.com",
-          sending: "Mengirim...",
-          sent: "Tautan terkirim",
-          send: "Kirim Tautan Reset",
-          error: "Reset password belum bisa diproses. Coba lagi sebentar lagi.",
-          remembered: "Sudah ingat password?",
+            "Gunakan password yang kuat agar arsip keluarga Anda tetap aman.",
+          password: "Password baru",
+          confirmPassword: "Ulangi password baru",
+          passwordPlaceholder: "Min 8 karakter, huruf besar, kecil, angka",
+          tokenMissingTitle: "Tautan tidak valid",
+          tokenMissingBody:
+            "Minta tautan reset baru dari halaman lupa password.",
+          processing: "Menyimpan...",
+          save: "Simpan Password",
+          successTitle: "Password berhasil diganti",
+          successBody: "Silakan masuk lagi memakai password baru Anda.",
+          login: "Masuk",
+          backToForgot: "Minta tautan baru",
           backToLogin: "Kembali ke login",
-          successTitle: "Cek email Anda",
-          successBody:
-            "Jika email tersebut terdaftar, Anda akan menerima tautan reset password dalam beberapa menit ke depan.",
-          devLink: "Tautan reset lokal",
-          tipTitle: "Catatan keamanan",
-          tipBody:
-            "Tautan reset hanya berlaku 30 menit demi keamanan akun keluarga Anda.",
+          mismatch: "Konfirmasi password tidak sama.",
+          failed: "Password gagal diganti. Tautan mungkin sudah kedaluwarsa.",
         }
       : {
-          badge: "Password Reset",
-          title: "Forgot your password?",
-          subtitle:
-            "Enter your registered email and we will send reset instructions directly to your inbox.",
-          email: "Email",
-          emailPlaceholder: "name@email.com",
-          sending: "Sending...",
-          sent: "Link sent",
-          send: "Send Reset Link",
-          error: "Password reset could not be processed. Please try again shortly.",
-          remembered: "Remembered your password?",
+          badge: "New Password",
+          title: "Create a new password.",
+          subtitle: "Use a strong password to keep your family archive secure.",
+          password: "New password",
+          confirmPassword: "Confirm new password",
+          passwordPlaceholder: "Min 8 chars, uppercase, lowercase, number",
+          tokenMissingTitle: "Invalid link",
+          tokenMissingBody: "Request a new reset link from forgot password.",
+          processing: "Saving...",
+          save: "Save Password",
+          successTitle: "Password changed",
+          successBody: "Sign in again with your new password.",
+          login: "Sign in",
+          backToForgot: "Request new link",
           backToLogin: "Back to login",
-          successTitle: "Check your inbox",
-          successBody:
-            "If the email is registered, you will receive a reset link in the next few minutes.",
-          devLink: "Local reset link",
-          tipTitle: "Security note",
-          tipBody:
-            "Reset links expire in 30 minutes to keep your family account secure.",
+          mismatch: "Password confirmation does not match.",
+          failed: "Password could not be changed. The link may have expired.",
         };
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus("loading");
     setError(null);
-    setDevResetUrl(null);
 
     const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email") || "").trim();
+    const password = String(formData.get("password") || "");
+    const confirmPassword = String(formData.get("confirmPassword") || "");
+
+    if (password !== confirmPassword) {
+      setError(copy.mismatch);
+      setStatus("idle");
+      return;
+    }
 
     try {
-      const response = await fetch("/api/auth/forgot", {
+      const response = await fetch("/api/auth/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ token, password }),
       });
       const result = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(result?.error || "Forgot password failed");
+        throw new Error(result?.error || "Reset password failed");
       }
 
-      setDevResetUrl(typeof result?.resetUrl === "string" ? result.resetUrl : null);
-      setStatus("sent");
+      setStatus("success");
+      router.refresh();
     } catch {
-      setError(copy.error);
+      setError(copy.failed);
       setStatus("idle");
     }
   }
@@ -131,11 +145,27 @@ export default function ForgotPasswordPage() {
               </div>
             </div>
 
-            {status === "sent" ? (
+            {!token ? (
+              <div className="space-y-4 rounded-2xl border border-red-200 bg-red-50 p-5">
+                <p className="font-serif text-xl text-[#3f342d]">
+                  {copy.tokenMissingTitle}
+                </p>
+                <p className="text-sm leading-relaxed text-red-700">
+                  {copy.tokenMissingBody}
+                </p>
+                <Link
+                  href="/auth/forgot"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-red-700 transition hover:text-red-800"
+                >
+                  {copy.backToForgot}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            ) : status === "success" ? (
               <div className="space-y-4 rounded-2xl border border-[#cfe3d2] bg-[linear-gradient(150deg,#f1faef_0%,#fbfff8_100%)] p-5">
                 <div className="flex items-center gap-3">
                   <span className="inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl border border-[#bcd6bd] bg-white text-[#5a7d5e]">
-                    <MailCheck className="h-4 w-4" />
+                    <ShieldCheck className="h-4 w-4" />
                   </span>
                   <p className="font-serif text-xl text-[#3f342d]">
                     {copy.successTitle}
@@ -144,25 +174,38 @@ export default function ForgotPasswordPage() {
                 <p className="text-sm leading-relaxed text-[#5d6e5e]">
                   {copy.successBody}
                 </p>
-                {devResetUrl && (
-                  <Link
-                    href={devResetUrl}
-                    className="inline-flex break-all rounded-xl border border-[#bcd6bd] bg-white px-4 py-2 text-xs font-semibold text-[#5a7d5e] transition hover:border-[#8fb894] hover:text-[#426246]"
-                  >
-                    {copy.devLink}: {devResetUrl}
-                  </Link>
-                )}
+                <Button
+                  type="button"
+                  size="lg"
+                  block
+                  onClick={() => router.push("/auth/login")}
+                  iconRight={<ArrowRight className="h-4 w-4" />}
+                  animateRightIcon
+                >
+                  {copy.login}
+                </Button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <FloatingInput
                   required
-                  name="email"
-                  type="email"
-                  label={copy.email}
-                  hint={copy.emailPlaceholder}
-                  iconLeft={<Mail />}
-                  autoComplete="email"
+                  name="password"
+                  type="password"
+                  label={copy.password}
+                  hint={copy.passwordPlaceholder}
+                  iconLeft={<Lock />}
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+                <FloatingInput
+                  required
+                  name="confirmPassword"
+                  type="password"
+                  label={copy.confirmPassword}
+                  hint={copy.passwordPlaceholder}
+                  iconLeft={<Lock />}
+                  minLength={8}
+                  autoComplete="new-password"
                 />
 
                 <Button
@@ -173,7 +216,7 @@ export default function ForgotPasswordPage() {
                   iconRight={<ArrowRight className="h-4 w-4" />}
                   animateRightIcon
                 >
-                  {copy.send}
+                  {copy.save}
                 </Button>
 
                 {error && (
@@ -184,28 +227,29 @@ export default function ForgotPasswordPage() {
                     {error}
                   </div>
                 )}
-
-                <p className="rounded-xl border border-[#eee1cb] bg-[#fffcf7] p-3 text-xs leading-relaxed text-[#7b6f63]">
-                  <span className="font-semibold text-[#9b845f]">
-                    {copy.tipTitle}.
-                  </span>{" "}
-                  {copy.tipBody}
-                </p>
               </form>
             )}
-
-            <div className="mt-6 border-t border-[#ece2cc] pt-5 text-sm text-[#73685f]">
-              {copy.remembered}{" "}
-              <Link
-                href="/auth/login"
-                className="font-semibold text-[#a8761a] transition hover:text-[#7e570f]"
-              >
-                {copy.backToLogin}
-              </Link>
-            </div>
           </div>
         </motion.div>
       </div>
     </div>
+  );
+}
+
+function ResetPasswordFallback() {
+  return (
+    <div className="flex min-h-[420px] items-center justify-center">
+      <div className="rounded-2xl border border-[#dfd2be] bg-white px-6 py-4 text-sm text-[#73685f] shadow-sm">
+        Loading reset page...
+      </div>
+    </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<ResetPasswordFallback />}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

@@ -483,6 +483,7 @@ function makeRowBlocks(g: InternalGraph, layer: number): RowBlock[] {
     for (let index = 1; index < sameLayerPartners.length; index++) {
       dsu.join(sameLayerPartners[0], sameLayerPartners[index]);
     }
+
   });
 
   const groups = new Map<string, string[]>();
@@ -758,6 +759,20 @@ function assignCoordinates(g: InternalGraph) {
   // that barycentric sweeps alone can leave behind.
   alignLayersToSpine(g);
   calculateUnionCoordinates(g);
+
+  // One final top-down pass after spine alignment keeps local child groups
+  // tucked under their actual parent union. This matters for very large trees:
+  // moving a whole ancestor layer can otherwise leave small side branches with
+  // long horizontal connectors even though the graph is technically valid.
+  for (let layer = 1; layer <= maxLayer; layer++) {
+    const blocks = makeRowBlocks(g, layer);
+    for (const block of blocks) {
+      block.target = calculateDownSweepTarget(g, block);
+      block.center = block.target;
+    }
+    packAndPlaceBlocks(g, blocks);
+    calculateUnionCoordinates(g);
+  }
 }
 
 function normalizeCoordinates(g: InternalGraph) {

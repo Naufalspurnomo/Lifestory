@@ -13,6 +13,11 @@ import {
   TreeAccessError,
 } from "../../../../lib/tree/repository";
 import type { FamilyNode } from "../../../../lib/types/tree";
+import {
+  formatZodErrors,
+  treeNodesPayloadSchema,
+  validateBody,
+} from "../../../../lib/validations";
 
 function isMissingTableError(error: unknown): boolean {
   return (
@@ -62,10 +67,20 @@ export async function PUT(
   }
 
   const body = await request.json().catch(() => null);
-  const nodes = body?.nodes;
-  if (!Array.isArray(nodes)) {
+  if (!body) {
     return NextResponse.json(
-      { error: "Body must include an array of nodes" },
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
+  }
+
+  const validation = validateBody(treeNodesPayloadSchema, body);
+  if (!validation.success) {
+    return NextResponse.json(
+      {
+        error: "Validation failed",
+        details: formatZodErrors(validation.errors),
+      },
       { status: 400 }
     );
   }
@@ -74,7 +89,7 @@ export async function PUT(
     await replaceTreeNodes(
       params.id,
       session.user.id,
-      nodes as FamilyNode[]
+      validation.data.nodes as FamilyNode[]
     );
     return NextResponse.json({ ok: true });
   } catch (err) {

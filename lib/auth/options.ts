@@ -17,10 +17,11 @@ export const authOptions: NextAuthOptions = {
 
         // Find user from database
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase() },
+          where: { email: credentials.email.toLowerCase().trim() },
         });
 
         if (!user) return null;
+        if (user.status === "suspended") return null;
 
         const isValid = await compare(credentials.password, user.passwordHash);
         if (!isValid) return null;
@@ -31,6 +32,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           role: user.role,
           subscriptionActive: user.subscriptionActive,
+          status: user.status,
         };
       },
     }),
@@ -39,21 +41,27 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/login",
   },
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       if (user) {
-        token.role = (user as any).role;
-        token.subscriptionActive = (user as any).subscriptionActive;
+        token.role = user.role;
+        token.subscriptionActive = user.subscriptionActive;
+        token.status = user.status;
       }
 
-      // Refresh subscription status on session update
-      if (trigger === "update" && token.sub) {
+      // Keep admin status changes effective for server-rendered pages and APIs.
+      if (!user && token.sub) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub },
-          select: { subscriptionActive: true, role: true },
+          select: { subscriptionActive: true, role: true, status: true },
         });
         if (dbUser) {
-          token.subscriptionActive = dbUser.subscriptionActive;
+          token.subscriptionActive =
+            dbUser.status === "suspended" ? false : dbUser.subscriptionActive;
           token.role = dbUser.role;
+          token.status = dbUser.status;
+        } else {
+          token.subscriptionActive = false;
+          token.status = "suspended";
         }
       }
 
@@ -63,6 +71,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.role = token.role as string | undefined;
         session.user.subscriptionActive = Boolean(token.subscriptionActive);
+        session.user.status = token.status as string | undefined;
         session.user.id = token.sub;
       }
       return session;

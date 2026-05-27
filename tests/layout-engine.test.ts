@@ -10,6 +10,7 @@ import {
   multiRootUnrelatedFamilies,
   twoFamiliesJoinedByMarriage,
   largeSiblingGroup,
+  tenGenerationExtendedFamily,
   skipGenerationAdoption,
   asymmetricDepth,
 } from "./helpers/fixtures";
@@ -130,6 +131,31 @@ describe("layout engine — real-world family combinations", () => {
     }
   });
 
+  it("handles a 10-generation extended family with 150+ people", () => {
+    const nodes = tenGenerationExtendedFamily();
+    const layout = expectValidLayout(nodes);
+
+    expect(layout.nodes.length).toBeGreaterThanOrEqual(150);
+    expect(layout.width).toBeGreaterThan(0);
+    expect(layout.height).toBeGreaterThan(0);
+
+    const generations = new Set(layout.nodes.map((node) => node.generation));
+    expect(generations.size).toBe(10);
+
+    const oldest = layout.nodes.find((node) => node.id === "g1-father")!;
+    const youngest = layout.nodes.find((node) => node.id === "g10-main")!;
+    expect(youngest.y!).toBeGreaterThan(oldest.y!);
+
+    const branchNodes = layout.nodes.filter((node) =>
+      /-sibling-\d+-child-\d+$/.test(node.id)
+    );
+    expect(branchNodes.length).toBeGreaterThanOrEqual(40);
+    branchNodes.forEach((node) => {
+      expect(Number.isFinite(node.x)).toBe(true);
+      expect(Number.isFinite(node.y)).toBe(true);
+    });
+  });
+
   it("handles skip-generation adoption (kakek adopts cucu) via adoptiveParentIds", () => {
     const layout = expectValidLayout(skipGenerationAdoption());
     const kid = layout.nodes.find((n) => n.id === "kid")!;
@@ -187,6 +213,7 @@ describe("layout engine — edge cases", () => {
       multiRootUnrelatedFamilies(),
       twoFamiliesJoinedByMarriage(),
       largeSiblingGroup(),
+      tenGenerationExtendedFamily(),
       skipGenerationAdoption(),
       asymmetricDepth(),
     ];

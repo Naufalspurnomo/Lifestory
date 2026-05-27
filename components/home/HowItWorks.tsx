@@ -89,7 +89,11 @@ function StepRow({
   total: number;
 }) {
   const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { amount: 0.25, margin: "0px 0px -10% 0px" });
+  const hasEntered = useInView(ref, {
+    once: true,
+    amount: 0.2,
+    margin: "0px 0px -12% 0px",
+  });
   const { reduced } = useMotionGuard();
   const Icon = step.icon;
   const reversed = index % 2 === 1;
@@ -98,7 +102,7 @@ function StepRow({
     <motion.article
       ref={ref}
       initial={{ opacity: 0, y: reduced ? 0 : 36 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
+      animate={hasEntered ? { opacity: 1, y: 0 } : { opacity: 0, y: reduced ? 0 : 36 }}
       transition={{
         duration: reduced ? 0.01 : 0.8,
         ease: [0.22, 1, 0.36, 1],
@@ -111,7 +115,11 @@ function StepRow({
       {/* === Image column === */}
       <motion.div
         initial={{ opacity: 0, scale: reduced ? 1 : 0.96 }}
-        animate={inView ? { opacity: 1, scale: 1 } : {}}
+        animate={
+          hasEntered
+            ? { opacity: 1, scale: 1 }
+            : { opacity: 0, scale: reduced ? 1 : 0.96 }
+        }
         transition={{ duration: reduced ? 0.01 : 0.9, ease: [0.22, 1, 0.36, 1] }}
         className="relative"
       >
@@ -138,7 +146,7 @@ function StepRow({
           <span
             className={cn(
               "absolute left-5 top-5 inline-flex items-center gap-2 rounded-pill px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] shadow-soft backdrop-blur-sm transition-colors duration-500",
-              inView
+              hasEntered
                 ? "bg-brand-gradient text-white shadow-cta"
                 : "bg-white/95 text-brand-700"
             )}

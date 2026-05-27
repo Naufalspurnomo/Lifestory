@@ -196,6 +196,7 @@ export default function RegisterPage() {
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get("name") || "").trim();
     const email = String(formData.get("email") || "").trim();
+    const phone = String(formData.get("phone") || "").trim();
     const password = String(formData.get("password") || "");
 
     try {
@@ -207,6 +208,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           name,
           email,
+          phone,
           password,
         }),
       });

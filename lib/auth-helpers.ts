@@ -8,6 +8,7 @@ interface AppSession extends Session {
     id?: string;
     role?: string;
     subscriptionActive?: boolean;
+    status?: string;
   };
 }
 
@@ -27,6 +28,16 @@ export async function requireUser(): Promise<AuthResult> {
       response: NextResponse.json(
         { error: "Unauthorized - Please login" },
         { status: 401 }
+      ),
+    };
+  }
+
+  if (session.user.status === "suspended") {
+    return {
+      success: false,
+      response: NextResponse.json(
+        { error: "Forbidden - Account is suspended" },
+        { status: 403 }
       ),
     };
   }

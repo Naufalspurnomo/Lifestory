@@ -4,6 +4,7 @@ import {
   deleteExpiredTreeInvites,
 } from "../../../../lib/invites";
 import { applyRateLimit, rateLimitConfigs } from "../../../../lib/rate-limit";
+import { nonEmptyFamilyTreeNodesSchema } from "../../../../lib/validations";
 
 type Params = {
   params: Promise<{ token: string }>;
@@ -40,6 +41,14 @@ export async function GET(request: Request, { params }: Params) {
     } catch {
       return NextResponse.json(
         { error: "Invite data is corrupted" },
+        { status: 500 }
+      );
+    }
+
+    const nodes = (treeData as { nodes?: unknown })?.nodes;
+    if (!nonEmptyFamilyTreeNodesSchema.safeParse(nodes).success) {
+      return NextResponse.json(
+        { error: "Invite data is invalid" },
         { status: 500 }
       );
     }

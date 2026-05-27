@@ -12,6 +12,8 @@ import {
   Camera,
   Clapperboard,
   TreePine,
+  UtensilsCrossed,
+  Palette,
   type LucideIcon,
 } from "lucide-react";
 import { Container } from "../ui/Container";
@@ -21,20 +23,19 @@ import { TiltCard } from "../ui/TiltCard";
 import { cn } from "../../lib/utils";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
-const ICONS: LucideIcon[] = [BookOpenText, Camera, Clapperboard, TreePine];
+const ICONS: LucideIcon[] = [BookOpenText, Camera, Clapperboard, TreePine, UtensilsCrossed, Palette];
 
-/* TODO: Ganti path gambar di bawah ini dengan foto khusus Deliverables section
-   Taruh file di: public/image/home-deliverable-1.webp, ...-2.webp, ...-3.webp, ...-4.webp
-   Urutan: 1=Buku, 2=Foto, 3=Video, 4=Pohon Silsilah */
 const IMAGES = [
   "/image/home-deliverable-1.webp",
   "/image/home-deliverable-2.webp",
   "/image/home-deliverable-3.webp",
   "/image/home-deliverable-4.webp",
+  "/image/home-deliverable-5.webp",
+  "/image/home-deliverable-6.webp",
 ];
 
 const ACCENTS = [
-  // Item 0 — Book (warm amber)
+  // Item 0 — Book & Photo (warm amber)
   {
     bgFrom: "from-brand-200/55",
     bgVia: "via-cream-50",
@@ -42,13 +43,13 @@ const ACCENTS = [
     glow: "rgba(228,171,47,0.45)",
     label: "Heirloom",
   },
-  // Item 1 — Photo (soft teal)
+  // Item 1 — Family portrait (soft teal)
   {
     bgFrom: "from-accent-100/60",
     bgVia: "via-cream-50",
     bgTo: "to-cream-100",
     glow: "rgba(31,111,98,0.30)",
-    label: "Restored",
+    label: "Portrait",
   },
   // Item 2 — Video (deep ink)
   {
@@ -66,6 +67,22 @@ const ACCENTS = [
     glow: "rgba(168,116,30,0.42)",
     label: "Lineage",
   },
+  // Item 4 — Celebration dinner (warm rose)
+  {
+    bgFrom: "from-brand-100/50",
+    bgVia: "via-cream-50",
+    bgTo: "to-cream-100",
+    glow: "rgba(196,120,50,0.38)",
+    label: "Celebrate",
+  },
+  // Item 5 — Custom artwork (rich plum)
+  {
+    bgFrom: "from-brand-300/40",
+    bgVia: "via-cream-100",
+    bgTo: "to-cream-200",
+    glow: "rgba(140,80,60,0.35)",
+    label: "Artisan",
+  },
 ];
 
 const AUTO_ROTATE_MS = 6000;
@@ -81,7 +98,7 @@ type Props = {
 
 export function Deliverables({ copy }: Props) {
   const { reduced } = useMotionGuard();
-  const items = copy.items.slice(0, 4);
+  const items = copy.items.slice(0, 6);
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const userInteractedRef = useRef(false);
@@ -124,6 +141,7 @@ export function Deliverables({ copy }: Props) {
   }, []);
 
   const accent = ACCENTS[active] ?? ACCENTS[0];
+  const activeItem = items[active] ?? items[0];
 
   return (
     <section
@@ -162,7 +180,7 @@ export function Deliverables({ copy }: Props) {
         <div className="relative grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 xl:gap-20">
           {/* ============= PREVIEW PANE ============= */}
           <Reveal className="relative">
-            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-card-lg border border-cream-300 bg-white shadow-deep">
+            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-card-lg border border-cream-300 bg-cream-50 shadow-[0_24px_70px_rgba(63,52,45,0.16)]">
               {/* Backdrop gradient morphs per item */}
               <AnimatePresence>
                 <motion.div
@@ -172,7 +190,7 @@ export function Deliverables({ copy }: Props) {
                   exit={{ opacity: 0 }}
                   transition={{ duration: reduced ? 0.01 : 0.7 }}
                   className={cn(
-                    "absolute inset-0 bg-gradient-to-br",
+                    "absolute inset-0 bg-gradient-to-br opacity-90",
                     accent.bgFrom,
                     accent.bgVia,
                     accent.bgTo
@@ -180,16 +198,17 @@ export function Deliverables({ copy }: Props) {
                 />
               </AnimatePresence>
 
-              {/* Decorative concentric rings */}
+              {/* Editorial mount lines */}
               <div aria-hidden className="pointer-events-none absolute inset-0">
-                <div className="absolute left-1/2 top-1/2 h-[80%] w-[80%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/30" />
-                <div className="absolute left-1/2 top-1/2 h-[60%] w-[60%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
+                <div className="absolute inset-5 rounded-[24px] border border-white/45" />
+                <div className="absolute left-8 top-8 h-px w-16 bg-brand-300/45" />
+                <div className="absolute bottom-8 right-8 h-px w-16 bg-ink-300/25" />
               </div>
 
               {/* Big floating numeral */}
               <span
                 aria-hidden
-                className="pointer-events-none absolute -bottom-6 left-2 z-10 select-none font-serif font-medium leading-none text-white/65 mix-blend-overlay drop-shadow-[0_6px_18px_rgba(0,0,0,0.35)] sm:left-4"
+                className="pointer-events-none absolute -bottom-6 left-2 z-10 select-none font-serif font-medium leading-none text-ink-800/[0.06] sm:left-4"
                 style={{ fontSize: "clamp(7rem, 18vw, 14rem)" }}
               >
                 <AnimatePresence mode="wait">
@@ -207,30 +226,16 @@ export function Deliverables({ copy }: Props) {
               </span>
 
               {/* Top-right meta chip */}
-              <div className="absolute right-5 top-5 z-30 flex items-center gap-2.5">
+              <div className="absolute right-4 top-4 z-30 flex items-center gap-2.5 sm:right-5 sm:top-5">
                 <ProgressRing
                   active={active}
                   progress={progressTick}
                   paused={paused}
                 />
-                <span className="rounded-pill border border-cream-300 bg-white/95 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-soft backdrop-blur-sm">
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={`label-${active}`}
-                      initial={{ opacity: 0, y: reduced ? 0 : 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: reduced ? 0 : -6 }}
-                      transition={{ duration: reduced ? 0.01 : 0.35 }}
-                      className="inline-block"
-                    >
-                      {accent.label}
-                    </motion.span>
-                  </AnimatePresence>
-                </span>
               </div>
 
               {/* Image stage */}
-              <div className="absolute inset-0 flex items-center justify-center px-10 py-12 sm:px-14 lg:px-16">
+              <div className="absolute inset-0 flex items-center justify-center px-6 pb-24 pt-14 sm:px-10 sm:pb-28 sm:pt-16 lg:px-12">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`img-${active}`}
@@ -238,31 +243,40 @@ export function Deliverables({ copy }: Props) {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: reduced ? 1 : 0.96, y: reduced ? 0 : -12 }}
                     transition={{ duration: reduced ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
-                    className="relative h-full w-full max-w-[260px] sm:max-w-[300px] md:max-w-[340px]"
+                    className="relative isolate h-full w-full max-w-[320px] sm:max-w-[380px] md:max-w-[420px]"
                   >
+                    <span
+                      aria-hidden
+                      className="absolute -right-3 top-5 z-0 h-[88%] w-full rounded-[20px] border border-cream-300/70 bg-white/35"
+                    />
+                    <span
+                      aria-hidden
+                      className="absolute -left-3 bottom-5 z-0 h-[88%] w-full rounded-[20px] border border-cream-300/60 bg-cream-50/55"
+                    />
                     <TiltCard
-                      max={10}
-                      glare
-                      className="relative h-full w-full"
+                      max={5}
+                      glare={false}
+                      className="relative z-10 h-full w-full"
                     >
-                      <div className="relative h-full w-full overflow-hidden rounded-[10px] border border-cream-400 bg-white shadow-deep ring-1 ring-black/5">
-                        <Image
-                          src={IMAGES[active]}
-                          alt=""
-                          fill
-                          sizes="(max-width: 1024px) 70vw, 30vw"
-                          className="object-cover"
-                          priority={active === 0}
-                        />
-                        {/* Page-spread highlight to feel book-like */}
-                        <span
-                          aria-hidden
-                          className="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-black/15"
-                        />
-                        <span
-                          aria-hidden
-                          className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-black/15 via-transparent to-white/10"
-                        />
+                      <div className="relative h-full w-full rounded-[18px] border border-white bg-white p-2 shadow-[0_22px_54px_rgba(31,22,16,0.24)] ring-1 ring-black/5">
+                        <div className="relative h-full w-full overflow-hidden rounded-[12px] bg-cream-200">
+                          <Image
+                            src={IMAGES[active]}
+                            alt={activeItem?.title ?? ""}
+                            fill
+                            sizes="(max-width: 1024px) 76vw, 34vw"
+                            className="object-cover"
+                            priority={active === 0}
+                          />
+                          <span
+                            aria-hidden
+                            className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/18 via-transparent to-black/14"
+                          />
+                          <span
+                            aria-hidden
+                            className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/35"
+                          />
+                        </div>
                       </div>
                       {/* Cast shadow underneath */}
                       <span
@@ -270,6 +284,32 @@ export function Deliverables({ copy }: Props) {
                         className="pointer-events-none absolute -bottom-4 left-[8%] right-[8%] h-6 rounded-[50%] bg-black/30 blur-xl"
                       />
                     </TiltCard>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* Editorial caption */}
+              <div className="absolute inset-x-5 bottom-5 z-30 sm:inset-x-7 sm:bottom-7">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={`caption-${active}`}
+                    initial={{ opacity: 0, y: reduced ? 0 : 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: reduced ? 0 : -10 }}
+                    transition={{ duration: reduced ? 0.01 : 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    className="rounded-card border border-white/65 bg-white/92 px-4 py-3 shadow-elev backdrop-blur-sm sm:px-5 sm:py-4"
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-4">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700">
+                        {String(active + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink-300">
+                        {accent.label}
+                      </span>
+                    </div>
+                    <p className="font-serif text-[clamp(1.25rem,3.4vw,1.8rem)] leading-tight text-ink-800">
+                      {activeItem?.title}
+                    </p>
                   </motion.div>
                 </AnimatePresence>
               </div>

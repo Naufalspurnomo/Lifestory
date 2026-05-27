@@ -17,6 +17,7 @@ model User {
   id                 String   @id @default(cuid())
   name               String
   email              String   @unique
+  phone              String?
   passwordHash       String
   role               String   @default("user") // "admin" or "user"
   subscriptionActive Boolean  @default(false)
@@ -24,8 +25,23 @@ model User {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  trees       Tree[]       @relation("TreeOwner")
+  trees       Tree[]               @relation("TreeOwner")
   memberships TreeMember[]
+  resetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 // ---------- Family Tree (tenant) ----------
@@ -89,7 +105,7 @@ model Node {
 
   tree Tree @relation(fields: [treeId], references: [id], onDelete: Cascade)
 
-  // Relations (explicit) — computed by reading Edge rows, but we keep backrefs
+  // Relations (explicit) - computed by reading Edge rows, but we keep backrefs
   // for faster traversal in app code.
   outgoingEdges Edge[] @relation("EdgeFrom")
   incomingEdges Edge[] @relation("EdgeTo")

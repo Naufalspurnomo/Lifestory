@@ -1,0 +1,80 @@
+type PasswordResetEmailInput = {
+  to: string;
+  resetUrl: string;
+  expiresInMinutes: number;
+};
+
+type EmailResult =
+  | { ok: true; skipped?: false }
+  | { ok: false; skipped: true; reason: "missing-config" }
+  | { ok: false; skipped?: false; error: string };
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+export async function sendPasswordResetEmail({
+  to,
+  resetUrl,
+  expiresInMinutes,
+}: PasswordResetEmailInput): Promise<EmailResult> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.PASSWORD_RESET_FROM_EMAIL;
+
+  if (!apiKey || !from) {
+    return { ok: false, skipped: true, reason: "missing-config" };
+  }
+
+  const safeResetUrl = escapeHtml(resetUrl);
+  const subject = "Reset password Lifestory";
+  const text = [
+    "Kami menerima permintaan reset password untuk akun Lifestory Anda.",
+    "",
+    `Buka tautan ini untuk membuat password baru: ${resetUrl}`,
+    "",
+    `Tautan ini berlaku ${expiresInMinutes} menit.`,
+    "Jika Anda tidak meminta reset password, abaikan email ini.",
+  ].join("\n");
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#40342c">
+      <h1 style="font-size:22px;margin:0 0 16px">Reset password Lifestory</h1>
+      <p>Kami menerima permintaan reset password untuk akun Lifestory Anda.</p>
+      <p>
+        <a href="${safeResetUrl}" style="display:inline-block;background:#9b6b18;color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:700">
+          Buat password baru
+        </a>
+      </p>
+      <p style="font-size:14px;color:#73685f">Tautan ini berlaku ${expiresInMinutes} menit.</p>
+      <p style="font-size:14px;color:#73685f">Jika tombol tidak bisa dibuka, salin tautan ini:</p>
+      <p style="font-size:13px;word-break:break-all;color:#73685f">${safeResetUrl}</p>
+      <p style="font-size:14px;color:#73685f">Jika Anda tidak meminta reset password, abaikan email ini.</p>
+    </div>
+  `;
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject,
+      html,
+      text,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    return { ok: false, error: errorText || response.statusText };
+  }
+
+  return { ok: true };
+}

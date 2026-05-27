@@ -22,6 +22,7 @@ interface UserData {
   id: string;
   name: string;
   email: string;
+  phone: string | null;
   role: string;
   subscriptionActive: boolean;
   status: UserStatus;
@@ -410,6 +411,9 @@ export default function DashboardPage() {
                             <div>
                               <p className="font-semibold text-[#3f342d]">{u.name}</p>
                               <p className="text-sm text-[#7b6f63]">{u.email}</p>
+                              {u.phone && (
+                                <p className="text-xs text-[#9b845f]">{u.phone}</p>
+                              )}
                             </div>
                           </div>
                         </td>

@@ -443,7 +443,7 @@ export function useTreeState(userId: string, userName: string) {
       });
 
     return newTree;
-  }, [userId, userName, pushHistory]);
+  }, [userId, userName]);
 
   // Add node (fixed relationships)
   const addNode = useCallback(

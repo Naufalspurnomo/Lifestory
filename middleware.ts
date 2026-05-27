@@ -47,9 +47,7 @@ export async function middleware(req: NextRequest) {
 
       const isSameOrigin = normalizedOrigin === req.nextUrl.origin;
       const isAllowedOrigin =
-        isSameOrigin ||
-        normalizedOrigin.includes("localhost") ||
-        configuredOrigins.includes(normalizedOrigin);
+        isSameOrigin || configuredOrigins.includes(normalizedOrigin);
 
       if (!isAllowedOrigin) {
         return NextResponse.json(
@@ -90,8 +88,21 @@ export async function middleware(req: NextRequest) {
 
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const hasSession = Boolean(token);
-  const subscriptionActive = Boolean(token?.subscriptionActive);
+  const accountStatus =
+    typeof token?.status === "string" ? token.status : undefined;
+  const subscriptionActive =
+    accountStatus !== "suspended" && Boolean(token?.subscriptionActive);
   const isAdmin = token?.role === "admin";
+
+  if (accountStatus === "suspended") {
+    if (isAdminOnlyApi) {
+      return NextResponse.json(
+        { error: "Forbidden - Account is suspended" },
+        { status: 403 }
+      );
+    }
+    return NextResponse.redirect(new URL("/", req.url));
+  }
 
   if (isProtectedPage) {
     if (!hasSession) {
@@ -134,6 +145,7 @@ export const config = {
   matcher: [
     "/app/:path*",
     "/dashboard/:path*",
+    "/api/trees/:path*",
     "/api/users/:path*",
     "/api/invites/:path*",
     "/api/auth/:path*",

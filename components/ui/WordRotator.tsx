@@ -59,7 +59,7 @@ export function WordRotator({
   return (
     <span
       className={cn(
-        "relative inline-block overflow-hidden align-baseline",
+        "relative inline-block overflow-hidden align-baseline pr-[0.05em]",
         outerClassName
       )}
       aria-live="polite"

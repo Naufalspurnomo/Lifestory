@@ -1,5 +1,4 @@
 "use client";
-// Force HMR update
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -24,9 +23,10 @@ export default function AppHome() {
   const { locale } = useLanguage();
   const user = session?.user;
 
-  const copy =
-    locale === "id"
-      ? {
+  const copy = useMemo(
+    () =>
+      locale === "id"
+        ? {
           fallbackUser: "Pengguna",
           notifTreeCreated: "Pohon keluarga dibuat! Anda adalah simpul pertama.",
           notifProfileUpdated: "Profil diperbarui",
@@ -59,7 +59,7 @@ export default function AppHome() {
           statLines: "Garis Keluarga",
           statEarliest: "Catatan Terawal",
         }
-      : {
+        : {
           fallbackUser: "User",
           notifTreeCreated: "Family tree created! You are the first node.",
           notifProfileUpdated: "Profile updated",
@@ -91,9 +91,11 @@ export default function AppHome() {
           statMembers: "Family Members",
           statLines: "Family Lines",
           statEarliest: "Earliest Record",
-        };
+        },
+    [locale]
+  );
 
-  const userId = (user as any)?.id || user?.email || "";
+  const userId = user?.id || user?.email || "";
   const userName = user?.name || copy.fallbackUser;
 
   const {
@@ -283,14 +285,7 @@ export default function AppHome() {
       console.error("Failed to export tree:", error);
       showNotification(copy.notifExportFailed);
     }
-  }, [
-    copy.notifExportFailed,
-    copy.notifExported,
-    copy.notifNoDataToExport,
-    currentTree,
-    locale,
-    showNotification,
-  ]);
+  }, [copy, currentTree, locale, showNotification]);
 
   const stats = {
     generations: 0,

@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 import { requireUser } from "../../../lib/auth-helpers";
 import { createTreeInvite, deleteExpiredTreeInvites } from "../../../lib/invites";
 import { applyRateLimit, rateLimitConfigs } from "../../../lib/rate-limit";
+import {
+  formatZodErrors,
+  inviteCreateSchema,
+  validateBody,
+} from "../../../lib/validations";
 
 const INVITE_EXPIRY_DAYS = 7;
 const MAX_TREE_PAYLOAD_BYTES = 350_000;
@@ -17,40 +22,31 @@ export async function POST(request: Request) {
 
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
+  const userId = authResult.session.user?.id;
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Unauthorized - Invalid session" },
+      { status: 401 }
+    );
+  }
 
   const body = await request.json().catch(() => null);
-  if (!body || typeof body !== "object") {
+  if (!body) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const treeNameRaw =
-    typeof (body as { treeName?: unknown }).treeName === "string"
-      ? (body as { treeName: string }).treeName
-      : "";
-  const treeData = (body as { treeData?: unknown }).treeData;
-  const treeName = treeNameRaw.trim();
-
-  if (!treeName) {
+  const validation = validateBody(inviteCreateSchema, body);
+  if (!validation.success) {
     return NextResponse.json(
-      { error: "treeName is required" },
+      {
+        error: "Validation failed",
+        details: formatZodErrors(validation.errors),
+      },
       { status: 400 }
     );
   }
 
-  if (!treeData || typeof treeData !== "object") {
-    return NextResponse.json(
-      { error: "treeData object is required" },
-      { status: 400 }
-    );
-  }
-
-  const nodes = (treeData as { nodes?: unknown }).nodes;
-  if (!Array.isArray(nodes) || nodes.length === 0) {
-    return NextResponse.json(
-      { error: "treeData.nodes must contain at least one node" },
-      { status: 400 }
-    );
-  }
+  const { treeName, treeData } = validation.data;
 
   const serialized = JSON.stringify(treeData);
   if (serialized.length > MAX_TREE_PAYLOAD_BYTES) {
@@ -72,7 +68,7 @@ export async function POST(request: Request) {
       token,
       treeName,
       treeData: serialized,
-      createdById: authResult.session.user?.id || "unknown",
+      createdById: userId,
       createdByEmail: authResult.session.user?.email || "unknown",
       expiresAt: expiresAt.toISOString(),
     });

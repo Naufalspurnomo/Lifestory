@@ -421,8 +421,7 @@ export default function AboutPage() {
                 </svg>
               </div>
 
-              {/* Polaroid cluster — flex overlap layout */}
-              {/* TODO: Taruh file di: public/image/about-hero-1.webp, about-hero-2.webp, about-hero-3.webp */}
+              {/* Polaroid cluster */}
               <div className="relative flex items-center justify-center">
                 {[
                   {
@@ -469,8 +468,6 @@ export default function AboutPage() {
               aria-hidden
               className="relative flex items-end justify-center gap-3 lg:hidden"
             >
-              {/* TODO: Ganti path gambar di bawah ini (sama dengan polaroid cluster di atas)
-                 Taruh file di: public/image/about-hero-1.webp, about-hero-2.webp, about-hero-3.webp */}
               {[
                 "/image/about-hero-1.webp",
                 "/image/about-hero-2.webp",

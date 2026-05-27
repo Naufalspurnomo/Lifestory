@@ -201,6 +201,71 @@ export function largeSiblingGroup(): FamilyNode[] {
   return nodes;
 }
 
+// ---------- Fixture: 10 generations, 150+ people, broad branching ----------
+// Simulates a large Indonesian extended family: one main lineage with many
+// siblings at each generation, plus side branches that marry and have children.
+export function tenGenerationExtendedFamily(): FamilyNode[] {
+  const nodes = [
+    person("g1-father", "Generasi 1 Ayah", { sex: "M", year: 1820 }),
+    person("g1-mother", "Generasi 1 Ibu", { sex: "F", year: 1824 }),
+  ];
+  partner(nodes, "g1-father", "g1-mother");
+
+  let parentIds = ["g1-father", "g1-mother"];
+  const childCounts = [4, 5, 6, 8, 10, 12, 15, 18, 20];
+
+  for (let index = 0; index < childCounts.length; index++) {
+    const generation = index + 2;
+    const childCount = childCounts[index];
+    const mainChildId = `g${generation}-main`;
+    const sideIds: string[] = [];
+
+    for (let childIndex = 1; childIndex <= childCount; childIndex++) {
+      const id =
+        childIndex === 1 ? mainChildId : `g${generation}-sibling-${childIndex}`;
+      const isSelf = generation === 6 && childIndex === 1;
+      nodes.push(
+        person(id, `Generasi ${generation} Anak ${childIndex}`, {
+          year: 1820 + (generation - 1) * 25 + childIndex,
+          line: isSelf ? "self" : "default",
+        })
+      );
+      child(nodes, parentIds, id);
+      if (childIndex > 1 && childIndex <= 4 && generation < 10) {
+        sideIds.push(id);
+      }
+    }
+
+    if (generation < 10) {
+      const spouseId = `g${generation}-main-spouse`;
+      nodes.push(
+        person(spouseId, `Pasangan Generasi ${generation}`, {
+          sex: generation % 2 === 0 ? "F" : "M",
+          year: 1820 + (generation - 1) * 25,
+        })
+      );
+      partner(nodes, mainChildId, spouseId);
+      parentIds = [mainChildId, spouseId];
+    }
+
+    for (const sideId of sideIds) {
+      const spouseId = `${sideId}-spouse`;
+      nodes.push(person(spouseId, `Pasangan ${sideId}`));
+      partner(nodes, sideId, spouseId);
+
+      for (let sideChildIndex = 1; sideChildIndex <= 2; sideChildIndex++) {
+        const sideChildId = `${sideId}-child-${sideChildIndex}`;
+        nodes.push(
+          person(sideChildId, `Anak cabang ${sideId} ${sideChildIndex}`)
+        );
+        child(nodes, [sideId, spouseId], sideChildId);
+      }
+    }
+  }
+
+  return nodes;
+}
+
 // ---------- Fixture: skip-generation (cucu diadopsi oleh kakek) ----------
 // Kakek & nenek membesarkan cucu seperti anak (paling umum di Indonesia).
 export function skipGenerationAdoption(): FamilyNode[] {

@@ -25,7 +25,7 @@ export default function ArchivePage() {
   const { data: session } = useSession();
   const { locale } = useLanguage();
   const user = session?.user;
-  const userId = user?.email || "";
+  const userId = user?.id || user?.email || "";
   const userName = user?.name || (locale === "id" ? "Pengguna" : "User");
 
   const { currentTree } = useTreeState(userId, userName);
@@ -35,9 +35,10 @@ export default function ArchivePage() {
   );
   const [filter, setFilter] = useState<"all" | "image" | "video">("all");
 
-  const copy =
-    locale === "id"
-      ? {
+  const copy = useMemo(
+    () =>
+      locale === "id"
+        ? {
           badge: "Arsip Keluarga",
           title: "Arsip Keluarga",
           noTreeTitle: "Belum ada arsip",
@@ -57,7 +58,7 @@ export default function ArchivePage() {
           videoBadge: "Video",
           closePreview: "Tutup preview",
         }
-      : {
+        : {
           badge: "Family Archive",
           title: "Family Archive",
           noTreeTitle: "No archive yet",
@@ -76,7 +77,9 @@ export default function ArchivePage() {
           profileCaption: (name: string) => `${name} profile photo`,
           videoBadge: "Video",
           closePreview: "Close preview",
-        };
+        },
+    [locale]
+  );
 
   const allMedia = useMemo(() => {
     if (!currentTree) return [];

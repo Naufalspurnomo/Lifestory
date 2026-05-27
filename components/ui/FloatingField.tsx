@@ -36,7 +36,7 @@ const fieldOk = "border-cream-300";
 const fieldErr = "border-danger/60 focus:border-danger focus:ring-danger/15";
 
 const labelBase =
-  "pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 origin-[0_0] text-[15px] font-medium text-ink-300 transition-all duration-200 ease-smooth peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:scale-100 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:scale-[0.78] peer-focus:text-brand-700 peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:translate-y-0 peer-[&:not(:placeholder-shown)]:scale-[0.78] peer-[&:not(:placeholder-shown)]:text-brand-700";
+  "pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 origin-[0_0] text-[15px] font-medium text-ink-300 transition-all duration-200 ease-smooth peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:scale-100 peer-focus:top-2.5 peer-focus:translate-y-0 peer-focus:scale-[0.75] peer-focus:text-brand-700 peer-[&:not(:placeholder-shown)]:top-2.5 peer-[&:not(:placeholder-shown)]:translate-y-0 peer-[&:not(:placeholder-shown)]:scale-[0.75] peer-[&:not(:placeholder-shown)]:text-brand-700";
 
 function FieldShell({
   id,
@@ -77,7 +77,7 @@ function FieldShell({
           htmlFor={id}
           className={cn(
             labelBase,
-            hasPaddingLeft && "left-10 peer-placeholder-shown:left-10 peer-focus:left-4 peer-[&:not(:placeholder-shown)]:left-4"
+            hasPaddingLeft && "left-10 peer-placeholder-shown:left-10 peer-focus:left-10 peer-[&:not(:placeholder-shown)]:left-10"
           )}
         >
           {label}
