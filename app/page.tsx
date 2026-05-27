@@ -215,28 +215,37 @@ export default function HomePage() {
           ],
         },
         philosophy: {
-          eyebrow: "Filosofi",
-          title: "Tiga kematian yang menanti setiap manusia.",
-          lead: "Dalam banyak tradisi dan pemikiran, manusia tidak hanya mati sekali. Ada tiga momen kepergian — dan hanya satu yang benar-benar bisa kita lawan.",
-          items: [
+          quote:
+            "Manusia mati tiga kali: saat napas terhenti, saat raga dikuburkan, dan saat nama tak lagi disebut oleh orang-orang yang pernah mencintainya. Lifestory mengabadikan kisah Anda agar cerita, nama, dan warisan keluarga tetap hidup lintas generasi, karena selama kisah masih diceritakan, kematian ketiga tak pernah benar-benar terjadi.",
+          quoteLines: [
+            "Manusia mati tiga kali:",
+            "saat napas terhenti, saat raga dikuburkan,",
+            "dan saat nama tak lagi disebut oleh orang-orang yang pernah mencintainya.",
+            "Lifestory mengabadikan kisah Anda agar cerita, nama, dan warisan keluarga tetap hidup lintas generasi.",
+            "Karena selama kisah masih diceritakan, kematian ketiga tak pernah benar-benar terjadi.",
+          ],
+          intro: "Manusia mati tiga kali.",
+          beats: [
             {
-              title: "Kematian pertama — tubuh berhenti",
-              body: "Saat jantung berhenti berdetak dan napas terakhir dihembuskan. Ini adalah kematian biologis yang tak bisa dihindari siapa pun.",
-              reflection: "Setiap manusia akan mengalami ini. Tidak ada pengecualian, tidak ada penundaan yang abadi.",
+              kicker: "Pertama",
+              title: "Napas terhenti",
+              body: "Saat tubuh selesai berjuang dan waktu tidak bisa ditawar lagi.",
             },
             {
-              title: "Kematian kedua — dimakamkan dan dilupakan dunia",
-              body: "Saat tubuh dikembalikan ke tanah dan dunia luar mulai melanjutkan hidup tanpa kehadiran Anda. Perlahan, nama Anda menghilang dari percakapan sehari-hari.",
-              reflection: "Dunia terus berputar. Yang tersisa hanyalah ruang kosong di meja makan dan foto yang mulai berdebu.",
+              kicker: "Kedua",
+              title: "Raga dikuburkan",
+              body: "Saat dunia mulai bergerak lagi tanpa kehadiran Anda di dalamnya.",
             },
             {
-              title: "Kematian ketiga — nama Anda disebut untuk terakhir kalinya",
-              body: "Inilah kematian sejati. Saat tidak ada lagi yang mengingat nama Anda, menceritakan kisah Anda, atau tahu bahwa Anda pernah ada di dunia ini.",
-              reflection: "Kematian ketiga adalah yang paling tragis — dan satu-satunya yang bisa kita cegah. Itulah mengapa Lifestory ada.",
+              kicker: "Ketiga",
+              title: "Nama tak lagi disebut",
+              body: "Saat cerita berhenti diwariskan dan seseorang hilang dari ingatan keluarga.",
             },
           ],
-          closing: "Lifestory hadir untuk memastikan kematian ketiga tidak pernah terjadi pada keluarga Anda. Karena selama cerita masih diceritakan, seseorang tidak benar-benar pergi.",
-          badge: "Lifestory mencegah ini",
+          closing:
+            "Lifestory mengabadikan kisah Anda agar kematian ketiga tak pernah terjadi.",
+          highlight: "kematian ketiga",
+          attribution: "Lifestory",
         },
         faq: {
           eyebrow: "Pertanyaan",
@@ -449,28 +458,37 @@ export default function HomePage() {
           ],
         },
         philosophy: {
-          eyebrow: "Philosophy",
-          title: "Three deaths that await every human being.",
-          lead: "Across many traditions and schools of thought, a person does not die just once. There are three moments of departure — and only one can truly be defied.",
-          items: [
+          quote:
+            "A person dies three times: when the breath stops, when the body is buried, and when the name is no longer spoken by the people who once loved them. Lifestory preserves your story so memory, name, and family legacy can keep living across generations, because as long as a story is still told, the third death never truly arrives.",
+          quoteLines: [
+            "A person dies three times:",
+            "when the breath stops, when the body is buried,",
+            "and when the name is no longer spoken by the people who once loved them.",
+            "Lifestory preserves your story so memory, name, and family legacy can keep living across generations.",
+            "Because as long as a story is still told, the third death never truly arrives.",
+          ],
+          intro: "A person dies three times.",
+          beats: [
             {
-              title: "The first death — the body stops",
-              body: "When the heart ceases to beat and the final breath is drawn. This is the biological death that no one can escape.",
-              reflection: "Every human will face this. No exceptions, no eternal postponement.",
+              kicker: "First",
+              title: "The breath stops",
+              body: "When the body finishes its fight and time can no longer be negotiated.",
             },
             {
-              title: "The second death — buried and forgotten by the world",
-              body: "When the body is returned to the earth and the outside world moves on without your presence. Slowly, your name fades from everyday conversation.",
-              reflection: "The world keeps turning. All that remains is an empty chair at the table and a photo gathering dust.",
+              kicker: "Second",
+              title: "The body is buried",
+              body: "When the world slowly continues without your presence in it.",
             },
             {
-              title: "The third death — your name is spoken for the last time",
-              body: "This is the true death. When no one remembers your name, tells your story, or knows you ever existed in this world.",
-              reflection: "The third death is the most tragic — and the only one we can prevent. That is why Lifestory exists.",
+              kicker: "Third",
+              title: "The name is no longer spoken",
+              body: "When the story stops being passed down and a person fades from family memory.",
             },
           ],
-          closing: "Lifestory exists to ensure the third death never happens to your family. Because as long as a story is still being told, a person never truly leaves.",
-          badge: "Lifestory prevents this",
+          closing:
+            "Lifestory preserves your story so the third death never comes.",
+          highlight: "third death",
+          attribution: "Lifestory",
         },
         faq: {
           eyebrow: "Questions",
