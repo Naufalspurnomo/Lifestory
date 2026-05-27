@@ -3,15 +3,21 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, BookOpenText, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpenText,
+  Film,
+  Printer,
+  ShieldCheck,
+  Sparkles,
+  TreePine,
+} from "lucide-react";
 import { Fragment, useRef } from "react";
 import { Button } from "../ui/Button";
 import { Eyebrow } from "../ui/Eyebrow";
-import { FrameCorner } from "../ui/Ornament";
 import { WordRotator } from "../ui/WordRotator";
 import { MagneticButton } from "../ui/MagneticButton";
 import { StudioPulse } from "../ui/StudioPulse";
-import { ParallaxLayer } from "../ui/ScrollAnimations";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Props = {
@@ -100,48 +106,102 @@ export function HomeHero({
     0,
     shouldReduceScrollMotion ? 0 : 80,
   ]);
-  const coverY = useTransform(scrollYProgress, [0, 1], [
+  // Image gets a subtle counter-parallax + zoom for depth as the hero exits
+  const imageY = useTransform(scrollYProgress, [0, 1], [
     0,
     shouldReduceScrollMotion ? 0 : -40,
   ]);
-  const coverScale = useTransform(scrollYProgress, [0, 1], [
+  const imageScale = useTransform(scrollYProgress, [0, 1], [
     1,
-    shouldReduceScrollMotion ? 1 : 0.99,
+    shouldReduceScrollMotion ? 1 : 1.08,
   ]);
+  // Scroll hint fades quickly as soon as user starts scrolling
+  const scrollHintOpacity = useTransform(scrollYProgress, [0, 0.18], [1, 0]);
 
   return (
     <section
       ref={ref}
-      className="relative overflow-hidden bg-gradient-to-b from-cream-50 via-cream-100 to-cream-200 pt-12 pb-24 md:pt-16 md:pb-32"
+      className="relative min-h-[100svh] overflow-hidden bg-white lg:min-h-[760px]"
     >
-      {/* Decorative ornaments */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <ParallaxLayer offset={25} className="absolute -left-32 top-20 h-[420px] w-[420px]">
-          <div className="h-full w-full rounded-full bg-brand-200/35 blur-3xl" />
-        </ParallaxLayer>
-        <ParallaxLayer offset={-20} className="absolute -right-32 top-40 h-[360px] w-[360px]">
-          <div className="h-full w-full rounded-full bg-accent-100/40 blur-3xl" />
-        </ParallaxLayer>
-        <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-50" />
-      </div>
+      {/* MOBILE — full-bleed background image */}
+      <motion.div
+        style={{ y: imageY, scale: imageScale }}
+        className="absolute inset-0 will-change-transform md:hidden"
+      >
+        <Image
+          src="/image/home-cover.webp"
+          alt="Family sharing stories together"
+          fill
+          sizes="100vw"
+          className="object-cover object-[35%_center]"
+          priority
+          quality={85}
+        />
+        {/* Soft warm wash so cream UI panels read clearly on top */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(255,253,247,0.55) 0%, rgba(255,253,247,0.35) 30%, rgba(31,22,16,0.18) 70%, rgba(31,22,16,0.32) 100%)",
+          }}
+        />
+      </motion.div>
 
-      {/* Subtle frame */}
+      {/* TABLET+ — Photo panel takes the right portion */}
+      <motion.div
+        style={{ y: imageY, scale: imageScale }}
+        className="absolute right-0 top-0 hidden h-full will-change-transform md:block md:min-h-[640px] md:w-[62%] lg:min-h-[760px] lg:w-[70%]"
+      >
+        <Image
+          src="/image/home-cover.webp"
+          alt="Family sharing stories together"
+          fill
+          sizes="(max-width: 768px) 0px, (max-width: 1024px) 62vw, 70vw"
+          className="object-cover object-[20%_center]"
+          priority
+          quality={90}
+        />
+      </motion.div>
+
+      {/*
+        Side gradient blend (tablet+): wide multi-layered fade from white →
+        warm cream → transparent so the absolute image meets the text without
+        a hard cut.
+      */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-6 top-6 hidden h-[calc(100%-3rem)] rounded-[36px] border border-cream-300/50 md:block"
+        className="pointer-events-none absolute inset-0 hidden md:block"
+        style={{
+          background: `linear-gradient(
+            to right,
+            #ffffff 0%,
+            #ffffff 28%,
+            #fdfaf6 33%,
+            #f8f2eb 37%,
+            rgba(245,239,232,0.85) 41%,
+            rgba(245,239,232,0.6) 46%,
+            rgba(245,239,232,0.35) 51%,
+            rgba(245,239,232,0.15) 56%,
+            rgba(245,239,232,0.05) 62%,
+            transparent 68%
+          )`,
+        }}
       />
-      <FrameCorner className="pointer-events-none absolute left-10 top-10 hidden md:block" size={36} />
-      <FrameCorner className="pointer-events-none absolute right-10 top-10 hidden rotate-90 md:block" size={36} />
-      <FrameCorner className="pointer-events-none absolute bottom-10 left-10 hidden -rotate-90 md:block" size={36} />
-      <FrameCorner className="pointer-events-none absolute bottom-10 right-10 hidden rotate-180 md:block" size={36} />
+
+      {/* Grain texture — soft on mobile so the image stays readable */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-grain bg-[length:24px_24px] opacity-[0.06] md:opacity-15"
+      />
 
       <motion.div
         style={{ y: heroY }}
-        className="relative mx-auto grid w-full min-w-0 max-w-[1320px] grid-cols-1 gap-12 px-6 pt-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 lg:pt-12"
+        className="relative mx-auto flex w-full min-w-0 max-w-[1320px] flex-col justify-center px-4 pt-24 pb-16 sm:px-6 md:pt-32 md:pb-36 lg:h-full lg:min-h-[760px] lg:pt-32 lg:pb-32 xl:pt-36 xl:pb-36"
       >
-        {/* LEFT — Editorial copy */}
-        <div className="relative z-10 flex min-w-0 w-full max-w-[calc(100vw-3rem)] flex-col justify-center lg:max-w-none">
-          <div className="mb-5 flex flex-wrap items-center gap-3">
+        {/* LEFT — Editorial copy. On mobile this becomes a translucent card so the photo behind it stays visible. */}
+        <div className="relative z-10 flex min-w-0 w-full max-w-full flex-col justify-center rounded-card-lg border border-white/70 bg-white/80 p-5 shadow-elev backdrop-blur-md sm:p-6 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none md:max-w-[48%] lg:max-w-[46%] xl:max-w-[43%]">
+          <div className="mb-4 flex flex-wrap items-center gap-2.5 md:mb-5 md:gap-3">
             <motion.div
               initial={{ opacity: 0, y: reduced ? 0 : 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -169,7 +229,7 @@ export function HomeHero({
             )}
           </div>
 
-          <h1 className="w-full max-w-full font-serif font-medium text-[clamp(2.6rem,7vw,4.8rem)] leading-[0.98] tracking-[-0.025em] text-ink-800">
+          <h1 className="w-full max-w-full font-serif font-medium leading-[1.02] tracking-normal text-ink-800 text-[2.1rem] sm:text-[3rem] md:text-[3.25rem] lg:text-[3.55rem] xl:text-[4rem] 2xl:text-[4.2rem]">
             {/* Line 1: prefix + word rotator */}
             <span className="block">
               <SplitWords text={copy.headlineLine1} delay={0.05} />
@@ -211,7 +271,7 @@ export function HomeHero({
             initial={{ opacity: 0, y: reduced ? 0 : 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: reduced ? 0.01 : 0.7, delay: reduced ? 0 : 0.85 }}
-            className="mt-7 w-full max-w-xl text-base leading-relaxed text-ink-500 md:text-lg"
+            className="mt-4 w-full max-w-md text-[14px] leading-relaxed text-ink-700 md:mt-5 md:text-[0.94rem] md:text-ink-500"
           >
             {copy.subheading}
           </motion.p>
@@ -220,7 +280,7 @@ export function HomeHero({
             initial={{ opacity: 0, y: reduced ? 0 : 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: reduced ? 0.01 : 0.6, delay: reduced ? 0 : 1 }}
-            className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
+            className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center md:mt-9"
           >
             {status === "loading" ? (
               <>
@@ -257,90 +317,48 @@ export function HomeHero({
             )}
           </motion.div>
 
+          {/* Trust badges — 2x2 icon grid on mobile (readable + premium), pill row on tablet+ */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: reduced ? 0.01 : 0.6, delay: reduced ? 0 : 1.2 }}
-            className="mt-9 flex flex-wrap gap-2"
+            className="mt-7 md:mt-9"
           >
-            {[copy.badge1, copy.badge2, copy.badge3, copy.badge4].map((b) => (
-              <span
-                key={b}
-                className="rounded-pill border border-cream-300 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-500 backdrop-blur-sm"
-              >
-                {b}
-              </span>
-            ))}
-          </motion.div>
-        </div>
+            {/* Mobile: structured 2x2 icon grid */}
+            <ul className="grid grid-cols-2 gap-2 md:hidden">
+              {[
+                { icon: ShieldCheck, label: copy.badge1 },
+                { icon: TreePine, label: copy.badge2 },
+                { icon: Printer, label: copy.badge3 },
+                { icon: Film, label: copy.badge4 },
+              ].map(({ icon: Icon, label }) => (
+                <li
+                  key={label}
+                  className="flex items-center gap-2.5 rounded-card border border-cream-300 bg-white px-3 py-2.5 shadow-soft"
+                >
+                  <span className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-pill bg-cream-100 text-brand-700">
+                    <Icon className="h-3.5 w-3.5" aria-hidden />
+                  </span>
+                  <span className="text-[12px] font-semibold leading-tight text-ink-800">
+                    {label}
+                  </span>
+                </li>
+              ))}
+            </ul>
 
-        {/* RIGHT — Warm cover visual */}
-        <motion.div
-          style={{ y: coverY, scale: coverScale }}
-          className="relative mx-auto flex min-h-[430px] w-full max-w-[calc(100vw-3rem)] items-center justify-center sm:min-h-[560px] sm:max-w-[31rem] lg:min-h-[640px] lg:max-w-none"
-        >
-          <div
-            aria-hidden
-            className="absolute left-1/2 top-1/2 h-[76%] w-[76%] -translate-x-1/2 -translate-y-1/2 rounded-[34px] bg-brand-200/30 blur-3xl"
-          />
-
-          <motion.div
-            initial={{ opacity: 0, y: reduced ? 0 : 34 }}
-            animate={{ opacity: 1, y: 0, rotate: 0 }}
-            transition={{
-              duration: reduced ? 0.01 : 0.9,
-              delay: reduced ? 0 : 0.48,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            className="relative z-20 w-full max-w-[335px] sm:max-w-[420px] lg:max-w-[470px]"
-          >
-            <div
-              aria-hidden
-              className="absolute -left-5 top-8 hidden h-[82%] w-6 rounded-l-[24px] border border-cream-300 bg-cream-200 sm:block"
-            />
-            <div
-              aria-hidden
-              className="absolute -right-4 bottom-10 hidden h-[70%] w-4 rounded-r-[18px] border border-cream-300 bg-cream-100 sm:block"
-            />
-
-            <div className="relative rounded-[30px] border border-cream-300 bg-white/80 p-3 shadow-[0_26px_70px_rgba(63,52,45,0.18)]">
-              <div className="relative aspect-[3/4] overflow-hidden rounded-[22px] bg-cream-200">
-                <Image
-                  src="/image/home-cover.webp"
-                  alt="Storytime warmth in rustic serenity"
-                  fill
-                  sizes="(max-width: 640px) 335px, (max-width: 1024px) 420px, 470px"
-                  className="object-cover"
-                  priority
-                />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,250,240,0.06),rgba(63,52,45,0.08))]" />
-                <div className="absolute inset-0 ring-1 ring-inset ring-white/45" />
-              </div>
-
-              <div className="grid grid-cols-[1fr_auto] items-end gap-5 px-2 pb-1 pt-4">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700">
-                    {copy.featuredLabel}
-                  </p>
-                  <p className="mt-1 font-serif text-[clamp(1.35rem,4.8vw,2.05rem)] leading-[1.02] text-ink-800">
-                    Storytime warmth
-                  </p>
-                </div>
-                <motion.span
-                  aria-hidden
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{
-                    duration: reduced ? 0.01 : 0.75,
-                    delay: reduced ? 0 : 1,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                  className="mb-2 hidden h-px w-16 origin-left bg-brand-400 sm:block"
-                />
-              </div>
+            {/* Tablet+: original pill row */}
+            <div className="hidden flex-wrap gap-2 md:flex">
+              {[copy.badge1, copy.badge2, copy.badge3, copy.badge4].map((b) => (
+                <span
+                  key={b}
+                  className="rounded-pill border border-cream-300 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-500 backdrop-blur-sm"
+                >
+                  {b}
+                </span>
+              ))}
             </div>
           </motion.div>
-        </motion.div>
+        </div>
       </motion.div>
 
       {/* Scroll hint */}
@@ -348,15 +366,24 @@ export function HomeHero({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: reduced ? 0.01 : 0.6, delay: reduced ? 0 : 1.5 }}
-        className="relative mx-auto mt-16 flex w-fit flex-col items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.32em] text-ink-300"
+        style={{ opacity: shouldReduceScrollMotion ? undefined : scrollHintOpacity }}
+        className="pointer-events-none absolute bottom-6 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1.5 lg:flex"
       >
-        <span>{copy.scrollHint}</span>
-        <motion.span
+        <span className="text-[9px] font-semibold uppercase tracking-[0.3em] text-ink-400/80">
+          {copy.scrollHint}
+        </span>
+        <motion.div
           aria-hidden
-          animate={reduced ? {} : { y: [0, 8, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-          className="block h-8 w-[1px] bg-gradient-to-b from-transparent via-brand-400 to-transparent"
-        />
+          animate={reduced ? {} : { y: [0, 6, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          className="flex h-7 w-4 items-start justify-center rounded-full border border-ink-300/40 p-1"
+        >
+          <motion.span
+            animate={reduced ? {} : { opacity: [1, 0.3, 1], scaleY: [1, 0.5, 1] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="block h-1.5 w-0.5 rounded-full bg-brand-500"
+          />
+        </motion.div>
       </motion.div>
     </section>
   );

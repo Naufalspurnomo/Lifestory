@@ -130,10 +130,16 @@ function ScrollScaleMotion({
   });
 
   const scale = useTransform(scrollYProgress, [0, 1], [from, to]);
-  const opacity = useTransform(scrollYProgress, [0, 0.4], [0.6, 1]);
+  const opacity = useTransform(scrollYProgress, [0, 0.4], [0.55, 1]);
+  const y = useTransform(scrollYProgress, [0, 1], [40, 0]);
   const smoothScale = useSpring(scale, {
     stiffness: 100,
-    damping: 20,
+    damping: 22,
+    mass: 0.4,
+  });
+  const smoothY = useSpring(y, {
+    stiffness: 100,
+    damping: 22,
     mass: 0.4,
   });
 
@@ -141,7 +147,7 @@ function ScrollScaleMotion({
     <motion.div
       ref={ref}
       className={cn(className)}
-      style={{ scale: smoothScale, opacity }}
+      style={{ scale: smoothScale, opacity, y: smoothY }}
     >
       {children}
     </motion.div>

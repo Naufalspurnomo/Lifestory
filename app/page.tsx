@@ -12,6 +12,7 @@ import { FAQ } from "../components/home/FAQ";
 import { PhilosophyDeaths } from "../components/home/PhilosophyDeaths";
 import { FinalCTA } from "../components/home/FinalCTA";
 import { ScrollScale, SectionZoom } from "../components/ui/ScrollAnimations";
+import { SectionRail } from "../components/ui/SectionRail";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -63,9 +64,9 @@ export default function HomePage() {
             : "Aktifkan Paket",
           secondaryCta: !isLoggedIn ? "Galeri Lifestory" : "Galeri Lifestory",
           badge1: "Server yang aman",
-          badge2: "Integrated family tree",
-          badge3: "Reprint anytime",
-          badge4: "Rewatch anytime",
+          badge2: "Pohon keluarga terintegrasi",
+          badge3: "Cetak ulang kapan saja",
+          badge4: "Tonton ulang kapan saja",
           scrollHint: "Gulir",
         },
         stats: {
@@ -283,9 +284,9 @@ export default function HomePage() {
           featuredLabel: "Featured",
           headlineLine1: "Stories of",
           headlineRotators: ["a life", "a father", "a mother", "a family", "a lineage"],
-          headlineLine2: "remembered",
+          headlineLine2: "worth keeping",
           headlineAccent: "preserved",
-          headlineLine3: "for next generations.",
+          headlineLine3: "for generations.",
           subheading:
             "Don't let your story fade into silence. Every memory, every voice, every precious moment deserves to be preserved — before it's too late.",
           primaryCta: !isLoggedIn
@@ -512,38 +513,83 @@ export default function HomePage() {
 
   return (
     <>
-      <HomeHero
-        status={status}
-        isLoggedIn={isLoggedIn}
-        firstName={firstName}
-        copy={copy.hero}
-        primaryCtaHref={primaryCtaHref}
-        secondaryCtaHref={secondaryCtaHref}
+      <SectionRail
+        sections={
+          isId
+            ? [
+                { id: "hero", label: "Beranda" },
+                { id: "showcase", label: "Karya" },
+                { id: "process", label: "Proses" },
+                { id: "deliverables", label: "Paket" },
+                { id: "gallery", label: "Galeri" },
+                { id: "voices", label: "Testimoni" },
+                { id: "philosophy", label: "Filosofi" },
+                { id: "faq", label: "FAQ" },
+                { id: "begin", label: "Mulai" },
+              ]
+            : [
+                { id: "hero", label: "Home" },
+                { id: "showcase", label: "Work" },
+                { id: "process", label: "Process" },
+                { id: "deliverables", label: "Package" },
+                { id: "gallery", label: "Gallery" },
+                { id: "voices", label: "Voices" },
+                { id: "philosophy", label: "Philosophy" },
+                { id: "faq", label: "FAQ" },
+                { id: "begin", label: "Begin" },
+              ]
+        }
       />
-      <StatsStrip copy={copy.stats} />
-      <SectionZoom>
-        <HowItWorks copy={copy.howItWorks} />
-      </SectionZoom>
-      <ScrollScale from={0.95} to={1}>
-        <Deliverables copy={copy.deliverables} />
-      </ScrollScale>
-      <SectionZoom from={0.96}>
-        <FeaturedCollections copy={copy.featured} />
-      </SectionZoom>
-      <ScrollScale from={0.94} to={1}>
-        <Testimonials copy={copy.testimonials} />
-      </ScrollScale>
-      <PhilosophyDeaths copy={copy.philosophy} />
-      <SectionZoom>
-        <FAQ copy={copy.faq} />
-      </SectionZoom>
-      <ScrollScale from={0.93} to={1}>
-        <FinalCTA
-          copy={copy.finalCta}
-          primaryHref={primaryCtaHref}
-          secondaryHref="/subscribe"
+      <div id="hero">
+        <HomeHero
+          status={status}
+          isLoggedIn={isLoggedIn}
+          firstName={firstName}
+          copy={copy.hero}
+          primaryCtaHref={primaryCtaHref}
+          secondaryCtaHref={secondaryCtaHref}
         />
-      </ScrollScale>
+      </div>
+      <div id="showcase">
+        <StatsStrip copy={copy.stats} />
+      </div>
+      <div id="process">
+        <SectionZoom>
+          <HowItWorks copy={copy.howItWorks} />
+        </SectionZoom>
+      </div>
+      <div id="deliverables">
+        <ScrollScale from={0.95} to={1}>
+          <Deliverables copy={copy.deliverables} />
+        </ScrollScale>
+      </div>
+      <div id="gallery">
+        <SectionZoom from={0.96}>
+          <FeaturedCollections copy={copy.featured} />
+        </SectionZoom>
+      </div>
+      <div id="voices">
+        <ScrollScale from={0.94} to={1}>
+          <Testimonials copy={copy.testimonials} />
+        </ScrollScale>
+      </div>
+      <div id="philosophy">
+        <PhilosophyDeaths copy={copy.philosophy} />
+      </div>
+      <div id="faq">
+        <SectionZoom>
+          <FAQ copy={copy.faq} />
+        </SectionZoom>
+      </div>
+      <div id="begin">
+        <ScrollScale from={0.93} to={1}>
+          <FinalCTA
+            copy={copy.finalCta}
+            primaryHref={primaryCtaHref}
+            secondaryHref="/subscribe"
+          />
+        </ScrollScale>
+      </div>
     </>
   );
 }

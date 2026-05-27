@@ -44,6 +44,8 @@ export function StatsStrip({ copy }: Props) {
     <section className="relative overflow-hidden bg-ink-900 py-16 text-white md:py-24">
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[linear-gradient(125deg,rgba(31,111,98,0.18),rgba(29,22,16,0)_42%),linear-gradient(180deg,rgba(250,237,202,0.08),rgba(29,22,16,0)_34%)]" />
+        {/* Soft top edge — eases the transition from the bright hero above */}
+        <div className="absolute inset-x-0 -top-px h-24 bg-gradient-to-b from-cream-100/12 via-ink-900/0 to-transparent" />
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cream-100/35 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-brand-300/30 to-transparent" />
       </div>
