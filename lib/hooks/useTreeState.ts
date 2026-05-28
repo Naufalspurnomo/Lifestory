@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import type {
   TreeData,
   FamilyNode,
@@ -240,6 +240,9 @@ export function useTreeState(userId: string, userName: string) {
     nodes: FamilyNode[];
   } | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // C6: Guard against concurrent createTreeApi calls from both createTree()
+  // fire-and-forget and the debounced-save 404 fallback.
+  const createInFlightRef = useRef(false);
 
   // Load: try API first, fall back to localStorage.
   useEffect(() => {
@@ -346,7 +349,13 @@ export function useTreeState(userId: string, userName: string) {
       } catch (error) {
         if (error instanceof TreeApiError && error.status === 404) {
           // Tree exists locally but not on the server — create it there.
+          // C6: Skip if createTree's fire-and-forget is already in-flight.
+          if (createInFlightRef.current) {
+            setSyncStatus("idle");
+            return;
+          }
           try {
+            createInFlightRef.current = true;
             const created = await createTreeApi(current.name);
             await saveTreeNodes(created.id, pending.nodes);
             setTrees((prev) =>
@@ -360,6 +369,8 @@ export function useTreeState(userId: string, userName: string) {
             setSyncStatus("idle");
           } catch {
             setSyncStatus("offline");
+          } finally {
+            createInFlightRef.current = false;
           }
           return;
         }
@@ -377,9 +388,14 @@ export function useTreeState(userId: string, userName: string) {
   const currentTree = trees.find((t) => t.id === currentTreeId) || null;
   const userTree = trees.find((t) => t.ownerId === userId) || null;
 
-  const layoutGraph: LayoutGraph = currentTree
-    ? calculateHierarchicalLayout(currentTree.nodes)
-    : { nodes: [], edges: [], width: 0, height: 0 };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const layoutGraph: LayoutGraph = useMemo(
+    () =>
+      currentTree
+        ? calculateHierarchicalLayout(currentTree.nodes)
+        : { nodes: [], edges: [], width: 0, height: 0 },
+    [currentTree?.nodes]
+  );
 
   const pushHistory = useCallback((nodes: FamilyNode[]) => {
     setHistory((prev) => ({
@@ -425,6 +441,7 @@ export function useTreeState(userId: string, userName: string) {
 
     // Fire-and-forget: try to create on the server immediately. Failure is
     // non-fatal — the debounced save will retry when the first edit lands.
+    createInFlightRef.current = true;
     createTreeApi(newTree.name)
       .then((created) => {
         setTrees((prev) =>
@@ -440,6 +457,9 @@ export function useTreeState(userId: string, userName: string) {
       })
       .catch(() => {
         setSyncStatus("offline");
+      })
+      .finally(() => {
+        createInFlightRef.current = false;
       });
 
     return newTree;

@@ -80,20 +80,30 @@ export function calculateGeneration(nodes: FamilyNode[], nodeId: string) {
   // If specific node asked:
   const map = new Map(nodes.map(n => [n.id, n]));
   const memo = new Map<string, number>();
+  // S5: Guard against cycles in imported/corrupted data
+  const visiting = new Set<string>();
 
   const getGen = (id: string): number => {
     if (memo.has(id)) return memo.get(id)!;
     const node = map.get(id);
     if (!node) return 0;
 
+    // Cycle detected — break with 0 instead of stack overflow
+    if (visiting.has(id)) return 0;
+    visiting.add(id);
+
     const pids = node.parentIds || [];
-    if (pids.length === 0) return 0;
+    if (pids.length === 0) {
+      visiting.delete(id);
+      return 0;
+    }
 
     let maxP = 0;
     pids.forEach(pid => {
       maxP = Math.max(maxP, getGen(pid));
     });
 
+    visiting.delete(id);
     const res = maxP + 1;
     memo.set(id, res);
     return res;

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 
 import FamilyTreeCanvas from "../../components/tree/FamilyTreeCanvas";
+import CanvasErrorBoundary from "../../components/tree/CanvasErrorBoundary";
 import NodeEditor from "../../components/tree/NodeEditor";
 import BioModal from "../../components/tree/BioModal";
 import WelcomeScreen from "../../components/tree/WelcomeScreen";
@@ -109,6 +110,10 @@ export default function AppHome() {
     getNode,
     importNodes,
     syncStatus,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   } = useTreeState(userId, userName);
 
   useEffect(() => {
@@ -128,6 +133,36 @@ export default function AppHome() {
   const [hasCreatedTree, setHasCreatedTree] = useState(false);
   const [viewMode, setViewMode] = useState<"tree" | "timeline">("tree");
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // P3: Keyboard shortcuts — Ctrl+Z (undo), Ctrl+Y / Ctrl+Shift+Z (redo),
+  // Escape (deselect), Delete (delete selected node)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept when typing in input/textarea/select
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        if (canUndo) undo();
+      } else if (
+        (e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))
+      ) {
+        e.preventDefault();
+        if (canRedo) redo();
+      } else if (e.key === "Escape") {
+        setSelectedId(null);
+        setShowNodeEditor(false);
+      } else if (e.key === "Delete" && selectedId) {
+        const node = getNode(selectedId);
+        if (node && node.line !== "self") {
+          handleDeleteNode(selectedId);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canUndo, canRedo, undo, redo, selectedId, getNode]);
 
   const showNotification = useCallback((msg: string) => {
     setNotification(msg);
@@ -295,7 +330,8 @@ export default function AppHome() {
   };
 
   if (currentTree) {
-    stats.generations = Math.max(...currentTree.nodes.map((n) => n.generation), 0);
+    const generationSet = new Set(currentTree.nodes.map((n) => n.generation));
+    stats.generations = generationSet.size;
     const lines = new Set(currentTree.nodes.map((n) => n.line));
     stats.lines = lines.size;
     const years = currentTree.nodes
@@ -452,12 +488,16 @@ export default function AppHome() {
               }`}
             >
               {viewMode === "tree" ? (
-                <FamilyTreeCanvas
-                  layout={layoutGraph}
-                  selectedId={selectedId}
-                  onSelectNode={setSelectedId}
-                  onAddNode={handleAddNode}
-                />
+                <CanvasErrorBoundary
+                  fallbackMessage={locale === "id" ? "Terjadi kesalahan pada canvas" : "Canvas rendering error"}
+                >
+                  <FamilyTreeCanvas
+                    layout={layoutGraph}
+                    selectedId={selectedId}
+                    onSelectNode={setSelectedId}
+                    onAddNode={handleAddNode}
+                  />
+                </CanvasErrorBoundary>
               ) : (
                 <div className="h-full overflow-y-auto bg-warm-50">
                   <TimelineView
@@ -469,7 +509,7 @@ export default function AppHome() {
 
               <button
                 onClick={() => setIsFullscreen(!isFullscreen)}
-                className="absolute right-4 top-4 z-10 rounded-full border border-warm-200 bg-white/80 p-2.5 text-warmMuted shadow-sm backdrop-blur transition-all hover:scale-110 hover:border-gold-500 hover:bg-white hover:text-gold-600"
+                className="absolute right-16 top-4 z-30 rounded-full border border-warm-200 bg-white/80 p-2.5 text-warmMuted shadow-sm backdrop-blur transition-all hover:scale-110 hover:border-gold-500 hover:bg-white hover:text-gold-600"
               >
                 <svg
                   width="20"

@@ -69,6 +69,10 @@ export default function NodeEditor({
   const [showWorks, setShowWorks] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // P11: Use refs instead of document.getElementById for work form inputs
+  const workTypeRef = useRef<HTMLSelectElement>(null);
+  const workTitleRef = useRef<HTMLInputElement>(null);
+  const workYearRef = useRef<HTMLInputElement>(null);
   const copy =
     locale === "id"
       ? {
@@ -589,7 +593,7 @@ export default function NodeEditor({
                   <p className="text-xs font-medium text-warmMuted">{copy.addNewWork}</p>
                   <div className="flex gap-2">
                     <select
-                      id="workType"
+                      ref={workTypeRef}
                       className="rounded-lg border border-warm-200 bg-white px-3 py-2 text-sm text-warmText focus:border-gold-500 focus:outline-none"
                       defaultValue="book"
                     >
@@ -600,13 +604,13 @@ export default function NodeEditor({
                       <option value="other">{copy.workOptions.other}</option>
                     </select>
                     <input
-                      id="workTitle"
+                      ref={workTitleRef}
                       type="text"
                       placeholder={copy.workTitlePlaceholder}
                       className="flex-1 rounded-lg border border-warm-200 bg-white px-3 py-2 text-sm text-warmText placeholder:text-warmMuted/50 focus:border-gold-500 focus:outline-none"
                     />
                     <input
-                      id="workYear"
+                      ref={workYearRef}
                       type="number"
                       placeholder={copy.yearPlaceholder}
                       min="1800"
@@ -617,25 +621,19 @@ export default function NodeEditor({
                   <button
                     type="button"
                     onClick={() => {
-                      const typeEl = document.getElementById(
-                        "workType"
-                      ) as HTMLSelectElement;
-                      const titleEl = document.getElementById(
-                        "workTitle"
-                      ) as HTMLInputElement;
-                      const yearEl = document.getElementById(
-                        "workYear"
-                      ) as HTMLInputElement;
+                      const typeEl = workTypeRef.current;
+                      const titleEl = workTitleRef.current;
+                      const yearEl = workYearRef.current;
 
-                      if (titleEl.value.trim()) {
+                      if (titleEl && titleEl.value.trim()) {
                         const newWork: WorkItem = {
-                          type: typeEl.value as WorkItem["type"],
+                          type: (typeEl?.value || "book") as WorkItem["type"],
                           title: titleEl.value.trim(),
-                          year: yearEl.value ? parseInt(yearEl.value) : undefined,
+                          year: yearEl?.value ? parseInt(yearEl.value) : undefined,
                         };
                         setWorks([...works, newWork]);
                         titleEl.value = "";
-                        yearEl.value = "";
+                        if (yearEl) yearEl.value = "";
                       }
                     }}
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-gold-500 py-2 text-sm font-medium text-white transition hover:bg-gold-600"

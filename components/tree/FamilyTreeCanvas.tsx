@@ -12,6 +12,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import type { FamilyNode, LayoutGraph } from "../../lib/types/tree";
+import { LAYOUT } from "../../lib/types/tree";
 import { useLanguage } from "../providers/LanguageProvider";
 
 type Props = {
@@ -70,7 +71,19 @@ const WORK_ICONS: Record<string, string> = {
   other: "*",
 };
 
+// LRU image cache — evicts oldest entries when exceeding MAX_IMAGE_CACHE_SIZE
+const MAX_IMAGE_CACHE_SIZE = 200;
 const imageCache = new Map<string, HTMLImageElement>();
+function imageCacheSet(key: string, img: HTMLImageElement) {
+  // Delete then re-insert to maintain insertion-order (Map iterates in insertion order)
+  if (imageCache.has(key)) imageCache.delete(key);
+  imageCache.set(key, img);
+  // Evict oldest entries if over limit
+  if (imageCache.size > MAX_IMAGE_CACHE_SIZE) {
+    const oldest = imageCache.keys().next().value;
+    if (oldest !== undefined) imageCache.delete(oldest);
+  }
+}
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -140,6 +153,10 @@ export default function FamilyTreeCanvas({
     transform: Transform;
   } | null>(null);
   const initializedRef = useRef(false);
+  // C4: Guard to prevent infinite focus → re-render → focus loop
+  const focusedForRef = useRef<string | null>(null);
+  // Track last pointer type for adaptive click threshold
+  const lastPointerTypeRef = useRef<string>("mouse");
 
   const copy = useMemo(
     () =>
@@ -296,7 +313,7 @@ export default function FamilyTreeCanvas({
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
-        imageCache.set(node.imageUrl!, img);
+        imageCacheSet(node.imageUrl!, img);
         loadedCount++;
         if (loadedCount === toLoad.length) setImagesLoaded((value) => value + 1);
       };
@@ -365,8 +382,17 @@ export default function FamilyTreeCanvas({
     [getRelativePoint, nodes, renderMode, screenToWorld, selectedId, transform.k]
   );
 
+  // C4: Auto-focus selected node if it's off-screen, but guard against
+  // infinite loops where focusNode triggers transform change which re-triggers
+  // this effect.
   useEffect(() => {
-    if (!selectedId || !wrapperSize.width || !wrapperSize.height) return;
+    if (!selectedId || !wrapperSize.width || !wrapperSize.height) {
+      focusedForRef.current = null;
+      return;
+    }
+    // Already focused for this selection — skip
+    if (focusedForRef.current === selectedId) return;
+
     const node = nodes.find((item) => item.id === selectedId);
     if (!node) return;
 
@@ -379,6 +405,7 @@ export default function FamilyTreeCanvas({
       screenY > wrapperSize.height - 72;
 
     if (outside || transform.k < 0.2) {
+      focusedForRef.current = selectedId;
       focusNode(selectedId);
     }
   }, [
@@ -391,6 +418,11 @@ export default function FamilyTreeCanvas({
     wrapperSize.height,
     wrapperSize.width,
   ]);
+
+  // Reset focus guard when selection changes
+  useEffect(() => {
+    focusedForRef.current = null;
+  }, [selectedId]);
 
   const visibleWorld = useMemo(() => {
     if (!wrapperSize.width || !wrapperSize.height) {
@@ -440,10 +472,12 @@ export default function FamilyTreeCanvas({
     ctx.translate(transform.x, transform.y);
     ctx.scale(transform.k, transform.k);
 
+    // S7: Use NODE_SPACING_Y for generation band height instead of hardcoded 75
+    const bandHalf = LAYOUT.NODE_SPACING_Y / 2;
     for (const marker of generationMarkers) {
       const y = marker.y;
-      const bandTop = y - 75;
-      const bandBottom = y + 75;
+      const bandTop = y - bandHalf;
+      const bandBottom = y + bandHalf;
       if (bandBottom < visibleWorld.top || bandTop > visibleWorld.bottom) {
         continue;
       }
@@ -451,7 +485,7 @@ export default function FamilyTreeCanvas({
         marker.generation % 2 === 0
           ? "rgba(255,255,255,0.34)"
           : "rgba(232,220,198,0.16)";
-      ctx.fillRect(visibleWorld.left, bandTop, visibleWorld.right - visibleWorld.left, 150);
+      ctx.fillRect(visibleWorld.left, bandTop, visibleWorld.right - visibleWorld.left, bandHalf * 2);
     }
 
     ctx.lineJoin = "round";
@@ -692,7 +726,11 @@ export default function FamilyTreeCanvas({
     []
   );
 
-  const handleWheel = (event: React.WheelEvent) => {
+  // C3: Register wheel handler as non-passive so preventDefault() actually
+  // works (React's synthetic onWheel is registered as passive in modern
+  // browsers and silently ignores preventDefault).
+  const handleWheelRef = useRef<((e: WheelEvent) => void) | null>(null);
+  handleWheelRef.current = (event: WheelEvent) => {
     const point = getRelativePoint(event.clientX, event.clientY);
     if (!point) return;
     const isZoomGesture = event.ctrlKey || event.metaKey;
@@ -713,6 +751,23 @@ export default function FamilyTreeCanvas({
     zoomAt(point.x, point.y, transform.k * zoomFactor);
   };
 
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const handler = (e: WheelEvent) => handleWheelRef.current?.(e);
+    wrapper.addEventListener("wheel", handler, { passive: false });
+    return () => wrapper.removeEventListener("wheel", handler);
+  }, []);
+
+  // C5: Redraw canvas when device pixel ratio changes (e.g. window moves
+  // between monitors with different DPR, or browser zoom level changes).
+  useEffect(() => {
+    const mql = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+    const handleDprChange = () => requestAnimationFrame(drawTree);
+    mql.addEventListener("change", handleDprChange);
+    return () => mql.removeEventListener("change", handleDprChange);
+  }, [drawTree]);
+
   const setupPinch = useCallback(() => {
     const points = Array.from(pointersRef.current.values());
     if (points.length < 2) return;
@@ -727,6 +782,7 @@ export default function FamilyTreeCanvas({
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
+    lastPointerTypeRef.current = event.pointerType;
     event.currentTarget.setPointerCapture(event.pointerId);
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
@@ -808,7 +864,9 @@ export default function FamilyTreeCanvas({
     setIsDragging(false);
     if (canvasRef.current) canvasRef.current.style.cursor = "grab";
 
-    if (wasDragging && dragDistanceRef.current < 6) {
+    // S4: Adaptive threshold — 12px for touch, 6px for mouse
+    const clickThreshold = lastPointerTypeRef.current === "touch" ? 12 : 6;
+    if (wasDragging && dragDistanceRef.current < clickThreshold) {
       const node = findNodeAt(event.clientX, event.clientY);
       onSelectNode(node ? node.id : null);
     }
@@ -875,14 +933,17 @@ export default function FamilyTreeCanvas({
         backgroundSize: "28px 28px",
         touchAction: "none",
       }}
-      onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={endPointer}
       onPointerCancel={endPointer}
       onPointerLeave={() => {
+        // S1: Reset all interaction state on pointer leave
         setIsDragging(false);
         setHoveredId(null);
+        pointersRef.current.clear();
+        pinchRef.current = null;
+        dragDistanceRef.current = 0;
       }}
     >
       <canvas ref={canvasRef} className="block" />
