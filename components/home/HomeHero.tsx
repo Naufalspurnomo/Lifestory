@@ -9,15 +9,12 @@ import {
   Film,
   Printer,
   ShieldCheck,
-  Sparkles,
   TreePine,
 } from "lucide-react";
 import { Fragment, useRef } from "react";
 import { Button } from "../ui/Button";
-import { Eyebrow } from "../ui/Eyebrow";
 import { WordRotator } from "../ui/WordRotator";
 import { MagneticButton } from "../ui/MagneticButton";
-import { StudioPulse } from "../ui/StudioPulse";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Props = {
@@ -26,7 +23,6 @@ type Props = {
   firstName: string;
   copy: {
     welcomeBack: string;
-    eyebrow: string;
     headlineLine1: string;
     headlineRotators: string[];
     headlineLine2: string;
@@ -40,7 +36,6 @@ type Props = {
     badge3: string;
     badge4: string;
     scrollHint: string;
-    studioCity: string;
     featuredLabel: string;
   };
   primaryCtaHref: string;
@@ -202,20 +197,6 @@ export function HomeHero({
         {/* LEFT — Editorial copy. On mobile this becomes a translucent card so the photo behind it stays visible. */}
         <div className="relative z-10 flex min-w-0 w-full max-w-full flex-col justify-center rounded-card-lg border border-white/70 bg-white/80 p-5 shadow-elev backdrop-blur-md sm:p-6 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none md:max-w-[48%] lg:max-w-[46%] xl:max-w-[43%]">
           <div className="mb-4 flex flex-wrap items-center gap-2.5 md:mb-5 md:gap-3">
-            <motion.div
-              initial={{ opacity: 0, y: reduced ? 0 : 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduced ? 0.01 : 0.5 }}
-            >
-              <Eyebrow icon={<Sparkles className="h-3 w-3" />}>{copy.eyebrow}</Eyebrow>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: reduced ? 0 : 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduced ? 0.01 : 0.5, delay: reduced ? 0 : 0.1 }}
-            >
-              <StudioPulse city={copy.studioCity} />
-            </motion.div>
             {isLoggedIn && (
               <motion.span
                 initial={{ opacity: 0, y: reduced ? 0 : 8 }}
