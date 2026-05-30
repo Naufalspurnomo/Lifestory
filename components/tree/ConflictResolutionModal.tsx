@@ -5,7 +5,6 @@ import { AlertTriangle, Check, Clock } from "lucide-react";
 import type {
   ConflictInfo,
   ConflictResolution,
-  FamilyNode,
 } from "../../lib/sync/types";
 
 type Props = {
