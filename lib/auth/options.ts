@@ -1,7 +1,27 @@
 import { compare } from "bcryptjs";
 import type { NextAuthOptions } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "../db";
+
+let lastSessionRefreshWarningAt = 0;
+
+function markTokenSuspended(token: JWT) {
+  token.role = "user";
+  token.subscriptionActive = false;
+  token.status = "suspended";
+}
+
+function warnSessionRefreshFailure(error: unknown) {
+  const now = Date.now();
+  if (now - lastSessionRefreshWarningAt < 30_000) return;
+
+  lastSessionRefreshWarningAt = now;
+  const message = error instanceof Error ? error.message : "Unknown error";
+  console.warn(
+    `[auth] Unable to refresh session from database. Marking session suspended until database is reachable. ${message}`
+  );
+}
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -50,18 +70,22 @@ export const authOptions: NextAuthOptions = {
 
       // Keep admin status changes effective for server-rendered pages and APIs.
       if (!user && token.sub) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.sub },
-          select: { subscriptionActive: true, role: true, status: true },
-        });
-        if (dbUser) {
-          token.subscriptionActive =
-            dbUser.status === "suspended" ? false : dbUser.subscriptionActive;
-          token.role = dbUser.role;
-          token.status = dbUser.status;
-        } else {
-          token.subscriptionActive = false;
-          token.status = "suspended";
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: { subscriptionActive: true, role: true, status: true },
+          });
+          if (dbUser) {
+            token.subscriptionActive =
+              dbUser.status === "suspended" ? false : dbUser.subscriptionActive;
+            token.role = dbUser.role;
+            token.status = dbUser.status;
+          } else {
+            markTokenSuspended(token);
+          }
+        } catch (error) {
+          warnSessionRefreshFailure(error);
+          markTokenSuspended(token);
         }
       }
 

@@ -35,27 +35,25 @@ type DensityMode = "auto" | "map" | "detail";
 type RenderMode = "overview" | "compact" | "detail";
 
 const COLORS = {
-  paternal: { border: "#60a5fa", base: "#3b82f6" },
-  maternal: { border: "#f472b6", base: "#ec4899" },
-  union: { border: "#a78bfa", base: "#8b5cf6" },
-  descendant: { border: "#4ade80", base: "#22c55e" },
-  self: { border: "#b08e51", base: "#82693c" },
-  default: { border: "#5b5346", base: "#1d1a14" },
+  paternal: { border: "#2a4365", base: "#3182ce" }, // Royal Sapphire Blue
+  maternal: { border: "#9b2c2c", base: "#e53e3e" }, // Royal Ruby Red
+  union: { border: "#6b46c1", base: "#805ad5" }, // Amethyst Purple
+  descendant: { border: "#22543d", base: "#2f855a" }, // Emerald Green
+  self: { border: "#d4af37", base: "#b08e51" }, // Royal Gold
+  default: { border: "#5b5346", base: "#8c6d31" }, // Antique Bronze
 };
 
 const GEN_COLORS: Record<number, { border: string; labelId: string; labelEn: string }> = {
-  [-2]: { border: "#a855f7", labelId: "Buyut", labelEn: "Great-grandparent" },
-  [-1]: { border: "#1f6f62", labelId: "Kakek/Nenek", labelEn: "Grandparent" },
-  [0]: { border: "#22c55e", labelId: "Orang Tua", labelEn: "Parent" },
-  [1]: { border: "#b08e51", labelId: "Anda", labelEn: "You" },
-  [2]: { border: "#82693c", labelId: "Anak", labelEn: "Child" },
-  [3]: { border: "#ef4444", labelId: "Cucu", labelEn: "Grandchild" },
-  [4]: { border: "#ec4899", labelId: "Cicit", labelEn: "Great-grandchild" },
+  [-2]: { border: "#805ad5", labelId: "Buyut", labelEn: "Great-grandparent" }, // Amethyst
+  [-1]: { border: "#2f855a", labelId: "Kakek/Nenek", labelEn: "Grandparent" }, // Emerald
+  [0]: { border: "#3182ce", labelId: "Orang Tua", labelEn: "Parent" }, // Sapphire
+  [1]: { border: "#d4af37", labelId: "Anda", labelEn: "You" }, // Gold Crown
+  [2]: { border: "#b08e51", labelId: "Anak", labelEn: "Child" }, // Bronze
+  [3]: { border: "#e53e3e", labelId: "Cucu", labelEn: "Grandchild" }, // Ruby
+  [4]: { border: "#d53f8c", labelId: "Cicit", labelEn: "Great-grandchild" }, // Rose Quartz
 };
 
 const NODE_CIRCLE_SIZE = 70;
-const LINE_COLOR = "#e6dbc7";
-const LINE_WIDTH = 1.5;
 const BUTTON_SIZE = 30;
 const MIN_SCALE = 0.045;
 const MAX_SCALE = 4;
@@ -96,6 +94,60 @@ function truncateLabel(ctx: CanvasRenderingContext2D, label: string, maxWidth: n
     next = next.slice(0, -1);
   }
   return `${next.trim()}...`;
+}
+
+function traceNodeShape(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  sex?: string | null
+) {
+  if (sex === "M") {
+    // Tameng (Shield shape for male)
+    ctx.beginPath();
+    ctx.moveTo(x, y - r);
+    ctx.quadraticCurveTo(x + r, y - r, x + r, y - r * 0.1);
+    ctx.quadraticCurveTo(x + r, y + r * 0.35, x, y + r * 1.15);
+    ctx.quadraticCurveTo(x - r, y + r * 0.35, x - r, y - r * 0.1);
+    ctx.quadraticCurveTo(x - r, y - r, x, y - r);
+    ctx.closePath();
+  } else if (sex === "F") {
+    // Medali melingkar (Double ring medallion for female)
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+  } else {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+  }
+}
+
+function drawCrown(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
+  ctx.save();
+  ctx.fillStyle = "#d4af37"; // Emas
+  ctx.strokeStyle = "#8c6d31";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  const cy = y - r - 3;
+  ctx.moveTo(x - r * 0.45, cy);
+  ctx.lineTo(x - r * 0.55, cy - r * 0.38);
+  ctx.lineTo(x - r * 0.22, cy - r * 0.18);
+  ctx.lineTo(x, cy - r * 0.55);
+  ctx.lineTo(x + r * 0.22, cy - r * 0.18);
+  ctx.lineTo(x + r * 0.55, cy - r * 0.38);
+  ctx.lineTo(x + r * 0.45, cy);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Permata merah delima (Ruby jewels on tips)
+  ctx.fillStyle = "#e53e3e";
+  ctx.beginPath();
+  ctx.arc(x, cy - r * 0.55, 2.5, 0, Math.PI * 2);
+  ctx.arc(x - r * 0.55, cy - r * 0.38, 2, 0, Math.PI * 2);
+  ctx.arc(x + r * 0.55, cy - r * 0.38, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 function getQuickAddButtons(node: FamilyNode) {
@@ -301,11 +353,35 @@ export default function FamilyTreeCanvas({
     initializedRef.current = true;
   }, [calculateFitTransform, nodes.length, wrapperSize.width]);
 
+  const bgImageRef = useRef<HTMLImageElement | null>(null);
+  const crestFrameRef = useRef<HTMLImageElement | null>(null);
+
   useEffect(() => {
     let loadedCount = 0;
     const toLoad = nodes.filter(
       (node) => node.imageUrl && !imageCache.has(node.imageUrl)
     );
+    
+    // Load background map texture
+    if (!bgImageRef.current) {
+      const bgImg = new Image();
+      bgImg.src = "/brand/royal_map_bg.png";
+      bgImg.onload = () => {
+        bgImageRef.current = bgImg;
+        setImagesLoaded((val) => val + 1);
+      };
+    }
+
+    // Load noble crest frame
+    if (!crestFrameRef.current) {
+      const crestImg = new Image();
+      crestImg.src = "/brand/gold_crest_frame.png";
+      crestImg.onload = () => {
+        crestFrameRef.current = crestImg;
+        setImagesLoaded((val) => val + 1);
+      };
+    }
+
     if (toLoad.length === 0) return;
 
     toLoad.forEach((node) => {
@@ -467,10 +543,40 @@ export default function FamilyTreeCanvas({
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, clientWidth, clientHeight);
-
+    
+    // Draw premium deep dark background fallback
+    ctx.fillStyle = "#020617";
+    ctx.fillRect(0, 0, clientWidth, clientHeight);
+    
     ctx.save();
     ctx.translate(transform.x, transform.y);
     ctx.scale(transform.k, transform.k);
+    
+    // Draw the high-res royal map background tiling
+    if (bgImageRef.current && bgImageRef.current.complete && bgImageRef.current.naturalWidth > 0) {
+      const bgImg = bgImageRef.current;
+      const pattern = ctx.createPattern(bgImg, "repeat");
+      if (pattern) {
+        ctx.fillStyle = pattern;
+        // Fill a very large area so panning doesn't run out of map easily
+        ctx.fillRect(-10000, -10000, 20000, 20000);
+      }
+    } else {
+      // Subtle grid overlay for structure (fallback)
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
+      ctx.lineWidth = 1;
+      const gridSize = 100;
+      ctx.beginPath();
+      for (let x = -5000; x < 5000; x += gridSize) {
+        ctx.moveTo(x, -5000);
+        ctx.lineTo(x, 5000);
+      }
+      for (let y = -5000; y < 5000; y += gridSize) {
+        ctx.moveTo(-5000, y);
+        ctx.lineTo(5000, y);
+      }
+      ctx.stroke();
+    }
 
     // S7: Use NODE_SPACING_Y for generation band height instead of hardcoded 75
     const bandHalf = LAYOUT.NODE_SPACING_Y / 2;
@@ -483,8 +589,8 @@ export default function FamilyTreeCanvas({
       }
       ctx.fillStyle =
         marker.generation % 2 === 0
-          ? "rgba(255,255,255,0.34)"
-          : "rgba(232,220,198,0.16)";
+          ? "rgba(255, 255, 255, 0.015)"
+          : "rgba(212, 175, 55, 0.025)"; // subtle gold shimmer band
       ctx.fillRect(visibleWorld.left, bandTop, visibleWorld.right - visibleWorld.left, bandHalf * 2);
     }
 
@@ -501,24 +607,56 @@ export default function FamilyTreeCanvas({
       );
       if (!visible) continue;
 
-      ctx.beginPath();
-      ctx.strokeStyle =
-        edge.type === "spouse"
-          ? "rgba(176,142,81,0.74)"
-          : edge.type === "adoption"
-          ? "rgba(31,111,98,0.42)"
-          : renderMode === "overview"
-          ? "rgba(150,132,99,0.28)"
-          : LINE_COLOR;
-      ctx.lineWidth =
-        (edge.type === "spouse" ? 2.2 : LINE_WIDTH) / Math.max(transform.k, 0.18);
-      ctx.setLineDash(edge.type === "adoption" ? [8 / transform.k, 8 / transform.k] : []);
-      ctx.moveTo(edge.path[0].x, edge.path[0].y);
-      for (let index = 1; index < edge.path.length; index++) {
-        ctx.lineTo(edge.path[index].x, edge.path[index].y);
+      ctx.save();
+      const isSpouse = edge.type === "spouse";
+      const isAdoption = edge.type === "adoption";
+      
+      if (renderMode === "detail") {
+        // Draw main branch as a thick physical gold thread
+        ctx.save();
+        ctx.shadowBlur = 8 / Math.max(transform.k, 0.5);
+        ctx.shadowColor = "rgba(0, 0, 0, 0.8)"; // Physical shadow on the map
+        ctx.shadowOffsetY = 4 / transform.k;
+        ctx.strokeStyle = isSpouse ? "#b08e51" : isAdoption ? "#1f5f3f" : "#a88132"; // Dark metallic base
+        ctx.lineWidth = (isSpouse ? 5.0 : 4.0) / Math.max(transform.k, 0.25);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.setLineDash(isAdoption ? [8 / transform.k, 8 / transform.k] : []);
+        ctx.beginPath();
+        ctx.moveTo(edge.path[0].x, edge.path[0].y);
+        for (let index = 1; index < edge.path.length; index++) {
+          ctx.lineTo(edge.path[index].x, edge.path[index].y);
+        }
+        ctx.stroke();
+        ctx.restore();
+
+        // Draw shiny golden highlight on top (thread reflection)
+        ctx.save();
+        ctx.strokeStyle = isSpouse ? "#e2d4be" : isAdoption ? "#a3e635" : "#fcd34d"; // Bright gold thread
+        ctx.lineWidth = (isSpouse ? 2.0 : 1.5) / Math.max(transform.k, 0.25);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.setLineDash(isAdoption ? [8 / transform.k, 8 / transform.k] : []);
+        ctx.beginPath();
+        ctx.moveTo(edge.path[0].x, edge.path[0].y);
+        for (let index = 1; index < edge.path.length; index++) {
+          ctx.lineTo(edge.path[index].x, edge.path[index].y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      } else {
+        // Compact/Overview Mode: Single line for performance
+        ctx.beginPath();
+        ctx.strokeStyle = isSpouse ? "rgba(176,142,81,0.74)" : isAdoption ? "rgba(31,111,98,0.42)" : "rgba(180,150,110,0.5)";
+        ctx.lineWidth = (isSpouse ? 2.2 : 1.5) / Math.max(transform.k, 0.18);
+        ctx.setLineDash(isAdoption ? [8 / transform.k, 8 / transform.k] : []);
+        ctx.moveTo(edge.path[0].x, edge.path[0].y);
+        for (let index = 1; index < edge.path.length; index++) {
+          ctx.lineTo(edge.path[index].x, edge.path[index].y);
+        }
+        ctx.stroke();
       }
-      ctx.stroke();
-      ctx.setLineDash([]);
+      ctx.restore();
     }
 
     const baseGen = 1;
@@ -550,19 +688,18 @@ export default function FamilyTreeCanvas({
 
       if (renderMode !== "overview") {
         ctx.save();
-        ctx.shadowColor = "rgba(0,0,0,0.14)";
-        ctx.shadowBlur = 12 / transform.k;
-        ctx.shadowOffsetY = 5 / transform.k;
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = "white";
+        // Rich drop shadow for physical coin/emblem feel
+        ctx.shadowColor = "rgba(0,0,0,0.8)";
+        ctx.shadowBlur = 20 / transform.k;
+        ctx.shadowOffsetY = 10 / transform.k;
+        traceNodeShape(ctx, x, y, radius, node.sex);
+        ctx.fillStyle = "#0f172a";
         ctx.fill();
         ctx.restore();
       }
 
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      traceNodeShape(ctx, x, y, radius, node.sex);
       ctx.clip();
 
       const img = node.imageUrl ? imageCache.get(node.imageUrl) : null;
@@ -572,12 +709,24 @@ export default function FamilyTreeCanvas({
         const drawHeight = img.height * scale;
         ctx.drawImage(img, x - drawWidth / 2, y - drawHeight / 2, drawWidth, drawHeight);
       } else {
-        ctx.fillStyle =
-          renderMode === "overview" ? genColor : node.line === "self" ? "#fff5dc" : "#f9f6f1";
-        ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-        if (renderMode !== "overview") {
-          ctx.fillStyle = "#5b5346";
-          ctx.font = `700 ${Math.max(12, radius * 0.72)}px Inter, sans-serif`;
+        // Wax-like / Aged parchment gradient for nodes without photos
+        if (renderMode === "overview") {
+          ctx.fillStyle = genColor;
+          ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+        } else {
+          const fillGrad = ctx.createRadialGradient(x, y, 2, x, y, radius);
+          if (node.line === "self") {
+            fillGrad.addColorStop(0, "#1e293b");
+            fillGrad.addColorStop(1, "#0f172a"); // Dark slate background
+          } else {
+            fillGrad.addColorStop(0, "#0f172a");
+            fillGrad.addColorStop(1, "#020617"); // Very dark background
+          }
+          ctx.fillStyle = fillGrad;
+          ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+
+          ctx.fillStyle = node.line === "self" ? "#d4af37" : "#94a3b8";
+          ctx.font = `700 ${Math.max(12, radius * 0.72)}px "Playfair Display", Georgia, serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText(node.label.charAt(0).toUpperCase(), x, y + 1 / transform.k);
@@ -585,13 +734,78 @@ export default function FamilyTreeCanvas({
       }
       ctx.restore();
 
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = isSelected || isHovered ? "#b08e51" : genColor;
-      ctx.lineWidth =
-        (isSelected || isHovered ? 3.5 : renderMode === "overview" ? 1.2 : 2.5) /
-        Math.max(transform.k, 0.35);
-      ctx.stroke();
+      // Metallic frame rendering (Shield or circular medallion)
+      if (renderMode === "detail") {
+        if (crestFrameRef.current && crestFrameRef.current.complete && crestFrameRef.current.naturalWidth > 0) {
+          // Draw the high-quality noble crest frame for all nodes to ensure a uniform premium AAA aesthetic.
+          const crestImg = crestFrameRef.current;
+          const frameSize = radius * 2.8; // Frame is larger than the circle
+          ctx.save();
+          if (isSelected || isHovered) {
+             ctx.shadowColor = "#d4af37";
+             ctx.shadowBlur = 15 / transform.k;
+          }
+          ctx.drawImage(crestImg, x - frameSize / 2, y - frameSize / 2, frameSize, frameSize);
+          ctx.restore();
+        } else {
+          // Fallback drawn frame
+          ctx.save();
+          traceNodeShape(ctx, x, y, radius, node.sex);
+          
+          // Shiny linear metallic gradient for the frame
+          const frameGrad = ctx.createLinearGradient(x - radius, y - radius, x + radius, y + radius);
+          if (isSelected || isHovered) {
+            frameGrad.addColorStop(0, "#ffe893");
+            frameGrad.addColorStop(0.5, "#d4af37"); // Bright Gold
+            frameGrad.addColorStop(1, "#5a4314");
+          } else {
+            frameGrad.addColorStop(0, "#eed7a1");
+            frameGrad.addColorStop(0.5, genColor); // Dynasty jewel color
+            frameGrad.addColorStop(1, "#261a12");
+          }
+          ctx.strokeStyle = frameGrad;
+          ctx.lineWidth = (isSelected || isHovered ? 4.5 : 3.5) / Math.max(transform.k, 0.35);
+          ctx.stroke();
+          ctx.restore();
+
+          // Inner gold/white filigree rim
+          ctx.save();
+          traceNodeShape(ctx, x, y, radius - 2, node.sex);
+          ctx.strokeStyle = isSelected || isHovered ? "#fff6d6" : "rgba(255,255,255,0.7)";
+          ctx.lineWidth = 1.0 / Math.max(transform.k, 0.35);
+          ctx.stroke();
+          ctx.restore();
+        }
+      } else {
+        traceNodeShape(ctx, x, y, radius, node.sex);
+        ctx.strokeStyle = isSelected || isHovered ? "#d4af37" : genColor;
+        ctx.lineWidth = (isSelected || isHovered ? 3.0 : 1.8) / Math.max(transform.k, 0.35);
+        ctx.stroke();
+      }
+
+      if (renderMode === "detail") {
+        if (node.sex === "F") {
+          ctx.save();
+          ctx.fillStyle = "#d4af37";
+          ctx.strokeStyle = "#8c6d31";
+          ctx.lineWidth = 0.5;
+          const numStuds = 8;
+          for (let i = 0; i < numStuds; i++) {
+            const angle = (i * Math.PI * 2) / numStuds;
+            const sx = x + Math.cos(angle) * (radius + 2.5);
+            const sy = y + Math.sin(angle) * (radius + 2.5);
+            ctx.beginPath();
+            ctx.arc(sx, sy, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        if (node.line === "self") {
+          drawCrown(ctx, x, y, radius);
+        }
+      }
 
       if (renderMode === "detail" && node.content?.description) {
         const iconX = x + radius * 0.72;
@@ -628,40 +842,50 @@ export default function FamilyTreeCanvas({
         isHovered;
 
       if (shouldLabel) {
-        const labelFontSize = renderMode === "overview" ? 12 / transform.k : 13;
+        const labelFontSize = renderMode === "overview" ? 12 / transform.k : 12;
         const labelY = y + radius + (renderMode === "overview" ? 9 / transform.k : 10);
         const maxLabelWidth = renderMode === "overview" ? 96 / transform.k : 116;
         ctx.save();
-        ctx.font = `700 ${labelFontSize}px Inter, sans-serif`;
+        ctx.font = `700 ${labelFontSize}px "Playfair Display", Georgia, serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         const label = truncateLabel(ctx, node.label, maxLabelWidth);
         const metrics = ctx.measureText(label);
         if (renderMode === "overview" || isSelected || isHovered) {
-          const padX = 7 / transform.k;
-          const padY = 4 / transform.k;
-          ctx.fillStyle = "rgba(255,255,255,0.94)";
-          ctx.strokeStyle = "rgba(226,212,190,0.96)";
-          ctx.lineWidth = 1 / transform.k;
+          const padX = 12 / transform.k;
+          const padY = 6 / transform.k;
+          
+          // Sleek glassmorphism placard
+          ctx.fillStyle = "rgba(15, 23, 42, 0.85)"; // Dark transparent background
+          ctx.strokeStyle = isSelected || isHovered ? "#d4af37" : "rgba(255, 255, 255, 0.15)";
+          ctx.lineWidth = (isSelected || isHovered ? 2 : 1) / transform.k;
+          
+          if (isSelected || isHovered) {
+            ctx.shadowColor = "rgba(212, 175, 55, 0.3)";
+            ctx.shadowBlur = 10 / transform.k;
+          }
+          
           ctx.beginPath();
           ctx.roundRect(
             x - metrics.width / 2 - padX,
             labelY - padY,
             metrics.width + padX * 2,
             labelFontSize + padY * 2,
-            8 / transform.k
+            6 / transform.k // Smooth corners
           );
           ctx.fill();
           ctx.stroke();
+          ctx.shadowBlur = 0; // reset
         }
-        ctx.fillStyle = "#1d1a14";
+
+        ctx.fillStyle = isSelected || isHovered ? "#fcd34d" : "#e2e8f0"; // Bright text
         ctx.fillText(label, x, labelY);
 
         if (renderMode === "detail" && node.year) {
-          ctx.fillStyle = "#5b5346";
-          ctx.font = "500 11px Inter, sans-serif";
+          ctx.fillStyle = "#94a3b8"; // Muted text
+          ctx.font = "700 10px Inter, sans-serif";
           const yearText = node.deathYear ? `${node.year} - ${node.deathYear}` : `${node.year}`;
-          ctx.fillText(yearText, x, labelY + 18);
+          ctx.fillText(yearText, x, labelY + 16);
         }
         ctx.restore();
       }
@@ -926,11 +1150,15 @@ export default function FamilyTreeCanvas({
   return (
     <div
       ref={wrapperRef}
-      className="relative h-full w-full select-none overflow-hidden bg-[#faf8f4]"
+      className="relative h-full w-full select-none overflow-hidden"
       style={{
         backgroundImage:
-          "radial-gradient(circle at 1px 1px, rgba(164,146,117,0.12) 1px, transparent 0)",
-        backgroundSize: "28px 28px",
+          "radial-gradient(circle at 1.5px 1.5px, rgba(130,105,60,0.2) 1.5px, transparent 0), " +
+          "linear-gradient(rgba(130,105,60,0.04) 1px, transparent 0), " +
+          "linear-gradient(90deg, rgba(130,105,60,0.04) 1px, transparent 0), " +
+          "url('/brand/parchment_bg.png')",
+        backgroundSize: "40px 40px, 160px 160px, 160px 160px, cover",
+        boxShadow: "inset 0 0 100px rgba(59,43,24,0.35)",
         touchAction: "none",
       }}
       onPointerDown={handlePointerDown}
@@ -952,44 +1180,56 @@ export default function FamilyTreeCanvas({
         className="absolute left-4 top-4 flex flex-wrap items-center gap-2"
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <div className="flex overflow-hidden rounded-xl border border-[#e2d4be] bg-white/92 p-1 shadow-[0_8px_20px_rgba(59,43,24,0.10)] backdrop-blur">
+        <div 
+          className="flex overflow-hidden rounded-lg border-2 border-[#b08e51] p-0.5 shadow-lg"
+          style={{
+            backgroundImage: "url('/brand/parchment_bg.png')",
+            backgroundSize: "cover"
+          }}
+        >
           <button
-            className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-[#6b5126] transition hover:bg-[#fff7e8]"
+            className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-bold text-[#5c4314] hover:bg-[#82693c]/10 transition"
             onClick={() => setTransform(calculateFitTransform())}
             title={copy.fit}
             type="button"
           >
-            <Maximize2 className="h-4 w-4" />
+            <Maximize2 className="h-4 w-4 text-[#82693c]" />
             <span className="hidden sm:inline">{copy.fit}</span>
           </button>
           <button
-            className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-[#6b5126] transition hover:bg-[#fff7e8] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-bold text-[#5c4314] hover:bg-[#82693c]/10 transition disabled:cursor-not-allowed disabled:opacity-40"
             onClick={() => selectedId && focusNode(selectedId)}
             title={copy.focus}
             type="button"
             disabled={!selectedId}
           >
-            <LocateFixed className="h-4 w-4" />
+            <LocateFixed className="h-4 w-4 text-[#82693c]" />
             <span className="hidden sm:inline">{copy.focus}</span>
           </button>
           <button
-            className="inline-flex h-9 items-center justify-center rounded-lg px-2 text-[#6b5126] transition hover:bg-[#fff7e8]"
+            className="inline-flex h-9 items-center justify-center rounded-md px-2 text-[#5c4314] hover:bg-[#82693c]/10 transition"
             onClick={() => setTransform(calculateFitTransform(0.82))}
             title={copy.reset}
             type="button"
           >
-            <RotateCcw className="h-4 w-4" />
+            <RotateCcw className="h-4 w-4 text-[#82693c]" />
           </button>
         </div>
 
-        <div className="hidden overflow-hidden rounded-xl border border-[#e2d4be] bg-white/92 p-1 shadow-[0_8px_20px_rgba(59,43,24,0.10)] backdrop-blur md:flex">
+        <div 
+          className="hidden overflow-hidden rounded-lg border-2 border-[#b08e51] p-0.5 shadow-lg md:flex"
+          style={{
+            backgroundImage: "url('/brand/parchment_bg.png')",
+            backgroundSize: "cover"
+          }}
+        >
           {(["auto", "map", "detail"] as const).map((mode) => (
             <button
               key={mode}
-              className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition ${
+              className={`inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-xs font-bold transition ${
                 densityMode === mode
-                  ? "bg-[#82693c] text-white"
-                  : "text-[#6b5126] hover:bg-[#fff7e8]"
+                  ? "bg-[#82693c] text-white shadow-inner"
+                  : "text-[#5c4314] hover:bg-[#82693c]/10"
               }`}
               onClick={() => setDensityMode(mode)}
               title={copy.density}
@@ -1009,28 +1249,32 @@ export default function FamilyTreeCanvas({
       </div>
 
       <div
-        className="absolute right-4 top-4 flex overflow-hidden rounded-xl border border-[#e2d4be] bg-white/92 p-1 shadow-[0_8px_20px_rgba(59,43,24,0.10)] backdrop-blur"
+        className="absolute right-4 top-4 flex overflow-hidden rounded-lg border-2 border-[#b08e51] p-0.5 shadow-lg"
+        style={{
+          backgroundImage: "url('/brand/parchment_bg.png')",
+          backgroundSize: "cover"
+        }}
         onPointerDown={(event) => event.stopPropagation()}
       >
         <button
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#6b5126] transition hover:bg-[#fff7e8]"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#5c4314] hover:bg-[#82693c]/10 transition"
           onClick={() =>
             zoomAt(wrapperSize.width / 2, wrapperSize.height / 2, transform.k * 1.22)
           }
           title={copy.zoomIn}
           type="button"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4 text-[#82693c]" />
         </button>
         <button
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#6b5126] transition hover:bg-[#fff7e8]"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#5c4314] hover:bg-[#82693c]/10 transition"
           onClick={() =>
             zoomAt(wrapperSize.width / 2, wrapperSize.height / 2, transform.k / 1.22)
           }
           title={copy.zoomOut}
           type="button"
         >
-          <Minus className="h-4 w-4" />
+          <Minus className="h-4 w-4 text-[#82693c]" />
         </button>
       </div>
 
@@ -1045,8 +1289,12 @@ export default function FamilyTreeCanvas({
           return (
             <div
               key={marker.generation}
-              className="absolute rounded-full border border-[#e2d4be] bg-white/82 px-3 py-1 text-[11px] font-semibold text-[#6b5a45] shadow-sm backdrop-blur"
-              style={{ top: clamp(top - 12, 84, wrapperSize.height - 42) }}
+              className="absolute rounded-lg border border-[#b08e51] px-3 py-1 text-[10px] font-bold text-[#5c4314] shadow-md"
+              style={{ 
+                top: clamp(top - 12, 84, wrapperSize.height - 42),
+                backgroundImage: "url('/brand/parchment_bg.png')",
+                backgroundSize: "cover"
+              }}
             >
               {label} · {marker.count}
             </div>
@@ -1056,15 +1304,21 @@ export default function FamilyTreeCanvas({
 
       {minimap && (
         <div
-          className="absolute bottom-4 left-4 rounded-2xl border border-[#ddcdb3] bg-white/92 p-2 shadow-[0_12px_28px_rgba(59,43,24,0.14)] backdrop-blur"
-          style={{ width: minimapSize.width, height: minimapSize.height }}
+          className="absolute bottom-4 left-4 rounded-xl border-2 border-[#b08e51] p-2.5 shadow-[0_12px_28px_rgba(0,0,0,0.3)] select-none"
+          style={{ 
+            width: minimapSize.width, 
+            height: minimapSize.height,
+            backgroundImage: "url('/brand/parchment_bg.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center"
+          }}
           onClick={jumpMinimap}
           onPointerDown={(event) => event.stopPropagation()}
           role="button"
           tabIndex={0}
           title={copy.hint}
         >
-          <div className="absolute left-2 top-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#9b845f]">
+          <div className="absolute left-2.5 top-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#82693c] drop-shadow-[0_1px_0px_white]">
             {modeLabel}
           </div>
           {nodes.map((node) => {
@@ -1075,20 +1329,20 @@ export default function FamilyTreeCanvas({
             return (
               <span
                 key={node.id}
-                className="absolute rounded-full"
+                className="absolute rounded-full shadow-[0_1px_1px_rgba(0,0,0,0.2)]"
                 style={{
                   left: minimap.offsetX + (node.x || 0) * minimap.scale,
                   top: minimap.offsetY + (node.y || 0) * minimap.scale,
-                  width: isSelected ? 5 : 3,
-                  height: isSelected ? 5 : 3,
-                  backgroundColor: isSelected ? "#111827" : genColor,
+                  width: isSelected ? 6 : 4,
+                  height: isSelected ? 6 : 4,
+                  backgroundColor: isSelected ? "#c2410c" : genColor, // Dark orange for selected
                   transform: "translate(-50%, -50%)",
                 }}
               />
             );
           })}
           <div
-            className="absolute rounded border border-[#111827] bg-[#111827]/5"
+            className="absolute rounded border-2 border-[#82693c] bg-[#82693c]/10"
             style={{
               left: clamp(minimap.viewport.x, 0, minimapSize.width),
               top: clamp(minimap.viewport.y, 0, minimapSize.height),

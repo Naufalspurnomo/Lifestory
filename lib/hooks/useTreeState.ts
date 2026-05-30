@@ -388,13 +388,13 @@ export function useTreeState(userId: string, userName: string) {
   const currentTree = trees.find((t) => t.id === currentTreeId) || null;
   const userTree = trees.find((t) => t.ownerId === userId) || null;
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const currentTreeNodes = currentTree?.nodes;
   const layoutGraph: LayoutGraph = useMemo(
     () =>
-      currentTree
-        ? calculateHierarchicalLayout(currentTree.nodes)
+      currentTreeNodes
+        ? calculateHierarchicalLayout(currentTreeNodes)
         : { nodes: [], edges: [], width: 0, height: 0 },
-    [currentTree?.nodes]
+    [currentTreeNodes]
   );
 
   const pushHistory = useCallback((nodes: FamilyNode[]) => {

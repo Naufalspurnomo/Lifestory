@@ -164,6 +164,10 @@ export function NavBar() {
     signOut({ callbackUrl: "/" });
   }
 
+  if (pathname === "/app" || pathname?.startsWith("/app/")) {
+    return null;
+  }
+
   return (
     <header
       className={`sticky top-0 z-50 border-b transition-all duration-300 ${

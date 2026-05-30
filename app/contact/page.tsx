@@ -61,7 +61,7 @@ export default function ContactPage() {
           {
             icon: Phone,
             label: "Telepon",
-            value: "+62 812 3456 7890",
+            value: "+62 887 7669 990",
             note: "Senin - Jumat, 09.00 - 17.00 WIB",
           },
           {
@@ -107,7 +107,7 @@ export default function ContactPage() {
           {
             icon: Phone,
             label: "Phone",
-            value: "+62 812 3456 7890",
+            value: "+62 887 7669 990",
             note: "Mon - Fri, 09.00 - 17.00 WIB",
           },
           {

@@ -1,12 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Mail, MapPin, Phone, Sparkles } from "lucide-react";
 import { useLanguage } from "../providers/LanguageProvider";
 import { BrandLogo } from "./BrandLogo";
 
 export function Footer() {
+  const pathname = usePathname();
   const { locale } = useLanguage();
+
+  if (pathname === "/app" || pathname?.startsWith("/app/")) {
+    return null;
+  }
+
   const isId = locale === "id";
 
   const copy = isId
