@@ -361,7 +361,10 @@ export default function AboutPage() {
               transition={{ duration: reduced ? 0.01 : 0.8, ease: [0.22, 1, 0.36, 1] }}
             >
               <Eyebrow icon={<Sparkles className="h-3 w-3" />}>{copy.aboutLabel}</Eyebrow>
-              <h1 className="mt-6 font-serif font-medium text-[clamp(2.5rem,7vw,5.4rem)] leading-[0.96] tracking-[-0.025em] text-ink-800">
+              <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.22em] text-brand-600">
+                Preserve Your Legacy
+              </p>
+              <h1 className="mt-3 font-serif font-medium text-[clamp(2.5rem,7vw,5.4rem)] leading-[0.96] tracking-[-0.025em] text-ink-800">
                 {copy.heroTitle}
               </h1>
               <p className="mt-7 max-w-xl text-base leading-relaxed text-ink-500 md:text-lg">

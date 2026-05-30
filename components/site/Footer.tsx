@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Mail, MapPin, Phone, Sparkles } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import { useLanguage } from "../providers/LanguageProvider";
 import { BrandLogo } from "./BrandLogo";
 
@@ -28,12 +28,10 @@ export function Footer() {
           { href: "/about", label: "Tentang Kami" },
           { href: "/contact", label: "Kontak" },
         ],
-        tagline:
-          "Mengabadikan kisah keluarga dengan pengalaman premium yang tak lekang waktu. Dibangun untuk memori, warisan, dan kolaborasi modern.",
         rights: "Hak cipta dilindungi.",
         contactNote: "Studio dan konsultasi dengan janji.",
         email: "halo@lifestory.co",
-        phone: "+62 812 3456 7890",
+        phone: "+62 887 7669 990",
         location: "Jakarta, Indonesia",
         legacyTagline:
           "Setiap kisah hidup layak diabadikan, dirawat, dan diwariskan.",
@@ -49,12 +47,10 @@ export function Footer() {
           { href: "/about", label: "About Us" },
           { href: "/contact", label: "Contact" },
         ],
-        tagline:
-          "Preserving family stories with a timeless, premium experience. Built for memory, legacy, and modern collaboration.",
         rights: "All rights reserved.",
         contactNote: "Studio visits and consultations by appointment.",
         email: "hello@lifestory.co",
-        phone: "+62 812 3456 7890",
+        phone: "+62 887 7669 990",
         location: "Jakarta, Indonesia",
         legacyTagline:
           "Every life story deserves to be preserved, cared for, and passed on.",
@@ -71,13 +67,15 @@ export function Footer() {
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr] md:gap-12">
           <div className="space-y-5">
             <BrandLogo variant="footer" />
-            <p className="max-w-xl text-sm leading-relaxed text-[#6e6258]">
-              {copy.tagline}
+            <p
+              className="font-sans text-[11px] font-medium uppercase text-[#a89274]"
+              style={{ letterSpacing: "1.8px" }}
+            >
+              Preserve Your Legacy
             </p>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#dccfb7] bg-white/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b845f] backdrop-blur-sm">
-              <Sparkles className="h-3 w-3 text-[#c48b24]" />
+            <p className="max-w-xs text-[13px] leading-relaxed text-[#7b6f63]">
               {copy.legacyTagline}
-            </div>
+            </p>
           </div>
 
           <div className="space-y-4">

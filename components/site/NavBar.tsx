@@ -42,6 +42,8 @@ export function NavBar() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
+  const isHome = pathname === "/";
+
   const user = session?.user;
   const isLoggedIn = status === "authenticated";
   const isAdmin = user?.role === "admin";
@@ -181,7 +183,22 @@ export function NavBar() {
           isScrolled ? "h-[64px]" : "h-[78px]"
         }`}
       >
-        <BrandLogo variant={isScrolled ? "navbar-compact" : "navbar"} />
+        <div className="relative">
+          <BrandLogo variant={isScrolled ? "navbar-compact" : "navbar"} />
+          {isHome && (
+            <span
+              className="absolute left-0 top-full mt-[-2px] block whitespace-nowrap font-sans text-[9.5px] font-medium uppercase text-[#a89274] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{
+                letterSpacing: "1.8px",
+                opacity: isScrolled ? 0 : 1,
+                transform: isScrolled ? "translateY(-4px)" : "translateY(0)",
+                pointerEvents: "none",
+              }}
+            >
+              Preserve Your Legacy
+            </span>
+          )}
+        </div>
 
         <nav
           className={`hidden items-center transition-all duration-300 lg:flex ${
