@@ -108,10 +108,10 @@ export type TreeHistory = {
 
 // Layout constants
 export const LAYOUT = {
-  NODE_SIZE: 80,
-  NODE_SPACING_X: 120, // Horizontal gap between nodes
-  NODE_SPACING_Y: 150, // Vertical gap between generations
-  PARTNER_GAP: 100, // Gap between partners
+  NODE_SIZE: 100,
+  NODE_SPACING_X: 160, // Horizontal gap between nodes
+  NODE_SPACING_Y: 200, // Vertical gap between generations
+  PARTNER_GAP: 120, // Gap between partners
   CANVAS_PADDING: 100,
 } as const;
 

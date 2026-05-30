@@ -17,6 +17,7 @@ import SyncStatusIndicator from "../../components/tree/SyncStatusIndicator";
 import { useTreeState } from "../../lib/hooks/useTreeState";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 import { downloadTreeJson } from "../../lib/sync/ExportManager";
+import { Layers3, Users, GitBranch, History, ImageIcon, BookOpen } from "lucide-react";
 
 import type { FamilyNode } from "../../lib/types/tree";
 
@@ -398,7 +399,8 @@ export default function AppHome() {
   }
 
   return (
-    <div className={showTree ? "h-screen w-screen overflow-hidden bg-[#030712] flex flex-col relative text-white" : "min-h-screen bg-[#f7f5f1] pb-32"}>
+    <div className={showTree ? "h-screen w-screen overflow-hidden bg-[#2c1e16] flex flex-col relative text-[#3f342d]" : "min-h-screen bg-[#f7f5f1] pb-32"}>
+      {/* Vignette removed for a cleaner look */}
       {!showTree && !hasCreatedTree && (
         <WelcomeScreen userName={userName} onStart={handleStartTree} />
       )}
@@ -407,11 +409,9 @@ export default function AppHome() {
         <>
           {/* HUD HEADER */}
           <header 
-            className="fixed top-0 left-0 right-0 h-16 text-[#e8d5b5] border-b-2 border-[#d4af37]/60 z-40 flex items-center justify-between pl-6 sm:pl-8 pr-6 shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
+            className="fixed top-0 left-0 right-0 h-16 text-[#3f342d] border-b border-[#dccfb3] z-40 flex items-center justify-between pl-6 sm:pl-8 pr-6 shadow-[0_4px_16px_rgba(59,43,24,0.08)]"
             style={{ 
-              backgroundImage: "url('/brand/dark_leather_ui.png')",
-              backgroundSize: "cover",
-              backgroundPosition: "center"
+              background: "linear-gradient(180deg, #fdfbf6 0%, #faf6ed 100%)",
             }}
           >
             {/* Sisi Kiri: Logo Lifestory & Nama Dinasti */}
@@ -421,19 +421,19 @@ export default function AppHome() {
                 className="flex items-center group transition-all"
                 title="Kembali ke Beranda"
               >
-                <div className="relative flex items-center justify-center p-1.5 rounded-lg hover:bg-white/10 transition-colors">
-                  <svg className="h-4 w-4 mr-2 text-white/70 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <div className="relative flex items-center justify-center p-1.5 rounded-lg hover:bg-[#ece2cc] transition-colors">
+                  <svg className="h-4 w-4 mr-2 text-[#73685f] group-hover:text-[#3f342d] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                   </svg>
                   <img 
                     src="/logo/lifestory-logo.webp" 
                     alt="Lifestory Logo" 
-                    className="h-6 w-auto object-contain brightness-0 invert drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] transition-transform group-hover:scale-105" 
+                    className="h-6 w-auto object-contain drop-shadow-[0_1px_2px_rgba(59,43,24,0.1)] transition-transform group-hover:scale-105" 
                   />
                 </div>
               </Link>
-              <div className="h-6 w-px bg-white/10" />
-              <h1 className="font-playfair text-base md:text-lg font-bold tracking-wide text-[#e8d5b5] truncate max-w-[120px] sm:max-w-xs drop-shadow-md">
+              <div className="h-6 w-px bg-[#dccfb3]" />
+              <h1 className="font-playfair text-base md:text-lg font-bold tracking-wide text-[#3f342d] truncate max-w-[120px] sm:max-w-xs">
                 {currentTree!.name}
               </h1>
             </div>
@@ -443,13 +443,13 @@ export default function AppHome() {
               <div className="w-36 sm:w-48 md:w-64 lg:w-72">
                 <SearchBar nodes={currentTree!.nodes} onSelect={setSelectedId} />
               </div>
-              <div className="hidden sm:inline-flex items-center gap-1 px-1.5 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+              <div className="hidden sm:inline-flex items-center gap-1 px-1.5 py-1.5 rounded-full bg-[#f5efe1] border border-[#dccfb3]">
                 <button
                   onClick={() => setViewMode("tree")}
                   className={`px-4 py-1.5 text-xs font-bold uppercase transition-all rounded-full ${
                     viewMode === "tree"
-                      ? "bg-gradient-to-r from-[#d4af37] to-[#aa8323] text-black shadow-[0_0_10px_rgba(212,175,55,0.4)]"
-                      : "text-white/60 hover:text-white hover:bg-white/10"
+                      ? "bg-[#82693c] text-white shadow-sm"
+                      : "text-[#73685f] hover:text-[#3f342d] hover:bg-[#ece2cc]"
                   }`}
                 >
                   {copy.viewTree}
@@ -458,8 +458,8 @@ export default function AppHome() {
                   onClick={() => setViewMode("timeline")}
                   className={`px-4 py-1.5 text-xs font-bold uppercase transition-all rounded-full ${
                     viewMode === "timeline"
-                      ? "bg-gradient-to-r from-[#d4af37] to-[#aa8323] text-black shadow-[0_0_10px_rgba(212,175,55,0.4)]"
-                      : "text-white/60 hover:text-white hover:bg-white/10"
+                      ? "bg-[#82693c] text-white shadow-sm"
+                      : "text-[#73685f] hover:text-[#3f342d] hover:bg-[#ece2cc]"
                   }`}
                 >
                   {copy.viewTimeline}
@@ -477,7 +477,7 @@ export default function AppHome() {
                   }}
                 />
               </div>
-              <div className="hidden lg:flex items-center gap-2 px-2 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+              <div className="hidden lg:flex items-center gap-2 px-2 py-1.5 rounded-full bg-[#f5efe1] border border-[#dccfb3]">
                 {[
                   { label: copy.invite, onClick: () => setShowInviteModal(true), icon: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8 12 3 7 8 M12 3v12" },
                   { label: copy.import, onClick: () => setShowImportModal(true), icon: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3" },
@@ -486,7 +486,7 @@ export default function AppHome() {
                   <button
                     key={btn.label}
                     onClick={btn.onClick}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#e8d5b5] hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#5a4d42] hover:text-[#3f342d] hover:bg-[#ece2cc] rounded-full transition-colors"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       {btn.icon.split(" M").map((d, i) => (
@@ -498,15 +498,15 @@ export default function AppHome() {
                 ))}
               </div>
               
-              {/* Avatar Profil Lord */}
-              <div className="flex items-center gap-2 border border-white/10 bg-white/5 px-2 py-1.5 rounded-full backdrop-blur-md">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#d4af37] to-[#8c6d31] border border-[#f5d776] shadow-[0_0_10px_rgba(212,175,55,0.4)] text-sm text-black">
-                  👑
+              {/* User Profile */}
+              <div className="flex items-center gap-2 border border-[#dccfb3] bg-[#fdfbf6] px-2 py-1.5 rounded-full">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#e6ab2f] to-[#82693c] border border-[#dccfb3] shadow-sm text-sm font-bold text-white">
+                  {userName.charAt(0).toUpperCase()}
                 </span>
                 <div className="text-left hidden sm:block leading-none">
-                  <p className="text-[11px] font-bold text-white truncate max-w-[80px]">{userName}</p>
-                  <p className="text-[9px] font-semibold text-[#c7b289] uppercase tracking-wider">
-                    {locale === "id" ? "Kronik Agung" : "Grand Chronicler"}
+                  <p className="text-[11px] font-bold text-[#3f342d] truncate max-w-[80px]">{userName}</p>
+                  <p className="text-[9px] font-semibold text-[#73685f] uppercase tracking-wider">
+                    {locale === "id" ? "Pengelola" : "Admin"}
                   </p>
                 </div>
               </div>
@@ -544,71 +544,71 @@ export default function AppHome() {
               </div>
             )}
 
-            {/* FLOATING ACTION DRAWERS AND BOOK ICON AT BOTTOM RIGHT */}
-            <div className="absolute bottom-24 right-6 z-30 flex flex-col items-end gap-3 pointer-events-auto select-none">
-              {/* Royal Vault Trigger */}
-              <button
-                onClick={() => {
-                  setIsVaultOpen(!isVaultOpen);
-                  setIsTomeOpen(false);
-                }}
-                className={`flex items-center gap-2 rounded-full border border-white/20 px-5 py-2.5 text-xs font-bold shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all hover:scale-105 active:scale-95 duration-200 ${
-                  isVaultOpen ? "bg-[#d4af37] text-black border-[#f5d776]" : "bg-black/50 text-[#e8d5b5] hover:bg-white/10"
-                }`}
-              >
-                <span className="text-lg">🖼️</span>
-                <span className="hidden sm:inline">{locale === "id" ? "Gudang Pusaka" : "Royal Vault"}</span>
-                <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-black ${
-                  isVaultOpen ? "bg-black/20 text-black" : "bg-[#d4af37]/20 border border-[#d4af37]/40 text-[#d4af37]"
-                }`}>
-                  {relicsCount}
-                </span>
-              </button>
-
-              {/* Book & Quill Tome of Chronicles Trigger */}
-              <button
-                onClick={() => {
-                  setIsTomeOpen(!isTomeOpen);
-                  setIsVaultOpen(false);
-                }}
-                className={`flex items-center gap-2 rounded-full border border-white/20 px-5 py-2.5 text-xs font-bold shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all hover:scale-105 active:scale-95 duration-200 ${
-                  isTomeOpen ? "bg-[#d4af37] text-black border-[#f5d776]" : "bg-black/50 text-[#e8d5b5] hover:bg-white/10"
-                }`}
-                title={locale === "id" ? "Buka Kitab Hikayat" : "Open Tome of Chronicles"}
-              >
-                <span className="text-lg">📖</span>
-                <span className="hidden sm:inline">{locale === "id" ? "Kitab Hikayat" : "Tome of Lore"}</span>
-                <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-black ${
-                  isTomeOpen ? "bg-black/20 text-black" : "bg-[#d4af37]/20 border border-[#d4af37]/40 text-[#d4af37]"
-                }`}>
-                  {storiesCount}
-                </span>
-              </button>
+            {/* FLOATING ACTION DRAWERS AT BOTTOM LEFT */}
+            <div className="absolute bottom-6 left-6 z-30 flex items-center gap-2 pointer-events-auto select-none">
+              <div className="flex items-center bg-white/70 backdrop-blur-md rounded-xl border border-[#dccfb3] p-1 shadow-sm">
+                <button
+                  onClick={() => {
+                    setIsVaultOpen(!isVaultOpen);
+                    setIsTomeOpen(false);
+                  }}
+                  className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+                    isVaultOpen ? "bg-[#82693c] text-white shadow-md" : "text-[#5a4d42] hover:bg-white hover:shadow-sm"
+                  }`}
+                >
+                  <ImageIcon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{locale === "id" ? "Galeri" : "Gallery"}</span>
+                  <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-black ${
+                    isVaultOpen ? "bg-white/20 text-white" : "bg-[#82693c]/10 text-[#82693c]"
+                  }`}>
+                    {relicsCount}
+                  </span>
+                </button>
+                <div className="w-px h-4 bg-[#dccfb3]/50 mx-1" />
+                <button
+                  onClick={() => {
+                    setIsTomeOpen(!isTomeOpen);
+                    setIsVaultOpen(false);
+                  }}
+                  className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+                    isTomeOpen ? "bg-[#82693c] text-white shadow-md" : "text-[#5a4d42] hover:bg-white hover:shadow-sm"
+                  }`}
+                  title={locale === "id" ? "Buka Cerita Keluarga" : "Open Family Stories"}
+                >
+                  <BookOpen className="h-4 w-4" />
+                  <span className="hidden sm:inline">{locale === "id" ? "Cerita" : "Stories"}</span>
+                  <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-black ${
+                    isTomeOpen ? "bg-white/20 text-white" : "bg-[#82693c]/10 text-[#82693c]"
+                  }`}>
+                    {storiesCount}
+                  </span>
+                </button>
+              </div>
             </div>
           </main>
 
           {/* TOME OF CHRONICLES (SLIDE OUT DRAWER - RIGHT) */}
           <div
-            className={`fixed top-16 right-0 bottom-0 w-80 md:w-[420px] border-l-2 border-[#d4af37]/60 shadow-[-15px_0_40px_rgba(0,0,0,0.8)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col ${
+            className={`fixed top-16 right-0 bottom-0 w-80 md:w-[420px] border-l border-[#dccfb3] shadow-[-8px_0_24px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-[#fdfbf6] ${
               isTomeOpen ? "translate-x-0" : "translate-x-full"
             }`}
-            style={{ 
-              backgroundImage: "url('/brand/dark_leather_ui.png')",
-              backgroundSize: "cover",
-              backgroundPosition: "center"
-            }}
           >
             {/* Header Drawer */}
-            <div className="flex items-center justify-between border-b-2 border-[#d4af37]/30 bg-black/40 p-4 text-[#e8d5b5]">
+            <div className="flex items-center justify-between border-b border-[#dccfb3] bg-[#faf6ed] p-4 text-[#3f342d]">
               <div className="flex items-center gap-2">
-                <span className="text-lg">📖</span>
-                <h3 className="font-playfair text-base font-bold tracking-wide">
-                  {locale === "id" ? "Kitab Hikayat Dinasti" : "Tome of Chronicles"}
-                </h3>
+                <BookOpen className="h-5 w-5 text-[#82693c]" />
+                <div>
+                  <h3 className="font-playfair text-base font-bold tracking-wide">
+                    {locale === "id" ? "Cerita Keluarga" : "Family Stories"}
+                  </h3>
+                  <p className="text-[10px] text-[#9c8e7e] font-medium italic">
+                    {locale === "id" ? "Kitab Hikayat Dinasti" : "Chronicles of the Dynasty"}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setIsTomeOpen(false)}
-                className="rounded-full hover:bg-white/10 p-2 text-white font-sans font-bold transition-colors"
+                className="rounded-full hover:bg-[#ece2cc] p-2 text-[#73685f] font-sans font-bold transition-colors"
               >
                 ✕
               </button>
@@ -623,30 +623,30 @@ export default function AppHome() {
                     onClick={() => {
                       setSelectedId(node.id);
                     }}
-                    className="cursor-pointer overflow-hidden rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-[#d4af37]/50 hover:bg-white/10 hover:shadow-[0_4px_20px_rgba(212,175,55,0.15)] hover:-translate-y-1"
+                    className="cursor-pointer overflow-hidden rounded-xl border border-[#dccfb3] bg-white p-4 transition-all hover:border-[#b08e51] hover:shadow-[0_4px_16px_rgba(59,43,24,0.08)] hover:-translate-y-1"
                   >
                     <div className="mb-2 flex items-center gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#d4af37] bg-[#d4af37]/10 px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#82693c] bg-[#f5efe1] px-2 py-0.5 rounded">
                         {node.year}
                       </span>
-                      <span className="text-[10px] text-[#94a3b8] font-medium">
+                      <span className="text-[10px] text-[#9c8e7e] font-medium">
                         Gen {node.generation}
                       </span>
                     </div>
-                    <h4 className="font-playfair font-bold text-lg text-white">
+                    <h4 className="font-playfair font-bold text-lg text-[#3f342d]">
                       {node.label}
                     </h4>
-                    <p className="line-clamp-3 text-sm leading-relaxed text-[#94a3b8] mt-2">
+                    <p className="line-clamp-3 text-sm leading-relaxed text-[#73685f] mt-2">
                       {node.content.description}
                     </p>
                   </div>
                 ))
               ) : (
                 <div className="text-center py-20 px-4">
-                  <p className="text-sm font-bold text-[#7b6f63]">
-                    {locale === "id" ? "Belum ada hikayat tertulis." : "No chronicles written yet."}
+                  <p className="text-sm font-bold text-[#5a4d42]">
+                    {locale === "id" ? "Belum ada cerita tertulis." : "No stories written yet."}
                   </p>
-                  <p className="text-xs text-[#a99e8f] mt-1 leading-relaxed">
+                  <p className="text-xs text-[#9c8e7e] mt-1 leading-relaxed">
                     {locale === "id" ? "Tambahkan biografi pada profil anggota keluarga untuk mencatatkan kisah mereka di sini." : "Add a biography to a family member's profile to record their stories here."}
                   </p>
                 </div>
@@ -656,26 +656,26 @@ export default function AppHome() {
 
           {/* ROYAL VAULT (SLIDE UP DRAWER - BOTTOM) */}
           <div
-            className={`fixed bottom-0 left-0 right-0 h-64 border-t-2 border-[#d4af37]/60 shadow-[0_-15px_40px_rgba(0,0,0,0.8)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col ${
+            className={`fixed bottom-0 left-0 right-0 h-64 border-t border-[#dccfb3] shadow-[0_-4px_16px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-[#fdfbf6] ${
               isVaultOpen ? "translate-y-0" : "translate-y-full"
             }`}
-            style={{ 
-              backgroundImage: "url('/brand/dark_leather_ui.png')",
-              backgroundSize: "cover",
-              backgroundPosition: "center"
-            }}
           >
             {/* Header Drawer */}
-            <div className="flex items-center justify-between border-b-2 border-[#d4af37]/30 bg-black/40 p-4 text-[#e8d5b5]">
+            <div className="flex items-center justify-between border-b border-[#dccfb3] bg-[#faf6ed] p-4 text-[#3f342d]">
               <div className="flex items-center gap-2">
-                <span className="text-lg">🖼️</span>
-                <h3 className="font-playfair text-base font-bold tracking-wide">
-                  {locale === "id" ? "Gudang Pusaka Dinasti (Galeri)" : "Royal Vault of Heirlooms"}
-                </h3>
+                <ImageIcon className="h-5 w-5 text-[#82693c]" />
+                <div>
+                  <h3 className="font-playfair text-base font-bold tracking-wide">
+                    {locale === "id" ? "Galeri Keluarga" : "Family Gallery"}
+                  </h3>
+                  <p className="text-[10px] text-[#9c8e7e] font-medium italic">
+                    {locale === "id" ? "Gudang Pusaka Dinasti" : "Heritage Vault"}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setIsVaultOpen(false)}
-                className="rounded-full hover:bg-white/10 p-2 text-white font-sans font-bold transition-colors"
+                className="rounded-full hover:bg-[#ece2cc] p-2 text-[#73685f] font-sans font-bold transition-colors"
               >
                 ✕
               </button>
@@ -690,7 +690,7 @@ export default function AppHome() {
                     onClick={() => {
                       setSelectedId(node.id);
                     }}
-                    className="flex-none w-44 h-36 bg-[#FAF7F0] rounded-xl border border-[#b08e51]/30 overflow-hidden relative group cursor-pointer transition-all hover:border-[#b08e51] hover:shadow-lg"
+                    className="flex-none w-44 h-36 bg-[#faf6ed] rounded-xl border border-[#dccfb3] overflow-hidden relative group cursor-pointer transition-all hover:border-[#b08e51] hover:shadow-md"
                   >
                     {node.imageUrl && (
                       <img
@@ -699,11 +699,11 @@ export default function AppHome() {
                         alt={node.label}
                       />
                     )}
-                    <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent p-2 text-white">
+                    <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/10 to-transparent p-2 text-white">
                       <span className="text-xs font-bold truncate">
                         {node.label}
                       </span>
-                      <span className="text-[9px] text-[#ddc7a2] font-semibold">
+                      <span className="text-[9px] text-[#e9e0d0] font-semibold">
                         {node.year ? `${node.year}` : (locale === "id" ? "Tahun tidak diketahui" : "Unknown Year")}
                       </span>
                     </div>
@@ -711,77 +711,44 @@ export default function AppHome() {
                 ))
               ) : (
                 <div className="w-full text-center py-10">
-                  <p className="text-sm font-semibold text-[#7b6f63]">
-                    {locale === "id" ? "Gudang pusaka masih kosong." : "The royal vault is empty."}
+                  <p className="text-sm font-semibold text-[#5a4d42]">
+                    {locale === "id" ? "Galeri masih kosong." : "Gallery is empty."}
                   </p>
-                  <p className="text-xs text-[#a99e8f] mt-1">
-                    {locale === "id" ? "Unggah foto profil anggota keluarga untuk mengumpulkan relik silsilah." : "Upload profile photos of family members to collect lineage relics."}
+                  <p className="text-xs text-[#9c8e7e] mt-1">
+                    {locale === "id" ? "Unggah foto profil anggota keluarga untuk memulai galeri." : "Upload profile photos of family members to start the gallery."}
                   </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* FLOATING HUD FOOTER STATS DECK */}
-          <footer 
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 pointer-events-auto border-2 border-[#d4af37]/60 rounded-full px-6 py-3 shadow-[0_15px_40px_rgba(0,0,0,0.8)]"
-            style={{ 
-              backgroundImage: "url('/brand/dark_leather_ui.png')",
-              backgroundSize: "cover",
-              backgroundPosition: "center"
-            }}
-          >
-            {/* Stat Indicators */}
-            {[
-              { value: stats.generations, label: locale === "id" ? "Gen" : "Gen", title: copy.statGenerations, icon: "👑" },
-              { value: stats.members, label: locale === "id" ? "Jiwa" : "Soul", title: copy.statMembers, icon: "👥" },
-              { value: stats.lines, label: locale === "id" ? "Dahan" : "Branch", title: copy.statLines, icon: "🌿" },
-              { value: stats.earliestRecord, label: locale === "id" ? "Kala" : "Era", title: copy.statEarliest, icon: "⏳" }
-            ].map((stat, idx) => (
-              <div 
-                key={idx}
-                className="flex items-center gap-2 group select-none cursor-help transition-transform hover:scale-105 duration-200"
-                title={stat.title}
-              >
-                <span className="text-lg opacity-80 group-hover:opacity-100 transition-opacity">{stat.icon}</span>
-                <div className="flex flex-col">
-                  <span className="text-sm font-black text-white leading-none">
-                    {stat.value}
-                  </span>
-                  <span className="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wider mt-0.5">
-                    {stat.label}
-                  </span>
-                </div>
+          {/* Compact stats pill — top right below header */}
+          <div className="fixed top-20 right-6 z-30 pointer-events-none hidden md:block">
+            <div className="rounded-xl border border-[#dccfb3] bg-white/70 px-4 py-2 shadow-sm backdrop-blur-md text-[#5a4d42] text-xs flex items-center gap-3 whitespace-nowrap">
+              <div className="flex items-center gap-1.5" title={copy.statMembers}>
+                <Users className="h-3.5 w-3.5 text-[#82693c]" />
+                <span className="font-bold">{stats.members}</span>
+                <span className="text-[#9c8e7e]">{locale === "id" ? "anggota" : "members"}</span>
               </div>
-            ))}
-
-            <div className="h-8 w-px bg-white/20 self-center hidden sm:block mx-2" />
-
-            {/* Magical Sync Orb */}
-            <div 
-              className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 bg-gradient-to-br shadow-lg transition-transform hover:scale-110 active:scale-95 duration-200 cursor-pointer ${
-                syncStatus === "saving"
-                  ? "from-[#f59e0b] to-[#b45309] border-[#fbbf24] shadow-[0_0_15px_rgba(245,158,11,0.5)]"
-                  : syncStatus === "loading"
-                  ? "from-[#3b82f6] to-[#1d4ed8] border-[#60a5fa] shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-                  : syncStatus === "offline"
-                  ? "from-[#64748b] to-[#334155] border-[#94a3b8] shadow-[0_0_12px_rgba(100,116,139,0.5)]"
-                  : "from-[#10b981] to-[#047857] border-[#34d399] shadow-[0_0_15px_rgba(16,185,129,0.5)]"
-              }`}
-              title={
-                syncStatus === "saving"
-                  ? (locale === "id" ? "Menyimpan memori ke awan..." : "Saving memory...")
-                  : syncStatus === "offline"
-                  ? (locale === "id" ? "Penyimpanan lokal aktif" : "Saved locally")
-                  : (locale === "id" ? "Tersinkronisasi dengan awan" : "Synced with cloud")
-              }
-            >
-              <div className="absolute inset-0 rounded-full border border-white/30 animate-ping opacity-30" />
-              <span className="text-xs">
-                {syncStatus === "saving" ? "⏳" : syncStatus === "loading" ? "🔮" : syncStatus === "offline" ? "💾" : "✨"}
-              </span>
+              <span className="text-[#dccfb3]">·</span>
+              <div className="flex items-center gap-1.5" title={copy.statGenerations}>
+                <Layers3 className="h-3.5 w-3.5 text-[#82693c]" />
+                <span className="font-bold">{stats.generations}</span>
+                <span className="text-[#9c8e7e]">{locale === "id" ? "generasi" : "gen"}</span>
+              </div>
+              <span className="text-[#dccfb3]">·</span>
+              <div className="flex items-center gap-1.5" title={copy.statLines}>
+                <GitBranch className="h-3.5 w-3.5 text-[#82693c]" />
+                <span className="font-bold">{stats.lines}</span>
+                <span className="text-[#9c8e7e]">{locale === "id" ? "cabang" : "branches"}</span>
+              </div>
+              <span className="text-[#dccfb3]">·</span>
+              <div className="flex items-center gap-1.5" title={copy.statEarliest}>
+                <History className="h-3.5 w-3.5 text-[#82693c]" />
+                <span className="font-bold">{stats.earliestRecord}</span>
+              </div>
             </div>
-          </footer>
+          </div>
 
           {selectedNode && (
             <BioModal
@@ -828,7 +795,7 @@ export default function AppHome() {
           />
 
           {notification && (
-            <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full border border-[#b08e51] bg-[rgba(33,22,10,0.92)] px-6 py-3 text-sm font-medium text-white shadow-xl backdrop-blur">
+            <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full border border-[#dccfb3] bg-[#fdfbf6]/95 px-6 py-3 text-sm font-medium text-[#3f342d] shadow-md backdrop-blur">
               {notification}
             </div>
           )}
