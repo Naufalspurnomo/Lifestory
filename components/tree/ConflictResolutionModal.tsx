@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, Clock, X } from "lucide-react";
+import { AlertTriangle, Check, Clock } from "lucide-react";
 import type {
   ConflictInfo,
   ConflictResolution,
