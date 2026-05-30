@@ -49,6 +49,18 @@ If all four pass, you're ready to deploy.
    ```
    This runs `prisma migrate deploy`, which is the non-interactive version of `migrate dev`. Safe to run repeatedly — it skips migrations that are already applied.
 
+## Vercel custom domain
+
+For `lifestory.co.id`, set these Vercel environment variables before redeploying:
+
+```bash
+NEXTAUTH_URL=https://lifestory.co.id
+ALLOWED_ORIGINS=https://lifestory.co.id,https://www.lifestory.co.id
+ALLOWED_HOSTS=lifestory.co.id,www.lifestory.co.id
+```
+
+Do not set `NEXTAUTH_URL` to `localhost` in production, and include `https://`.
+
 ## HTTPS
 
 HTTPS enforcement is delegated to your hosting layer (Vercel handles this automatically; Cloudflare has "Always Use HTTPS"; Nginx uses a 301 redirect). The app does not enforce HTTPS at the framework level because Next's `redirects()` config can't reliably interpolate the request host.

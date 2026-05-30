@@ -6,6 +6,8 @@ const adminOnlyApiPaths = ["/api/users"];
 
 const defaultAllowedOrigins = [
   "http://localhost:3000",
+  "https://lifestory.co.id",
+  "https://www.lifestory.co.id",
   "https://lifestory.id",
   "https://www.lifestory.id",
 ];
@@ -15,6 +17,18 @@ function parseCsvEnv(value?: string): string[] {
   return value
     .split(",")
     .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeOrigins(values: string[]): string[] {
+  return values
+    .map((value) => {
+      try {
+        return new URL(value).origin;
+      } catch {
+        return value;
+      }
+    })
     .filter(Boolean);
 }
 
@@ -44,10 +58,11 @@ export async function middleware(req: NextRequest) {
         ...defaultAllowedOrigins,
         ...parseCsvEnv(process.env.ALLOWED_ORIGINS),
       ];
+      const allowedOrigins = normalizeOrigins(configuredOrigins);
 
       const isSameOrigin = normalizedOrigin === req.nextUrl.origin;
       const isAllowedOrigin =
-        isSameOrigin || configuredOrigins.includes(normalizedOrigin);
+        isSameOrigin || allowedOrigins.includes(normalizedOrigin);
 
       if (!isAllowedOrigin) {
         return NextResponse.json(
