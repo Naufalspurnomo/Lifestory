@@ -3,7 +3,6 @@
 import { useCallback, useRef, useState } from "react";
 import { Download, Upload, FileWarning, Check, AlertCircle } from "lucide-react";
 import {
-  ExportManager,
   downloadTreeJson,
   parseImportText,
 } from "../../lib/sync/ExportManager";
@@ -45,7 +44,6 @@ export default function ExportImportControls({
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importState, setImportState] = useState<ImportState>({ step: "idle" });
-  const [showPanel, setShowPanel] = useState(false);
 
   const handleExport = useCallback(() => {
     if (!tree || tree.nodes.length === 0) {
