@@ -195,7 +195,7 @@ export function NavBar() {
                 pointerEvents: "none",
               }}
             >
-              Preserve Your Legacy
+              {locale === "id" ? "Abadikan Warisanmu" : "Preserve Your Legacy"}
             </span>
           )}
         </div>

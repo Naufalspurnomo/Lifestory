@@ -362,7 +362,7 @@ export default function AboutPage() {
             >
               <Eyebrow icon={<Sparkles className="h-3 w-3" />}>{copy.aboutLabel}</Eyebrow>
               <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.22em] text-brand-600">
-                Preserve Your Legacy
+                {isId ? "Abadikan Warisanmu" : "Preserve Your Legacy"}
               </p>
               <h1 className="mt-3 font-serif font-medium text-[clamp(2.5rem,7vw,5.4rem)] leading-[0.96] tracking-[-0.025em] text-ink-800">
                 {copy.heroTitle}

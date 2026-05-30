@@ -38,7 +38,7 @@ export function Testimonials({ copy }: Props) {
           </p>
         </Reveal>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {copy.items.map((t, i) => (
             <Reveal key={i} delay={i * 0.08}>
               <figure className="group relative h-full overflow-hidden rounded-card-lg border border-cream-300 bg-white p-7 shadow-soft transition duration-500 ease-smooth hover:-translate-y-1 hover:shadow-elev">

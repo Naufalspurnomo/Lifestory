@@ -146,13 +146,13 @@ export function HomeHero({
       {/* TABLET+ — Photo panel takes the right portion */}
       <motion.div
         style={{ y: imageY, scale: imageScale }}
-        className="absolute right-0 top-0 hidden h-full will-change-transform md:block md:min-h-[640px] md:w-[62%] lg:min-h-[760px] lg:w-[70%]"
+        className="absolute right-0 top-0 hidden h-full will-change-transform md:block md:min-h-[640px] md:w-[55%] lg:min-h-[760px] lg:w-[70%]"
       >
         <Image
           src="/image/home-cover.webp"
           alt="Family sharing stories together"
           fill
-          sizes="(max-width: 768px) 0px, (max-width: 1024px) 62vw, 70vw"
+          sizes="(max-width: 768px) 0px, (max-width: 1024px) 55vw, 70vw"
           className="object-cover object-[20%_center]"
           priority
           quality={90}
@@ -171,15 +171,31 @@ export function HomeHero({
           background: `linear-gradient(
             to right,
             #ffffff 0%,
-            #ffffff 28%,
-            #fdfaf6 33%,
-            #f8f2eb 37%,
-            rgba(245,239,232,0.85) 41%,
-            rgba(245,239,232,0.6) 46%,
-            rgba(245,239,232,0.35) 51%,
-            rgba(245,239,232,0.15) 56%,
-            rgba(245,239,232,0.05) 62%,
-            transparent 68%
+            #ffffff 35%,
+            #fdfaf6 40%,
+            #f8f2eb 44%,
+            rgba(245,239,232,0.88) 48%,
+            rgba(245,239,232,0.7) 52%,
+            rgba(245,239,232,0.45) 57%,
+            rgba(245,239,232,0.2) 63%,
+            rgba(245,239,232,0.08) 70%,
+            transparent 78%
+          )`,
+        }}
+      />
+      {/* Extra gradient layer for tablet only — stronger coverage */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 hidden md:block lg:hidden"
+        style={{
+          background: `linear-gradient(
+            to right,
+            #ffffff 0%,
+            #ffffff 42%,
+            rgba(255,255,255,0.9) 50%,
+            rgba(255,255,255,0.6) 58%,
+            rgba(255,255,255,0.2) 68%,
+            transparent 80%
           )`,
         }}
       />
@@ -195,7 +211,7 @@ export function HomeHero({
         className="relative mx-auto flex w-full min-w-0 max-w-[1320px] flex-col justify-center px-4 pt-24 pb-16 sm:px-6 md:pt-32 md:pb-36 lg:h-full lg:min-h-[760px] lg:pt-32 lg:pb-32 xl:pt-36 xl:pb-36"
       >
         {/* LEFT — Editorial copy. On mobile this becomes a translucent card so the photo behind it stays visible. */}
-        <div className="relative z-10 flex min-w-0 w-full max-w-full flex-col justify-center rounded-card-lg border border-white/70 bg-white/80 p-5 shadow-elev backdrop-blur-md sm:p-6 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none md:max-w-[48%] lg:max-w-[46%] xl:max-w-[43%]">
+        <div className="relative z-10 flex min-w-0 w-full max-w-full flex-col justify-center rounded-card-lg border border-white/70 bg-white/80 p-5 shadow-elev backdrop-blur-md sm:p-6 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none md:max-w-[56%] lg:max-w-[46%] xl:max-w-[43%]">
           <div className="mb-4 flex flex-wrap items-center gap-2.5 md:mb-5 md:gap-3">
             {isLoggedIn && (
               <motion.span
@@ -210,7 +226,7 @@ export function HomeHero({
             )}
           </div>
 
-          <h1 className="w-full max-w-full font-serif font-medium leading-[1.02] tracking-normal text-ink-800 text-[2.1rem] sm:text-[3rem] md:text-[3.25rem] lg:text-[3.55rem] xl:text-[4rem] 2xl:text-[4.2rem]">
+          <h1 className="w-full max-w-full font-serif font-medium leading-[1.02] tracking-normal text-ink-800 text-[2.1rem] sm:text-[2.6rem] md:text-[2.75rem] lg:text-[3.55rem] xl:text-[4rem] 2xl:text-[4.2rem]">
             {/* Line 1: prefix + word rotator */}
             <span className="block">
               <SplitWords text={copy.headlineLine1} delay={0.05} />

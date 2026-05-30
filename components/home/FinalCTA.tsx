@@ -32,7 +32,7 @@ export function FinalCTA({ copy, primaryHref, secondaryHref }: Props) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: reduced ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden rounded-[36px] border border-ink-800/30 bg-gradient-to-br from-ink-900 via-ink-800 to-brand-800 px-8 py-14 text-white shadow-deep md:px-16 md:py-20"
+          className="relative overflow-hidden rounded-[36px] border border-ink-800/30 bg-gradient-to-br from-ink-900 via-ink-800 to-brand-800 px-8 py-14 text-white shadow-deep md:px-12 md:py-16 lg:px-16 lg:py-20"
         >
           <div aria-hidden className="pointer-events-none absolute inset-0">
             <div className="absolute -left-20 -top-20 h-80 w-80 rounded-full bg-brand-400/20 blur-3xl" />
@@ -44,7 +44,7 @@ export function FinalCTA({ copy, primaryHref, secondaryHref }: Props) {
             />
           </div>
 
-          <div className="relative grid gap-10 md:grid-cols-[1.4fr_1fr] md:items-center">
+          <div className="relative grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-center">
             <div>
               <Eyebrow tone="white" icon={<Sparkles className="h-3 w-3" />}>
                 {copy.eyebrow}
@@ -57,8 +57,8 @@ export function FinalCTA({ copy, primaryHref, secondaryHref }: Props) {
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 md:items-end">
-              <Link href={primaryHref} className="w-full md:w-auto">
+            <div className="flex flex-col gap-3 lg:items-end">
+              <Link href={primaryHref} className="w-full lg:w-auto">
                 <Button
                   size="lg"
                   block
@@ -68,7 +68,7 @@ export function FinalCTA({ copy, primaryHref, secondaryHref }: Props) {
                   {copy.primaryCta}
                 </Button>
               </Link>
-              <Link href={secondaryHref} className="w-full md:w-auto">
+              <Link href={secondaryHref} className="w-full lg:w-auto">
                 <Button
                   size="lg"
                   variant="ghost"
