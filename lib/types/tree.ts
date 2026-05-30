@@ -73,6 +73,7 @@ export type TreeData = {
   id: string;
   name: string;
   ownerId: string;
+  version?: number;
   nodes: FamilyNode[];
   createdAt: string;
   updatedAt: string;

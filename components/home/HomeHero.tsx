@@ -116,7 +116,7 @@ export function HomeHero({
   return (
     <section
       ref={ref}
-      className="relative min-h-[100svh] overflow-hidden bg-white lg:min-h-[760px]"
+      className="relative min-h-[100svh] overflow-hidden bg-white md:min-h-0 md:h-auto lg:min-h-[760px]"
     >
       {/* MOBILE — full-bleed background image */}
       <motion.div
@@ -146,7 +146,7 @@ export function HomeHero({
       {/* TABLET+ — Photo panel takes the right portion */}
       <motion.div
         style={{ y: imageY, scale: imageScale }}
-        className="absolute right-0 top-0 hidden h-full will-change-transform md:block md:min-h-[640px] md:w-[55%] lg:min-h-[760px] lg:w-[70%]"
+        className="absolute right-0 top-0 hidden h-full will-change-transform md:block md:w-[50%] lg:w-[70%]"
       >
         <Image
           src="/image/home-cover.webp"
@@ -208,10 +208,10 @@ export function HomeHero({
 
       <motion.div
         style={{ y: heroY }}
-        className="relative mx-auto flex w-full min-w-0 max-w-[1320px] flex-col justify-center px-4 pt-24 pb-16 sm:px-6 md:pt-32 md:pb-36 lg:h-full lg:min-h-[760px] lg:pt-32 lg:pb-32 xl:pt-36 xl:pb-36"
+        className="relative mx-auto flex w-full min-w-0 max-w-[1320px] flex-col justify-center px-4 pt-24 pb-16 sm:px-6 md:py-20 lg:h-full lg:min-h-[760px] lg:pt-32 lg:pb-32 xl:pt-36 xl:pb-36"
       >
         {/* LEFT — Editorial copy. On mobile this becomes a translucent card so the photo behind it stays visible. */}
-        <div className="relative z-10 flex min-w-0 w-full max-w-full flex-col justify-center rounded-card-lg border border-white/70 bg-white/80 p-5 shadow-elev backdrop-blur-md sm:p-6 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none md:max-w-[56%] lg:max-w-[46%] xl:max-w-[43%]">
+        <div className="relative z-10 flex min-w-0 w-full max-w-full flex-col justify-center rounded-card-lg border border-white/70 bg-white/80 p-5 shadow-elev backdrop-blur-md sm:p-6 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none md:max-w-[54%] lg:max-w-[46%] xl:max-w-[43%]">
           <div className="mb-4 flex flex-wrap items-center gap-2.5 md:mb-5 md:gap-3">
             {isLoggedIn && (
               <motion.span
@@ -343,15 +343,16 @@ export function HomeHero({
               ))}
             </ul>
 
-            {/* Tablet+: original pill row */}
-            <div className="hidden flex-wrap gap-2 md:flex">
+            {/* Tablet+: italic text with vertical dividers | A | B | C | D | */}
+            <div className="hidden items-center md:flex">
+              <span className="h-4 w-px bg-ink-300/50" aria-hidden />
               {[copy.badge1, copy.badge2, copy.badge3, copy.badge4].map((b) => (
-                <span
-                  key={b}
-                  className="rounded-pill border border-cream-300 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-500 backdrop-blur-sm"
-                >
-                  {b}
-                </span>
+                <Fragment key={b}>
+                  <span className="px-3 text-[11px] font-medium italic tracking-wide text-ink-500">
+                    {b}
+                  </span>
+                  <span className="h-4 w-px bg-ink-300/50" aria-hidden />
+                </Fragment>
               ))}
             </div>
           </motion.div>

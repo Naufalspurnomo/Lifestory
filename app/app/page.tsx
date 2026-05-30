@@ -13,9 +13,10 @@ import InviteModal from "../../components/tree/InviteModal";
 import ImportModal from "../../components/tree/ImportModal";
 import SearchBar from "../../components/tree/SearchBar";
 import TimelineView from "../../components/tree/TimelineView";
+import SyncStatusIndicator from "../../components/tree/SyncStatusIndicator";
 import { useTreeState } from "../../lib/hooks/useTreeState";
 import { useLanguage } from "../../components/providers/LanguageProvider";
-import { exportFamilyTreeToExcel } from "../../lib/utils/excelParser";
+import { downloadTreeJson } from "../../lib/sync/ExportManager";
 
 import type { FamilyNode } from "../../lib/types/tree";
 
@@ -110,6 +111,8 @@ export default function AppHome() {
     getNode,
     importNodes,
     syncStatus,
+    syncStatusInfo,
+    retrySync,
     undo,
     redo,
     canUndo,
@@ -336,13 +339,13 @@ export default function AppHome() {
     }
 
     try {
-      exportFamilyTreeToExcel(currentTree, locale);
+      downloadTreeJson(currentTree);
       showNotification(copy.notifExported(currentTree.nodes.length));
     } catch (error) {
       console.error("Failed to export tree:", error);
       showNotification(copy.notifExportFailed);
     }
-  }, [copy, currentTree, locale, showNotification]);
+  }, [copy, currentTree, showNotification]);
 
   const stats = {
     generations: 0,
@@ -402,15 +405,6 @@ export default function AppHome() {
 
       {showTree && (
         <>
-          {/* Hanging Banner */}
-          <div className="fixed left-4 top-0 z-50 pointer-events-none transition-transform duration-200">
-            <img 
-              src="/brand/royal_phoenix_banner.png" 
-              alt="Royal Banner" 
-              className="w-14 sm:w-16 h-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.45)]" 
-            />
-          </div>
-
           {/* HUD HEADER */}
           <header 
             className="fixed top-0 left-0 right-0 h-16 text-[#e8d5b5] border-b-2 border-[#d4af37]/60 z-40 flex items-center justify-between pl-6 sm:pl-8 pr-6 shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
@@ -475,6 +469,14 @@ export default function AppHome() {
 
             {/* Sisi Kanan: Operasi & Profil Lord */}
             <div className="flex items-center gap-3">
+              <div className="hidden xl:block">
+                <SyncStatusIndicator
+                  status={syncStatusInfo}
+                  onRetry={() => {
+                    void retrySync();
+                  }}
+                />
+              </div>
               <div className="hidden lg:flex items-center gap-2 px-2 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
                 {[
                   { label: copy.invite, onClick: () => setShowInviteModal(true), icon: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8 12 3 7 8 M12 3v12" },
@@ -510,6 +512,15 @@ export default function AppHome() {
               </div>
             </div>
           </header>
+
+          <div className="fixed left-4 top-20 z-50 xl:hidden">
+            <SyncStatusIndicator
+              status={syncStatusInfo}
+              onRetry={() => {
+                void retrySync();
+              }}
+            />
+          </div>
 
           {/* MAIN CANVAS */}
           <main className="flex-1 w-full h-full relative overflow-hidden mt-16">

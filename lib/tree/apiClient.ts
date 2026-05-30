@@ -7,6 +7,7 @@ export type TreeSummary = {
   id: string;
   name: string;
   ownerId: string;
+  version?: number;
   createdAt: string;
   updatedAt: string;
 };

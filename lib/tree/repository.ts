@@ -59,6 +59,7 @@ export async function listTreesForUser(userId: string) {
       id: true,
       name: true,
       ownerId: true,
+      version: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -114,6 +115,7 @@ export async function getTreeForUser(
     id: tree.id,
     name: tree.name,
     ownerId: tree.ownerId,
+    version: tree.version,
     nodes: familyNodes,
     createdAt: tree.createdAt.toISOString(),
     updatedAt: tree.updatedAt.toISOString(),
@@ -135,6 +137,7 @@ export async function createTreeForUser(
     id: tree.id,
     name: tree.name,
     ownerId: tree.ownerId,
+    version: tree.version,
     nodes: [],
     createdAt: tree.createdAt.toISOString(),
     updatedAt: tree.updatedAt.toISOString(),
@@ -207,4 +210,146 @@ export async function deleteTree(treeId: string, userId: string) {
     throw new TreeAccessError("Only the owner can delete");
 
   await prisma.tree.delete({ where: { id: treeId } });
+}
+
+export async function applyTreeMutations(
+  treeId: string,
+  userId: string,
+  clientVersion: number,
+  mutations: Array<{
+    seqNo: number;
+    type: "add" | "update" | "delete";
+    nodeId: string;
+    payload: FamilyNode | null;
+  }>
+): Promise<{ newVersion: number; acknowledgedSeqNos: number[] }> {
+  await assertMembership(treeId, userId, true);
+
+  return prisma.$transaction(async (tx) => {
+    const tree = await tx.tree.findUnique({
+      where: { id: treeId },
+      select: { version: true },
+    });
+    if (!tree) throw new TreeAccessError("Tree not found", 404);
+    if (tree.version !== clientVersion) {
+      throw new VersionConflictError(tree.version);
+    }
+
+    const [nodes, edges] = await Promise.all([
+      tx.node.findMany({ where: { treeId } }),
+      tx.edge.findMany({ where: { treeId } }),
+    ]);
+
+    const currentNodes = deserializeRowsToTree({
+      nodes: nodes.map((n) => ({
+        id: n.id,
+        label: n.label,
+        sex: n.sex,
+        birthYear: n.birthYear,
+        deathYear: n.deathYear,
+        line: n.line,
+        imageUrl: n.imageUrl,
+        description: n.description,
+        media: n.media,
+        works: n.works,
+        socialInstagram: n.socialInstagram,
+        socialTiktok: n.socialTiktok,
+        socialLinkedin: n.socialLinkedin,
+        generationCached: n.generationCached,
+      })),
+      edges: edges.map((e) => ({
+        fromId: e.fromId,
+        toId: e.toId,
+        kind: e.kind as DbEdge["kind"],
+        startYear: e.startYear,
+        endYear: e.endYear,
+      })),
+    });
+
+    const byId = new Map(currentNodes.map((node) => [node.id, node]));
+    const ordered = [...mutations].sort((a, b) => a.seqNo - b.seqNo);
+
+    for (const mutation of ordered) {
+      if (mutation.type === "delete") {
+        byId.delete(mutation.nodeId);
+        for (const node of byId.values()) {
+          node.parentIds = (node.parentIds || []).filter(
+            (id) => id !== mutation.nodeId
+          );
+          node.parentId =
+            node.parentId === mutation.nodeId ? node.parentIds[0] ?? null : node.parentId;
+          node.adoptiveParentIds = (node.adoptiveParentIds || []).filter(
+            (id) => id !== mutation.nodeId
+          );
+          node.partners = (node.partners || []).filter(
+            (id) => id !== mutation.nodeId
+          );
+          node.childrenIds = (node.childrenIds || []).filter(
+            (id) => id !== mutation.nodeId
+          );
+        }
+      } else if (mutation.payload) {
+        byId.set(mutation.nodeId, mutation.payload);
+      }
+    }
+
+    const snapshot = serializeTreeToRows(Array.from(byId.values()));
+
+    await tx.edge.deleteMany({ where: { treeId } });
+    await tx.node.deleteMany({ where: { treeId } });
+
+    if (snapshot.nodes.length > 0) {
+      await tx.node.createMany({
+        data: snapshot.nodes.map((n) => ({
+          id: n.id,
+          treeId,
+          label: n.label,
+          sex: n.sex,
+          birthYear: n.birthYear,
+          deathYear: n.deathYear,
+          line: n.line,
+          imageUrl: n.imageUrl,
+          description: n.description,
+          media: n.media as any,
+          works: n.works as any,
+          socialInstagram: n.socialInstagram,
+          socialTiktok: n.socialTiktok,
+          socialLinkedin: n.socialLinkedin,
+          generationCached: n.generationCached,
+        })),
+      });
+    }
+
+    if (snapshot.edges.length > 0) {
+      await tx.edge.createMany({
+        data: snapshot.edges.map((e) => ({
+          treeId,
+          fromId: e.fromId,
+          toId: e.toId,
+          kind: e.kind,
+          startYear: e.startYear ?? null,
+          endYear: e.endYear ?? null,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    const updatedTree = await tx.tree.update({
+      where: { id: treeId },
+      data: { version: { increment: 1 }, updatedAt: new Date() },
+      select: { version: true },
+    });
+
+    return {
+      newVersion: updatedTree.version,
+      acknowledgedSeqNos: ordered.map((mutation) => mutation.seqNo),
+    };
+  });
+}
+
+export class VersionConflictError extends Error {
+  constructor(public readonly currentVersion: number) {
+    super("Tree version conflict");
+    this.name = "VersionConflictError";
+  }
 }

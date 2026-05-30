@@ -50,6 +50,7 @@ model Tree {
   id        String   @id @default(cuid())
   name      String
   ownerId   String
+  version   Int      @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -57,8 +58,22 @@ model Tree {
   nodes       Node[]
   edges       Edge[]
   memberships TreeMember[]
+  snapshots   TreeSnapshot[]
 
   @@index([ownerId])
+}
+
+model TreeSnapshot {
+  id        String   @id @default(cuid())
+  treeId    String
+  version   Int
+  nodeCount Int
+  data      Json
+  createdAt DateTime @default(now())
+
+  tree Tree @relation(fields: [treeId], references: [id], onDelete: Cascade)
+
+  @@index([treeId, createdAt])
 }
 
 // Join table: each tree can have multiple collaborators beyond the owner.

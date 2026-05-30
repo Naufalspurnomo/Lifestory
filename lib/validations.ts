@@ -181,6 +181,21 @@ export const treeNodesPayloadSchema = z.object({
   nodes: familyTreeNodesSchema,
 });
 
+export const treeSyncPayloadSchema = z.object({
+  clientVersion: z.number().int().positive(),
+  mutations: z
+    .array(
+      z.object({
+        seqNo: z.number().int().positive(),
+        type: z.enum(["add", "update", "delete"]),
+        nodeId: nodeIdSchema,
+        payload: familyNodeSchema.nullable(),
+      })
+    )
+    .min(1, "At least one mutation is required")
+    .max(250, "A sync batch can contain at most 250 mutations"),
+});
+
 export const inviteCreateSchema = z.object({
   treeName: z.string().trim().min(1, "treeName is required").max(120),
   treeData: z

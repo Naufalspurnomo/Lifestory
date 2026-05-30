@@ -21,6 +21,8 @@ import {
   saveTreeNodes,
   TreeApiError,
 } from "../tree/apiClient";
+import { useSyncEngine } from "../sync/useSyncEngine";
+import type { Mutation } from "../sync/types";
 
 const MAX_HISTORY = 50;
 
@@ -218,6 +220,47 @@ function recomputeAllGenerations(nodes: FamilyNode[]) {
   }));
 }
 
+function stripRuntimeNodeFields(node: FamilyNode): FamilyNode {
+  const { x, y, ...persisted } = node;
+  void x;
+  void y;
+  return persisted;
+}
+
+function samePersistedNode(a: FamilyNode, b: FamilyNode): boolean {
+  return JSON.stringify(stripRuntimeNodeFields(a)) === JSON.stringify(stripRuntimeNodeFields(b));
+}
+
+function buildNodeMutations(
+  before: FamilyNode[],
+  after: FamilyNode[]
+): Mutation[] {
+  const previous = new Map(before.map((node) => [node.id, node]));
+  const next = new Map(after.map((node) => [node.id, node]));
+  const mutations: Mutation[] = [];
+
+  for (const node of after) {
+    const existing = previous.get(node.id);
+    if (!existing) {
+      mutations.push({ type: "add", nodeId: node.id, payload: stripRuntimeNodeFields(node) });
+    } else if (!samePersistedNode(existing, node)) {
+      mutations.push({
+        type: "update",
+        nodeId: node.id,
+        payload: stripRuntimeNodeFields(node),
+      });
+    }
+  }
+
+  for (const node of before) {
+    if (!next.has(node.id)) {
+      mutations.push({ type: "delete", nodeId: node.id, payload: null });
+    }
+  }
+
+  return mutations;
+}
+
 // ----------------------------
 
 export function useTreeState(userId: string, userName: string) {
@@ -230,19 +273,37 @@ export function useTreeState(userId: string, userName: string) {
   });
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [syncStatus, setSyncStatus] = useState<
+  const [loadStatus, setLoadStatus] = useState<
     "idle" | "loading" | "saving" | "offline" | "error"
   >("idle");
 
-  // Pending-save coalescer: multiple rapid edits are batched into a single PUT.
-  const pendingSaveRef = useRef<{
-    treeId: string;
-    nodes: FamilyNode[];
-  } | null>(null);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // C6: Guard against concurrent createTreeApi calls from both createTree()
-  // fire-and-forget and the debounced-save 404 fallback.
+  const treesRef = useRef<TreeData[]>([]);
+  // C6: Guard against concurrent createTreeApi calls from createTree().
   const createInFlightRef = useRef(false);
+  const syncEngine = useSyncEngine(userId, {
+    getTreeNodes: (treeId) =>
+      treesRef.current.find((tree) => tree.id === treeId)?.nodes ?? null,
+    onAuthRequired: () =>
+      setSaveError(
+        "Sesi berakhir. Perubahan tersimpan lokal dan akan disinkronkan setelah login ulang."
+      ),
+    onConflict: () =>
+      setSaveError(
+        "Pohon ini berubah dari perangkat lain. Selesaikan konflik sebelum sinkronisasi dilanjutkan."
+      ),
+    onCorruption: (errors) => setSaveError(errors.join("; ")),
+  });
+  const {
+    status: syncStatusInfo,
+    enqueueMany,
+    retryFailed,
+    forceSync,
+    setLastSyncedVersion,
+  } = syncEngine;
+
+  useEffect(() => {
+    treesRef.current = trees;
+  }, [trees]);
 
   // Load: try API first, fall back to localStorage.
   useEffect(() => {
@@ -270,7 +331,7 @@ export function useTreeState(userId: string, userName: string) {
 
       // Then try to pull authoritative data from the server.
       if (!userId) return;
-      setSyncStatus("loading");
+      setLoadStatus("loading");
       try {
         const summaries = await listTrees();
         if (cancelled) return;
@@ -278,7 +339,7 @@ export function useTreeState(userId: string, userName: string) {
         if (summaries.length === 0) {
           // No server-side tree yet. Keep local-only state; a create call will
           // provision one later.
-          setSyncStatus("idle");
+          setLoadStatus("idle");
           return;
         }
 
@@ -298,15 +359,16 @@ export function useTreeState(userId: string, userName: string) {
         });
         setCurrentTreeId(hydrated.id);
         setHistory({ past: [], present: hydrated.nodes, future: [] });
-        setSyncStatus("idle");
+        void setLastSyncedVersion(hydrated.id, fullTree.version ?? 1);
+        setLoadStatus("idle");
       } catch (error) {
         if (cancelled) return;
         if (error instanceof TreeApiError && error.status === 401) {
           // Not logged in (e.g. page loaded before NextAuth session). Silently
           // stay in local-only mode.
-          setSyncStatus("offline");
+          setLoadStatus("offline");
         } else {
-          setSyncStatus("offline");
+          setLoadStatus("offline");
         }
       }
     };
@@ -315,9 +377,10 @@ export function useTreeState(userId: string, userName: string) {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [setLastSyncedVersion, userId]);
 
-  // Persist: write to localStorage synchronously, and debounce a server sync.
+  // Persist the display cache synchronously. Authoritative server sync is handled
+  // by the WAL-backed SyncEngine from each mutation path below.
   useEffect(() => {
     if (trees.length === 0) return;
 
@@ -326,64 +389,7 @@ export function useTreeState(userId: string, userName: string) {
     else setSaveError(null);
     setStorageInfo(checkStorageQuota());
 
-    if (!currentTreeId) return;
-    const current = trees.find((t) => t.id === currentTreeId);
-    if (!current) return;
-
-    // Only sync user's own trees to server (membership-based sync can come later).
-    if (current.ownerId && current.ownerId !== userId) return;
-
-    pendingSaveRef.current = {
-      treeId: current.id,
-      nodes: current.nodes,
-    };
-
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(async () => {
-      const pending = pendingSaveRef.current;
-      if (!pending) return;
-      setSyncStatus("saving");
-      try {
-        await saveTreeNodes(pending.treeId, pending.nodes);
-        setSyncStatus("idle");
-      } catch (error) {
-        if (error instanceof TreeApiError && error.status === 404) {
-          // Tree exists locally but not on the server — create it there.
-          // C6: Skip if createTree's fire-and-forget is already in-flight.
-          if (createInFlightRef.current) {
-            setSyncStatus("idle");
-            return;
-          }
-          try {
-            createInFlightRef.current = true;
-            const created = await createTreeApi(current.name);
-            await saveTreeNodes(created.id, pending.nodes);
-            setTrees((prev) =>
-              prev.map((t) =>
-                t.id === current.id
-                  ? { ...t, id: created.id, ownerId: created.ownerId }
-                  : t
-              )
-            );
-            setCurrentTreeId(created.id);
-            setSyncStatus("idle");
-          } catch {
-            setSyncStatus("offline");
-          } finally {
-            createInFlightRef.current = false;
-          }
-          return;
-        }
-        setSyncStatus("offline");
-      }
-    }, 600);
-
-    return () => {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-    };
-  }, [trees, currentTreeId, userId]);
+  }, [trees]);
 
   const currentTree = trees.find((t) => t.id === currentTreeId) || null;
   const userTree = trees.find((t) => t.ownerId === userId) || null;
@@ -404,6 +410,23 @@ export function useTreeState(userId: string, userName: string) {
       future: [],
     }));
   }, []);
+
+  const queueNodeMutations = useCallback(
+    (treeId: string, before: FamilyNode[], after: FamilyNode[]) => {
+      if (treeId.startsWith("tree-")) return;
+      const mutations = buildNodeMutations(before, after);
+      if (mutations.length === 0) return;
+
+      void enqueueMany(treeId, mutations).catch((error) => {
+        setSaveError(
+          error instanceof Error
+            ? error.message
+            : "Perubahan belum bisa disimpan ke antrian lokal."
+        );
+      });
+    },
+    [enqueueMany]
+  );
 
   // Create initial tree
   const createTree = useCallback(() => {
@@ -439,31 +462,38 @@ export function useTreeState(userId: string, userName: string) {
     setCurrentTreeId(treeId);
     setHistory({ past: [], present: [rootNode], future: [] });
 
-    // Fire-and-forget: try to create on the server immediately. Failure is
-    // non-fatal — the debounced save will retry when the first edit lands.
+    // Non-fatal; local cache and WAL keep edits available for the next retry.
     createInFlightRef.current = true;
     createTreeApi(newTree.name)
       .then((created) => {
+        const latestNodes =
+          treesRef.current.find((tree) => tree.id === treeId)?.nodes ?? [rootNode];
         setTrees((prev) =>
           prev.map((t) =>
             t.id === treeId
-              ? { ...t, id: created.id, ownerId: created.ownerId }
+              ? {
+                  ...t,
+                  id: created.id,
+                  ownerId: created.ownerId,
+                  version: created.version,
+                }
               : t
           )
         );
         setCurrentTreeId(created.id);
-        // Push the seed root node to the server.
-        return saveTreeNodes(created.id, [rootNode]);
+        void setLastSyncedVersion(created.id, created.version ?? 1);
+        // Push the latest local tree state to the server.
+        return saveTreeNodes(created.id, latestNodes);
       })
       .catch(() => {
-        setSyncStatus("offline");
+        setLoadStatus("offline");
       })
       .finally(() => {
         createInFlightRef.current = false;
       });
 
     return newTree;
-  }, [userId, userName]);
+  }, [setLastSyncedVersion, userId, userName]);
 
   // Add node (fixed relationships)
   const addNode = useCallback(
@@ -537,6 +567,7 @@ export function useTreeState(userId: string, userName: string) {
       const finalNewNode = updatedNodes.find((n) => n.id === newNodeId)!;
 
       pushHistory(updatedNodes);
+      queueNodeMutations(currentTree.id, currentTree.nodes, updatedNodes);
 
       setTrees((prev) =>
         prev.map((t) =>
@@ -548,7 +579,7 @@ export function useTreeState(userId: string, userName: string) {
 
       return { success: true, node: finalNewNode };
     },
-    [currentTree, currentTreeId, pushHistory]
+    [currentTree, currentTreeId, pushHistory, queueNodeMutations]
   );
 
   const updateNode = useCallback(
@@ -566,6 +597,7 @@ export function useTreeState(userId: string, userName: string) {
       updatedNodes = recomputeAllGenerations(updatedNodes);
 
       pushHistory(updatedNodes);
+      queueNodeMutations(currentTree.id, currentTree.nodes, updatedNodes);
 
       setTrees((prev) =>
         prev.map((t) =>
@@ -575,7 +607,7 @@ export function useTreeState(userId: string, userName: string) {
         )
       );
     },
-    [currentTree, currentTreeId, pushHistory]
+    [currentTree, currentTreeId, pushHistory, queueNodeMutations]
   );
 
   const updateNodes = useCallback(
@@ -594,6 +626,7 @@ export function useTreeState(userId: string, userName: string) {
       updatedNodes = recomputeAllGenerations(updatedNodes);
 
       pushHistory(updatedNodes);
+      queueNodeMutations(currentTree.id, currentTree.nodes, updatedNodes);
 
       setTrees((prev) =>
         prev.map((t) =>
@@ -603,7 +636,7 @@ export function useTreeState(userId: string, userName: string) {
         )
       );
     },
-    [currentTree, currentTreeId, pushHistory]
+    [currentTree, currentTreeId, pushHistory, queueNodeMutations]
   );
 
   const deleteNode = useCallback(
@@ -664,6 +697,7 @@ export function useTreeState(userId: string, userName: string) {
       updatedNodes = recomputeAllGenerations(updatedNodes);
 
       pushHistory(updatedNodes);
+      queueNodeMutations(currentTree.id, currentTree.nodes, updatedNodes);
 
       setTrees((prev) =>
         prev.map((t) =>
@@ -673,7 +707,7 @@ export function useTreeState(userId: string, userName: string) {
         )
       );
     },
-    [currentTree, currentTreeId, pushHistory]
+    [currentTree, currentTreeId, pushHistory, queueNodeMutations]
   );
 
   const undo = useCallback(() => {
@@ -688,6 +722,10 @@ export function useTreeState(userId: string, userName: string) {
       future: [history.present, ...history.future],
     });
 
+    if (currentTree) {
+      queueNodeMutations(currentTree.id, history.present, previous);
+    }
+
     setTrees((prev) =>
       prev.map((t) =>
         t.id === currentTreeId
@@ -695,7 +733,7 @@ export function useTreeState(userId: string, userName: string) {
           : t
       )
     );
-  }, [history, currentTreeId]);
+  }, [currentTree, history, currentTreeId, queueNodeMutations]);
 
   const redo = useCallback(() => {
     if (history.future.length === 0) return;
@@ -709,6 +747,10 @@ export function useTreeState(userId: string, userName: string) {
       future: newFuture,
     });
 
+    if (currentTree) {
+      queueNodeMutations(currentTree.id, history.present, next);
+    }
+
     setTrees((prev) =>
       prev.map((t) =>
         t.id === currentTreeId
@@ -716,7 +758,7 @@ export function useTreeState(userId: string, userName: string) {
           : t
       )
     );
-  }, [history, currentTreeId]);
+  }, [currentTree, history, currentTreeId, queueNodeMutations]);
 
   const importNodes = useCallback(
     (nodes: FamilyNode[]) => {
@@ -727,6 +769,7 @@ export function useTreeState(userId: string, userName: string) {
       importedNodes = recomputeAllGenerations(importedNodes);
 
       pushHistory(importedNodes);
+      queueNodeMutations(currentTree.id, currentTree.nodes, importedNodes);
 
       setTrees((prev) =>
         prev.map((t) =>
@@ -736,7 +779,7 @@ export function useTreeState(userId: string, userName: string) {
         )
       );
     },
-    [currentTree, currentTreeId, pushHistory]
+    [currentTree, currentTreeId, pushHistory, queueNodeMutations]
   );
 
   const getNode = useCallback(
@@ -745,6 +788,17 @@ export function useTreeState(userId: string, userName: string) {
     },
     [currentTree]
   );
+
+  const legacySyncStatus =
+    loadStatus === "loading"
+      ? "loading"
+      : syncStatusInfo.status === "syncing"
+      ? "saving"
+      : syncStatusInfo.status === "offline"
+      ? "offline"
+      : syncStatusInfo.status === "error"
+      ? "error"
+      : "idle";
 
   return {
     trees,
@@ -756,7 +810,10 @@ export function useTreeState(userId: string, userName: string) {
     history,
     storageInfo,
     saveError,
-    syncStatus,
+    syncStatus: legacySyncStatus,
+    syncStatusInfo,
+    retrySync: retryFailed,
+    forceSync,
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,
     createTree,
