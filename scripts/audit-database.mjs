@@ -9,6 +9,7 @@ const relevantTables = new Set([
   "TreeInvite",
   "TreeSnapshot",
   "TreeSyncReceipt",
+  "_prisma_migrations",
 ]);
 const requiredColumns = new Set([
   "User.sessionVersion",
