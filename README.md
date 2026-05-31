@@ -22,7 +22,7 @@ Lifestory is a full-stack web application that helps families preserve their her
 ### What It Does
 
 - **Interactive Family Tree** — Canvas-based visualization with Sugiyama layout algorithm, supporting unlimited generations, multiple family lines, and real-time editing
-- **Offline-First Sync Engine** — Write-Ahead Log (IndexedDB), automatic retry with exponential backoff, version-vector conflict detection, and field-level resolution
+- **Offline-First Sync Engine** — Write-Ahead Log (IndexedDB), automatic retry with exponential backoff, optimistic-version conflict detection, and idempotent replay
 - **Multi-User Collaboration** — Invite family members with role-based access (owner / editor / viewer), shared editing across devices
 - **Biography Gallery** — Curated memoir collections with PDF reader, photo archives, and rich biographical content
 - **Server-Side Backups** — Automatic snapshots on every write, point-in-time restore, rolling retention of 50 versions per tree
@@ -140,7 +140,7 @@ Edit `.env` with your values:
 ```env
 # Database (PostgreSQL / Supabase)
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:6543/postgres?pgbouncer=true&connection_limit=1"
-DIRECT_URL="postgresql://USER:PASSWORD@HOST:5432/postgres"
+DIRECT_URL="postgresql://USER.PROJECT_REF:PASSWORD@POOLER_HOST:5432/postgres"
 
 # Authentication
 NEXTAUTH_SECRET="your-random-32-char-string"
@@ -210,7 +210,8 @@ npm start
 
 ### Sync Engine (Offline-First)
 
-The sync engine guarantees **zero data loss** regardless of network conditions:
+The sync engine is designed to protect edits across normal network failures
+without making an absolute zero-data-loss claim:
 
 ```
 User Edit → WAL (IndexedDB) → Debounced Flush → Server API
@@ -221,10 +222,14 @@ User Edit → WAL (IndexedDB) → Debounced Flush → Server API
                                     └── Offline → Queue until online
 ```
 
-- **Write-Ahead Log**: Every mutation persisted to IndexedDB before in-memory state updates
+- **Write-Ahead Log**: Mutations are queued locally and stay visible as pending until the server acknowledges them
 - **Automatic Retry**: Exponential backoff (1s → 60s max) with ±500ms jitter
-- **Conflict Detection**: Server-side version vectors, field-level diff, auto-merge for non-overlapping edits
+- **Conflict Detection**: Server-side optimistic versions, change receipts, and auto-rebase for non-overlapping edits
 - **Graceful Degradation**: IndexedDB → localStorage (50 mutations) → in-memory (last resort)
+
+A true same-field collaborative conflict is preserved locally and pauses
+autosave until it is deliberately resolved. Do not market Google Docs-style
+real-time collaboration yet.
 
 ### Family Tree Canvas
 

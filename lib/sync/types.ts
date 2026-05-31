@@ -12,6 +12,7 @@ export type Mutation = {
 };
 
 export type SyncBatch = {
+  batchId: string;
   treeId: string;
   clientVersion: number;
   mutations: Array<{

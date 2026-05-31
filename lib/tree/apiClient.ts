@@ -54,12 +54,16 @@ export async function loadTree(
 
 export async function createTreeApi(
   name: string,
+  optionsOrFetch: { id?: string; nodes?: FamilyNode[] } | typeof fetch = {},
   fetchImpl: typeof fetch = fetch
 ): Promise<TreeData> {
-  const res = await fetchImpl("/api/trees", {
+  const options =
+    typeof optionsOrFetch === "function" ? {} : optionsOrFetch;
+  const request = typeof optionsOrFetch === "function" ? optionsOrFetch : fetchImpl;
+  const res = await request("/api/trees", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, ...options }),
   });
   await expectOk(res);
   const body = (await res.json()) as { tree: TreeData };

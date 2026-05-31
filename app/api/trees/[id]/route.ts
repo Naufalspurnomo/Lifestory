@@ -12,6 +12,7 @@ import {
   replaceTreeNodes,
   TreeAccessError,
 } from "../../../../lib/tree/repository";
+import { BackupManager } from "../../../../lib/sync/BackupManager";
 import type { FamilyNode } from "../../../../lib/types/tree";
 import {
   formatZodErrors,
@@ -86,12 +87,15 @@ export async function PUT(
   }
 
   try {
-    await replaceTreeNodes(
+    const result = await replaceTreeNodes(
       params.id,
       session.user.id,
       validation.data.nodes as FamilyNode[]
     );
-    return NextResponse.json({ ok: true });
+    await new BackupManager().pruneOldSnapshots(params.id, 50).catch((error) => {
+      console.error("tree snapshot pruning failed", error);
+    });
+    return NextResponse.json({ ok: true, newVersion: result.newVersion });
   } catch (err) {
     return handleAccessError(err);
   }

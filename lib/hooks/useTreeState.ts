@@ -18,7 +18,6 @@ import {
   createTreeApi,
   listTrees,
   loadTree,
-  saveTreeNodes,
   TreeApiError,
 } from "../tree/apiClient";
 import { useSyncEngine } from "../sync/useSyncEngine";
@@ -28,6 +27,14 @@ const MAX_HISTORY = 50;
 
 // ---------- helpers ----------
 const uniq = (a: string[]) => Array.from(new Set((a || []).filter(Boolean)));
+
+function createClientId(prefix: "tree" | "node"): string {
+  const randomId =
+    typeof globalThis.crypto?.randomUUID === "function"
+      ? globalThis.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${prefix}-${randomId}`;
+}
 
 function sharesParent(a: FamilyNode, b: FamilyNode): boolean {
   const aParents = new Set(a.parentIds || []);
@@ -292,6 +299,21 @@ export function useTreeState(userId: string, userName: string) {
         "Pohon ini berubah dari perangkat lain. Selesaikan konflik sebelum sinkronisasi dilanjutkan."
       ),
     onCorruption: (errors) => setSaveError(errors.join("; ")),
+    onRebased: (treeId, nodes) => {
+      const rebasedNodes = recomputeAllGenerations(
+        sanitizeGraph(nodes.map((node) => normalizeNode(node)))
+      );
+      setTrees((prev) =>
+        prev.map((tree) =>
+          tree.id === treeId
+            ? { ...tree, nodes: rebasedNodes, updatedAt: new Date().toISOString() }
+            : tree
+        )
+      );
+      if (currentTreeId === treeId) {
+        setHistory((prev) => ({ ...prev, present: rebasedNodes }));
+      }
+    },
   });
   const {
     status: syncStatusInfo,
@@ -337,8 +359,34 @@ export function useTreeState(userId: string, userName: string) {
         if (cancelled) return;
 
         if (summaries.length === 0) {
-          // No server-side tree yet. Keep local-only state; a create call will
-          // provision one later.
+          // Recover drafts created by the older local-first flow. The server
+          // accepts the client ID so a repeated recovery request is idempotent.
+          const localDraft = migrated.find(
+            (tree) => tree.ownerId === userId && tree.version === undefined
+          );
+          if (localDraft) {
+            try {
+              const recovered = await createTreeApi(localDraft.name, {
+                id: localDraft.id,
+                nodes: localDraft.nodes,
+              });
+              if (cancelled) return;
+              setTrees((prev) => [
+                ...prev.filter((tree) => tree.id !== recovered.id),
+                recovered,
+              ]);
+              setCurrentTreeId(recovered.id);
+              setHistory({ past: [], present: recovered.nodes, future: [] });
+              await setLastSyncedVersion(recovered.id, recovered.version ?? 1);
+              setSaveError(null);
+            } catch (error) {
+              setSaveError(
+                error instanceof Error
+                  ? `Draft lokal masih aman, tetapi belum masuk server: ${error.message}`
+                  : "Draft lokal masih aman, tetapi belum masuk server."
+              );
+            }
+          }
           setLoadStatus("idle");
           return;
         }
@@ -413,7 +461,6 @@ export function useTreeState(userId: string, userName: string) {
 
   const queueNodeMutations = useCallback(
     (treeId: string, before: FamilyNode[], after: FamilyNode[]) => {
-      if (treeId.startsWith("tree-")) return;
       const mutations = buildNodeMutations(before, after);
       if (mutations.length === 0) return;
 
@@ -429,12 +476,14 @@ export function useTreeState(userId: string, userName: string) {
   );
 
   // Create initial tree
-  const createTree = useCallback(() => {
+  const createTree = useCallback(async () => {
+    if (createInFlightRef.current) return null;
+
     const now = new Date().toISOString();
-    const treeId = `tree-${Date.now()}`;
+    const treeId = createClientId("tree");
     const rootNode: FamilyNode = sanitizeGraph([
       {
-        id: `node-${Date.now()}`,
+        id: createClientId("node"),
         label: userName,
         year: null,
         deathYear: null,
@@ -458,41 +507,34 @@ export function useTreeState(userId: string, userName: string) {
       updatedAt: now,
     };
 
-    setTrees((prev) => [...prev, newTree]);
-    setCurrentTreeId(treeId);
-    setHistory({ past: [], present: [rootNode], future: [] });
-
-    // Non-fatal; local cache and WAL keep edits available for the next retry.
     createInFlightRef.current = true;
-    createTreeApi(newTree.name)
-      .then((created) => {
-        const latestNodes =
-          treesRef.current.find((tree) => tree.id === treeId)?.nodes ?? [rootNode];
-        setTrees((prev) =>
-          prev.map((t) =>
-            t.id === treeId
-              ? {
-                  ...t,
-                  id: created.id,
-                  ownerId: created.ownerId,
-                  version: created.version,
-                }
-              : t
-          )
-        );
-        setCurrentTreeId(created.id);
-        void setLastSyncedVersion(created.id, created.version ?? 1);
-        // Push the latest local tree state to the server.
-        return saveTreeNodes(created.id, latestNodes);
-      })
-      .catch(() => {
-        setLoadStatus("offline");
-      })
-      .finally(() => {
-        createInFlightRef.current = false;
+    setLoadStatus("saving");
+    try {
+      const created = await createTreeApi(newTree.name, {
+        id: newTree.id,
+        nodes: newTree.nodes,
       });
-
-    return newTree;
+      setTrees((prev) => [
+        ...prev.filter((tree) => tree.id !== created.id),
+        created,
+      ]);
+      setCurrentTreeId(created.id);
+      setHistory({ past: [], present: created.nodes, future: [] });
+      await setLastSyncedVersion(created.id, created.version ?? 1);
+      setLoadStatus("idle");
+      setSaveError(null);
+      return created;
+    } catch (error) {
+      setLoadStatus("offline");
+      setSaveError(
+        error instanceof Error
+          ? `Pohon belum dibuat di server: ${error.message}`
+          : "Pohon belum dibuat di server. Coba lagi saat koneksi tersedia."
+      );
+      return null;
+    } finally {
+      createInFlightRef.current = false;
+    }
   }, [setLastSyncedVersion, userId, userName]);
 
   // Add node (fixed relationships)

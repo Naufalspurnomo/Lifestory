@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../../../../lib/auth/options";
 import { BackupManager } from "../../../../../../../lib/sync/BackupManager";
+import { TreeAccessError } from "../../../../../../../lib/tree/repository";
 
 export async function POST(
   _request: Request,
@@ -20,6 +21,9 @@ export async function POST(
     );
     return NextResponse.json({ ok: true });
   } catch (error) {
+    if (error instanceof TreeAccessError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("snapshot restore error", error);
     return NextResponse.json(
       { error: "Restore could not be completed" },

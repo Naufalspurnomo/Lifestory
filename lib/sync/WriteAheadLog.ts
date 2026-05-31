@@ -27,6 +27,7 @@ export interface WriteAheadLog {
   getPending(treeId: string): Promise<WALEntry[]>;
   getAllPending(): Promise<WALEntry[]>;
   getCount(): Promise<number>;
+  getPermanentlyFailedCount(): Promise<number>;
   clear(treeId: string): Promise<void>;
   prune(olderThanDays: number): Promise<void>;
   isFull(): Promise<boolean>;
@@ -53,9 +54,17 @@ const DEFAULT_STORAGE_KEY = "lifestory-sync-wal";
 const DEFAULT_INDEXEDDB_LIMIT = 1000;
 const DEFAULT_LOCALSTORAGE_LIMIT = 50;
 const ACTIVE_STATUSES: WALStatus[] = ["pending", "sending", "failed"];
+const UNRESOLVED_STATUSES: WALStatus[] = [
+  ...ACTIVE_STATUSES,
+  "permanently-failed",
+];
 
 function isActive(entry: WALEntry): boolean {
   return ACTIVE_STATUSES.includes(entry.status);
+}
+
+function isUnresolved(entry: WALEntry): boolean {
+  return UNRESOLVED_STATUSES.includes(entry.status);
 }
 
 function sortBySeq(entries: WALEntry[]): WALEntry[] {
@@ -147,7 +156,7 @@ export class LocalStorageWriteAheadLog implements WriteAheadLog {
     >
   ): Promise<WALEntry> {
     const state = this.read();
-    if (state.entries.filter(isActive).length >= this.maxEntries) {
+    if (state.entries.filter(isUnresolved).length >= this.maxEntries) {
       throw new Error("Offline save capacity has been reached");
     }
     const lastSeqNo = Number(state.meta.lastSeqNo ?? 0);
@@ -217,7 +226,9 @@ export class LocalStorageWriteAheadLog implements WriteAheadLog {
   async resetFailed(): Promise<void> {
     const state = this.read();
     state.entries = state.entries.map((entry) =>
-      entry.status === "failed" ? { ...entry, status: "pending" } : entry
+      entry.status === "failed" || entry.status === "permanently-failed"
+        ? { ...entry, status: "pending" }
+        : entry
     );
     this.write(state);
   }
@@ -231,7 +242,13 @@ export class LocalStorageWriteAheadLog implements WriteAheadLog {
   }
 
   async getCount(): Promise<number> {
-    return this.read().entries.filter(isActive).length;
+    return this.read().entries.filter(isUnresolved).length;
+  }
+
+  async getPermanentlyFailedCount(): Promise<number> {
+    return this.read().entries.filter(
+      (entry) => entry.status === "permanently-failed"
+    ).length;
   }
 
   async clear(treeId: string): Promise<void> {
@@ -308,6 +325,7 @@ export class IndexedDbWriteAheadLog implements WriteAheadLog {
   readonly warningMessage?: string;
   private readonly db: IDBDatabase;
   private readonly maxEntries: number;
+  private appendQueue: Promise<void> = Promise.resolve();
 
   private constructor(db: IDBDatabase, maxEntries: number) {
     this.db = db;
@@ -355,11 +373,30 @@ export class IndexedDbWriteAheadLog implements WriteAheadLog {
       "id" | "seqNo" | "status" | "retryCount" | "lastAttempt" | "errorMessage"
     >
   ): Promise<WALEntry> {
+    const operation = this.appendQueue.then(() => this.appendExclusive(entry));
+    this.appendQueue = operation.then(
+      () => undefined,
+      () => undefined
+    );
+    return operation;
+  }
+
+  private async appendExclusive(
+    entry: Omit<
+      WALEntry,
+      "id" | "seqNo" | "status" | "retryCount" | "lastAttempt" | "errorMessage"
+    >
+  ): Promise<WALEntry> {
     if (await this.isFull()) {
       throw new Error("Offline save capacity has been reached");
     }
 
-    const lastSeqNo = await this.getMetaNumber("lastSeqNo", 0);
+    const transaction = this.db.transaction(["wal", "meta"], "readwrite");
+    const meta = transaction.objectStore("meta");
+    const lastSeq = await requestToPromise<{ key: string; value: number } | undefined>(
+      meta.get("lastSeqNo")
+    );
+    const lastSeqNo = Number(lastSeq?.value ?? 0);
     const walEntry: WALEntry = {
       ...entry,
       id: uuid(),
@@ -370,8 +407,7 @@ export class IndexedDbWriteAheadLog implements WriteAheadLog {
       errorMessage: null,
     };
 
-    await this.setMetaNumber("lastSeqNo", walEntry.seqNo);
-    const transaction = this.db.transaction("wal", "readwrite");
+    meta.put({ key: "lastSeqNo", value: walEntry.seqNo });
     transaction.objectStore("wal").put(walEntry);
     await transactionDone(transaction);
     return walEntry;
@@ -427,7 +463,10 @@ export class IndexedDbWriteAheadLog implements WriteAheadLog {
 
   async resetFailed(): Promise<void> {
     const entries = await this.getAllEntries();
-    const failed = entries.filter((entry) => entry.status === "failed");
+    const failed = entries.filter(
+      (entry) =>
+        entry.status === "failed" || entry.status === "permanently-failed"
+    );
     await Promise.all(
       failed.map((entry) => this.updateEntry({ ...entry, status: "pending" }))
     );
@@ -446,7 +485,13 @@ export class IndexedDbWriteAheadLog implements WriteAheadLog {
   }
 
   async getCount(): Promise<number> {
-    return (await this.getAllPending()).length;
+    return (await this.getAllEntries()).filter(isUnresolved).length;
+  }
+
+  async getPermanentlyFailedCount(): Promise<number> {
+    return (await this.getAllEntries()).filter(
+      (entry) => entry.status === "permanently-failed"
+    ).length;
   }
 
   async clear(treeId: string): Promise<void> {
@@ -543,7 +588,7 @@ export async function createWriteAheadLog(
   } catch {
     try {
       const fallback = new LocalStorageWriteAheadLog(options);
-      fallback.getCapacity();
+      await fallback.getCapacity();
       return fallback;
     } catch {
       return new LocalStorageWriteAheadLog({ ...options, memory: true });

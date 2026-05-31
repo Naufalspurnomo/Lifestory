@@ -32,6 +32,8 @@ export default function AppHome() {
         ? {
           fallbackUser: "Pengguna",
           notifTreeCreated: "Pohon keluarga dibuat! Anda adalah simpul pertama.",
+          notifTreeCreateFailed:
+            "Pohon belum dibuat di server. Periksa koneksi lalu coba lagi.",
           notifProfileUpdated: "Profil diperbarui",
           notifAutoParentCreated: "Orang tua placeholder dibuat otomatis.",
           notifAdded: (name: string) => `${name} ditambahkan ke pohon`,
@@ -65,6 +67,8 @@ export default function AppHome() {
         : {
           fallbackUser: "User",
           notifTreeCreated: "Family tree created! You are the first node.",
+          notifTreeCreateFailed:
+            "The tree was not created on the server. Check your connection and try again.",
           notifProfileUpdated: "Profile updated",
           notifAutoParentCreated: "Placeholder parents created automatically.",
           notifAdded: (name: string) => `${name} added to tree`,
@@ -203,13 +207,20 @@ export default function AppHome() {
   }, [canUndo, canRedo, undo, redo, selectedId, getNode, handleDeleteNode]);
 
 
-  const handleStartTree = useCallback(() => {
-    const result = createTree();
+  const handleStartTree = useCallback(async () => {
+    const result = await createTree();
     if (result) {
       setHasCreatedTree(true);
       showNotification(copy.notifTreeCreated);
+    } else {
+      showNotification(copy.notifTreeCreateFailed);
     }
-  }, [copy.notifTreeCreated, createTree, showNotification]);
+  }, [
+    copy.notifTreeCreated,
+    copy.notifTreeCreateFailed,
+    createTree,
+    showNotification,
+  ]);
 
   useEffect(() => {
     if (userTree) {

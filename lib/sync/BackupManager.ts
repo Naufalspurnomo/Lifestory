@@ -1,4 +1,6 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
+import { assertTreeWritable } from "../tree/repository";
 import type { DbEdge, DbNode, DbTreeSnapshot } from "../tree/persistence";
 
 export type TreeSnapshotMeta = {
@@ -71,46 +73,36 @@ function parseSnapshotData(data: unknown): DbTreeSnapshot {
   };
 }
 
-async function assertWritable(treeId: string, userId: string): Promise<void> {
-  const tree = await prisma.tree.findUnique({
-    where: { id: treeId },
-    select: {
-      ownerId: true,
-      memberships: {
-        where: { userId },
-        select: { role: true },
-      },
-    },
-  });
-
-  if (!tree) throw new Error("Tree not found");
-  const isOwner = tree.ownerId === userId;
-  const membership = tree.memberships[0];
-  if (!isOwner && membership?.role !== "editor") {
-    throw new Error("Read-only access");
-  }
-}
-
 export class BackupManager {
-  async createSnapshot(treeId: string, version: number): Promise<TreeSnapshot> {
-    const [nodes, edges] = await Promise.all([
-      prisma.node.findMany({ where: { treeId } }),
-      prisma.edge.findMany({ where: { treeId } }),
-    ]);
+  async createSnapshot(treeId: string): Promise<TreeSnapshot> {
+    const { data, snapshot } = await prisma.$transaction(
+      async (tx) => {
+        const tree = await tx.tree.findUnique({
+          where: { id: treeId },
+          select: { version: true },
+        });
+        if (!tree) throw new Error("Tree not found");
 
-    const data: DbTreeSnapshot = {
-      nodes: nodes.map(mapNode),
-      edges: edges.map(mapEdge),
-    };
-
-    const snapshot = await prisma.treeSnapshot.create({
-      data: {
-        treeId,
-        version,
-        nodeCount: data.nodes.length,
-        data: data as any,
+        const [nodes, edges] = await Promise.all([
+          tx.node.findMany({ where: { treeId } }),
+          tx.edge.findMany({ where: { treeId } }),
+        ]);
+        const data: DbTreeSnapshot = {
+          nodes: nodes.map(mapNode),
+          edges: edges.map(mapEdge),
+        };
+        const snapshot = await tx.treeSnapshot.create({
+          data: {
+            treeId,
+            version: tree.version,
+            nodeCount: data.nodes.length,
+            data: data as any,
+          },
+        });
+        return { data, snapshot };
       },
-    });
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead }
+    );
 
     await this.pruneOldSnapshots(treeId, 50);
 
@@ -158,17 +150,19 @@ export class BackupManager {
     snapshotId: string,
     userId: string
   ): Promise<void> {
-    await assertWritable(treeId, userId);
+    await assertTreeWritable(treeId, userId);
     const snapshot = await this.getSnapshot(snapshotId);
     if (snapshot.treeId !== treeId) throw new Error("Snapshot belongs to another tree");
 
     await prisma.$transaction(async (tx) => {
-      const [tree, currentNodes, currentEdges] = await Promise.all([
-        tx.tree.findUnique({ where: { id: treeId } }),
+      const tree = await tx.tree.update({
+        where: { id: treeId },
+        data: { version: { increment: 1 }, updatedAt: new Date() },
+      });
+      const [currentNodes, currentEdges] = await Promise.all([
         tx.node.findMany({ where: { treeId } }),
         tx.edge.findMany({ where: { treeId } }),
       ]);
-      if (!tree) throw new Error("Tree not found");
 
       const preRestore: DbTreeSnapshot = {
         nodes: currentNodes.map(mapNode),
@@ -178,7 +172,7 @@ export class BackupManager {
       await tx.treeSnapshot.create({
         data: {
           treeId,
-          version: tree.version,
+          version: tree.version - 1,
           nodeCount: preRestore.nodes.length,
           data: preRestore as any,
         },
@@ -223,10 +217,6 @@ export class BackupManager {
         });
       }
 
-      await tx.tree.update({
-        where: { id: treeId },
-        data: { version: { increment: 1 }, updatedAt: new Date() },
-      });
     });
 
     await this.pruneOldSnapshots(treeId, 50);

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../../lib/auth/options";
-import { getTreeForUser } from "../../../../../lib/tree/repository";
+import {
+  assertTreeWritable,
+  getTreeForUser,
+  TreeAccessError,
+} from "../../../../../lib/tree/repository";
 import { BackupManager } from "../../../../../lib/sync/BackupManager";
 
 export async function GET(
@@ -33,13 +37,13 @@ export async function POST(
   }
 
   try {
-    const tree = await getTreeForUser(params.id, session.user.id);
-    const snapshot = await new BackupManager().createSnapshot(
-      params.id,
-      tree.version ?? 1
-    );
+    await assertTreeWritable(params.id, session.user.id);
+    const snapshot = await new BackupManager().createSnapshot(params.id);
     return NextResponse.json({ snapshot }, { status: 201 });
   } catch (error) {
+    if (error instanceof TreeAccessError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("snapshot create error", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }

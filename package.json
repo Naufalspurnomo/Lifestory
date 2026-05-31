@@ -19,6 +19,7 @@
     "db:migrate": "npx prisma migrate dev",
     "db:deploy": "npx prisma migrate deploy",
     "db:status": "npx prisma migrate status",
+    "db:audit": "node scripts/audit-database.mjs",
     "postinstall": "npx prisma generate"
   },
   "dependencies": {

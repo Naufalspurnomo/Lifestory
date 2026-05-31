@@ -18,6 +18,7 @@ export type SyncEngineEvents = {
   authRequired?: () => void;
   conflict?: (conflict: ConflictResponse) => void;
   corruption?: (errors: string[]) => void;
+  rebased?: (treeId: string, nodes: FamilyNode[]) => void;
 };
 
 export type SyncEngineOptions = {
@@ -43,6 +44,7 @@ const DEFAULT_CONFIG: SyncEngineConfig = {
   requestTimeoutMs: 30000,
   healthCheckUrl: "/api/health",
 };
+const MAX_SYNC_BATCH_SIZE = 250;
 
 export function formatPendingCount(count: number): string {
   return count > 99 ? "99+" : `${Math.max(0, count)}`;
@@ -233,7 +235,8 @@ export class SyncEngine {
 
   private async flushTree(treeId: string, entries: WALEntry[]): Promise<void> {
     const ordered = entries.sort((a, b) => a.seqNo - b.seqNo);
-    const seqNos = ordered.map((entry) => entry.seqNo);
+    const selected = ordered.slice(0, MAX_SYNC_BATCH_SIZE);
+    const seqNos = selected.map((entry) => entry.seqNo);
     await this.wal.markSending(seqNos);
 
     const validation = this.validateTree(treeId);
@@ -245,9 +248,10 @@ export class SyncEngine {
     }
 
     const batch: SyncBatch = {
+      batchId: this.createBatchId(selected),
       treeId,
       clientVersion: await this.wal.getLastSyncedVersion(treeId),
-      mutations: ordered.map((entry) => ({
+      mutations: selected.map((entry) => ({
         seqNo: entry.seqNo,
         type: entry.type,
         nodeId: entry.nodeId,
@@ -259,24 +263,40 @@ export class SyncEngine {
       const response = await this.postBatch(batch);
       if (response.ok) {
         const body = (await response.json()) as SyncResponse;
+        // Persist the accepted server version before deleting WAL rows. If the
+        // tab closes during cleanup, remaining rows replay safely on that base.
+        await this.wal.setLastSyncedVersion(treeId, body.newVersion);
         for (const seqNo of body.acknowledgedSeqNos) {
           await this.wal.acknowledge(seqNo);
           this.retryQueue.cancel(seqNo);
         }
-        await this.wal.setLastSyncedVersion(treeId, body.newVersion);
         this.updateStatus("saved");
+        if (ordered.length > selected.length) {
+          await this.flushTree(treeId, ordered.slice(selected.length));
+        }
         return;
       }
 
       if (response.status === 409) {
         const conflict = (await response.json()) as ConflictResponse;
-        this.conflictResolver.detect(
-          ordered,
+        const resolution = this.conflictResolver.detect(
+          selected,
           conflict.serverState,
           conflict.currentVersion,
           conflict.conflictingNodeIds
         );
         await this.wal.markPending(seqNos);
+        if (resolution.type === "auto-merged") {
+          await this.wal.setLastSyncedVersion(treeId, resolution.newVersion);
+          this.events.rebased?.(treeId, resolution.mergedNodes);
+          this.updateStatus(
+            "pending",
+            "Changes from another device were merged. Saving your local edits."
+          );
+          this.scheduleFlush(0);
+          return;
+        }
+        this.paused = true;
         this.events.conflict?.(conflict);
         this.updateStatus(
           "error",
@@ -327,12 +347,20 @@ export class SyncEngine {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          batchId: batch.batchId,
           clientVersion: batch.clientVersion,
           mutations: batch.mutations,
         }),
       },
       this.config.requestTimeoutMs
     );
+  }
+
+  private createBatchId(entries: WALEntry[]): string {
+    const first = entries[0];
+    const last = entries[entries.length - 1];
+    if (!first || !last) throw new Error("Cannot sync an empty batch");
+    return `wal:${first.id}:${last.id}:${entries.length}`;
   }
 
   private async handleRetryableFailure(
@@ -395,9 +423,12 @@ export class SyncEngine {
     errorMessage?: string
   ): Promise<void> {
     const pendingCount = await this.wal.getCount();
+    const permanentlyFailedCount = await this.wal.getPermanentlyFailedCount();
     const status =
       forced ??
-      (pendingCount === 0
+      (permanentlyFailedCount > 0
+        ? "error"
+        : pendingCount === 0
         ? "saved"
         : this.networkDetector.isOnline()
         ? "pending"

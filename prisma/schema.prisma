@@ -59,6 +59,7 @@ model Tree {
   edges       Edge[]
   memberships TreeMember[]
   snapshots   TreeSnapshot[]
+  syncReceipts TreeSyncReceipt[]
 
   @@index([ownerId])
 }
@@ -73,6 +74,23 @@ model TreeSnapshot {
 
   tree Tree @relation(fields: [treeId], references: [id], onDelete: Cascade)
 
+  @@index([treeId, createdAt])
+}
+
+// Idempotency record for WAL batches. A client can safely resend the same
+// batch when the server committed but the HTTP response was interrupted.
+model TreeSyncReceipt {
+  id                 String   @id
+  treeId             String
+  clientVersion      Int
+  version            Int
+  acknowledgedSeqNos Json
+  nodeIds            Json
+  createdAt          DateTime @default(now())
+
+  tree Tree @relation(fields: [treeId], references: [id], onDelete: Cascade)
+
+  @@unique([treeId, version])
   @@index([treeId, createdAt])
 }
 

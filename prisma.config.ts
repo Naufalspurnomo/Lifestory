@@ -11,6 +11,8 @@ export default defineConfig({
   },
   engine: "classic",
   datasource: {
-    url: env("DATABASE_URL"),
+    // Prisma CLI operations such as migrate deploy need a session-capable
+    // connection. The running Vercel app still uses DATABASE_URL from schema.
+    url: env("DIRECT_URL"),
   },
 });

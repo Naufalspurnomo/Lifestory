@@ -174,7 +174,9 @@ export const nonEmptyFamilyTreeNodesSchema = familyTreeNodesBaseSchema
   .superRefine(validateFamilyTreeNodeRefs);
 
 export const treeCreateSchema = z.object({
+  id: nodeIdSchema.optional(),
   name: z.string().trim().min(1, "Name is required").max(120),
+  nodes: familyTreeNodesSchema.optional().default([]),
 });
 
 export const treeNodesPayloadSchema = z.object({
@@ -182,6 +184,7 @@ export const treeNodesPayloadSchema = z.object({
 });
 
 export const treeSyncPayloadSchema = z.object({
+  batchId: z.string().trim().min(1).max(256),
   clientVersion: z.number().int().positive(),
   mutations: z
     .array(

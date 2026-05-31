@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { Prisma } from "@prisma/client";
 import { authOptions } from "../../../lib/auth/options";
 import { createTreeForUser, listTreesForUser } from "../../../lib/tree/repository";
+import type { FamilyNode } from "../../../lib/types/tree";
 import {
   formatZodErrors,
   treeCreateSchema,
@@ -60,7 +61,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const tree = await createTreeForUser(session.user.id, validation.data.name);
+    const tree = await createTreeForUser(
+      session.user.id,
+      validation.data.name,
+      validation.data.nodes as FamilyNode[],
+      validation.data.id
+    );
     return NextResponse.json({ tree }, { status: 201 });
   } catch (error) {
     if (isMissingTableError(error)) {

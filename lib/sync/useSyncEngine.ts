@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createWriteAheadLog } from "./WriteAheadLog";
+import type { WriteAheadLog } from "./WriteAheadLog";
 import { formatPendingCount, SyncEngine } from "./SyncEngine";
 import type { FamilyNode, Mutation, SyncStatusInfo } from "./types";
 
@@ -10,6 +11,7 @@ type UseSyncEngineOptions = {
   onAuthRequired?: () => void;
   onConflict?: () => void;
   onCorruption?: (errors: string[]) => void;
+  onRebased?: (treeId: string, nodes: FamilyNode[]) => void;
 };
 
 const INITIAL_STATUS: SyncStatusInfo = {
@@ -29,20 +31,29 @@ export function useSyncEngine(
 
   optionsRef.current = options;
 
+  const buildEngine = useCallback(
+    (wal: WriteAheadLog) =>
+      new SyncEngine({
+        wal,
+        getTreeNodes: (treeId) =>
+          optionsRef.current.getTreeNodes?.(treeId) ?? null,
+        events: {
+          authRequired: () => optionsRef.current.onAuthRequired?.(),
+          conflict: () => optionsRef.current.onConflict?.(),
+          corruption: (errors) => optionsRef.current.onCorruption?.(errors),
+          rebased: (treeId, nodes) =>
+            optionsRef.current.onRebased?.(treeId, nodes),
+        },
+      }),
+    []
+  );
+
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
 
     const ready = createWriteAheadLog().then(async (wal) => {
-      const engine = new SyncEngine({
-        wal,
-        getTreeNodes: (treeId) => optionsRef.current.getTreeNodes?.(treeId) ?? null,
-        events: {
-          authRequired: () => optionsRef.current.onAuthRequired?.(),
-          conflict: () => optionsRef.current.onConflict?.(),
-          corruption: (errors) => optionsRef.current.onCorruption?.(errors),
-        },
-      });
+      const engine = buildEngine(wal);
       if (cancelled) {
         engine.destroy();
         return engine;
@@ -61,11 +72,11 @@ export function useSyncEngine(
       engineRef.current = null;
       readyRef.current = null;
     };
-  }, [userId]);
+  }, [buildEngine, userId]);
 
   useEffect(() => {
     const pending = status.pendingCount;
-    const needsWarning = status.status === "pending" || status.status === "syncing";
+    const needsWarning = status.status !== "saved";
     if (!needsWarning || pending === 0) return;
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -81,14 +92,14 @@ export function useSyncEngine(
   const getReadyEngine = useCallback(async () => {
     if (!readyRef.current) {
       const wal = await createWriteAheadLog();
-      const engine = new SyncEngine({ wal });
+      const engine = buildEngine(wal);
       engineRef.current = engine;
       readyRef.current = Promise.resolve(engine);
       engine.onStatusChange(setStatus);
       await engine.initialize();
     }
     return readyRef.current;
-  }, []);
+  }, [buildEngine]);
 
   const enqueue = useCallback(
     async (treeId: string, mutation: Mutation) => {
