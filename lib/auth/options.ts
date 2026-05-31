@@ -42,11 +42,19 @@ export const authOptions: NextAuthOptions = {
 
         const email = validation.data.email.toLowerCase();
         const ipAddress = getClientIdentifier(request);
-        const [ipRateLimitError, emailRateLimitError] = await Promise.all([
-          checkRateLimit(ipAddress, "auth-login-ip", rateLimitConfigs.login),
-          checkRateLimit(email, "auth-login-email", rateLimitConfigs.login),
-        ]);
-        if (ipRateLimitError || emailRateLimitError) return null;
+        const ipRateLimitError = await checkRateLimit(
+          ipAddress,
+          "auth-login-ip",
+          rateLimitConfigs.login
+        );
+        if (ipRateLimitError) return null;
+
+        const emailRateLimitError = await checkRateLimit(
+          email,
+          "auth-login-email",
+          rateLimitConfigs.login
+        );
+        if (emailRateLimitError) return null;
 
         const user = await prisma.user.findUnique({
           where: { email },

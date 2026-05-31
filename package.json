@@ -20,6 +20,7 @@
     "db:deploy": "npx prisma migrate deploy",
     "db:status": "npx prisma migrate status",
     "db:audit": "node scripts/audit-database.mjs",
+    "auth:smoke": "node scripts/smoke-auth-production.mjs",
     "postinstall": "npx prisma generate"
   },
   "dependencies": {

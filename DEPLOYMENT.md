@@ -108,6 +108,17 @@ Run this after every authentication or dependency-security release:
    attempts. Rate-limit counters are stored in `RateLimitBucket` so this must
    remain effective across separate Vercel invocations.
 
+The non-destructive automated entitlement and session-revocation check can be
+run with:
+
+```bash
+ALLOW_AUTH_SMOKE=1 AUTH_SMOKE_BASE_URL=https://lifestory.co.id npm run auth:smoke
+```
+
+The script creates one synthetic user directly in Supabase and deletes it in a
+`finally` block. It does not send an email. Inbox delivery still needs the
+manual forgot-password check above.
+
 ## Known limitations
 
 - Photos still use base64 in `Node.imageUrl`. Move uploads to object storage
