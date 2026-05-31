@@ -38,6 +38,19 @@ class AlwaysOnlineNetworkDetector extends NetworkDetector {
   }
 }
 
+class RecoverableNetworkDetector extends NetworkDetector {
+  private online = false;
+
+  override isOnline(): boolean {
+    return this.online;
+  }
+
+  override async check(): Promise<boolean> {
+    this.online = true;
+    return true;
+  }
+}
+
 function person(id: string): FamilyNode {
   return {
     id,
@@ -128,6 +141,36 @@ describe("SyncEngine reliability boundaries", () => {
     expect(await wal.getPermanentlyFailedCount()).toBe(1);
     expect(engine.getStatus().status).toBe("error");
     expect(engine.getStatus().pendingCount).toBe(1);
+    engine.destroy();
+  });
+
+  it("rechecks connectivity when a manual sync is requested while offline", async () => {
+    const wal = new LocalStorageWriteAheadLog({
+      storage: new TestStorage(),
+    });
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      return jsonResponse({
+        success: true,
+        newVersion: 2,
+        acknowledgedSeqNos: body.mutations.map(
+          (mutation: { seqNo: number }) => mutation.seqNo
+        ),
+      });
+    });
+    const engine = new SyncEngine({
+      wal,
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      networkDetector: new RecoverableNetworkDetector(),
+      config: { debounceMs: 60_000 },
+    });
+
+    await engine.enqueueMany("tree-1", mutations(1));
+    await engine.forceSync();
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(await wal.getCount()).toBe(0);
+    expect(engine.getStatus().status).toBe("saved");
     engine.destroy();
   });
 });

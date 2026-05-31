@@ -219,6 +219,7 @@ export class SyncEngine {
     this.retryQueue.cancelAll();
     await this.wal.resetFailed();
     this.paused = false;
+    if (!(await this.ensureOnline())) return;
     await this.refreshStatus("syncing");
     await this.flush();
   }
@@ -226,6 +227,7 @@ export class SyncEngine {
   async forceSync(): Promise<void> {
     this.retryQueue.cancelAll();
     this.paused = false;
+    if (!(await this.ensureOnline())) return;
     await this.flush();
   }
 
@@ -354,6 +356,16 @@ export class SyncEngine {
       },
       this.config.requestTimeoutMs
     );
+  }
+
+  private async ensureOnline(): Promise<boolean> {
+    if (this.networkDetector.isOnline()) return true;
+
+    const online = await this.networkDetector.check();
+    if (!online) {
+      await this.refreshStatus("offline");
+    }
+    return online;
   }
 
   private createBatchId(entries: WALEntry[]): string {

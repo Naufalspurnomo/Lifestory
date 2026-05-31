@@ -24,6 +24,7 @@ const LABELS = {
 
 export default function SyncStatusIndicator({ status, onRetry }: Props) {
   const isError = status.status === "error";
+  const canRetry = isError || status.status === "offline";
   const message =
     status.errorMessage ??
     (status.status === "offline"
@@ -67,7 +68,7 @@ export default function SyncStatusIndicator({ status, onRetry }: Props) {
           {message}
         </span>
       )}
-      {isError && onRetry && (
+      {canRetry && onRetry && (
         <button
           type="button"
           onClick={onRetry}

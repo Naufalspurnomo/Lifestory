@@ -82,6 +82,67 @@ async function getTreeStatus(jar) {
   return response.status;
 }
 
+function person(id, label) {
+  return {
+    id,
+    label,
+    year: null,
+    deathYear: null,
+    parentId: null,
+    parentIds: [],
+    adoptiveParentIds: [],
+    partners: [],
+    childrenIds: [],
+    generation: 0,
+    line: "default",
+    imageUrl: null,
+    content: { description: "", media: [] },
+    works: [],
+  };
+}
+
+async function verifySyncMutation(jar) {
+  const root = person(`node-${randomUUID()}`, "Auth Smoke Root");
+  const createResponse = await fetch(`${baseUrl}/api/trees`, {
+    method: "POST",
+    headers: {
+      Origin: baseUrl,
+      "Content-Type": "application/json",
+      Cookie: serializeCookies(jar),
+    },
+    body: JSON.stringify({
+      name: "Auth Smoke Tree",
+      nodes: [root],
+    }),
+  });
+  assertStatus(createResponse, 201, "create tree");
+  const { tree } = await createResponse.json();
+
+  const added = person(`node-${randomUUID()}`, "Auth Smoke Added");
+  const syncResponse = await fetch(`${baseUrl}/api/trees/${tree.id}/sync`, {
+    method: "POST",
+    headers: {
+      Origin: baseUrl,
+      "Content-Type": "application/json",
+      Cookie: serializeCookies(jar),
+    },
+    body: JSON.stringify({
+      batchId: `auth-smoke-${randomUUID()}`,
+      clientVersion: tree.version,
+      mutations: [
+        {
+          seqNo: 1,
+          type: "add",
+          nodeId: added.id,
+          payload: added,
+        },
+      ],
+    }),
+  });
+  assertStatus(syncResponse, 200, "sync mutation");
+  return syncResponse.status;
+}
+
 try {
   await prisma.user.create({
     data: {
@@ -111,6 +172,7 @@ try {
   if (activeTreeStatus !== 200) {
     throw new Error(`active tree access: expected HTTP 200, got ${activeTreeStatus}`);
   }
+  const syncMutationStatus = await verifySyncMutation(activeJar);
 
   await prisma.user.update({
     where: { email },
@@ -122,7 +184,12 @@ try {
     throw new Error(`revoked tree access: expected HTTP 403, got ${revokedTreeStatus}`);
   }
 
-  smokeResult = { inactiveTreeStatus, activeTreeStatus, revokedTreeStatus };
+  smokeResult = {
+    inactiveTreeStatus,
+    activeTreeStatus,
+    syncMutationStatus,
+    revokedTreeStatus,
+  };
 } finally {
   await prisma.user.deleteMany({ where: { email } });
   await prisma.$disconnect();
