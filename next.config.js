@@ -27,7 +27,7 @@ const nextConfig = {
           // Referrer policy - don't leak full URL to external sites
           {
             key: "Referrer-Policy",
-            value: "strict-origin-when-cross-origin",
+            value: "no-referrer",
           },
           // Permissions policy - disable unnecessary browser features
           {

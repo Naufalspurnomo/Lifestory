@@ -63,11 +63,19 @@ function rateLimitResponse(
 }
 
 export function getClientIdentifier(request: { headers?: HeaderSource }): string {
+  const vercelForwarded = request.headers
+    ? readHeader(request.headers, "x-vercel-forwarded-for")
+    : null;
   const forwarded = request.headers
     ? readHeader(request.headers, "x-forwarded-for")
     : null;
   const realIp = request.headers ? readHeader(request.headers, "x-real-ip") : null;
-  return forwarded?.split(",")[0]?.trim() || realIp?.trim() || "unknown";
+  return (
+    vercelForwarded?.trim() ||
+    forwarded?.split(",")[0]?.trim() ||
+    realIp?.trim() ||
+    "unknown"
+  );
 }
 
 export async function checkRateLimit(
