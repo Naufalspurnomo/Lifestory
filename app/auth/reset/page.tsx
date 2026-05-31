@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
@@ -21,9 +21,15 @@ function ResetPasswordContent() {
   const reduce = useReducedMotion();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token") || "";
+  const [token] = useState(() => searchParams.get("token") || "");
   const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (token && window.location.search) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [token]);
 
   const copy =
     locale === "id"
@@ -195,6 +201,7 @@ function ResetPasswordContent() {
                   hint={copy.passwordPlaceholder}
                   iconLeft={<Lock />}
                   minLength={8}
+                  maxLength={128}
                   autoComplete="new-password"
                 />
                 <FloatingInput
@@ -205,6 +212,7 @@ function ResetPasswordContent() {
                   hint={copy.passwordPlaceholder}
                   iconLeft={<Lock />}
                   minLength={8}
+                  maxLength={128}
                   autoComplete="new-password"
                 />
 

@@ -1,6 +1,6 @@
 # Deployment guide
 
-Lifestory runs on Next.js 14 with Prisma and Supabase Postgres. The production
+Lifestory runs on Next.js 15 with Prisma and Supabase Postgres. The production
 deployment for `lifestory.co.id` uses Vercel.
 
 ## Release gate
@@ -19,6 +19,7 @@ npm run db:deploy
 npm run db:status
 npm test
 npm run build
+npm audit --omit=dev
 curl https://lifestory.co.id/api/health?database=1
 ```
 
@@ -90,6 +91,23 @@ migrations that are already applied.
    then reload.
 6. Confirm a `TreeSnapshot` row and a `TreeSyncReceipt` row were created.
 
+## Authentication smoke test
+
+Run this after every authentication or dependency-security release:
+
+1. Register a new test email and confirm the account appears as `inactive`.
+2. Confirm the inactive account cannot open `/app` or call `/api/trees`.
+3. Activate the test account from the admin dashboard and confirm login works.
+4. Submit forgot password and confirm a Resend email arrives from the verified
+   `PASSWORD_RESET_FROM_EMAIL` sender.
+5. Open the reset link, set a new password, and confirm the URL token disappears
+   from the browser address bar.
+6. Confirm the old password fails, the new password succeeds, and any browser
+   session that was open before the reset can no longer call `/api/trees`.
+7. Submit repeated invalid logins and confirm throttling blocks further
+   attempts. Rate-limit counters are stored in `RateLimitBucket` so this must
+   remain effective across separate Vercel invocations.
+
 ## Known limitations
 
 - Photos still use base64 in `Node.imageUrl`. Move uploads to object storage
@@ -100,6 +118,9 @@ migrations that are already applied.
   browser WAL entries. Do not market real-time Google Docs-style collaboration
   until the conflict-resolution UI is wired end-to-end.
 - `TreeInvite` is still managed with raw SQL in `lib/invites.ts`.
+- Prisma ORM 6 CLI remains in the build toolchain. Plan the Prisma ORM 7
+  migration separately because it requires ESM, generated-client import, and
+  Postgres driver-adapter changes.
 
 ## Routine commands
 

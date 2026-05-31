@@ -3,8 +3,12 @@ import type { NextAuthOptions } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "../db";
+import { checkRateLimit, getClientIdentifier, rateLimitConfigs } from "../rate-limit";
+import { loginSchema } from "../validations";
 
 let lastSessionRefreshWarningAt = 0;
+const DUMMY_PASSWORD_HASH =
+  "$2b$10$.PLJ1FbRlPa4.KmnoZ2.Uul4yKTUZ/7W/jf.ZFMGoza0IrIedMit6";
 
 function markTokenSuspended(token: JWT) {
   token.role = "user";
@@ -32,19 +36,29 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+      async authorize(credentials, request) {
+        const validation = loginSchema.safeParse(credentials);
+        if (!validation.success) return null;
 
-        // Find user from database
+        const email = validation.data.email.toLowerCase();
+        const ipAddress = getClientIdentifier(request);
+        const [ipRateLimitError, emailRateLimitError] = await Promise.all([
+          checkRateLimit(ipAddress, "auth-login-ip", rateLimitConfigs.login),
+          checkRateLimit(email, "auth-login-email", rateLimitConfigs.login),
+        ]);
+        if (ipRateLimitError || emailRateLimitError) return null;
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase().trim() },
+          where: { email },
         });
 
-        if (!user) return null;
-        if (user.status === "suspended") return null;
-
-        const isValid = await compare(credentials.password, user.passwordHash);
-        if (!isValid) return null;
+        // Keep invalid users on the same bcrypt path to reduce account
+        // enumeration through login response timing.
+        const isValid = await compare(
+          validation.data.password,
+          user?.passwordHash ?? DUMMY_PASSWORD_HASH
+        );
+        if (!user || !isValid || user.status === "suspended") return null;
 
         return {
           id: user.id,
@@ -53,6 +67,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           subscriptionActive: user.subscriptionActive,
           status: user.status,
+          sessionVersion: user.sessionVersion,
         };
       },
     }),
@@ -66,6 +81,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.subscriptionActive = user.subscriptionActive;
         token.status = user.status;
+        token.sessionVersion = user.sessionVersion;
       }
 
       // Keep admin status changes effective for server-rendered pages and APIs.
@@ -73,13 +89,29 @@ export const authOptions: NextAuthOptions = {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.sub },
-            select: { subscriptionActive: true, role: true, status: true },
+            select: {
+              subscriptionActive: true,
+              role: true,
+              status: true,
+              sessionVersion: true,
+            },
           });
           if (dbUser) {
-            token.subscriptionActive =
-              dbUser.status === "suspended" ? false : dbUser.subscriptionActive;
-            token.role = dbUser.role;
-            token.status = dbUser.status;
+            const tokenVersion = token.sessionVersion;
+            if (
+              typeof tokenVersion === "number" &&
+              tokenVersion !== dbUser.sessionVersion
+            ) {
+              markTokenSuspended(token);
+            } else {
+              token.subscriptionActive =
+                dbUser.status === "suspended"
+                  ? false
+                  : dbUser.subscriptionActive;
+              token.role = dbUser.role;
+              token.status = dbUser.status;
+              token.sessionVersion = dbUser.sessionVersion;
+            }
           } else {
             markTokenSuspended(token);
           }

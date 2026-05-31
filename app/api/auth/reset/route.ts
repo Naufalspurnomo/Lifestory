@@ -2,6 +2,7 @@ import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/db";
 import { hashPasswordResetToken } from "../../../../lib/auth/password-reset";
+import { sendPasswordChangedEmail } from "../../../../lib/email";
 import { applyRateLimit, rateLimitConfigs } from "../../../../lib/rate-limit";
 import {
   formatZodErrors,
@@ -12,7 +13,7 @@ import {
 class InvalidResetTokenError extends Error {}
 
 export async function POST(request: Request) {
-  const rateLimitError = applyRateLimit(
+  const rateLimitError = await applyRateLimit(
     request,
     "auth-reset-password",
     rateLimitConfigs.sensitive
@@ -36,11 +37,24 @@ export async function POST(request: Request) {
   }
 
   const tokenHash = hashPasswordResetToken(validation.data.token);
-  const passwordHash = await hash(validation.data.password, 10);
   const now = new Date();
 
   try {
-    await prisma.$transaction(async (tx) => {
+    const initialToken = await prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      select: { id: true, userId: true, usedAt: true, expiresAt: true },
+    });
+
+    if (
+      !initialToken ||
+      initialToken.usedAt ||
+      initialToken.expiresAt.getTime() <= now.getTime()
+    ) {
+      throw new InvalidResetTokenError("Invalid or expired reset token");
+    }
+
+    const passwordHash = await hash(validation.data.password, 10);
+    const email = await prisma.$transaction(async (tx) => {
       const resetToken = await tx.passwordResetToken.findUnique({
         where: { tokenHash },
         select: { id: true, userId: true, usedAt: true, expiresAt: true },
@@ -67,9 +81,13 @@ export async function POST(request: Request) {
         throw new InvalidResetTokenError("Invalid or expired reset token");
       }
 
-      await tx.user.update({
+      const user = await tx.user.update({
         where: { id: resetToken.userId },
-        data: { passwordHash },
+        data: {
+          passwordHash,
+          sessionVersion: { increment: 1 },
+        },
+        select: { email: true },
       });
 
       await tx.passwordResetToken.deleteMany({
@@ -78,7 +96,16 @@ export async function POST(request: Request) {
           usedAt: null,
         },
       });
+
+      return user.email;
     });
+
+    const emailResult = await sendPasswordChangedEmail({ to: email });
+    if (!emailResult.ok) {
+      console.warn("[auth] Password change notification email was not sent", {
+        reason: emailResult.skipped ? emailResult.reason : emailResult.error,
+      });
+    }
 
     return NextResponse.json({ message: "Password reset successful" });
   } catch (error) {

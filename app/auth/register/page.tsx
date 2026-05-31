@@ -266,6 +266,7 @@ export default function RegisterPage() {
               hint={copy.namePlaceholder}
               iconLeft={<User2 />}
               autoComplete="name"
+              maxLength={120}
             />
             <FloatingInput
               required
@@ -275,6 +276,7 @@ export default function RegisterPage() {
               hint={copy.emailPlaceholder}
               iconLeft={<Mail />}
               autoComplete="email"
+              maxLength={254}
             />
             <FloatingInput
               required
@@ -293,6 +295,7 @@ export default function RegisterPage() {
               hint={copy.passwordPlaceholder}
               iconLeft={<Lock />}
               minLength={8}
+              maxLength={128}
               pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,}"
               title={copy.passwordTitle}
               autoComplete="new-password"

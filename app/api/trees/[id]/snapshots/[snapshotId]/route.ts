@@ -1,22 +1,21 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../../../../lib/auth/options";
+import { requireActiveSubscriber } from "../../../../../../lib/auth-helpers";
 import { getTreeForUser } from "../../../../../../lib/tree/repository";
 import { BackupManager } from "../../../../../../lib/sync/BackupManager";
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string; snapshotId: string } }
+  { params }: { params: Promise<{ id: string; snapshotId: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { id, snapshotId } = await params;
+  const authResult = await requireActiveSubscriber();
+  if (!authResult.success) return authResult.response;
+  const userId = authResult.session.user.id;
 
   try {
-    await getTreeForUser(params.id, session.user.id);
-    const snapshot = await new BackupManager().getSnapshot(params.snapshotId);
-    if (snapshot.treeId !== params.id) {
+    await getTreeForUser(id, userId);
+    const snapshot = await new BackupManager().getSnapshot(snapshotId);
+    if (snapshot.treeId !== id) {
       return NextResponse.json({ error: "Snapshot not found" }, { status: 404 });
     }
     return NextResponse.json({ snapshot });

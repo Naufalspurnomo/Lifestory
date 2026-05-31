@@ -163,6 +163,7 @@ export default function ForgotPasswordPage() {
                   hint={copy.emailPlaceholder}
                   iconLeft={<Mail />}
                   autoComplete="email"
+                  maxLength={254}
                 />
 
                 <Button

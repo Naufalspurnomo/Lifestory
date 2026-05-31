@@ -10,7 +10,7 @@ import {
 } from "../../../../lib/validations";
 
 export async function POST(request: Request) {
-  const rateLimitError = applyRateLimit(
+  const rateLimitError = await applyRateLimit(
     request,
     "auth-register",
     rateLimitConfigs.register
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   try {
     const passwordHash = await hash(password, 10);
 
-    const user = await prisma.user.create({
+    await prisma.user.create({
       data: {
         name,
         email,
@@ -58,22 +58,11 @@ export async function POST(request: Request) {
         subscriptionActive: false,
         status: "inactive",
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        role: true,
-        subscriptionActive: true,
-        status: true,
-        createdAt: true,
-      },
     });
 
     return NextResponse.json(
       {
-        message: "Registration successful",
-        user,
+        message: "Registration received",
       },
       { status: 201 }
     );
@@ -83,8 +72,8 @@ export async function POST(request: Request) {
       error.code === "P2002"
     ) {
       return NextResponse.json(
-        { error: "Email is already registered" },
-        { status: 409 }
+        { message: "Registration received" },
+        { status: 201 }
       );
     }
 

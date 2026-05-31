@@ -15,7 +15,7 @@ type Params = {
 // PATCH - Update user status/subscription - PROTECTED: Admin only
 export async function PATCH(request: Request, { params }: Params) {
   // Rate limiting
-  const rateLimitError = applyRateLimit(
+  const rateLimitError = await applyRateLimit(
     request,
     "admin-update-user",
     rateLimitConfigs.sensitive
@@ -123,7 +123,7 @@ export async function PATCH(request: Request, { params }: Params) {
 // GET - Get single user - PROTECTED: Admin only
 export async function GET(request: Request, { params }: Params) {
   // Rate limiting
-  const rateLimitError = applyRateLimit(
+  const rateLimitError = await applyRateLimit(
     request,
     "admin-get-user",
     rateLimitConfigs.admin

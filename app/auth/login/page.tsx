@@ -187,6 +187,7 @@ function LoginPageContent() {
               hint={copy.emailPlaceholder}
               iconLeft={<Mail />}
               autoComplete="email"
+              maxLength={254}
             />
 
             <FloatingInput
@@ -197,6 +198,7 @@ function LoginPageContent() {
               hint={copy.passwordPlaceholder}
               iconLeft={<Lock />}
               autoComplete="current-password"
+              maxLength={128}
             />
 
             <div className="flex items-center justify-between pt-1 text-sm">

@@ -6,7 +6,7 @@ import { prisma } from "../../../lib/db";
 // GET all users (for admin dashboard) - PROTECTED: Admin only
 export async function GET(request: Request) {
   // Rate limiting
-  const rateLimitError = applyRateLimit(
+  const rateLimitError = await applyRateLimit(
     request,
     "admin-users",
     rateLimitConfigs.admin

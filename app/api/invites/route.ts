@@ -13,7 +13,7 @@ const INVITE_EXPIRY_DAYS = 7;
 const MAX_TREE_PAYLOAD_BYTES = 350_000;
 
 export async function POST(request: Request) {
-  const rateLimitError = applyRateLimit(
+  const rateLimitError = await applyRateLimit(
     request,
     "tree-invite-create",
     rateLimitConfigs.sensitive

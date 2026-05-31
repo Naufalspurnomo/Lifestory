@@ -14,6 +14,7 @@ declare module "next-auth" {
     role?: string;
     subscriptionActive?: boolean;
     status?: string;
+    sessionVersion?: number;
   }
 }
 
@@ -22,5 +23,6 @@ declare module "next-auth/jwt" {
     role?: string;
     subscriptionActive?: boolean;
     status?: string;
+    sessionVersion?: number;
   }
 }

@@ -22,6 +22,7 @@ model User {
   role               String   @default("user") // "admin" or "user"
   subscriptionActive Boolean  @default(false)
   status             String   @default("inactive") // "active" | "inactive" | "suspended"
+  sessionVersion     Int      @default(1)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -42,6 +43,17 @@ model PasswordResetToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+// Shared across Vercel instances so auth throttling survives cold starts and
+// cannot be bypassed by landing on a different serverless invocation.
+model RateLimitBucket {
+  key       String   @id
+  count     Int
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([resetAt])
 }
 
 // ---------- Family Tree (tenant) ----------

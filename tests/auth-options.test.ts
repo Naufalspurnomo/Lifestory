@@ -44,6 +44,7 @@ describe("authOptions jwt callback", () => {
       subscriptionActive: true,
       role: "admin",
       status: "active",
+      sessionVersion: 1,
     });
 
     const token = await runJwtCallback({
@@ -55,11 +56,38 @@ describe("authOptions jwt callback", () => {
 
     expect(mocks.findUnique).toHaveBeenCalledWith({
       where: { id: "user-1" },
-      select: { subscriptionActive: true, role: true, status: true },
+      select: {
+        subscriptionActive: true,
+        role: true,
+        status: true,
+        sessionVersion: true,
+      },
     });
     expect(token.subscriptionActive).toBe(true);
     expect(token.role).toBe("admin");
     expect(token.status).toBe("active");
+    expect(token.sessionVersion).toBe(1);
+  });
+
+  it("fails closed when a password reset revokes the JWT session", async () => {
+    mocks.findUnique.mockResolvedValue({
+      subscriptionActive: true,
+      role: "user",
+      status: "active",
+      sessionVersion: 2,
+    });
+
+    const token = await runJwtCallback({
+      sub: "user-1",
+      subscriptionActive: true,
+      role: "user",
+      status: "active",
+      sessionVersion: 1,
+    });
+
+    expect(token.subscriptionActive).toBe(false);
+    expect(token.status).toBe("suspended");
+    expect(token.sessionVersion).toBe(1);
   });
 
   it("fails closed when the database user no longer exists", async () => {
@@ -70,6 +98,7 @@ describe("authOptions jwt callback", () => {
       subscriptionActive: true,
       role: "user",
       status: "active",
+      sessionVersion: 1,
     });
 
     expect(token.role).toBe("user");
@@ -86,6 +115,7 @@ describe("authOptions jwt callback", () => {
       subscriptionActive: true,
       role: "admin",
       status: "active",
+      sessionVersion: 1,
     });
 
     expect(token.role).toBe("user");

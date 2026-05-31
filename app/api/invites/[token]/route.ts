@@ -11,7 +11,7 @@ type Params = {
 };
 
 export async function GET(request: Request, { params }: Params) {
-  const rateLimitError = applyRateLimit(
+  const rateLimitError = await applyRateLimit(
     request,
     "tree-invite-get",
     rateLimitConfigs.api

@@ -4,6 +4,10 @@ type PasswordResetEmailInput = {
   expiresInMinutes: number;
 };
 
+type PasswordChangedEmailInput = {
+  to: string;
+};
+
 type EmailResult =
   | { ok: true; skipped?: false }
   | { ok: false; skipped: true; reason: "missing-config" }
@@ -18,11 +22,17 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
-export async function sendPasswordResetEmail({
+async function sendEmail({
   to,
-  resetUrl,
-  expiresInMinutes,
-}: PasswordResetEmailInput): Promise<EmailResult> {
+  subject,
+  html,
+  text,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<EmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.PASSWORD_RESET_FROM_EMAIL;
 
@@ -30,6 +40,34 @@ export async function sendPasswordResetEmail({
     return { ok: false, skipped: true, reason: "missing-config" };
   }
 
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject,
+      html,
+      text,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    return { ok: false, error: errorText || response.statusText };
+  }
+
+  return { ok: true };
+}
+
+export async function sendPasswordResetEmail({
+  to,
+  resetUrl,
+  expiresInMinutes,
+}: PasswordResetEmailInput): Promise<EmailResult> {
   const safeResetUrl = escapeHtml(resetUrl);
   const subject = "Reset password Lifestory";
   const text = [
@@ -56,25 +94,30 @@ export async function sendPasswordResetEmail({
     </div>
   `;
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject,
-      html,
-      text,
-    }),
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text,
   });
+}
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => response.statusText);
-    return { ok: false, error: errorText || response.statusText };
-  }
+export async function sendPasswordChangedEmail({
+  to,
+}: PasswordChangedEmailInput): Promise<EmailResult> {
+  const subject = "Password Lifestory Anda telah diubah";
+  const text = [
+    "Password akun Lifestory Anda baru saja diubah.",
+    "",
+    "Jika Anda tidak melakukan perubahan ini, segera hubungi admin Lifestory.",
+  ].join("\n");
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#40342c">
+      <h1 style="font-size:22px;margin:0 0 16px">Password Lifestory telah diubah</h1>
+      <p>Password akun Lifestory Anda baru saja diubah.</p>
+      <p style="font-size:14px;color:#73685f">Jika Anda tidak melakukan perubahan ini, segera hubungi admin Lifestory.</p>
+    </div>
+  `;
 
-  return { ok: true };
+  return sendEmail({ to, subject, html, text });
 }

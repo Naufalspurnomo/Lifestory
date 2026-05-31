@@ -13,8 +13,12 @@ interface AppSession extends Session {
 }
 
 export type AuthResult =
-  | { success: true; session: AppSession }
+  | { success: true; session: AuthenticatedSession }
   | { success: false; response: NextResponse };
+
+type AuthenticatedSession = AppSession & {
+  user: NonNullable<AppSession["user"]> & { id: string };
+};
 
 /**
  * Require authenticated user (any role)
@@ -22,7 +26,7 @@ export type AuthResult =
 export async function requireUser(): Promise<AuthResult> {
   const session = (await getServerSession(authOptions)) as AppSession | null;
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return {
       success: false,
       response: NextResponse.json(
@@ -42,7 +46,34 @@ export async function requireUser(): Promise<AuthResult> {
     };
   }
 
-  return { success: true, session };
+  return { success: true, session: session as AuthenticatedSession };
+}
+
+/**
+ * Require a paid subscriber for family-tree data operations.
+ * Admins retain access for support and recovery workflows.
+ */
+export async function requireActiveSubscriber(): Promise<AuthResult> {
+  const result = await requireUser();
+
+  if (!result.success) {
+    return result;
+  }
+
+  if (
+    result.session.user.role !== "admin" &&
+    !result.session.user.subscriptionActive
+  ) {
+    return {
+      success: false,
+      response: NextResponse.json(
+        { error: "Forbidden - Active subscription required" },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return result;
 }
 
 /**
@@ -102,6 +133,6 @@ export async function requireOwnerOrAdmin(
  * Use this instead of trusting userId from request body
  */
 export async function getCurrentUserId(): Promise<string | null> {
-  const session = (await getServerSession(authOptions)) as AppSession | null;
-  return session?.user?.id ?? null;
+  const result = await requireUser();
+  return result.success ? result.session.user.id : null;
 }

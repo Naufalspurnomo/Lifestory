@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { Prisma } from "@prisma/client";
-import { authOptions } from "../../../../../lib/auth/options";
+import { requireActiveSubscriber } from "../../../../../lib/auth-helpers";
 import {
   applyTreeMutations,
   getChangedNodeIdsSince,
@@ -41,12 +40,12 @@ function handleError(error: unknown) {
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { id } = await params;
+  const authResult = await requireActiveSubscriber();
+  if (!authResult.success) return authResult.response;
+  const userId = authResult.session.user.id;
 
   const body = await request.json().catch(() => null);
   if (!body) {
@@ -74,18 +73,18 @@ export async function POST(
     }));
 
     const result = await applyTreeMutations(
-      params.id,
-      session.user.id,
+      id,
+      userId,
       validation.data.batchId,
       validation.data.clientVersion,
       mutations
     );
 
     await Promise.all([
-      new BackupManager().pruneOldSnapshots(params.id, 50).catch((error) => {
+      new BackupManager().pruneOldSnapshots(id, 50).catch((error) => {
         console.error("tree snapshot pruning failed", error);
       }),
-      pruneOldSyncReceipts(params.id).catch((error) => {
+      pruneOldSyncReceipts(id).catch((error) => {
         console.error("tree sync receipt pruning failed", error);
       }),
     ]);
@@ -97,12 +96,12 @@ export async function POST(
     });
   } catch (error) {
     if (error instanceof VersionConflictError) {
-      const current = await getTreeForUser(params.id, session.user.id);
+      const current = await getTreeForUser(id, userId);
       const requestedNodeIds = new Set(
         validation.data.mutations.map((mutation) => mutation.nodeId)
       );
       const changes = await getChangedNodeIdsSince(
-        params.id,
+        id,
         validation.data.clientVersion,
         error.currentVersion
       );

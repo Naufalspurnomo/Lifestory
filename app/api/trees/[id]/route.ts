@@ -3,9 +3,8 @@
 // mutation endpoints later without breaking this one.
 
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { Prisma } from "@prisma/client";
-import { authOptions } from "../../../../lib/auth/options";
+import { requireActiveSubscriber } from "../../../../lib/auth-helpers";
 import {
   deleteTree,
   getTreeForUser,
@@ -43,15 +42,15 @@ function handleAccessError(error: unknown) {
 
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { id } = await params;
+  const authResult = await requireActiveSubscriber();
+  if (!authResult.success) return authResult.response;
+  const userId = authResult.session.user.id;
 
   try {
-    const tree = await getTreeForUser(params.id, session.user.id);
+    const tree = await getTreeForUser(id, userId);
     return NextResponse.json({ tree });
   } catch (err) {
     return handleAccessError(err);
@@ -60,12 +59,12 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { id } = await params;
+  const authResult = await requireActiveSubscriber();
+  if (!authResult.success) return authResult.response;
+  const userId = authResult.session.user.id;
 
   const body = await request.json().catch(() => null);
   if (!body) {
@@ -88,11 +87,11 @@ export async function PUT(
 
   try {
     const result = await replaceTreeNodes(
-      params.id,
-      session.user.id,
+      id,
+      userId,
       validation.data.nodes as FamilyNode[]
     );
-    await new BackupManager().pruneOldSnapshots(params.id, 50).catch((error) => {
+    await new BackupManager().pruneOldSnapshots(id, 50).catch((error) => {
       console.error("tree snapshot pruning failed", error);
     });
     return NextResponse.json({ ok: true, newVersion: result.newVersion });
@@ -103,15 +102,15 @@ export async function PUT(
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { id } = await params;
+  const authResult = await requireActiveSubscriber();
+  if (!authResult.success) return authResult.response;
+  const userId = authResult.session.user.id;
 
   try {
-    await deleteTree(params.id, session.user.id);
+    await deleteTree(id, userId);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return handleAccessError(err);

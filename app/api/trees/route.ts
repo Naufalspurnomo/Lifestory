@@ -1,8 +1,7 @@
 // Trees collection: list current user's trees, create a new one.
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { Prisma } from "@prisma/client";
-import { authOptions } from "../../../lib/auth/options";
+import { requireActiveSubscriber } from "../../../lib/auth-helpers";
 import { createTreeForUser, listTreesForUser } from "../../../lib/tree/repository";
 import type { FamilyNode } from "../../../lib/types/tree";
 import {
@@ -22,13 +21,12 @@ function isMissingTableError(error: unknown): boolean {
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireActiveSubscriber();
+  if (!authResult.success) return authResult.response;
+  const userId = authResult.session.user.id;
 
   try {
-    const trees = await listTreesForUser(session.user.id);
+    const trees = await listTreesForUser(userId);
     return NextResponse.json({ trees });
   } catch (error) {
     if (isMissingTableError(error)) {
@@ -43,10 +41,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireActiveSubscriber();
+  if (!authResult.success) return authResult.response;
+  const userId = authResult.session.user.id;
 
   const body = await request.json().catch(() => ({}));
   const validation = validateBody(treeCreateSchema, body);
@@ -62,7 +59,7 @@ export async function POST(request: Request) {
 
   try {
     const tree = await createTreeForUser(
-      session.user.id,
+      userId,
       validation.data.name,
       validation.data.nodes as FamilyNode[],
       validation.data.id

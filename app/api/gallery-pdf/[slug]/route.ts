@@ -11,9 +11,10 @@ const pdfCatalog: Record<string, { relativePath: string; downloadName: string }>
 
 export async function GET(
   request: Request,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
-  const pdfEntry = pdfCatalog[params.slug];
+  const { slug } = await params;
+  const pdfEntry = pdfCatalog[slug];
 
   if (!pdfEntry) {
     return NextResponse.json({ error: "PDF not found." }, { status: 404 });

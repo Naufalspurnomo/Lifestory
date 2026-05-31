@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../../../lib/auth/options";
+import { requireActiveSubscriber } from "../../../../../lib/auth-helpers";
 import {
   assertTreeWritable,
   getTreeForUser,
@@ -10,16 +9,16 @@ import { BackupManager } from "../../../../../lib/sync/BackupManager";
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { id } = await params;
+  const authResult = await requireActiveSubscriber();
+  if (!authResult.success) return authResult.response;
+  const userId = authResult.session.user.id;
 
   try {
-    await getTreeForUser(params.id, session.user.id);
-    const snapshots = await new BackupManager().listSnapshots(params.id);
+    await getTreeForUser(id, userId);
+    const snapshots = await new BackupManager().listSnapshots(id);
     return NextResponse.json({ snapshots });
   } catch (error) {
     console.error("snapshot list error", error);
@@ -29,16 +28,16 @@ export async function GET(
 
 export async function POST(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { id } = await params;
+  const authResult = await requireActiveSubscriber();
+  if (!authResult.success) return authResult.response;
+  const userId = authResult.session.user.id;
 
   try {
-    await assertTreeWritable(params.id, session.user.id);
-    const snapshot = await new BackupManager().createSnapshot(params.id);
+    await assertTreeWritable(id, userId);
+    const snapshot = await new BackupManager().createSnapshot(id);
     return NextResponse.json({ snapshot }, { status: 201 });
   } catch (error) {
     if (error instanceof TreeAccessError) {

@@ -1,23 +1,22 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../../../../../lib/auth/options";
+import { requireActiveSubscriber } from "../../../../../../../lib/auth-helpers";
 import { BackupManager } from "../../../../../../../lib/sync/BackupManager";
 import { TreeAccessError } from "../../../../../../../lib/tree/repository";
 
 export async function POST(
   _request: Request,
-  { params }: { params: { id: string; snapshotId: string } }
+  { params }: { params: Promise<{ id: string; snapshotId: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { id, snapshotId } = await params;
+  const authResult = await requireActiveSubscriber();
+  if (!authResult.success) return authResult.response;
+  const userId = authResult.session.user.id;
 
   try {
     await new BackupManager().restoreSnapshot(
-      params.id,
-      params.snapshotId,
-      session.user.id
+      id,
+      snapshotId,
+      userId
     );
     return NextResponse.json({ ok: true });
   } catch (error) {

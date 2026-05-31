@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/db";
 import { sendPasswordResetEmail } from "../../../../lib/email";
-import { applyRateLimit, rateLimitConfigs } from "../../../../lib/rate-limit";
+import {
+  applyRateLimit,
+  checkRateLimit,
+  rateLimitConfigs,
+} from "../../../../lib/rate-limit";
 import {
   PASSWORD_RESET_TOKEN_TTL_MINUTES,
   generatePasswordResetToken,
@@ -19,11 +23,25 @@ const genericMessage =
   "If the email is registered, a password reset link will be sent.";
 
 function getOrigin(request: Request): string {
-  return process.env.NEXTAUTH_URL || new URL(request.url).origin;
+  if (process.env.NEXTAUTH_URL) {
+    return new URL(process.env.NEXTAUTH_URL).origin;
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("NEXTAUTH_URL is required in production");
+  }
+  return new URL(request.url).origin;
+}
+
+async function waitForMinimumResponseTime(startedAt: number) {
+  const remaining = 750 - (Date.now() - startedAt);
+  if (remaining > 0) {
+    await new Promise((resolve) => setTimeout(resolve, remaining));
+  }
 }
 
 export async function POST(request: Request) {
-  const rateLimitError = applyRateLimit(
+  const startedAt = Date.now();
+  const rateLimitError = await applyRateLimit(
     request,
     "auth-forgot-password",
     rateLimitConfigs.sensitive
@@ -49,12 +67,20 @@ export async function POST(request: Request) {
   const email = validation.data.email.toLowerCase().trim();
 
   try {
+    const emailRateLimitError = await checkRateLimit(
+      email,
+      "auth-forgot-password-email",
+      rateLimitConfigs.sensitive
+    );
+    if (emailRateLimitError) return emailRateLimitError;
+
     const user = await prisma.user.findUnique({
       where: { email },
       select: { id: true, email: true },
     });
 
     if (!user) {
+      await waitForMinimumResponseTime(startedAt);
       return NextResponse.json({ message: genericMessage });
     }
 
@@ -82,12 +108,15 @@ export async function POST(request: Request) {
     });
 
     if (!emailResult.ok) {
-      console.warn("Password reset email was not sent", {
-        email: user.email,
+      await prisma.passwordResetToken.deleteMany({
+        where: { tokenHash: hashPasswordResetToken(token) },
+      });
+      console.warn("[auth] Password reset email was not sent", {
         reason: emailResult.skipped ? emailResult.reason : emailResult.error,
       });
     }
 
+    await waitForMinimumResponseTime(startedAt);
     return NextResponse.json({
       message: genericMessage,
       resetUrl:

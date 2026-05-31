@@ -3,14 +3,13 @@ import { getToken } from "next-auth/jwt";
 
 const protectedPagePaths = ["/app", "/dashboard"];
 const adminOnlyApiPaths = ["/api/users"];
+const subscriberOnlyApiPaths = ["/api/trees"];
 
 const defaultAllowedOrigins = [
-  "http://localhost:3000",
   "https://lifestory.co.id",
   "https://www.lifestory.co.id",
-  "https://lifestory.id",
-  "https://www.lifestory.id",
 ];
+const defaultAllowedHosts = ["lifestory.co.id", "www.lifestory.co.id"];
 
 function parseCsvEnv(value?: string): string[] {
   if (!value) return [];
@@ -33,7 +32,7 @@ function normalizeOrigins(values: string[]): string[] {
 }
 
 function hostMatches(host: string, allowedHost: string): boolean {
-  return host === allowedHost || host.endsWith(`.${allowedHost}`);
+  return host === allowedHost;
 }
 
 export async function middleware(req: NextRequest) {
@@ -42,6 +41,13 @@ export async function middleware(req: NextRequest) {
   if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
     const origin = req.headers.get("origin");
     const host = req.headers.get("host");
+
+    if (!origin && process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        { error: "Forbidden - Missing origin header" },
+        { status: 403 }
+      );
+    }
 
     if (origin && process.env.NODE_ENV === "production") {
       let normalizedOrigin = "";
@@ -73,19 +79,20 @@ export async function middleware(req: NextRequest) {
     }
 
     if (host && process.env.NODE_ENV === "production") {
-      const configuredHosts = parseCsvEnv(process.env.ALLOWED_HOSTS);
-      if (configuredHosts.length > 0) {
-        const hostWithoutPort = host.split(":")[0];
-        const isValidHost = configuredHosts.some((allowedHost) =>
-          hostMatches(hostWithoutPort, allowedHost)
-        );
+      const configuredHosts = [
+        ...defaultAllowedHosts,
+        ...parseCsvEnv(process.env.ALLOWED_HOSTS),
+      ];
+      const hostWithoutPort = host.split(":")[0];
+      const isValidHost = configuredHosts.some((allowedHost) =>
+        hostMatches(hostWithoutPort, allowedHost)
+      );
 
-        if (!isValidHost) {
-          return NextResponse.json(
-            { error: "Forbidden - Invalid host" },
-            { status: 403 }
-          );
-        }
+      if (!isValidHost) {
+        return NextResponse.json(
+          { error: "Forbidden - Invalid host" },
+          { status: 403 }
+        );
       }
     }
   }
@@ -96,8 +103,11 @@ export async function middleware(req: NextRequest) {
   const isAdminOnlyApi = adminOnlyApiPaths.some((path) =>
     pathname.startsWith(path)
   );
+  const isSubscriberOnlyApi = subscriberOnlyApiPaths.some((path) =>
+    pathname.startsWith(path)
+  );
 
-  if (!isProtectedPage && !isAdminOnlyApi) {
+  if (!isProtectedPage && !isAdminOnlyApi && !isSubscriberOnlyApi) {
     return NextResponse.next();
   }
 
@@ -110,7 +120,7 @@ export async function middleware(req: NextRequest) {
   const isAdmin = token?.role === "admin";
 
   if (accountStatus === "suspended") {
-    if (isAdminOnlyApi) {
+    if (isAdminOnlyApi || isSubscriberOnlyApi) {
       return NextResponse.json(
         { error: "Forbidden - Account is suspended" },
         { status: 403 }
@@ -148,6 +158,22 @@ export async function middleware(req: NextRequest) {
     if (!isAdmin) {
       return NextResponse.json(
         { error: "Forbidden - Admin access required" },
+        { status: 403 }
+      );
+    }
+  }
+
+  if (isSubscriberOnlyApi) {
+    if (!hasSession) {
+      return NextResponse.json(
+        { error: "Unauthorized - Please login" },
+        { status: 401 }
+      );
+    }
+
+    if (!subscriptionActive && !isAdmin) {
+      return NextResponse.json(
+        { error: "Forbidden - Active subscription required" },
         { status: 403 }
       );
     }
