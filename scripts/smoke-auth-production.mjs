@@ -183,8 +183,8 @@ async function createInvite(jar, treeId) {
   return response.json();
 }
 
-async function inspectPublicInvite(inviteLink) {
-  const response = await fetch(inviteLink);
+async function inspectPublicInvite(token) {
+  const response = await fetch(`${baseUrl}/api/invites/${token}`);
   assertStatus(response, 200, "get invite");
   const payload = await response.json();
   if ("treeData" in payload) {
@@ -231,7 +231,7 @@ try {
   await createUser(emails.collaborator);
   const collaboratorJar = await login(emails.collaborator);
   const invite = await createInvite(purchaserJar, tree.id);
-  const publicInviteStatus = await inspectPublicInvite(invite.inviteLink);
+  const publicInviteStatus = await inspectPublicInvite(invite.token);
   const inviteAcceptStatus = await acceptInvite(collaboratorJar, invite.token);
   const collaboratorTreeStatus = await getTreeStatus(collaboratorJar, tree.id);
   if (collaboratorTreeStatus !== 200) {
