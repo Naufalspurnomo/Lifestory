@@ -153,6 +153,13 @@ RESEND_API_KEY="your-resend-api-key"
 PASSWORD_RESET_FROM_EMAIL="Lifestory <no-reply@yourdomain.com>"
 ```
 
+For production password reset, verify the sender domain in Resend, configure both
+email variables in the Vercel Production environment, redeploy, and run:
+
+```bash
+ALLOW_PASSWORD_RESET_SMOKE=1 PASSWORD_RESET_SMOKE_BASE_URL=https://lifestory.co.id npm run auth:reset-smoke
+```
+
 ### Database Setup
 
 ```bash
@@ -202,6 +209,7 @@ npm start
 | `npm run db:deploy` | Deploy migrations (CI/CD) |
 | `npm run db:seed` | Seed database |
 | `npm run db:studio` | Open Prisma Studio |
+| `npm run auth:reset-smoke` | Verify deployed forgot-password email delivery with a temporary synthetic user |
 | `npm run optimize:images` | Convert images to WebP |
 
 ---

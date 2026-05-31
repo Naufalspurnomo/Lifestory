@@ -10,8 +10,15 @@ type PasswordChangedEmailInput = {
 
 type EmailResult =
   | { ok: true; skipped?: false }
-  | { ok: false; skipped: true; reason: "missing-config" }
+  | {
+      ok: false;
+      skipped: true;
+      reason: "missing-config" | "invalid-config";
+    }
   | { ok: false; skipped?: false; error: string };
+
+const EMAIL_REQUEST_TIMEOUT_MS = 10_000;
+const PLACEHOLDER_VALUES = new Set(["replace_me", "your-resend-api-key"]);
 
 function escapeHtml(value: string): string {
   return value
@@ -40,27 +47,44 @@ async function sendEmail({
     return { ok: false, skipped: true, reason: "missing-config" };
   }
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject,
-      html,
-      text,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => response.statusText);
-    return { ok: false, error: errorText || response.statusText };
+  if (PLACEHOLDER_VALUES.has(apiKey.trim().toLowerCase())) {
+    return { ok: false, skipped: true, reason: "invalid-config" };
   }
 
-  return { ok: true };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), EMAIL_REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject,
+        html,
+        text,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => response.statusText);
+      return { ok: false, error: errorText || response.statusText };
+    }
+
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Email transport failed",
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function sendPasswordResetEmail({
