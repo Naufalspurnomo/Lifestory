@@ -55,6 +55,7 @@ export default function SyncStatusIndicator({ status, onRetry }: Props) {
           : "border-[#d4af37]/45 bg-black/45 text-[#e8d5b5]"
       }`}
       aria-live="polite"
+      title={message}
     >
       {icon}
       <span>{LABELS[status.status]}</span>

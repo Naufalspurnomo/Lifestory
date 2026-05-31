@@ -17,6 +17,7 @@ import { loadTrees, saveTrees, checkStorageQuota } from "../utils/storageUtils";
 import {
   createTreeApi,
   choosePrimaryTree,
+  collapseLegacyDuplicateTrees,
   listTrees,
   loadTree,
   type TreeSummary,
@@ -398,7 +399,8 @@ export function useTreeState(userId: string, userName: string) {
       try {
         const summaries = await listTrees();
         if (cancelled) return;
-        setTreeSummaries(summaries);
+        const visibleSummaries = collapseLegacyDuplicateTrees(summaries);
+        setTreeSummaries(visibleSummaries);
 
         if (summaries.length === 0) {
           // Recover drafts created by the older local-first flow. The server
@@ -429,12 +431,22 @@ export function useTreeState(userId: string, userName: string) {
                   : "Draft lokal masih aman, tetapi belum masuk server."
               );
             }
+          } else {
+            // A versioned cache belonged to a tree that once existed on the
+            // server. Do not resurrect it after an intentional server reset.
+            setTrees([]);
+            setCurrentTreeId(null);
+            setHistory({ past: [], present: [], future: [] });
+            saveTrees([], userId);
           }
           setLoadStatus("idle");
           return;
         }
 
-        const primary = choosePrimaryTree(summaries, getActiveTreeId(userId));
+        const primary = choosePrimaryTree(
+          visibleSummaries,
+          getActiveTreeId(userId)
+        );
         if (!primary) return;
         await hydrateServerTree(primary.id, () => !cancelled);
         if (cancelled) return;

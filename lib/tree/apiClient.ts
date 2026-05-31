@@ -36,6 +36,29 @@ export function choosePrimaryTree(
   );
 }
 
+export function collapseLegacyDuplicateTrees(
+  summaries: TreeSummary[]
+): TreeSummary[] {
+  const byFamily = new Map<string, TreeSummary>();
+
+  for (const tree of summaries) {
+    const key = `${tree.ownerId}:${tree.name.trim().toLocaleLowerCase("id")}`;
+    const current = byFamily.get(key);
+    const isBetterCandidate =
+      !current ||
+      tree.nodeCount > current.nodeCount ||
+      (tree.nodeCount === current.nodeCount &&
+        new Date(tree.updatedAt).getTime() >
+          new Date(current.updatedAt).getTime());
+    if (isBetterCandidate) byFamily.set(key, tree);
+  }
+
+  return Array.from(byFamily.values()).sort(
+    (a, b) =>
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  );
+}
+
 async function expectOk(response: Response): Promise<void> {
   if (response.ok) return;
   let message = `HTTP ${response.status}`;

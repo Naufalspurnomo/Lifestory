@@ -2,6 +2,7 @@ type NetworkCallback = (online: boolean) => void;
 
 export class NetworkDetector {
   private online = true;
+  private lastError: string | undefined;
   private callbacks = new Set<NetworkCallback>();
   private timer: ReturnType<typeof setInterval> | null = null;
 
@@ -17,6 +18,20 @@ export class NetworkDetector {
 
   isOnline(): boolean {
     return this.online;
+  }
+
+  getLastError(): string | undefined {
+    return this.lastError;
+  }
+
+  reportOnline(): void {
+    this.lastError = undefined;
+    this.setOnline(true);
+  }
+
+  reportOffline(message: string): void {
+    this.lastError = message;
+    this.setOnline(false);
   }
 
   onStatusChange(callback: NetworkCallback): () => void {
@@ -53,9 +68,16 @@ export class NetworkDetector {
         cache: "no-store",
       });
       const ok = response.ok;
+      this.lastError = ok
+        ? undefined
+        : `Health check failed with HTTP ${response.status}`;
       this.setOnline(ok);
       return ok;
-    } catch {
+    } catch (error) {
+      this.lastError =
+        error instanceof Error
+          ? `Health check failed: ${error.message}`
+          : "Health check failed: Network error";
       this.setOnline(false);
       return false;
     }

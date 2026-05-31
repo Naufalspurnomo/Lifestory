@@ -134,7 +134,7 @@ export class SyncEngine {
         this.updateStatus("syncing");
         this.scheduleFlush(0);
       } else {
-        this.updateStatus("offline");
+        this.updateStatus("offline", this.networkDetector.getLastError());
       }
     });
     this.networkDetector.start();
@@ -167,10 +167,13 @@ export class SyncEngine {
     return entries;
   }
 
-  async flush(): Promise<void> {
+  async flush(options: { allowOfflineAttempt?: boolean } = {}): Promise<void> {
     if (this.flushing || this.paused) return;
-    if (!this.networkDetector.isOnline()) {
-      await this.refreshStatus("offline");
+    if (!this.networkDetector.isOnline() && !options.allowOfflineAttempt) {
+      await this.refreshStatus(
+        "offline",
+        this.networkDetector.getLastError()
+      );
       return;
     }
 
@@ -219,16 +222,16 @@ export class SyncEngine {
     this.retryQueue.cancelAll();
     await this.wal.resetFailed();
     this.paused = false;
-    if (!(await this.ensureOnline())) return;
+    await this.ensureOnline();
     await this.refreshStatus("syncing");
-    await this.flush();
+    await this.flush({ allowOfflineAttempt: true });
   }
 
   async forceSync(): Promise<void> {
     this.retryQueue.cancelAll();
     this.paused = false;
-    if (!(await this.ensureOnline())) return;
-    await this.flush();
+    await this.ensureOnline();
+    await this.flush({ allowOfflineAttempt: true });
   }
 
   async setLastSyncedVersion(treeId: string, version: number): Promise<void> {
@@ -263,6 +266,9 @@ export class SyncEngine {
 
     try {
       const response = await this.postBatch(batch);
+      // Any HTTP response proves the route is reachable. Distinguish server
+      // rejection from an actual transport outage.
+      this.networkDetector.reportOnline();
       if (response.ok) {
         const body = (await response.json()) as SyncResponse;
         // Persist the accepted server version before deleting WAL rows. If the
@@ -327,6 +333,18 @@ export class SyncEngine {
         return;
       }
 
+      if (response.status === 403 || response.status === 404) {
+        const message =
+          response.status === 404
+            ? "The original family tree no longer exists. Local edits remain stored in this browser. Reset local site data only if the deletion was intentional."
+            : "You no longer have permission to save this family tree. Local edits remain stored in this browser.";
+        for (const seqNo of seqNos) {
+          await this.wal.markPermanentlyFailed(seqNo, message);
+        }
+        this.updateStatus("error", message);
+        return;
+      }
+
       if (response.status >= 500) {
         await this.handleRetryableFailure(ordered, await readErrorMessage(response));
         return;
@@ -334,6 +352,9 @@ export class SyncEngine {
 
       await this.handleRetryableFailure(ordered, await readErrorMessage(response));
     } catch (error) {
+      this.networkDetector.reportOffline(
+        error instanceof Error ? error.message : "Network error"
+      );
       await this.handleRetryableFailure(
         ordered,
         error instanceof Error ? error.message : "Network error"
@@ -358,14 +379,16 @@ export class SyncEngine {
     );
   }
 
-  private async ensureOnline(): Promise<boolean> {
-    if (this.networkDetector.isOnline()) return true;
+  private async ensureOnline(): Promise<void> {
+    if (this.networkDetector.isOnline()) return;
 
     const online = await this.networkDetector.check();
     if (!online) {
-      await this.refreshStatus("offline");
+      await this.refreshStatus(
+        "offline",
+        this.networkDetector.getLastError()
+      );
     }
-    return online;
   }
 
   private createBatchId(entries: WALEntry[]): string {
@@ -445,7 +468,12 @@ export class SyncEngine {
         : this.networkDetector.isOnline()
         ? "pending"
         : "offline");
-    this.updateStatus(status, errorMessage, pendingCount);
+    this.updateStatus(
+      status,
+      errorMessage ??
+        (status === "offline" ? this.networkDetector.getLastError() : undefined),
+      pendingCount
+    );
   }
 
   private updateStatus(
@@ -459,7 +487,9 @@ export class SyncEngine {
       pendingCount,
       pendingDisplay: formatPendingCount(pendingCount),
       warningMessage: this.wal.warningMessage,
-      errorMessage,
+      errorMessage:
+        errorMessage ??
+        (status === "error" ? this.status.errorMessage : undefined),
       lastSyncedAt:
         status === "saved" ? Date.now() : this.status.lastSyncedAt,
     };

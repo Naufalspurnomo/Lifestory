@@ -6,6 +6,7 @@ import {
   saveTreeNodes,
   deleteTreeApi,
   choosePrimaryTree,
+  collapseLegacyDuplicateTrees,
   TreeApiError,
 } from "../lib/tree/apiClient";
 
@@ -39,6 +40,40 @@ describe("apiClient - happy paths", () => {
 
     expect(choosePrimaryTree(summaries, null)?.id).toBe("full-old");
     expect(choosePrimaryTree(summaries, "empty-new")?.id).toBe("empty-new");
+  });
+
+  it("collapses legacy duplicate family trees without combining other owners", () => {
+    const summaries = [
+      {
+        id: "empty-new",
+        name: "Keluarga Admin",
+        ownerId: "u1",
+        nodeCount: 1,
+        createdAt: "2026-05-31T00:00:00.000Z",
+        updatedAt: "2026-05-31T00:00:00.000Z",
+      },
+      {
+        id: "full-old",
+        name: "Keluarga Admin",
+        ownerId: "u1",
+        nodeCount: 16,
+        createdAt: "2026-05-29T00:00:00.000Z",
+        updatedAt: "2026-05-29T00:00:00.000Z",
+      },
+      {
+        id: "other-owner",
+        name: "Keluarga Admin",
+        ownerId: "u2",
+        nodeCount: 2,
+        createdAt: "2026-05-30T00:00:00.000Z",
+        updatedAt: "2026-05-30T00:00:00.000Z",
+      },
+    ];
+
+    expect(collapseLegacyDuplicateTrees(summaries).map((tree) => tree.id)).toEqual([
+      "other-owner",
+      "full-old",
+    ]);
   });
 
   it("listTrees returns array from JSON envelope", async () => {

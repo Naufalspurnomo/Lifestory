@@ -28,4 +28,15 @@ describe("NetworkDetector", () => {
     expect(detector.isOnline()).toBe(true);
     expect(fetchMock).toHaveBeenCalledOnce();
   });
+
+  it("retains the health failure reason for the sync status surface", async () => {
+    const detector = new NetworkDetector(
+      "/api/health",
+      30_000,
+      vi.fn(async () => new Response("{}", { status: 503 })) as unknown as typeof fetch
+    );
+
+    await expect(detector.check()).resolves.toBe(false);
+    expect(detector.getLastError()).toBe("Health check failed with HTTP 503");
+  });
 });

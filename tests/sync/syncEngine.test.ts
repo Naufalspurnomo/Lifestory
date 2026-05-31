@@ -51,6 +51,16 @@ class RecoverableNetworkDetector extends NetworkDetector {
   }
 }
 
+class StuckOfflineNetworkDetector extends NetworkDetector {
+  override isOnline(): boolean {
+    return false;
+  }
+
+  override async check(): Promise<boolean> {
+    return false;
+  }
+}
+
 function person(id: string): FamilyNode {
   return {
     id,
@@ -171,6 +181,58 @@ describe("SyncEngine reliability boundaries", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(await wal.getCount()).toBe(0);
     expect(engine.getStatus().status).toBe("saved");
+    engine.destroy();
+  });
+
+  it("forces a sync attempt when health probing is a false-negative", async () => {
+    const wal = new LocalStorageWriteAheadLog({
+      storage: new TestStorage(),
+    });
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      return jsonResponse({
+        success: true,
+        newVersion: 2,
+        acknowledgedSeqNos: body.mutations.map(
+          (mutation: { seqNo: number }) => mutation.seqNo
+        ),
+      });
+    });
+    const engine = new SyncEngine({
+      wal,
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      networkDetector: new StuckOfflineNetworkDetector(),
+      config: { debounceMs: 60_000 },
+    });
+
+    await engine.enqueueMany("tree-1", mutations(1));
+    await engine.forceSync();
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(await wal.getCount()).toBe(0);
+    expect(engine.getStatus().status).toBe("saved");
+    engine.destroy();
+  });
+
+  it("stops retrying when the original tree was intentionally deleted", async () => {
+    const wal = new LocalStorageWriteAheadLog({
+      storage: new TestStorage(),
+    });
+    const engine = new SyncEngine({
+      wal,
+      fetchImpl: vi.fn(async () =>
+        jsonResponse({ error: "Tree not found" }, 404)
+      ) as unknown as typeof fetch,
+      networkDetector: new AlwaysOnlineNetworkDetector(),
+      config: { debounceMs: 60_000 },
+    });
+
+    await engine.enqueueMany("deleted-tree", mutations(1));
+    await engine.forceSync();
+
+    expect(await wal.getPermanentlyFailedCount()).toBe(1);
+    expect(engine.getStatus().status).toBe("error");
+    expect(engine.getStatus().errorMessage).toContain("no longer exists");
     engine.destroy();
   });
 });

@@ -221,6 +221,19 @@ export async function createTreeForUser(
   nodes: FamilyNode[] = [],
   requestedId?: string
 ): Promise<TreeData> {
+  const existingOwnedTrees = await prisma.tree.findMany({
+    where: { ownerId: userId },
+    select: { id: true, updatedAt: true, _count: { select: { nodes: true } } },
+  });
+  const canonicalOwnedTree = existingOwnedTrees.sort(
+    (a, b) =>
+      b._count.nodes - a._count.nodes ||
+      b.updatedAt.getTime() - a.updatedAt.getTime()
+  )[0];
+  if (canonicalOwnedTree) {
+    return getTreeForUser(canonicalOwnedTree.id, userId);
+  }
+
   if (requestedId) {
     const existing = await prisma.tree.findUnique({
       where: { id: requestedId },
