@@ -51,13 +51,25 @@ export function formatBytes(bytes: number): string {
 /**
  * Load trees from localStorage
  */
-export function loadTrees(): TreeData[] {
+export function loadTrees(userId?: string): TreeData[] {
   if (typeof window === "undefined") return [];
 
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const scopedKey = userId ? `${STORAGE_KEY}:${userId}` : STORAGE_KEY;
+    const stored = localStorage.getItem(scopedKey);
     if (stored) {
       return JSON.parse(stored) as TreeData[];
+    }
+
+    // One-time compatibility path for drafts written before cache isolation.
+    // Never expose another owner's legacy cache after an account switch.
+    if (userId) {
+      const legacy = localStorage.getItem(STORAGE_KEY);
+      if (legacy) {
+        return (JSON.parse(legacy) as TreeData[]).filter(
+          (tree) => tree.ownerId === userId
+        );
+      }
     }
   } catch (e) {
     console.error("Failed to load trees:", e);
@@ -69,7 +81,7 @@ export function loadTrees(): TreeData[] {
 /**
  * Save trees to localStorage with quota check
  */
-export function saveTrees(trees: TreeData[]): {
+export function saveTrees(trees: TreeData[], userId?: string): {
   success: boolean;
   error?: string;
 } {
@@ -79,12 +91,13 @@ export function saveTrees(trees: TreeData[]): {
 
   try {
     const data = JSON.stringify(trees);
+    const scopedKey = userId ? `${STORAGE_KEY}:${userId}` : STORAGE_KEY;
     const dataSize = data.length * 2; // Approximate bytes
 
     const quota = checkStorageQuota();
     const newUsage =
       quota.used -
-      (localStorage.getItem(STORAGE_KEY)?.length || 0) * 2 +
+      (localStorage.getItem(scopedKey)?.length || 0) * 2 +
       dataSize;
 
     if (newUsage > MAX_STORAGE_BYTES) {
@@ -98,7 +111,7 @@ export function saveTrees(trees: TreeData[]): {
       };
     }
 
-    localStorage.setItem(STORAGE_KEY, data);
+    localStorage.setItem(scopedKey, data);
     return { success: true };
   } catch (e) {
     console.error("Failed to save trees:", e);

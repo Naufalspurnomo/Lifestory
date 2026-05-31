@@ -16,14 +16,17 @@ import {
 import { loadTrees, saveTrees, checkStorageQuota } from "../utils/storageUtils";
 import {
   createTreeApi,
+  choosePrimaryTree,
   listTrees,
   loadTree,
+  type TreeSummary,
   TreeApiError,
 } from "../tree/apiClient";
 import { useSyncEngine } from "../sync/useSyncEngine";
 import type { Mutation } from "../sync/types";
 
 const MAX_HISTORY = 50;
+const ACTIVE_TREE_KEY_PREFIX = "lifestory_active_tree:";
 
 // ---------- helpers ----------
 const uniq = (a: string[]) => Array.from(new Set((a || []).filter(Boolean)));
@@ -34,6 +37,16 @@ function createClientId(prefix: "tree" | "node"): string {
       ? globalThis.crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   return `${prefix}-${randomId}`;
+}
+
+function getActiveTreeId(userId: string): string | null {
+  if (typeof window === "undefined" || !userId) return null;
+  return localStorage.getItem(`${ACTIVE_TREE_KEY_PREFIX}${userId}`);
+}
+
+function saveActiveTreeId(userId: string, treeId: string): void {
+  if (typeof window === "undefined" || !userId) return;
+  localStorage.setItem(`${ACTIVE_TREE_KEY_PREFIX}${userId}`, treeId);
 }
 
 function sharesParent(a: FamilyNode, b: FamilyNode): boolean {
@@ -272,6 +285,7 @@ function buildNodeMutations(
 
 export function useTreeState(userId: string, userName: string) {
   const [trees, setTrees] = useState<TreeData[]>([]);
+  const [treeSummaries, setTreeSummaries] = useState<TreeSummary[]>([]);
   const [currentTreeId, setCurrentTreeId] = useState<string | null>(null);
   const [history, setHistory] = useState<TreeHistory>({
     past: [],
@@ -327,12 +341,34 @@ export function useTreeState(userId: string, userName: string) {
     treesRef.current = trees;
   }, [trees]);
 
+  const hydrateServerTree = useCallback(
+    async (treeId: string, shouldApply: () => boolean = () => true) => {
+      const fullTree = await loadTree(treeId);
+      if (!shouldApply()) return null;
+      const nodes = recomputeAllGenerations(
+        sanitizeGraph(fullTree.nodes.map((node) => normalizeNode(node)))
+      );
+      const hydrated: TreeData = { ...fullTree, nodes };
+
+      setTrees((prev) => {
+        const filtered = prev.filter((tree) => tree.id !== hydrated.id);
+        return [...filtered, hydrated];
+      });
+      setCurrentTreeId(hydrated.id);
+      setHistory({ past: [], present: hydrated.nodes, future: [] });
+      saveActiveTreeId(userId, hydrated.id);
+      await setLastSyncedVersion(hydrated.id, fullTree.version ?? 1);
+      return hydrated;
+    },
+    [setLastSyncedVersion, userId]
+  );
+
   // Load: try API first, fall back to localStorage.
   useEffect(() => {
     let cancelled = false;
 
     const hydrate = async () => {
-      const loadedLocal = loadTrees();
+      const loadedLocal = loadTrees(userId);
       const migrated = loadedLocal.map((t: any) => {
         const nodes = (t.nodes || []).map((n: any) => normalizeNode(n));
         const sanitized = sanitizeGraph(nodes);
@@ -342,8 +378,13 @@ export function useTreeState(userId: string, userName: string) {
 
       // Seed with local cache immediately so UI isn't blank while we fetch.
       if (!cancelled) {
+        setCurrentTreeId(null);
+        setHistory({ past: [], present: [], future: [] });
         setTrees(migrated);
-        const localTree = migrated.find((t) => t.ownerId === userId);
+        const preferredTreeId = getActiveTreeId(userId);
+        const localTree =
+          migrated.find((tree) => tree.id === preferredTreeId) ??
+          migrated.find((tree) => tree.ownerId === userId);
         if (localTree) {
           setCurrentTreeId(localTree.id);
           setHistory({ past: [], present: localTree.nodes, future: [] });
@@ -357,6 +398,7 @@ export function useTreeState(userId: string, userName: string) {
       try {
         const summaries = await listTrees();
         if (cancelled) return;
+        setTreeSummaries(summaries);
 
         if (summaries.length === 0) {
           // Recover drafts created by the older local-first flow. The server
@@ -376,6 +418,7 @@ export function useTreeState(userId: string, userName: string) {
                 recovered,
               ]);
               setCurrentTreeId(recovered.id);
+              saveActiveTreeId(userId, recovered.id);
               setHistory({ past: [], present: recovered.nodes, future: [] });
               await setLastSyncedVersion(recovered.id, recovered.version ?? 1);
               setSaveError(null);
@@ -391,23 +434,10 @@ export function useTreeState(userId: string, userName: string) {
           return;
         }
 
-        const primary = summaries[0];
-        const fullTree = await loadTree(primary.id);
+        const primary = choosePrimaryTree(summaries, getActiveTreeId(userId));
+        if (!primary) return;
+        await hydrateServerTree(primary.id, () => !cancelled);
         if (cancelled) return;
-
-        // Normalize server data through the same sanitizer used for local.
-        const nodes = recomputeAllGenerations(
-          sanitizeGraph(fullTree.nodes.map((n) => normalizeNode(n)))
-        );
-        const hydrated: TreeData = { ...fullTree, nodes };
-
-        setTrees((prev) => {
-          const filtered = prev.filter((t) => t.id !== hydrated.id);
-          return [...filtered, hydrated];
-        });
-        setCurrentTreeId(hydrated.id);
-        setHistory({ past: [], present: hydrated.nodes, future: [] });
-        void setLastSyncedVersion(hydrated.id, fullTree.version ?? 1);
         setLoadStatus("idle");
       } catch (error) {
         if (cancelled) return;
@@ -425,22 +455,42 @@ export function useTreeState(userId: string, userName: string) {
     return () => {
       cancelled = true;
     };
-  }, [setLastSyncedVersion, userId]);
+  }, [hydrateServerTree, setLastSyncedVersion, userId]);
 
   // Persist the display cache synchronously. Authoritative server sync is handled
   // by the WAL-backed SyncEngine from each mutation path below.
   useEffect(() => {
     if (trees.length === 0) return;
 
-    const result = saveTrees(trees);
+    const result = saveTrees(trees, userId);
     if (!result.success) setSaveError(result.error || null);
     else setSaveError(null);
     setStorageInfo(checkStorageQuota());
 
-  }, [trees]);
+  }, [trees, userId]);
 
   const currentTree = trees.find((t) => t.id === currentTreeId) || null;
   const userTree = trees.find((t) => t.ownerId === userId) || null;
+
+  const selectTree = useCallback(
+    async (treeId: string) => {
+      if (!treeId || treeId === currentTreeId) return;
+      setLoadStatus("loading");
+      try {
+        await hydrateServerTree(treeId);
+        setSaveError(null);
+        setLoadStatus("idle");
+      } catch (error) {
+        setLoadStatus("offline");
+        setSaveError(
+          error instanceof Error
+            ? `Pohon belum bisa dimuat: ${error.message}`
+            : "Pohon belum bisa dimuat."
+        );
+      }
+    },
+    [currentTreeId, hydrateServerTree]
+  );
 
   const currentTreeNodes = currentTree?.nodes;
   const layoutGraph: LayoutGraph = useMemo(
@@ -519,6 +569,19 @@ export function useTreeState(userId: string, userName: string) {
         created,
       ]);
       setCurrentTreeId(created.id);
+      saveActiveTreeId(userId, created.id);
+      setTreeSummaries((prev) => [
+        {
+          id: created.id,
+          name: created.name,
+          ownerId: created.ownerId,
+          version: created.version,
+          nodeCount: created.nodes.length,
+          createdAt: created.createdAt,
+          updatedAt: created.updatedAt,
+        },
+        ...prev.filter((tree) => tree.id !== created.id),
+      ]);
       setHistory({ past: [], present: created.nodes, future: [] });
       await setLastSyncedVersion(created.id, created.version ?? 1);
       setLoadStatus("idle");
@@ -548,7 +611,7 @@ export function useTreeState(userId: string, userName: string) {
 
       const { initialChildrenIds, ...rest } = nodeData as any;
 
-      const newNodeId = `node-${Date.now()}`;
+      const newNodeId = createClientId("node");
 
       // build new node normalized
       const newNode: FamilyNode = normalizeNode({
@@ -844,10 +907,11 @@ export function useTreeState(userId: string, userName: string) {
 
   return {
     trees,
+    treeSummaries,
     currentTree,
     userTree,
     currentTreeId,
-    setCurrentTreeId,
+    selectTree,
     layoutGraph,
     history,
     storageInfo,

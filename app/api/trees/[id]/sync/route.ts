@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-import { requireActiveSubscriber } from "../../../../../lib/auth-helpers";
+import { requireUser } from "../../../../../lib/auth-helpers";
 import {
   applyTreeMutations,
   getChangedNodeIdsSince,
@@ -43,7 +43,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const authResult = await requireActiveSubscriber();
+  const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
   const userId = authResult.session.user.id;
 

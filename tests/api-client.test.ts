@@ -5,6 +5,7 @@ import {
   createTreeApi,
   saveTreeNodes,
   deleteTreeApi,
+  choosePrimaryTree,
   TreeApiError,
 } from "../lib/tree/apiClient";
 
@@ -16,6 +17,30 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 describe("apiClient - happy paths", () => {
+  it("prefers the remembered tree and otherwise selects the fullest archive", () => {
+    const summaries = [
+      {
+        id: "empty-new",
+        name: "Keluarga Admin",
+        ownerId: "u1",
+        nodeCount: 1,
+        createdAt: "2026-05-31T00:00:00.000Z",
+        updatedAt: "2026-05-31T00:00:00.000Z",
+      },
+      {
+        id: "full-old",
+        name: "Keluarga Admin",
+        ownerId: "u1",
+        nodeCount: 16,
+        createdAt: "2026-05-29T00:00:00.000Z",
+        updatedAt: "2026-05-29T00:00:00.000Z",
+      },
+    ];
+
+    expect(choosePrimaryTree(summaries, null)?.id).toBe("full-old");
+    expect(choosePrimaryTree(summaries, "empty-new")?.id).toBe("empty-new");
+  });
+
   it("listTrees returns array from JSON envelope", async () => {
     const fetchMock = vi.fn(async () =>
       jsonResponse({

@@ -6,6 +6,7 @@ const relevantTables = new Set([
   "PasswordResetToken",
   "RateLimitBucket",
   "Tree",
+  "TreeInvite",
   "TreeSnapshot",
   "TreeSyncReceipt",
 ]);
@@ -18,11 +19,26 @@ const requiredColumns = new Set([
   "RateLimitBucket.count",
   "RateLimitBucket.resetAt",
   "Tree.version",
+  "TreeInvite.tokenHash",
+  "TreeInvite.treeId",
+  "TreeInvite.expiresAt",
   "TreeSyncReceipt.id",
+]);
+const rlsRequiredTables = new Set([
+  "User",
+  "PasswordResetToken",
+  "RateLimitBucket",
+  "Tree",
+  "TreeMember",
+  "TreeInvite",
+  "Node",
+  "Edge",
+  "TreeSnapshot",
+  "TreeSyncReceipt",
 ]);
 
 try {
-  const [tables, columns, migrations] = await Promise.all([
+  const [tables, columns, migrations, rls] = await Promise.all([
     prisma.$queryRawUnsafe(
       "SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema() ORDER BY table_name"
     ),
@@ -31,6 +47,9 @@ try {
     ),
     prisma.$queryRawUnsafe(
       "SELECT migration_name, finished_at, rolled_back_at, logs FROM _prisma_migrations ORDER BY started_at"
+    ),
+    prisma.$queryRawUnsafe(
+      "SELECT c.relname AS table_name, c.relrowsecurity AS rls_enabled FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = current_schema() AND c.relkind = 'r' ORDER BY c.relname"
     ),
   ]);
 
@@ -45,6 +64,12 @@ try {
   const missingColumns = [...requiredColumns].filter(
     (column) => !existingColumns.has(column)
   );
+  const rlsByTable = new Map(
+    rls.map(({ table_name, rls_enabled }) => [table_name, rls_enabled])
+  );
+  const rlsDisabledTables = [...rlsRequiredTables].filter(
+    (table) => rlsByTable.get(table) !== true
+  );
 
   console.log(
     JSON.stringify(
@@ -52,6 +77,7 @@ try {
         tables: tables.filter(({ table_name }) => relevantTables.has(table_name)),
         columns: relevantColumns,
         missingColumns,
+        rlsDisabledTables,
         migrations,
       },
       null,
@@ -61,6 +87,9 @@ try {
 
   if (missingColumns.length > 0) {
     throw new Error(`Missing required database columns: ${missingColumns.join(", ")}`);
+  }
+  if (rlsDisabledTables.length > 0) {
+    throw new Error(`RLS is disabled for required tables: ${rlsDisabledTables.join(", ")}`);
   }
 } finally {
   await prisma.$disconnect();

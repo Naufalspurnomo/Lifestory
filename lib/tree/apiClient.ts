@@ -8,6 +8,7 @@ export type TreeSummary = {
   name: string;
   ownerId: string;
   version?: number;
+  nodeCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -17,6 +18,22 @@ export class TreeApiError extends Error {
     super(message);
     this.name = "TreeApiError";
   }
+}
+
+export function choosePrimaryTree(
+  summaries: TreeSummary[],
+  preferredTreeId: string | null
+): TreeSummary | null {
+  const preferred = summaries.find((tree) => tree.id === preferredTreeId);
+  if (preferred) return preferred;
+
+  return (
+    [...summaries].sort(
+      (a, b) =>
+        b.nodeCount - a.nodeCount ||
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    )[0] ?? null
+  );
 }
 
 async function expectOk(response: Response): Promise<void> {

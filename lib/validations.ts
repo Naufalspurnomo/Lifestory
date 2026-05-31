@@ -204,12 +204,8 @@ export const treeSyncPayloadSchema = z.object({
 });
 
 export const inviteCreateSchema = z.object({
-  treeName: z.string().trim().min(1, "treeName is required").max(120),
-  treeData: z
-    .object({
-      nodes: nonEmptyFamilyTreeNodesSchema,
-    })
-    .passthrough(),
+  treeId: nodeIdSchema,
+  role: z.enum(["editor", "viewer"]).optional().default("editor"),
 });
 
 // ====== Helper: Validate and parse ======

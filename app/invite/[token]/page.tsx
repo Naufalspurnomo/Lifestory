@@ -6,19 +6,17 @@ import { useSession } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "../../../components/providers/LanguageProvider";
 import { Button } from "../../../components/ui/Button";
-import type { TreeData } from "../../../lib/types/tree";
-import { createTreeApi, saveTreeNodes } from "../../../lib/tree/apiClient";
-import { loadTrees, saveTrees } from "../../../lib/utils/storageUtils";
 
 type InvitePayload = {
   treeName: string;
-  treeData: TreeData;
-  createdByEmail: string;
+  createdByName: string;
   expiresAt: string;
+  role: "editor" | "viewer";
+  accepted: boolean;
 };
 
 export default function InvitePage() {
-  const { data: session, status: sessionStatus } = useSession();
+  const { status: sessionStatus } = useSession();
   const { locale } = useLanguage();
   const params = useParams<{ token: string }>();
   const router = useRouter();
@@ -34,51 +32,43 @@ export default function InvitePage() {
       ? {
           invalidLink: "Invite link tidak valid.",
           failedLoadInvite: "Gagal memuat undangan.",
-          invalidAccount: "Akun Anda tidak valid. Silakan login ulang.",
-          invalidTreeData: "Data pohon pada undangan tidak valid.",
-          replaceConfirm:
-            "Anda sudah punya pohon sendiri. Import ini akan menggantikan pohon Anda saat ini. Lanjutkan?",
-          saveFailed: "Gagal menyimpan pohon ke akun Anda.",
+          acceptFailed: "Gagal menerima undangan pohon.",
           loadingInvite: "Memuat undangan...",
           unusableInvite: "Undangan tidak bisa digunakan",
           backHome: "Kembali ke beranda",
           inviteTitle: "Undangan pohon keluarga",
-          invitedToTree: "Anda diundang untuk melihat dan melanjutkan pohon:",
-          createdByAndExpires: (email: string, expiry: string) =>
-            `Dibuat oleh ${email} | berlaku sampai ${expiry}`,
-          loginToImport: "Login untuk Import",
+          invitedToTree: "Anda diundang untuk berkolaborasi pada pohon:",
+          createdByAndExpires: (name: string, expiry: string) =>
+            `Dibuat oleh ${name} | berlaku sampai ${expiry}`,
+          loginToAccept: "Login untuk Menerima",
           acceptTitle: "Terima Undangan Pohon",
-          acceptBody: "Anda akan mengimpor pohon",
-          intoYourAccount: "ke akun Anda.",
+          acceptBody: "Anda akan bergabung sebagai editor pada pohon",
+          intoYourAccount: "yang sama.",
           importWarning:
-            "Import ini akan menyalin data pohon ke penyimpanan akun Anda saat ini.",
-          importing: "Mengimpor...",
-          importToMyAccount: "Import ke Akun Saya",
+            "Data tidak disalin. Semua kolaborator akan menyunting pohon keluarga yang sama.",
+          importing: "Memproses...",
+          importToMyAccount: "Terima Undangan",
           cancel: "Batal",
         }
       : {
           invalidLink: "Invalid invite link.",
           failedLoadInvite: "Failed to load invite.",
-          invalidAccount: "Your account is invalid. Please login again.",
-          invalidTreeData: "Tree data in this invite is invalid.",
-          replaceConfirm:
-            "You already have your own tree. Importing will replace your current tree. Continue?",
-          saveFailed: "Failed to save tree to your account.",
+          acceptFailed: "Failed to accept tree invitation.",
           loadingInvite: "Loading invite...",
           unusableInvite: "Invite cannot be used",
           backHome: "Back to home",
           inviteTitle: "Family tree invite",
-          invitedToTree: "You are invited to view and continue the tree:",
-          createdByAndExpires: (email: string, expiry: string) =>
-            `Created by ${email} | expires at ${expiry}`,
-          loginToImport: "Login to Import",
+          invitedToTree: "You are invited to collaborate on the tree:",
+          createdByAndExpires: (name: string, expiry: string) =>
+            `Created by ${name} | expires at ${expiry}`,
+          loginToAccept: "Login to Accept",
           acceptTitle: "Accept Tree Invite",
-          acceptBody: "You are about to import tree",
-          intoYourAccount: "into your account.",
+          acceptBody: "You will join as an editor on the same tree",
+          intoYourAccount: ".",
           importWarning:
-            "This import will copy the tree data into your current account storage.",
-          importing: "Importing...",
-          importToMyAccount: "Import to My Account",
+            "No tree data will be copied. Every collaborator will edit the same family tree.",
+          importing: "Processing...",
+          importToMyAccount: "Accept Invitation",
           cancel: "Cancel",
         };
 
@@ -128,57 +118,25 @@ export default function InvitePage() {
     );
   }, [invite?.expiresAt, locale]);
 
-  async function importTree() {
-    if (!invite?.treeData) return;
-
-    const userId = session?.user?.id || session?.user?.email || "";
-    if (!userId) {
-      setError(copy.invalidAccount);
-      return;
-    }
-
-    const sourceTree = invite.treeData;
-    if (!Array.isArray(sourceTree.nodes) || sourceTree.nodes.length === 0) {
-      setError(copy.invalidTreeData);
-      return;
-    }
-
-    const existingTrees = loadTrees();
-    const hasOwnTree = existingTrees.some((t) => t.ownerId === userId);
-
-    if (hasOwnTree && !window.confirm(copy.replaceConfirm)) {
-      return;
-    }
-
+  async function acceptInvite() {
+    if (!invite) return;
     setImporting(true);
     setError(null);
 
-    const now = new Date().toISOString();
-    let importedTree: TreeData;
-
     try {
-      const createdTree = await createTreeApi(invite.treeName);
-      await saveTreeNodes(createdTree.id, sourceTree.nodes);
-
-      importedTree = {
-        ...sourceTree,
-        id: createdTree.id,
-        ownerId: createdTree.ownerId,
-        name: createdTree.name,
-        createdAt: createdTree.createdAt,
-        updatedAt: now,
-      };
+      const response = await fetch(`/api/invites/${token}`, { method: "POST" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(payload?.error || copy.acceptFailed);
+        return;
+      }
     } catch {
       setImporting(false);
-      setError(copy.saveFailed);
+      setError(copy.acceptFailed);
       return;
+    } finally {
+      setImporting(false);
     }
-
-    const mergedTrees = [
-      importedTree,
-      ...existingTrees.filter((t) => t.ownerId !== userId),
-    ];
-    saveTrees(mergedTrees);
 
     router.push("/app");
     router.refresh();
@@ -227,12 +185,12 @@ export default function InvitePage() {
             <span className="font-semibold text-warmText">{invite.treeName}</span>
           </p>
           <p className="mt-1 text-xs text-warmMuted">
-            {copy.createdByAndExpires(invite.createdByEmail, expiresLabel)}
+            {copy.createdByAndExpires(invite.createdByName, expiresLabel)}
           </p>
 
           <div className="mt-6">
             <Link href={`/auth/login?next=/invite/${token}`}>
-              <Button className="h-11 rounded-xl px-6">{copy.loginToImport}</Button>
+              <Button className="h-11 rounded-xl px-6">{copy.loginToAccept}</Button>
             </Link>
           </div>
         </div>
@@ -250,7 +208,7 @@ export default function InvitePage() {
           {copy.intoYourAccount}
         </p>
         <p className="mt-1 text-xs text-warmMuted">
-          {copy.createdByAndExpires(invite.createdByEmail, expiresLabel)}
+          {copy.createdByAndExpires(invite.createdByName, expiresLabel)}
         </p>
 
         <div className="mt-6 rounded-xl border border-gold-200 bg-gold-50 p-4 text-sm text-gold-800">
@@ -265,7 +223,7 @@ export default function InvitePage() {
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <Button
-            onClick={importTree}
+            onClick={acceptInvite}
             disabled={importing}
             className="h-11 rounded-xl px-6"
           >

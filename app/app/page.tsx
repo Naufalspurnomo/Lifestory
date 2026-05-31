@@ -107,7 +107,9 @@ export default function AppHome() {
 
   const {
     userTree,
+    treeSummaries,
     currentTree,
+    selectTree,
     layoutGraph,
     createTree,
     addNode,
@@ -444,9 +446,26 @@ export default function AppHome() {
                 </div>
               </Link>
               <div className="h-6 w-px bg-[#dccfb3]" />
-              <h1 className="font-playfair text-base md:text-lg font-bold tracking-wide text-[#3f342d] truncate max-w-[120px] sm:max-w-xs">
-                {currentTree!.name}
-              </h1>
+              {treeSummaries.length > 1 ? (
+                <select
+                  value={currentTree!.id}
+                  onChange={(event) => {
+                    void selectTree(event.target.value);
+                  }}
+                  className="max-w-[170px] rounded-lg border border-[#dccfb3] bg-[#fdfbf6] px-2 py-1.5 font-playfair text-sm font-bold tracking-wide text-[#3f342d] outline-none sm:max-w-xs"
+                  aria-label={locale === "id" ? "Pilih pohon keluarga" : "Select family tree"}
+                >
+                  {treeSummaries.map((tree) => (
+                    <option key={tree.id} value={tree.id}>
+                      {tree.name} ({tree.nodeCount})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <h1 className="font-playfair text-base md:text-lg font-bold tracking-wide text-[#3f342d] truncate max-w-[120px] sm:max-w-xs">
+                  {currentTree!.name}
+                </h1>
+              )}
             </div>
 
             {/* Sisi Tengah: Search & View Mode */}
@@ -791,8 +810,8 @@ export default function AppHome() {
             <InviteModal
               isOpen={showInviteModal}
               onClose={() => setShowInviteModal(false)}
+              treeId={currentTree!.id}
               treeName={currentTree!.name}
-              treeData={currentTree!}
             />
           )}
 

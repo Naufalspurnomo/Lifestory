@@ -1,105 +1,136 @@
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { prisma } from "./db";
 
 type CreateTreeInviteInput = {
   token: string;
-  treeName: string;
-  treeData: string;
+  treeId: string;
   createdById: string;
-  createdByEmail: string;
-  expiresAt: string;
+  role: "editor" | "viewer";
+  expiresAt: Date;
 };
 
 export type StoredTreeInvite = {
   id: string;
-  token: string;
+  treeId: string;
   treeName: string;
-  treeData: string;
-  createdById: string;
-  createdByEmail: string;
-  createdAt: string;
-  expiresAt: string;
+  createdByName: string;
+  role: string;
+  expiresAt: Date;
+  acceptedAt: Date | null;
 };
 
-let inviteTableReadyPromise: Promise<void> | null = null;
-
-async function ensureInviteTable(): Promise<void> {
-  if (!inviteTableReadyPromise) {
-    inviteTableReadyPromise = (async () => {
-      await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "TreeInvite" (
-          "id" TEXT NOT NULL PRIMARY KEY,
-          "token" TEXT NOT NULL,
-          "treeName" TEXT NOT NULL,
-          "treeData" TEXT NOT NULL,
-          "createdById" TEXT NOT NULL,
-          "createdByEmail" TEXT NOT NULL,
-          "createdAt" TEXT NOT NULL,
-          "expiresAt" TEXT NOT NULL
-        );
-      `);
-
-      await prisma.$executeRawUnsafe(`
-        CREATE UNIQUE INDEX IF NOT EXISTS "TreeInvite_token_key"
-        ON "TreeInvite" ("token");
-      `);
-
-      await prisma.$executeRawUnsafe(`
-        CREATE INDEX IF NOT EXISTS "TreeInvite_expiresAt_idx"
-        ON "TreeInvite" ("expiresAt");
-      `);
-    })();
+export class TreeInviteError extends Error {
+  constructor(
+    message: string,
+    public readonly status: 404 | 409 | 410
+  ) {
+    super(message);
+    this.name = "TreeInviteError";
   }
+}
 
-  return inviteTableReadyPromise;
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
 }
 
 export async function createTreeInvite(
   input: CreateTreeInviteInput
-): Promise<{ id: string; createdAt: string }> {
-  await ensureInviteTable();
-
-  const id = randomUUID().replace(/-/g, "");
-  const createdAt = new Date().toISOString();
-
-  await prisma.$executeRaw`
-    INSERT INTO "TreeInvite"
-      ("id", "token", "treeName", "treeData", "createdById", "createdByEmail", "createdAt", "expiresAt")
-    VALUES
-      (${id}, ${input.token}, ${input.treeName}, ${input.treeData}, ${input.createdById}, ${input.createdByEmail}, ${createdAt}, ${input.expiresAt})
-  `;
-
-  return { id, createdAt };
+): Promise<{ id: string; createdAt: Date }> {
+  return prisma.treeInvite.create({
+    data: {
+      id: randomUUID().replace(/-/g, ""),
+      tokenHash: hashToken(input.token),
+      treeId: input.treeId,
+      createdById: input.createdById,
+      role: input.role,
+      expiresAt: input.expiresAt,
+    },
+    select: { id: true, createdAt: true },
+  });
 }
 
 export async function getTreeInviteByToken(
   token: string
 ): Promise<StoredTreeInvite | null> {
-  await ensureInviteTable();
+  const invite = await prisma.treeInvite.findUnique({
+    where: { tokenHash: hashToken(token) },
+    select: {
+      id: true,
+      treeId: true,
+      role: true,
+      expiresAt: true,
+      acceptedAt: true,
+      tree: { select: { name: true } },
+      createdBy: { select: { name: true } },
+    },
+  });
 
-  const rows = await prisma.$queryRaw<StoredTreeInvite[]>`
-    SELECT
-      "id",
-      "token",
-      "treeName",
-      "treeData",
-      "createdById",
-      "createdByEmail",
-      "createdAt",
-      "expiresAt"
-    FROM "TreeInvite"
-    WHERE "token" = ${token}
-    LIMIT 1
-  `;
-
-  return rows[0] ?? null;
+  if (!invite) return null;
+  return {
+    id: invite.id,
+    treeId: invite.treeId,
+    treeName: invite.tree.name,
+    createdByName: invite.createdBy.name,
+    role: invite.role,
+    expiresAt: invite.expiresAt,
+    acceptedAt: invite.acceptedAt,
+  };
 }
 
-export async function deleteExpiredTreeInvites(nowIso: string): Promise<void> {
-  await ensureInviteTable();
+export async function acceptTreeInvite(
+  token: string,
+  userId: string
+): Promise<{ treeId: string; treeName: string; role: string }> {
+  return prisma.$transaction(async (tx) => {
+    const invite = await tx.treeInvite.findUnique({
+      where: { tokenHash: hashToken(token) },
+      include: { tree: { select: { id: true, name: true, ownerId: true } } },
+    });
 
-  await prisma.$executeRaw`
-    DELETE FROM "TreeInvite"
-    WHERE "expiresAt" < ${nowIso}
-  `;
+    if (!invite) throw new TreeInviteError("Invite not found", 404);
+    if (invite.expiresAt.getTime() < Date.now()) {
+      throw new TreeInviteError("Invite has expired", 410);
+    }
+    if (invite.acceptedAt && invite.acceptedById !== userId) {
+      throw new TreeInviteError("Invite has already been used", 409);
+    }
+
+    if (invite.tree.ownerId !== userId) {
+      await tx.treeMember.upsert({
+        where: {
+          treeId_userId: { treeId: invite.treeId, userId },
+        },
+        create: {
+          treeId: invite.treeId,
+          userId,
+          role: invite.role,
+        },
+        update: {
+          role: invite.role,
+        },
+      });
+    }
+
+    if (!invite.acceptedAt) {
+      const claimed = await tx.treeInvite.updateMany({
+        where: { id: invite.id, acceptedAt: null },
+        data: { acceptedAt: new Date(), acceptedById: userId },
+      });
+      if (claimed.count !== 1) {
+        throw new TreeInviteError("Invite has already been used", 409);
+      }
+    }
+
+    return {
+      treeId: invite.treeId,
+      treeName: invite.tree.name,
+      role: invite.role,
+    };
+  });
+}
+
+export async function deleteExpiredTreeInvites(now = new Date()): Promise<void> {
+  await prisma.treeInvite.deleteMany({
+    where: { expiresAt: { lt: now } },
+  });
 }

@@ -47,11 +47,6 @@ export class NetworkDetector {
   }
 
   async check(): Promise<boolean> {
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      this.setOnline(false);
-      return false;
-    }
-
     try {
       const response = await this.fetchImpl(this.healthCheckUrl, {
         method: "GET",

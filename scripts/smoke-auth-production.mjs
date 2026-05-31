@@ -12,8 +12,13 @@ if (process.env.ALLOW_AUTH_SMOKE !== "1" || !baseUrl) {
 }
 
 const prisma = new PrismaClient();
-const email = `auth-smoke-${Date.now()}-${randomUUID()}@example.com`;
+const runId = `${Date.now()}-${randomUUID()}`;
 const password = "SmokePass123";
+const emails = {
+  purchaser: `auth-smoke-purchaser-${runId}@example.com`,
+  collaborator: `auth-smoke-collaborator-${runId}@example.com`,
+  outsider: `auth-smoke-outsider-${runId}@example.com`,
+};
 let smokeResult;
 
 function assertStatus(response, expected, label) {
@@ -41,7 +46,21 @@ function serializeCookies(jar) {
   return [...jar.entries()].map(([key, value]) => `${key}=${value}`).join("; ");
 }
 
-async function login() {
+async function createUser(email, subscriptionActive = false) {
+  await prisma.user.create({
+    data: {
+      name: "Auth Smoke",
+      email,
+      phone: "081234567890",
+      passwordHash: await hash(password, 10),
+      role: "user",
+      status: subscriptionActive ? "active" : "inactive",
+      subscriptionActive,
+    },
+  });
+}
+
+async function login(email) {
   const jar = new Map();
   const csrfResponse = await fetch(`${baseUrl}/api/auth/csrf`);
   assertStatus(csrfResponse, 200, "csrf");
@@ -75,9 +94,24 @@ async function login() {
   return jar;
 }
 
-async function getTreeStatus(jar) {
+function authHeaders(jar, extra = {}) {
+  return {
+    Origin: baseUrl,
+    Cookie: serializeCookies(jar),
+    ...extra,
+  };
+}
+
+async function getTreeListStatus(jar) {
   const response = await fetch(`${baseUrl}/api/trees`, {
-    headers: { Cookie: serializeCookies(jar) },
+    headers: authHeaders(jar),
+  });
+  return response.status;
+}
+
+async function getTreeStatus(jar, treeId) {
+  const response = await fetch(`${baseUrl}/api/trees/${treeId}`, {
+    headers: authHeaders(jar),
   });
   return response.status;
 }
@@ -101,31 +135,27 @@ function person(id, label) {
   };
 }
 
-async function verifySyncMutation(jar) {
+async function createTree(jar, expectedStatus = 201) {
   const root = person(`node-${randomUUID()}`, "Auth Smoke Root");
-  const createResponse = await fetch(`${baseUrl}/api/trees`, {
+  const response = await fetch(`${baseUrl}/api/trees`, {
     method: "POST",
-    headers: {
-      Origin: baseUrl,
-      "Content-Type": "application/json",
-      Cookie: serializeCookies(jar),
-    },
+    headers: authHeaders(jar, { "Content-Type": "application/json" }),
     body: JSON.stringify({
       name: "Auth Smoke Tree",
       nodes: [root],
     }),
   });
-  assertStatus(createResponse, 201, "create tree");
-  const { tree } = await createResponse.json();
+  assertStatus(response, expectedStatus, "create tree");
+  if (!response.ok) return null;
+  const { tree } = await response.json();
+  return tree;
+}
 
+async function verifySyncMutation(jar, tree) {
   const added = person(`node-${randomUUID()}`, "Auth Smoke Added");
   const syncResponse = await fetch(`${baseUrl}/api/trees/${tree.id}/sync`, {
     method: "POST",
-    headers: {
-      Origin: baseUrl,
-      "Content-Type": "application/json",
-      Cookie: serializeCookies(jar),
-    },
+    headers: authHeaders(jar, { "Content-Type": "application/json" }),
     body: JSON.stringify({
       batchId: `auth-smoke-${randomUUID()}`,
       clientVersion: tree.version,
@@ -143,56 +173,108 @@ async function verifySyncMutation(jar) {
   return syncResponse.status;
 }
 
-try {
-  await prisma.user.create({
-    data: {
-      name: "Auth Smoke",
-      email,
-      phone: "081234567890",
-      passwordHash: await hash(password, 10),
-      role: "user",
-      status: "inactive",
-      subscriptionActive: false,
-    },
+async function createInvite(jar, treeId) {
+  const response = await fetch(`${baseUrl}/api/invites`, {
+    method: "POST",
+    headers: authHeaders(jar, { "Content-Type": "application/json" }),
+    body: JSON.stringify({ treeId, role: "editor" }),
   });
+  assertStatus(response, 200, "create invite");
+  return response.json();
+}
 
-  const inactiveJar = await login();
-  const inactiveTreeStatus = await getTreeStatus(inactiveJar);
-  if (inactiveTreeStatus !== 403) {
-    throw new Error(`inactive tree access: expected HTTP 403, got ${inactiveTreeStatus}`);
+async function inspectPublicInvite(inviteLink) {
+  const response = await fetch(inviteLink);
+  assertStatus(response, 200, "get invite");
+  const payload = await response.json();
+  if ("treeData" in payload) {
+    throw new Error("get invite: public metadata leaked treeData");
   }
+  return response.status;
+}
+
+async function acceptInvite(jar, token) {
+  const response = await fetch(`${baseUrl}/api/invites/${token}`, {
+    method: "POST",
+    headers: authHeaders(jar),
+  });
+  assertStatus(response, 200, "accept invite");
+  return response.status;
+}
+
+try {
+  await createUser(emails.purchaser);
+  const inactivePurchaserJar = await login(emails.purchaser);
+  const inactiveTreeListStatus = await getTreeListStatus(inactivePurchaserJar);
+  if (inactiveTreeListStatus !== 200) {
+    throw new Error(
+      `inactive tree list: expected HTTP 200, got ${inactiveTreeListStatus}`
+    );
+  }
+  await createTree(inactivePurchaserJar, 403);
 
   await prisma.user.update({
-    where: { email },
+    where: { email: emails.purchaser },
     data: { status: "active", subscriptionActive: true },
   });
 
-  const activeJar = await login();
-  const activeTreeStatus = await getTreeStatus(activeJar);
-  if (activeTreeStatus !== 200) {
-    throw new Error(`active tree access: expected HTTP 200, got ${activeTreeStatus}`);
+  const purchaserJar = await login(emails.purchaser);
+  const activeTreeListStatus = await getTreeListStatus(purchaserJar);
+  if (activeTreeListStatus !== 200) {
+    throw new Error(
+      `active tree list: expected HTTP 200, got ${activeTreeListStatus}`
+    );
   }
-  const syncMutationStatus = await verifySyncMutation(activeJar);
+  const tree = await createTree(purchaserJar);
+  const syncMutationStatus = await verifySyncMutation(purchaserJar, tree);
+
+  await createUser(emails.collaborator);
+  const collaboratorJar = await login(emails.collaborator);
+  const invite = await createInvite(purchaserJar, tree.id);
+  const publicInviteStatus = await inspectPublicInvite(invite.inviteLink);
+  const inviteAcceptStatus = await acceptInvite(collaboratorJar, invite.token);
+  const collaboratorTreeStatus = await getTreeStatus(collaboratorJar, tree.id);
+  if (collaboratorTreeStatus !== 200) {
+    throw new Error(
+      `collaborator tree access: expected HTTP 200, got ${collaboratorTreeStatus}`
+    );
+  }
+
+  await createUser(emails.outsider);
+  const outsiderJar = await login(emails.outsider);
+  const outsiderTreeStatus = await getTreeStatus(outsiderJar, tree.id);
+  if (outsiderTreeStatus !== 403) {
+    throw new Error(
+      `outsider tree access: expected HTTP 403, got ${outsiderTreeStatus}`
+    );
+  }
 
   await prisma.user.update({
-    where: { email },
+    where: { email: emails.purchaser },
     data: { sessionVersion: { increment: 1 } },
   });
 
-  const revokedTreeStatus = await getTreeStatus(activeJar);
+  const revokedTreeStatus = await getTreeListStatus(purchaserJar);
   if (revokedTreeStatus !== 403) {
-    throw new Error(`revoked tree access: expected HTTP 403, got ${revokedTreeStatus}`);
+    throw new Error(
+      `revoked tree access: expected HTTP 403, got ${revokedTreeStatus}`
+    );
   }
 
   smokeResult = {
-    inactiveTreeStatus,
-    activeTreeStatus,
+    inactiveTreeListStatus,
+    inactiveTreeCreateStatus: 403,
+    activeTreeListStatus,
     syncMutationStatus,
+    publicInviteStatus,
+    inviteAcceptStatus,
+    collaboratorTreeStatus,
+    outsiderTreeStatus,
     revokedTreeStatus,
   };
 } finally {
-  await prisma.user.deleteMany({ where: { email } });
+  await prisma.user.deleteMany({ where: { email: { in: Object.values(emails) } } });
   await prisma.$disconnect();
 }
 
-console.log(JSON.stringify({ ...smokeResult, syntheticUserCleaned: true }));
+console.log(JSON.stringify({ ...smokeResult, syntheticUsersCleaned: true }));

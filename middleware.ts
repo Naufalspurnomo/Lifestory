@@ -3,7 +3,6 @@ import { getToken } from "next-auth/jwt";
 
 const protectedPagePaths = ["/app", "/dashboard"];
 const adminOnlyApiPaths = ["/api/users"];
-const subscriberOnlyApiPaths = ["/api/trees"];
 
 const defaultAllowedOrigins = [
   "https://lifestory.co.id",
@@ -103,11 +102,7 @@ export async function middleware(req: NextRequest) {
   const isAdminOnlyApi = adminOnlyApiPaths.some((path) =>
     pathname.startsWith(path)
   );
-  const isSubscriberOnlyApi = subscriberOnlyApiPaths.some((path) =>
-    pathname.startsWith(path)
-  );
-
-  if (!isProtectedPage && !isAdminOnlyApi && !isSubscriberOnlyApi) {
+  if (!isProtectedPage && !isAdminOnlyApi) {
     return NextResponse.next();
   }
 
@@ -115,12 +110,10 @@ export async function middleware(req: NextRequest) {
   const hasSession = Boolean(token);
   const accountStatus =
     typeof token?.status === "string" ? token.status : undefined;
-  const subscriptionActive =
-    accountStatus !== "suspended" && Boolean(token?.subscriptionActive);
   const isAdmin = token?.role === "admin";
 
   if (accountStatus === "suspended") {
-    if (isAdminOnlyApi || isSubscriberOnlyApi) {
+    if (isAdminOnlyApi) {
       return NextResponse.json(
         { error: "Forbidden - Account is suspended" },
         { status: 403 }
@@ -140,11 +133,6 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
-    if (pathname.startsWith("/app") && !subscriptionActive && !isAdmin) {
-      const subUrl = new URL("/subscribe", req.url);
-      subUrl.searchParams.set("next", pathname);
-      return NextResponse.redirect(subUrl);
-    }
   }
 
   if (isAdminOnlyApi) {
@@ -158,22 +146,6 @@ export async function middleware(req: NextRequest) {
     if (!isAdmin) {
       return NextResponse.json(
         { error: "Forbidden - Admin access required" },
-        { status: 403 }
-      );
-    }
-  }
-
-  if (isSubscriberOnlyApi) {
-    if (!hasSession) {
-      return NextResponse.json(
-        { error: "Unauthorized - Please login" },
-        { status: 401 }
-      );
-    }
-
-    if (!subscriptionActive && !isAdmin) {
-      return NextResponse.json(
-        { error: "Forbidden - Active subscription required" },
         { status: 403 }
       );
     }

@@ -58,6 +58,20 @@ export async function assertTreeWritable(
   await assertMembership(treeId, userId, true);
 }
 
+export async function assertTreeOwner(
+  treeId: string,
+  userId: string
+): Promise<void> {
+  const tree = await prisma.tree.findUnique({
+    where: { id: treeId },
+    select: { ownerId: true },
+  });
+  if (!tree) throw new TreeAccessError("Tree not found", 404);
+  if (tree.ownerId !== userId) {
+    throw new TreeAccessError("Only the owner can invite collaborators");
+  }
+}
+
 async function writeGraph(
   tx: Prisma.TransactionClient,
   treeId: string,
@@ -135,9 +149,15 @@ export async function listTreesForUser(userId: string) {
       version: true,
       createdAt: true,
       updatedAt: true,
+      _count: { select: { nodes: true } },
     },
     orderBy: { updatedAt: "desc" },
-  });
+  }).then((trees) =>
+    trees.map(({ _count, ...tree }) => ({
+      ...tree,
+      nodeCount: _count.nodes,
+    }))
+  );
 }
 
 export async function getTreeForUser(

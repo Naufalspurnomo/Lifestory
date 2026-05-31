@@ -28,6 +28,8 @@ model User {
 
   trees       Tree[]               @relation("TreeOwner")
   memberships TreeMember[]
+  createdTreeInvites TreeInvite[]  @relation("TreeInviteCreator")
+  acceptedTreeInvites TreeInvite[] @relation("TreeInviteAcceptor")
   resetTokens PasswordResetToken[]
 }
 
@@ -70,6 +72,7 @@ model Tree {
   nodes       Node[]
   edges       Edge[]
   memberships TreeMember[]
+  invites     TreeInvite[]
   snapshots   TreeSnapshot[]
   syncReceipts TreeSyncReceipt[]
 
@@ -121,10 +124,26 @@ model TreeMember {
   @@index([userId])
 }
 
-// NOTE: TreeInvite is still managed by lib/invites.ts via raw SQL because it
-// predates the Prisma family schema. A future migration can fold that table
-// into the Prisma model; for now we leave it outside Prisma's schema to avoid
-// conflicting column definitions.
+// One-time membership invitation. Only its SHA-256 token hash is persisted so
+// a database read cannot be turned into a usable invite URL.
+model TreeInvite {
+  id           String    @id @default(cuid())
+  tokenHash    String    @unique
+  treeId       String
+  createdById  String
+  acceptedById String?
+  role         String    @default("editor") // "editor" | "viewer"
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  tree       Tree  @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  createdBy  User  @relation("TreeInviteCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  acceptedBy User? @relation("TreeInviteAcceptor", fields: [acceptedById], references: [id], onDelete: SetNull)
+
+  @@index([treeId])
+  @@index([expiresAt])
+}
 
 // ---------- Family graph ----------
 

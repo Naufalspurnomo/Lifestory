@@ -1,22 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { TreeData } from "../../lib/types/tree";
 import { Button } from "../ui/Button";
 import { useLanguage } from "../providers/LanguageProvider";
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
+  treeId: string;
   treeName: string;
-  treeData: TreeData;
 };
 
 export default function InviteModal({
   isOpen,
   onClose,
+  treeId,
   treeName,
-  treeData,
 }: Props) {
   const { locale } = useLanguage();
   const [copied, setCopied] = useState(false);
@@ -42,7 +41,7 @@ export default function InviteModal({
           processing: "Memproses...",
           regen: "Generate Ulang Link",
           warning:
-            "Siapa pun dengan link ini dapat melihat dan mengedit pohon keluarga Anda. Bagikan hanya kepada anggota keluarga terpercaya.",
+            "Link hanya dapat dipakai satu kali. Penerima akan menjadi editor pada pohon keluarga yang sama.",
           close: "Tutup",
           whatsappMessage: (name: string, link: string) =>
             `Hai! Saya mengundang kamu untuk berkontribusi ke pohon keluarga "${name}" di Lifestory.\n\nKlik link berikut untuk bergabung:\n${link}`,
@@ -62,7 +61,7 @@ export default function InviteModal({
           processing: "Processing...",
           regen: "Regenerate Link",
           warning:
-            "Anyone with this link can view and edit your family tree. Share only with trusted family members.",
+            "This link can only be used once. The recipient will become an editor on the same family tree.",
           close: "Close",
           whatsappMessage: (name: string, link: string) =>
             `Hi! I invite you to contribute to the "${name}" family tree on Lifestory.\n\nClick the following link to join:\n${link}`,
@@ -86,8 +85,8 @@ export default function InviteModal({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          treeName,
-          treeData,
+          treeId,
+          role: "editor",
         }),
       });
 
@@ -108,7 +107,7 @@ export default function InviteModal({
     } finally {
       setLoading(false);
     }
-  }, [copy.failedCreateLink, copy.failedGeneral, treeData, treeName]);
+  }, [copy.failedCreateLink, copy.failedGeneral, treeId]);
 
   useEffect(() => {
     if (!isOpen) return;

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireActiveSubscriber } from "../../../../../lib/auth-helpers";
+import { requireUser } from "../../../../../lib/auth-helpers";
 import {
   assertTreeWritable,
   getTreeForUser,
@@ -12,7 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const authResult = await requireActiveSubscriber();
+  const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
   const userId = authResult.session.user.id;
 
@@ -31,7 +31,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const authResult = await requireActiveSubscriber();
+  const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
   const userId = authResult.session.user.id;
 

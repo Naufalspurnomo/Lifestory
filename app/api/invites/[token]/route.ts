@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import {
+  acceptTreeInvite,
   getTreeInviteByToken,
   deleteExpiredTreeInvites,
+  TreeInviteError,
 } from "../../../../lib/invites";
+import { requireUser } from "../../../../lib/auth-helpers";
 import { applyRateLimit, rateLimitConfigs } from "../../../../lib/rate-limit";
-import { nonEmptyFamilyTreeNodesSchema } from "../../../../lib/validations";
 
 type Params = {
   params: Promise<{ token: string }>;
@@ -24,45 +26,59 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   try {
-    await deleteExpiredTreeInvites(new Date().toISOString());
+    await deleteExpiredTreeInvites();
     const invite = await getTreeInviteByToken(token);
 
     if (!invite) {
       return NextResponse.json({ error: "Invite not found" }, { status: 404 });
     }
 
-    if (new Date(invite.expiresAt).getTime() < Date.now()) {
+    if (invite.expiresAt.getTime() < Date.now()) {
       return NextResponse.json({ error: "Invite has expired" }, { status: 410 });
-    }
-
-    let treeData: unknown = null;
-    try {
-      treeData = JSON.parse(invite.treeData);
-    } catch {
-      return NextResponse.json(
-        { error: "Invite data is corrupted" },
-        { status: 500 }
-      );
-    }
-
-    const nodes = (treeData as { nodes?: unknown })?.nodes;
-    if (!nonEmptyFamilyTreeNodesSchema.safeParse(nodes).success) {
-      return NextResponse.json(
-        { error: "Invite data is invalid" },
-        { status: 500 }
-      );
     }
 
     return NextResponse.json({
       treeName: invite.treeName,
-      treeData,
-      createdByEmail: invite.createdByEmail,
-      expiresAt: invite.expiresAt,
+      createdByName: invite.createdByName,
+      expiresAt: invite.expiresAt.toISOString(),
+      role: invite.role,
+      accepted: Boolean(invite.acceptedAt),
     });
   } catch (error) {
     console.error("Error loading invite:", error);
     return NextResponse.json(
       { error: "An error occurred while loading invite" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request, { params }: Params) {
+  const rateLimitError = await applyRateLimit(
+    request,
+    "tree-invite-accept",
+    rateLimitConfigs.sensitive
+  );
+  if (rateLimitError) return rateLimitError;
+
+  const authResult = await requireUser();
+  if (!authResult.success) return authResult.response;
+  const userId = authResult.session.user.id;
+  const { token } = await params;
+  if (!token || !/^[a-zA-Z0-9]+$/.test(token)) {
+    return NextResponse.json({ error: "Invalid invite token" }, { status: 400 });
+  }
+
+  try {
+    const result = await acceptTreeInvite(token, userId);
+    return NextResponse.json({ tree: result });
+  } catch (error) {
+    if (error instanceof TreeInviteError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    console.error("Error accepting invite:", error);
+    return NextResponse.json(
+      { error: "An error occurred while accepting invite" },
       { status: 500 }
     );
   }

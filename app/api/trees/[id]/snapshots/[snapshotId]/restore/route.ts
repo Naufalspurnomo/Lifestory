@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireActiveSubscriber } from "../../../../../../../lib/auth-helpers";
+import { requireUser } from "../../../../../../../lib/auth-helpers";
 import { BackupManager } from "../../../../../../../lib/sync/BackupManager";
 import { TreeAccessError } from "../../../../../../../lib/tree/repository";
 
@@ -8,7 +8,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string; snapshotId: string }> }
 ) {
   const { id, snapshotId } = await params;
-  const authResult = await requireActiveSubscriber();
+  const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
   const userId = authResult.session.user.id;
 

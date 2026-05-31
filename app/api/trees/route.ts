@@ -1,7 +1,7 @@
 // Trees collection: list current user's trees, create a new one.
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-import { requireActiveSubscriber } from "../../../lib/auth-helpers";
+import { requireActiveSubscriber, requireUser } from "../../../lib/auth-helpers";
 import { createTreeForUser, listTreesForUser } from "../../../lib/tree/repository";
 import type { FamilyNode } from "../../../lib/types/tree";
 import {
@@ -21,7 +21,7 @@ function isMissingTableError(error: unknown): boolean {
 }
 
 export async function GET() {
-  const authResult = await requireActiveSubscriber();
+  const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
   const userId = authResult.session.user.id;
 
