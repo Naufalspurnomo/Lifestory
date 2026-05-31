@@ -118,7 +118,7 @@ function LoginPageContent() {
 
   useEffect(() => {
     if (sessionStatus === "authenticated") {
-      router.push(next);
+      window.location.href = next;
     }
   }, [sessionStatus, router, next]);
 
@@ -143,8 +143,8 @@ function LoginPageContent() {
       return;
     }
 
-    router.push(next);
-    router.refresh();
+    // Use hard navigation to ensure the session cookie is picked up fresh
+    window.location.href = next;
   }
 
   if (sessionStatus === "loading") return <LoadingState />;
