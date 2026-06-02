@@ -285,6 +285,18 @@ describe("SyncEngine reliability boundaries", () => {
 
     expect(conflict?.conflicts.map((item) => item.field)).toContain("label");
     expect(await wal.hasUnresolved("tree-1")).toBe(true);
+    const lateEdit = {
+      ...local,
+      content: {
+        ...local.content,
+        description: "Edit made while conflict dialog was open",
+      },
+    };
+    await engine.enqueue("tree-1", {
+      type: "update",
+      nodeId: lateEdit.id,
+      payload: lateEdit,
+    });
 
     await engine.resolveConflict([
       {
@@ -296,6 +308,9 @@ describe("SyncEngine reliability boundaries", () => {
     ]);
 
     expect(rebased[0].label).toBe("My edit");
+    expect(rebased[0].content.description).toBe(
+      "Edit made while conflict dialog was open"
+    );
     expect(await wal.hasUnresolved("tree-1")).toBe(false);
     expect(await wal.getLastSyncedVersion("tree-1")).toBe(3);
     engine.destroy();

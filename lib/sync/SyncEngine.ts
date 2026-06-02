@@ -31,7 +31,7 @@ export type SyncConflict = {
 type PendingSyncConflict = SyncConflict & {
   serverVersion: number;
   baseNodes: FamilyNode[];
-  remainingEntries: WALEntry[];
+  selectedSeqNos: number[];
 };
 
 export type SyncEngineOptions = {
@@ -256,6 +256,10 @@ export class SyncEngine {
   async resolveConflict(resolutions: ConflictResolution[]): Promise<void> {
     const pending = this.pendingConflict;
     if (!pending) throw new Error("No sync conflict is waiting for resolution");
+    const selectedSeqNos = new Set(pending.selectedSeqNos);
+    const remainingEntries = (await this.wal.getPending(pending.treeId)).filter(
+      (entry) => !selectedSeqNos.has(entry.seqNo)
+    );
 
     const resolvedNodes = this.applyMutations(
       this.conflictResolver.resolve(
@@ -263,7 +267,7 @@ export class SyncEngine {
         resolutions,
         pending.baseNodes
       ),
-      pending.remainingEntries
+      remainingEntries
     );
     const validation = this.integrityValidator.validate(resolvedNodes);
     if (!validation.valid) {
@@ -391,7 +395,7 @@ export class SyncEngine {
           conflicts: resolution.conflicts,
           serverVersion: conflict.currentVersion,
           baseNodes: resolution.nonConflictingMerge,
-          remainingEntries: ordered.slice(selected.length),
+          selectedSeqNos: seqNos,
         };
         this.events.conflict?.({
           treeId,

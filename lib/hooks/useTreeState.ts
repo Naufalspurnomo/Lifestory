@@ -633,7 +633,9 @@ export function useTreeState(userId: string, userName: string) {
 
       const draftToken = markLocalDraft(userId, treeId);
       void enqueueMany(treeId, mutations)
-        .then(() => clearLocalDraft(userId, treeId, draftToken))
+        .then(() => {
+          if (draftToken) clearLocalDraft(userId, treeId, draftToken);
+        })
         .catch((error) => {
           setSaveError(
             error instanceof Error
