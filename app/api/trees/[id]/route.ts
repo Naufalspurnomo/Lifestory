@@ -8,8 +8,10 @@ import { requireUser } from "../../../../lib/auth-helpers";
 import {
   deleteTree,
   getTreeForUser,
+  InvalidTreeGraphError,
   replaceTreeNodes,
   TreeAccessError,
+  VersionConflictError,
 } from "../../../../lib/tree/repository";
 import { BackupManager } from "../../../../lib/sync/BackupManager";
 import type { FamilyNode } from "../../../../lib/types/tree";
@@ -29,6 +31,15 @@ function isMissingTableError(error: unknown): boolean {
 function handleAccessError(error: unknown) {
   if (error instanceof TreeAccessError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
+  }
+  if (error instanceof InvalidTreeGraphError) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+  if (error instanceof VersionConflictError) {
+    return NextResponse.json(
+      { error: "version-conflict", currentVersion: error.currentVersion },
+      { status: 409 }
+    );
   }
   if (isMissingTableError(error)) {
     return NextResponse.json(
@@ -89,6 +100,7 @@ export async function PUT(
     const result = await replaceTreeNodes(
       id,
       userId,
+      validation.data.expectedVersion,
       validation.data.nodes as FamilyNode[]
     );
     await new BackupManager().pruneOldSnapshots(id, 50).catch((error) => {

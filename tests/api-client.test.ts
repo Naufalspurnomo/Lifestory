@@ -151,6 +151,7 @@ describe("apiClient - happy paths", () => {
     const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
     await saveTreeNodes(
       "tree id with space",
+      7,
       [],
       fetchMock as unknown as typeof fetch
     );
@@ -158,6 +159,14 @@ describe("apiClient - happy paths", () => {
       "/api/trees/tree%20id%20with%20space",
       expect.objectContaining({ method: "PUT" })
     );
+    const callArgs = fetchMock.mock.calls[0] as unknown as [
+      string,
+      RequestInit,
+    ];
+    expect(JSON.parse(callArgs[1].body as string)).toEqual({
+      expectedVersion: 7,
+      nodes: [],
+    });
   });
 
   it("deleteTreeApi sends DELETE", async () => {

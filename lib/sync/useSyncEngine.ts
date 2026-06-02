@@ -4,12 +4,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createWriteAheadLog } from "./WriteAheadLog";
 import type { WriteAheadLog } from "./WriteAheadLog";
 import { formatPendingCount, SyncEngine } from "./SyncEngine";
-import type { FamilyNode, Mutation, SyncStatusInfo } from "./types";
+import type { SyncConflict } from "./SyncEngine";
+import type {
+  ConflictResolution,
+  FamilyNode,
+  Mutation,
+  SyncStatusInfo,
+} from "./types";
 
 type UseSyncEngineOptions = {
   getTreeNodes?: (treeId: string) => FamilyNode[] | null;
   onAuthRequired?: () => void;
-  onConflict?: () => void;
+  onConflict?: (conflict: SyncConflict) => void;
   onCorruption?: (errors: string[]) => void;
   onRebased?: (treeId: string, nodes: FamilyNode[]) => void;
 };
@@ -28,6 +34,7 @@ export function useSyncEngine(
   const readyRef = useRef<Promise<SyncEngine> | null>(null);
   const optionsRef = useRef(options);
   const [status, setStatus] = useState<SyncStatusInfo>(INITIAL_STATUS);
+  const [conflict, setConflict] = useState<SyncConflict | null>(null);
 
   optionsRef.current = options;
 
@@ -39,7 +46,10 @@ export function useSyncEngine(
           optionsRef.current.getTreeNodes?.(treeId) ?? null,
         events: {
           authRequired: () => optionsRef.current.onAuthRequired?.(),
-          conflict: () => optionsRef.current.onConflict?.(),
+          conflict: (nextConflict) => {
+            setConflict(nextConflict);
+            optionsRef.current.onConflict?.(nextConflict);
+          },
           corruption: (errors) => optionsRef.current.onCorruption?.(errors),
           rebased: (treeId, nodes) =>
             optionsRef.current.onRebased?.(treeId, nodes),
@@ -136,12 +146,32 @@ export function useSyncEngine(
     [getReadyEngine]
   );
 
+  const hasUnresolvedChanges = useCallback(
+    async (treeId: string) => {
+      const engine = await getReadyEngine();
+      return engine.hasUnresolvedChanges(treeId);
+    },
+    [getReadyEngine]
+  );
+
+  const resolveConflict = useCallback(
+    async (resolutions: ConflictResolution[]) => {
+      const engine = await getReadyEngine();
+      await engine.resolveConflict(resolutions);
+      setConflict(null);
+    },
+    [getReadyEngine]
+  );
+
   return {
     status,
+    conflict,
     enqueue,
     enqueueMany,
     retryFailed,
     forceSync,
     setLastSyncedVersion,
+    hasUnresolvedChanges,
+    resolveConflict,
   };
 }

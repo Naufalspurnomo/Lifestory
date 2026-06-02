@@ -65,10 +65,11 @@ model Tree {
   name      String
   ownerId   String
   version   Int      @default(1)
+  deletedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  owner       User         @relation("TreeOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  owner       User         @relation("TreeOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   nodes       Node[]
   edges       Edge[]
   memberships TreeMember[]
@@ -77,6 +78,7 @@ model Tree {
   syncReceipts TreeSyncReceipt[]
 
   @@index([ownerId])
+  @@index([deletedAt])
 }
 
 model TreeSnapshot {

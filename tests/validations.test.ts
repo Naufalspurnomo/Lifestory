@@ -8,6 +8,7 @@ import {
   paginationSchema,
   familyTreeNodesSchema,
   treeCreateSchema,
+  treeNodesPayloadSchema,
   validateBody,
   formatZodErrors,
 } from "../lib/validations";
@@ -212,8 +213,28 @@ describe("family tree validation", () => {
   });
 
   it("trims and validates tree names", () => {
-    const parsed = treeCreateSchema.parse({ name: "  Keluarga Naufal  " });
+    const parsed = treeCreateSchema.parse({
+      name: "  Keluarga Naufal  ",
+      nodes: [{ id: "root", label: "Naufal" }],
+    });
     expect(parsed.name).toBe("Keluarga Naufal");
+  });
+
+  it("requires an initial person when creating a tree", () => {
+    expect(treeCreateSchema.safeParse({ name: "Keluarga Naufal" }).success).toBe(
+      false
+    );
+  });
+
+  it("rejects empty or unversioned wholesale tree replacement", () => {
+    expect(
+      treeNodesPayloadSchema.safeParse({ expectedVersion: 1, nodes: [] }).success
+    ).toBe(false);
+    expect(
+      treeNodesPayloadSchema.safeParse({
+        nodes: [{ id: "root", label: "Naufal" }],
+      }).success
+    ).toBe(false);
   });
 });
 

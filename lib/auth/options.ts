@@ -47,14 +47,18 @@ export const authOptions: NextAuthOptions = {
           "auth-login-ip",
           rateLimitConfigs.login
         );
-        if (ipRateLimitError) return null;
+        if (ipRateLimitError) {
+          throw new Error("RATE_LIMITED");
+        }
 
         const emailRateLimitError = await checkRateLimit(
           email,
           "auth-login-email",
           rateLimitConfigs.login
         );
-        if (emailRateLimitError) return null;
+        if (emailRateLimitError) {
+          throw new Error("RATE_LIMITED");
+        }
 
         const user = await prisma.user.findUnique({
           where: { email },

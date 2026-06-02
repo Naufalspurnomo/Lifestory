@@ -138,7 +138,15 @@ function LoginPageContent() {
     });
 
     if (res?.error) {
-      setError(copy.invalidCredentials);
+      if (res.error.includes("RATE_LIMITED")) {
+        setError(
+          locale === "id"
+            ? "Terlalu banyak percobaan login. Coba lagi dalam 15 menit."
+            : "Too many login attempts. Please try again in 15 minutes."
+        );
+      } else {
+        setError(copy.invalidCredentials);
+      }
       setStatus("idle");
       return;
     }

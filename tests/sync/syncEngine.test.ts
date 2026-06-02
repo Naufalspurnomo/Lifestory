@@ -3,6 +3,7 @@ import { SyncEngine } from "../../lib/sync/SyncEngine";
 import { NetworkDetector } from "../../lib/sync/NetworkDetector";
 import { LocalStorageWriteAheadLog } from "../../lib/sync/WriteAheadLog";
 import type { FamilyNode, Mutation } from "../../lib/sync/types";
+import type { SyncConflict } from "../../lib/sync/SyncEngine";
 
 class TestStorage implements Storage {
   private values = new Map<string, string>();
@@ -233,6 +234,70 @@ describe("SyncEngine reliability boundaries", () => {
     expect(await wal.getPermanentlyFailedCount()).toBe(1);
     expect(engine.getStatus().status).toBe("error");
     expect(engine.getStatus().errorMessage).toContain("no longer exists");
+    engine.destroy();
+  });
+
+  it("persists a manual conflict resolution as a new versioned snapshot", async () => {
+    const wal = new LocalStorageWriteAheadLog({
+      storage: new TestStorage(),
+    });
+    const local = { ...person("node-1"), label: "My edit" };
+    const server = { ...person("node-1"), label: "Server edit" };
+    let conflict: SyncConflict | null = null;
+    let rebased: FamilyNode[] = [];
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "PUT") {
+        const body = JSON.parse(String(init.body));
+        expect(body.expectedVersion).toBe(2);
+        expect(body.nodes[0].label).toBe("My edit");
+        return jsonResponse({ ok: true, newVersion: 3 });
+      }
+      return jsonResponse(
+        {
+          error: "version-conflict",
+          currentVersion: 2,
+          serverState: [server],
+          conflictingNodeIds: ["node-1"],
+        },
+        409
+      );
+    });
+    const engine = new SyncEngine({
+      wal,
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      getTreeNodes: () => [local],
+      networkDetector: new AlwaysOnlineNetworkDetector(),
+      config: { debounceMs: 60_000 },
+      events: {
+        conflict: (value) => {
+          conflict = value;
+        },
+        rebased: (_treeId, nodes) => {
+          rebased = nodes;
+        },
+      },
+    });
+
+    await engine.enqueueMany("tree-1", [
+      { type: "update", nodeId: local.id, payload: local },
+    ]);
+    await engine.forceSync();
+
+    expect(conflict?.conflicts.map((item) => item.field)).toContain("label");
+    expect(await wal.hasUnresolved("tree-1")).toBe(true);
+
+    await engine.resolveConflict([
+      {
+        nodeId: "node-1",
+        field: "label",
+        chosenValue: "My edit",
+        source: "local",
+      },
+    ]);
+
+    expect(rebased[0].label).toBe("My edit");
+    expect(await wal.hasUnresolved("tree-1")).toBe(false);
+    expect(await wal.getLastSyncedVersion("tree-1")).toBe(3);
     engine.destroy();
   });
 });

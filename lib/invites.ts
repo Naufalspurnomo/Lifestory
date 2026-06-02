@@ -60,12 +60,12 @@ export async function getTreeInviteByToken(
       role: true,
       expiresAt: true,
       acceptedAt: true,
-      tree: { select: { name: true } },
+      tree: { select: { name: true, deletedAt: true } },
       createdBy: { select: { name: true } },
     },
   });
 
-  if (!invite) return null;
+  if (!invite || invite.tree.deletedAt) return null;
   return {
     id: invite.id,
     treeId: invite.treeId,
@@ -84,10 +84,15 @@ export async function acceptTreeInvite(
   return prisma.$transaction(async (tx) => {
     const invite = await tx.treeInvite.findUnique({
       where: { tokenHash: hashToken(token) },
-      include: { tree: { select: { id: true, name: true, ownerId: true } } },
+      include: {
+        tree: { select: { id: true, name: true, ownerId: true, deletedAt: true } },
+      },
     });
 
     if (!invite) throw new TreeInviteError("Invite not found", 404);
+    if (invite.tree.deletedAt) {
+      throw new TreeInviteError("Invite not found", 404);
+    }
     if (invite.expiresAt.getTime() < Date.now()) {
       throw new TreeInviteError("Invite has expired", 410);
     }

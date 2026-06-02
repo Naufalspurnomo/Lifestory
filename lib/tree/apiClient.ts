@@ -112,13 +112,14 @@ export async function createTreeApi(
 
 export async function saveTreeNodes(
   id: string,
+  expectedVersion: number,
   nodes: FamilyNode[],
   fetchImpl: typeof fetch = fetch
 ): Promise<void> {
   const res = await fetchImpl(`/api/trees/${encodeURIComponent(id)}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ nodes }),
+    body: JSON.stringify({ expectedVersion, nodes }),
   });
   await expectOk(res);
 }

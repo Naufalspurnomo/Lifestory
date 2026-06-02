@@ -21,6 +21,9 @@ export async function GET(
     const snapshots = await new BackupManager().listSnapshots(id);
     return NextResponse.json({ snapshots });
   } catch (error) {
+    if (error instanceof TreeAccessError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("snapshot list error", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "../../../../../../lib/auth-helpers";
-import { getTreeForUser } from "../../../../../../lib/tree/repository";
+import {
+  getTreeForUser,
+  TreeAccessError,
+} from "../../../../../../lib/tree/repository";
 import { BackupManager } from "../../../../../../lib/sync/BackupManager";
 
 export async function GET(
@@ -20,6 +23,9 @@ export async function GET(
     }
     return NextResponse.json({ snapshot });
   } catch (error) {
+    if (error instanceof TreeAccessError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("snapshot detail error", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }

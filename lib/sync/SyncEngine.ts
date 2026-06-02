@@ -3,6 +3,8 @@ import { IntegrityValidator } from "./IntegrityValidator";
 import { NetworkDetector } from "./NetworkDetector";
 import { RetryQueue } from "./RetryQueue";
 import type {
+  ConflictInfo,
+  ConflictResolution,
   ConflictResponse,
   FamilyNode,
   Mutation,
@@ -16,9 +18,20 @@ import type { WriteAheadLog } from "./WriteAheadLog";
 
 export type SyncEngineEvents = {
   authRequired?: () => void;
-  conflict?: (conflict: ConflictResponse) => void;
+  conflict?: (conflict: SyncConflict) => void;
   corruption?: (errors: string[]) => void;
   rebased?: (treeId: string, nodes: FamilyNode[]) => void;
+};
+
+export type SyncConflict = {
+  treeId: string;
+  conflicts: ConflictInfo[];
+};
+
+type PendingSyncConflict = SyncConflict & {
+  serverVersion: number;
+  baseNodes: FamilyNode[];
+  remainingEntries: WALEntry[];
 };
 
 export type SyncEngineOptions = {
@@ -100,6 +113,7 @@ export class SyncEngine {
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private flushing = false;
   private paused = false;
+  private pendingConflict: PendingSyncConflict | null = null;
 
   constructor(options: SyncEngineOptions) {
     this.config = { ...DEFAULT_CONFIG, ...(options.config ?? {}) };
@@ -158,10 +172,7 @@ export class SyncEngine {
   }
 
   async enqueueMany(treeId: string, mutations: Mutation[]): Promise<WALEntry[]> {
-    const entries: WALEntry[] = [];
-    for (const mutation of mutations) {
-      entries.push(await this.wal.appendMutation(treeId, mutation));
-    }
+    const entries = await this.wal.appendMutations(treeId, mutations);
     await this.refreshStatus("pending");
     if (!this.paused) this.scheduleFlush(this.config.debounceMs);
     return entries;
@@ -238,6 +249,76 @@ export class SyncEngine {
     await this.wal.setLastSyncedVersion(treeId, version);
   }
 
+  async hasUnresolvedChanges(treeId: string): Promise<boolean> {
+    return this.wal.hasUnresolved(treeId);
+  }
+
+  async resolveConflict(resolutions: ConflictResolution[]): Promise<void> {
+    const pending = this.pendingConflict;
+    if (!pending) throw new Error("No sync conflict is waiting for resolution");
+
+    const resolvedNodes = this.applyMutations(
+      this.conflictResolver.resolve(
+        pending.conflicts,
+        resolutions,
+        pending.baseNodes
+      ),
+      pending.remainingEntries
+    );
+    const validation = this.integrityValidator.validate(resolvedNodes);
+    if (!validation.valid) {
+      const message = validation.errors.map((error) => error.details).join("; ");
+      this.updateStatus("error", message);
+      throw new Error(message);
+    }
+
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(
+        this.fetchImpl,
+        `/api/trees/${encodeURIComponent(pending.treeId)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            expectedVersion: pending.serverVersion,
+            nodes: resolvedNodes,
+          }),
+        },
+        this.config.requestTimeoutMs
+      );
+      this.networkDetector.reportOnline();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Network error";
+      this.networkDetector.reportOffline(message);
+      this.updateStatus("offline", message);
+      throw error;
+    }
+
+    if (!response.ok) {
+      const message =
+        response.status === 409
+          ? "The server changed again while the conflict was being resolved. Review the refreshed conflict."
+          : await readErrorMessage(response);
+      this.updateStatus("error", message);
+      if (response.status === 409) {
+        this.pendingConflict = null;
+        this.paused = false;
+        this.scheduleFlush(0);
+      }
+      throw new Error(message);
+    }
+
+    const body = (await response.json()) as { newVersion: number };
+    await this.wal.clear(pending.treeId);
+    await this.wal.setLastSyncedVersion(pending.treeId, body.newVersion);
+    this.pendingConflict = null;
+    this.paused = false;
+    this.events.rebased?.(pending.treeId, resolvedNodes);
+    await this.refreshStatus("saved");
+    this.scheduleFlush(0);
+  }
+
   private async flushTree(treeId: string, entries: WALEntry[]): Promise<void> {
     const ordered = entries.sort((a, b) => a.seqNo - b.seqNo);
     const selected = ordered.slice(0, MAX_SYNC_BATCH_SIZE);
@@ -305,7 +386,17 @@ export class SyncEngine {
           return;
         }
         this.paused = true;
-        this.events.conflict?.(conflict);
+        this.pendingConflict = {
+          treeId,
+          conflicts: resolution.conflicts,
+          serverVersion: conflict.currentVersion,
+          baseNodes: resolution.nonConflictingMerge,
+          remainingEntries: ordered.slice(selected.length),
+        };
+        this.events.conflict?.({
+          treeId,
+          conflicts: resolution.conflicts,
+        });
         this.updateStatus(
           "error",
           "This tree was changed from another device. Resolve the conflict before syncing."
@@ -436,6 +527,39 @@ export class SyncEngine {
     if (!nodes) return [];
     const validation = this.integrityValidator.validate(nodes);
     return validation.errors.map((error) => error.details);
+  }
+
+  private applyMutations(
+    nodes: FamilyNode[],
+    mutations: Array<Pick<WALEntry, "type" | "nodeId" | "payload">>
+  ): FamilyNode[] {
+    const byId = new Map(nodes.map((node) => [node.id, node]));
+    for (const mutation of mutations) {
+      if (mutation.type === "delete") {
+        byId.delete(mutation.nodeId);
+        for (const node of byId.values()) {
+          node.parentIds = (node.parentIds || []).filter(
+            (id) => id !== mutation.nodeId
+          );
+          node.parentId =
+            node.parentId === mutation.nodeId
+              ? node.parentIds[0] ?? null
+              : node.parentId;
+          node.adoptiveParentIds = (node.adoptiveParentIds || []).filter(
+            (id) => id !== mutation.nodeId
+          );
+          node.partners = (node.partners || []).filter(
+            (id) => id !== mutation.nodeId
+          );
+          node.childrenIds = (node.childrenIds || []).filter(
+            (id) => id !== mutation.nodeId
+          );
+        }
+      } else if (mutation.payload) {
+        byId.set(mutation.nodeId, mutation.payload);
+      }
+    }
+    return Array.from(byId.values());
   }
 
   private scheduleFlush(delayMs: number): void {

@@ -3,6 +3,7 @@
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
+import { IntegrityValidator } from "../sync/IntegrityValidator";
 import {
   deserializeRowsToTree,
   serializeTreeToRows,
@@ -10,6 +11,7 @@ import {
   type DbNode,
 } from "./persistence";
 import type { FamilyNode, TreeData } from "../types/tree";
+import { nonEmptyFamilyTreeNodesSchema } from "../validations";
 
 export class TreeAccessError extends Error {
   constructor(
@@ -18,6 +20,29 @@ export class TreeAccessError extends Error {
   ) {
     super(message);
     this.name = "TreeAccessError";
+  }
+}
+
+export class InvalidTreeGraphError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidTreeGraphError";
+  }
+}
+
+export function assertTreeGraphValid(nodes: FamilyNode[]): void {
+  const shape = nonEmptyFamilyTreeNodesSchema.safeParse(nodes);
+  if (!shape.success) {
+    throw new InvalidTreeGraphError(
+      shape.error.errors.map((error) => error.message).join("; ")
+    );
+  }
+
+  const integrity = new IntegrityValidator().validate(nodes);
+  if (!integrity.valid) {
+    throw new InvalidTreeGraphError(
+      integrity.errors.map((error) => error.details).join("; ")
+    );
   }
 }
 
@@ -30,6 +55,7 @@ async function assertMembership(
     where: { id: treeId },
     select: {
       ownerId: true,
+      deletedAt: true,
       memberships: {
         where: { userId },
         select: { role: true },
@@ -38,6 +64,7 @@ async function assertMembership(
   });
 
   if (!tree) throw new TreeAccessError("Tree not found", 404);
+  if (tree.deletedAt) throw new TreeAccessError("Tree not found", 404);
 
   const isOwner = tree.ownerId === userId;
   const membership = tree.memberships[0];
@@ -64,9 +91,10 @@ export async function assertTreeOwner(
 ): Promise<void> {
   const tree = await prisma.tree.findUnique({
     where: { id: treeId },
-    select: { ownerId: true },
+    select: { ownerId: true, deletedAt: true },
   });
   if (!tree) throw new TreeAccessError("Tree not found", 404);
+  if (tree.deletedAt) throw new TreeAccessError("Tree not found", 404);
   if (tree.ownerId !== userId) {
     throw new TreeAccessError("Only the owner can invite collaborators");
   }
@@ -77,6 +105,7 @@ async function writeGraph(
   treeId: string,
   nodes: FamilyNode[]
 ) {
+  assertTreeGraphValid(nodes);
   const snapshot = serializeTreeToRows(nodes);
 
   await tx.edge.deleteMany({ where: { treeId } });
@@ -140,6 +169,7 @@ async function createSnapshot(
 export async function listTreesForUser(userId: string) {
   return prisma.tree.findMany({
     where: {
+      deletedAt: null,
       OR: [{ ownerId: userId }, { memberships: { some: { userId } } }],
     },
     select: {
@@ -167,7 +197,7 @@ export async function getTreeForUser(
   await assertMembership(treeId, userId, false);
 
   const [tree, nodes, edges] = await Promise.all([
-    prisma.tree.findUnique({ where: { id: treeId } }),
+    prisma.tree.findFirst({ where: { id: treeId, deletedAt: null } }),
     prisma.node.findMany({ where: { treeId } }),
     prisma.edge.findMany({ where: { treeId } }),
   ]);
@@ -218,11 +248,11 @@ export async function getTreeForUser(
 export async function createTreeForUser(
   userId: string,
   name: string,
-  nodes: FamilyNode[] = [],
+  nodes: FamilyNode[],
   requestedId?: string
 ): Promise<TreeData> {
   const existingOwnedTrees = await prisma.tree.findMany({
-    where: { ownerId: userId },
+    where: { ownerId: userId, deletedAt: null },
     select: { id: true, updatedAt: true, _count: { select: { nodes: true } } },
   });
   const canonicalOwnedTree = existingOwnedTrees.sort(
@@ -237,9 +267,12 @@ export async function createTreeForUser(
   if (requestedId) {
     const existing = await prisma.tree.findUnique({
       where: { id: requestedId },
-      select: { ownerId: true },
+      select: { ownerId: true, deletedAt: true },
     });
     if (existing) {
+      if (existing.deletedAt) {
+        throw new TreeAccessError("Tree ID is already in use");
+      }
       if (existing.ownerId !== userId) {
         throw new TreeAccessError("Tree ID is already in use");
       }
@@ -286,32 +319,66 @@ export async function createTreeForUser(
 export async function replaceTreeNodes(
   treeId: string,
   userId: string,
+  expectedVersion: number,
   nodes: FamilyNode[]
 ): Promise<{ newVersion: number }> {
   await assertMembership(treeId, userId, true);
 
   return prisma.$transaction(async (tx) => {
-    const updatedTree = await tx.tree.update({
-      where: { id: treeId },
+    const claim = await tx.tree.updateMany({
+      where: { id: treeId, deletedAt: null, version: expectedVersion },
       data: { version: { increment: 1 }, updatedAt: new Date() },
-      select: { version: true },
     });
+    if (claim.count !== 1) {
+      const current = await tx.tree.findUnique({
+        where: { id: treeId },
+        select: { version: true, deletedAt: true },
+      });
+      if (!current || current.deletedAt) {
+        throw new TreeAccessError("Tree not found", 404);
+      }
+      throw new VersionConflictError(current.version);
+    }
+
     const snapshot = await writeGraph(tx, treeId, nodes);
-    await createSnapshot(tx, treeId, updatedTree.version, snapshot);
-    return { newVersion: updatedTree.version };
+    const newVersion = expectedVersion + 1;
+    await createSnapshot(tx, treeId, newVersion, snapshot);
+    return { newVersion };
   });
 }
 
 export async function deleteTree(treeId: string, userId: string) {
   const tree = await prisma.tree.findUnique({
     where: { id: treeId },
-    select: { ownerId: true },
+    select: { ownerId: true, deletedAt: true },
   });
   if (!tree) throw new TreeAccessError("Tree not found", 404);
   if (tree.ownerId !== userId)
     throw new TreeAccessError("Only the owner can delete");
+  if (tree.deletedAt) return;
 
-  await prisma.tree.delete({ where: { id: treeId } });
+  await prisma.tree.update({
+    where: { id: treeId },
+    data: { deletedAt: new Date(), updatedAt: new Date() },
+  });
+}
+
+export async function recoverDeletedTree(treeId: string): Promise<{
+  id: string;
+  recovered: boolean;
+}> {
+  const tree = await prisma.tree.findUnique({
+    where: { id: treeId },
+    select: { id: true, deletedAt: true },
+  });
+  if (!tree) throw new TreeAccessError("Tree not found", 404);
+  if (!tree.deletedAt) return { id: tree.id, recovered: false };
+
+  await prisma.tree.update({
+    where: { id: tree.id },
+    data: { deletedAt: null, updatedAt: new Date() },
+  });
+  return { id: tree.id, recovered: true };
 }
 
 export async function applyTreeMutations(
@@ -350,7 +417,7 @@ export async function applyTreeMutations(
     // Claim this version before reading and replacing the graph. PostgreSQL
     // serializes concurrent claims on this row, so only one writer can win.
     const claim = await tx.tree.updateMany({
-      where: { id: treeId, version: clientVersion },
+      where: { id: treeId, deletedAt: null, version: clientVersion },
       data: { version: { increment: 1 }, updatedAt: new Date() },
     });
     if (claim.count !== 1) {
@@ -367,9 +434,11 @@ export async function applyTreeMutations(
 
       const current = await tx.tree.findUnique({
         where: { id: treeId },
-        select: { version: true },
+        select: { version: true, deletedAt: true },
       });
-      if (!current) throw new TreeAccessError("Tree not found", 404);
+      if (!current || current.deletedAt) {
+        throw new TreeAccessError("Tree not found", 404);
+      }
       throw new VersionConflictError(current.version);
     }
 

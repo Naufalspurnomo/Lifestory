@@ -345,7 +345,6 @@ export default function FamilyTreeCanvas({
     initializedRef.current = true;
   }, [calculateFitTransform, nodes.length, wrapperSize.width]);
 
-  const bgImageRef = useRef<HTMLImageElement | null>(null);
   const crestFrameRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
@@ -354,16 +353,6 @@ export default function FamilyTreeCanvas({
       (node) => node.imageUrl && !imageCache.has(node.imageUrl)
     );
     
-    // Load background map texture
-    if (!bgImageRef.current) {
-      const bgImg = new Image();
-      bgImg.src = "/brand/royal_map_bg.png";
-      bgImg.onload = () => {
-        bgImageRef.current = bgImg;
-        setImagesLoaded((val) => val + 1);
-      };
-    }
-
     // Load noble crest frame
     if (!crestFrameRef.current) {
       const crestImg = new Image();
@@ -536,57 +525,9 @@ export default function FamilyTreeCanvas({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, clientWidth, clientHeight);
     
-    // Draw warm parchment background fallback
-    ctx.fillStyle = "#f5efe1";
-    ctx.fillRect(0, 0, clientWidth, clientHeight);
-    
     ctx.save();
     ctx.translate(transform.x, transform.y);
     ctx.scale(transform.k, transform.k);
-    
-    // Draw deep royal brown background
-    ctx.save();
-    ctx.fillStyle = "#2c1e16";
-    ctx.fillRect(-10000, -10000, 20000, 20000);
-
-    // Draw elegant royal wallpaper diamond pattern
-    ctx.strokeStyle = "rgba(176, 142, 81, 0.08)"; // Subtle gold lines
-    ctx.lineWidth = 1;
-    const step = 160; // Wallpaper pattern size
-    
-    ctx.beginPath();
-    // Diagonal lines forming diamonds
-    for (let x = -10000; x < 10000; x += step) {
-      ctx.moveTo(x, -10000);
-      ctx.lineTo(x + 20000, 10000);
-      ctx.moveTo(x, 10000);
-      ctx.lineTo(x + 20000, -10000);
-    }
-    ctx.stroke();
-
-    // Draw tiny gold emblems (dots) at the intersections
-    ctx.fillStyle = "rgba(176, 142, 81, 0.25)";
-    for (let x = -5000; x < 5000; x += step / 2) {
-      for (let y = -5000; y < 5000; y += step / 2) {
-        if (Math.abs((x % step) - (y % step)) < 1 || Math.abs(((x + y) % step)) < 1) {
-          ctx.beginPath();
-          ctx.arc(x, y, 3, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    }
-    
-    // Soft map overlay texture
-    if (bgImageRef.current && bgImageRef.current.complete && bgImageRef.current.naturalWidth > 0) {
-      const pattern = ctx.createPattern(bgImageRef.current, "repeat");
-      if (pattern) {
-        ctx.globalAlpha = 0.08;
-        ctx.globalCompositeOperation = "color-burn";
-        ctx.fillStyle = pattern;
-        ctx.fillRect(-10000, -10000, 20000, 20000);
-      }
-    }
-    ctx.restore();
 
     // S7: Use NODE_SPACING_Y for generation band height instead of hardcoded 75
     const bandHalf = LAYOUT.NODE_SPACING_Y / 2;
@@ -1122,6 +1063,10 @@ export default function FamilyTreeCanvas({
       ref={wrapperRef}
       className="relative h-full w-full select-none overflow-hidden bg-[#2c1e16]"
       style={{
+        backgroundImage: "url('/image/background-canvas.webp')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
         boxShadow: "inset 0 0 160px rgba(0,0,0,0.6)",
         touchAction: "none",
       }}

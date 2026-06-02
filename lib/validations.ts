@@ -180,11 +180,12 @@ export const nonEmptyFamilyTreeNodesSchema = familyTreeNodesBaseSchema
 export const treeCreateSchema = z.object({
   id: nodeIdSchema.optional(),
   name: z.string().trim().min(1, "Name is required").max(120),
-  nodes: familyTreeNodesSchema.optional().default([]),
+  nodes: nonEmptyFamilyTreeNodesSchema,
 });
 
 export const treeNodesPayloadSchema = z.object({
-  nodes: familyTreeNodesSchema,
+  expectedVersion: z.number().int().positive(),
+  nodes: nonEmptyFamilyTreeNodesSchema,
 });
 
 export const treeSyncPayloadSchema = z.object({

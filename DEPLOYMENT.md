@@ -17,6 +17,7 @@ database and commit being deployed:
 npm install
 npm run db:deploy
 npm run db:status
+npm run db:audit
 npm test
 npm run build
 npm audit --omit=dev
@@ -81,6 +82,28 @@ npm run db:status
 `prisma migrate deploy` is non-interactive and safe to run repeatedly. It skips
 migrations that are already applied.
 
+`npm run db:audit` must also pass. It rejects active trees without snapshots,
+empty active trees, missing recovery columns, disabled RLS, and any schema that
+allows deleting a user account to cascade-delete its owned family archive.
+
+## Archive recovery
+
+Tree deletion is soft-delete only. Nodes, relationships, sync receipts, and
+snapshots remain in Postgres until a separately reviewed retention policy is
+implemented. An admin can recover a deleted tree with:
+
+```bash
+curl -X POST https://lifestory.co.id/api/trees/TREE_ID/recover \
+  -H "Cookie: NEXTAUTH_ADMIN_SESSION_COOKIE"
+```
+
+The endpoint is admin-only and rate-limited.
+
+Application snapshots are not an independent database backup. Before accepting
+paid-user archives, enable Supabase backups and Point-in-Time Recovery for the
+production project, document the retention window, and perform a restore drill
+into a separate database.
+
 ## Post-deploy smoke test
 
 1. Open `https://lifestory.co.id/api/health?database=1`.
@@ -121,14 +144,15 @@ manual forgot-password check above.
 
 ## Known limitations
 
-- Photos still use base64 in `Node.imageUrl`. Move uploads to object storage
-  before allowing many photos per family.
-- The legacy wholesale `PUT /api/trees/[id]` path remains for invite imports.
-  Interactive editor autosave uses incremental WAL batches.
-- A true same-field collaborative edit conflict pauses autosave and preserves
-  browser WAL entries. Do not market real-time Google Docs-style collaboration
-  until the conflict-resolution UI is wired end-to-end.
-- `TreeInvite` is still managed with raw SQL in `lib/invites.ts`.
+- Photos still use compressed base64 in Postgres and the browser cache. Gallery
+  video upload is disabled. Move media uploads to object storage before
+  marketing large photo galleries or video archives.
+- The legacy wholesale `PUT /api/trees/[id]` path remains for guarded recovery
+  writes and conflict resolution. Interactive editor autosave uses incremental
+  WAL batches.
+- Same-field collaborative edits open a manual conflict-resolution modal.
+  This is recovery-oriented collaboration, not real-time Google Docs-style
+  co-editing.
 - Prisma ORM 6 CLI remains in the build toolchain. Plan the Prisma ORM 7
   migration separately because it requires ESM, generated-client import, and
   Postgres driver-adapter changes.

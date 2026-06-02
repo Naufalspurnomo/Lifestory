@@ -11,6 +11,7 @@ import BioModal from "../../components/tree/BioModal";
 import WelcomeScreen from "../../components/tree/WelcomeScreen";
 import InviteModal from "../../components/tree/InviteModal";
 import ImportModal from "../../components/tree/ImportModal";
+import ConflictResolutionModal from "../../components/tree/ConflictResolutionModal";
 import SearchBar from "../../components/tree/SearchBar";
 import TimelineView from "../../components/tree/TimelineView";
 import SyncStatusIndicator from "../../components/tree/SyncStatusIndicator";
@@ -45,6 +46,9 @@ export default function AppHome() {
             `Ekspor selesai: ${count} anggota dengan relasi lengkap.`,
           notifNoDataToExport: "Belum ada data keluarga untuk diekspor.",
           notifExportFailed: "Gagal mengekspor data keluarga.",
+          notifConflictResolved: "Konflik sinkronisasi berhasil diselesaikan.",
+          notifConflictFailed:
+            "Resolusi konflik belum tersimpan. Salinan lokal tetap aman.",
           placeholderFather: "Ayah (Tidak Diketahui)",
           placeholderMother: "Ibu (Tidak Diketahui)",
           pageTitle: "Pohon Keluarga",
@@ -80,6 +84,9 @@ export default function AppHome() {
             `Export complete: ${count} members with full relationship mapping.`,
           notifNoDataToExport: "No family data available to export.",
           notifExportFailed: "Failed to export family data.",
+          notifConflictResolved: "Sync conflict resolved successfully.",
+          notifConflictFailed:
+            "Conflict resolution has not been saved. Your local copy remains safe.",
           placeholderFather: "Father (Unknown)",
           placeholderMother: "Mother (Unknown)",
           pageTitle: "Family Trees",
@@ -120,6 +127,8 @@ export default function AppHome() {
     syncStatus,
     syncStatusInfo,
     retrySync,
+    syncConflict,
+    resolveSyncConflict,
     undo,
     redo,
     canUndo,
@@ -823,6 +832,17 @@ export default function AppHome() {
               showNotification(copy.notifImported(nodes.length));
             }}
           />
+
+          {syncConflict && (
+            <ConflictResolutionModal
+              conflicts={syncConflict.conflicts}
+              onResolve={(resolutions) => {
+                void resolveSyncConflict(resolutions)
+                  .then(() => showNotification(copy.notifConflictResolved))
+                  .catch(() => showNotification(copy.notifConflictFailed));
+              }}
+            />
+          )}
 
           {notification && (
             <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full border border-[#dccfb3] bg-[#fdfbf6]/95 px-6 py-3 text-sm font-medium text-[#3f342d] shadow-md backdrop-blur">

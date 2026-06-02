@@ -1,7 +1,16 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
-import { assertTreeWritable } from "../tree/repository";
-import type { DbEdge, DbNode, DbTreeSnapshot } from "../tree/persistence";
+import {
+  assertTreeGraphValid,
+  assertTreeWritable,
+  TreeAccessError,
+} from "../tree/repository";
+import {
+  deserializeRowsToTree,
+  type DbEdge,
+  type DbNode,
+  type DbTreeSnapshot,
+} from "../tree/persistence";
 
 export type TreeSnapshotMeta = {
   id: string;
@@ -153,11 +162,19 @@ export class BackupManager {
     await assertTreeWritable(treeId, userId);
     const snapshot = await this.getSnapshot(snapshotId);
     if (snapshot.treeId !== treeId) throw new Error("Snapshot belongs to another tree");
+    assertTreeGraphValid(deserializeRowsToTree(snapshot.data));
 
     await prisma.$transaction(async (tx) => {
-      const tree = await tx.tree.update({
-        where: { id: treeId },
+      const claimed = await tx.tree.updateMany({
+        where: { id: treeId, deletedAt: null },
         data: { version: { increment: 1 }, updatedAt: new Date() },
+      });
+      if (claimed.count !== 1) {
+        throw new TreeAccessError("Tree not found", 404);
+      }
+      const tree = await tx.tree.findUniqueOrThrow({
+        where: { id: treeId },
+        select: { version: true },
       });
       const [currentNodes, currentEdges] = await Promise.all([
         tx.node.findMany({ where: { treeId } }),

@@ -28,6 +28,7 @@ import type { Mutation } from "../sync/types";
 
 const MAX_HISTORY = 50;
 const ACTIVE_TREE_KEY_PREFIX = "lifestory_active_tree:";
+const LOCAL_DRAFT_KEY_PREFIX = "lifestory_local_draft:";
 
 // ---------- helpers ----------
 const uniq = (a: string[]) => Array.from(new Set((a || []).filter(Boolean)));
@@ -48,6 +49,47 @@ function getActiveTreeId(userId: string): string | null {
 function saveActiveTreeId(userId: string, treeId: string): void {
   if (typeof window === "undefined" || !userId) return;
   localStorage.setItem(`${ACTIVE_TREE_KEY_PREFIX}${userId}`, treeId);
+}
+
+function localDraftKey(userId: string, treeId: string): string {
+  return `${LOCAL_DRAFT_KEY_PREFIX}${userId}:${treeId}`;
+}
+
+function markLocalDraft(userId: string, treeId: string): string | null {
+  if (typeof window === "undefined" || !userId) return null;
+  const token = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  try {
+    localStorage.setItem(localDraftKey(userId, treeId), token);
+    return token;
+  } catch {
+    return null;
+  }
+}
+
+function hasLocalDraft(userId: string, treeId: string): boolean {
+  if (typeof window === "undefined" || !userId) return false;
+  try {
+    return localStorage.getItem(localDraftKey(userId, treeId)) !== null;
+  } catch {
+    return false;
+  }
+}
+
+function clearLocalDraft(
+  userId: string,
+  treeId: string,
+  expectedToken?: string | null
+): void {
+  if (typeof window === "undefined" || !userId) return;
+  const key = localDraftKey(userId, treeId);
+  try {
+    if (expectedToken && localStorage.getItem(key) !== expectedToken) {
+      return;
+    }
+    localStorage.removeItem(key);
+  } catch {
+    /* Keep the draft marker when browser storage is unavailable. */
+  }
 }
 
 function sharesParent(a: FamilyNode, b: FamilyNode): boolean {
@@ -332,10 +374,13 @@ export function useTreeState(userId: string, userName: string) {
   });
   const {
     status: syncStatusInfo,
+    conflict: syncConflict,
     enqueueMany,
     retryFailed,
     forceSync,
     setLastSyncedVersion,
+    hasUnresolvedChanges,
+    resolveConflict,
   } = syncEngine;
 
   useEffect(() => {
@@ -350,6 +395,35 @@ export function useTreeState(userId: string, userName: string) {
         sanitizeGraph(fullTree.nodes.map((node) => normalizeNode(node)))
       );
       const hydrated: TreeData = { ...fullTree, nodes };
+      const localTree = treesRef.current.find((tree) => tree.id === treeId);
+      const unresolved = await hasUnresolvedChanges(treeId);
+      const localDraft = hasLocalDraft(userId, treeId);
+
+      if (localTree && (unresolved || localDraft)) {
+        if (localDraft) {
+          const recoveryMutations = buildNodeMutations(nodes, localTree.nodes);
+          try {
+            if (!unresolved) {
+              await setLastSyncedVersion(treeId, fullTree.version ?? 1);
+            }
+            if (recoveryMutations.length > 0) {
+              await enqueueMany(treeId, recoveryMutations);
+            }
+            clearLocalDraft(userId, treeId);
+          } catch (error) {
+            setSaveError(
+              error instanceof Error
+                ? `Salinan lokal tetap aman, tetapi recovery sync belum masuk antrian: ${error.message}`
+                : "Salinan lokal tetap aman, tetapi recovery sync belum masuk antrian."
+            );
+          }
+        }
+
+        setCurrentTreeId(localTree.id);
+        setHistory({ past: [], present: localTree.nodes, future: [] });
+        saveActiveTreeId(userId, localTree.id);
+        return localTree;
+      }
 
       setTrees((prev) => {
         const filtered = prev.filter((tree) => tree.id !== hydrated.id);
@@ -361,7 +435,7 @@ export function useTreeState(userId: string, userName: string) {
       await setLastSyncedVersion(hydrated.id, fullTree.version ?? 1);
       return hydrated;
     },
-    [setLastSyncedVersion, userId]
+    [enqueueMany, hasUnresolvedChanges, setLastSyncedVersion, userId]
   );
 
   // Load: try API first, fall back to localStorage.
@@ -379,6 +453,7 @@ export function useTreeState(userId: string, userName: string) {
 
       // Seed with local cache immediately so UI isn't blank while we fetch.
       if (!cancelled) {
+        treesRef.current = migrated;
         setCurrentTreeId(null);
         setHistory({ past: [], present: [], future: [] });
         setTrees(migrated);
@@ -432,12 +507,14 @@ export function useTreeState(userId: string, userName: string) {
               );
             }
           } else {
-            // A versioned cache belonged to a tree that once existed on the
-            // server. Do not resurrect it after an intentional server reset.
-            setTrees([]);
-            setCurrentTreeId(null);
-            setHistory({ past: [], present: [], future: [] });
-            saveTrees([], userId);
+            // A zero-tree server response can also mean a misconfigured or
+            // freshly reset database. Keep versioned browser caches visible
+            // until an operator verifies that deletion was intentional.
+            if (migrated.length > 0) {
+              setSaveError(
+                "Server belum menampilkan arsip keluarga. Salinan lokal tetap dipertahankan sampai kondisi server diverifikasi."
+              );
+            }
           }
           setLoadStatus("idle");
           return;
@@ -521,20 +598,56 @@ export function useTreeState(userId: string, userName: string) {
     }));
   }, []);
 
+  const commitTreeNodesLocally = useCallback(
+    (treeId: string, nodes: FamilyNode[]): boolean => {
+      let found = false;
+      const nextTrees = treesRef.current.map((tree) => {
+        if (tree.id !== treeId) return tree;
+        found = true;
+        return {
+          ...tree,
+          nodes,
+          updatedAt: new Date().toISOString(),
+        };
+      });
+      if (!found) return false;
+
+      const result = saveTrees(nextTrees, userId);
+      if (!result.success) {
+        setSaveError(result.error || "Salinan lokal belum bisa diperbarui.");
+        return false;
+      }
+
+      treesRef.current = nextTrees;
+      setTrees(nextTrees);
+      setStorageInfo(checkStorageQuota());
+      return true;
+    },
+    [userId]
+  );
+
   const queueNodeMutations = useCallback(
     (treeId: string, before: FamilyNode[], after: FamilyNode[]) => {
       const mutations = buildNodeMutations(before, after);
       if (mutations.length === 0) return;
 
-      void enqueueMany(treeId, mutations).catch((error) => {
-        setSaveError(
-          error instanceof Error
-            ? error.message
-            : "Perubahan belum bisa disimpan ke antrian lokal."
-        );
-      });
+      const draftToken = markLocalDraft(userId, treeId);
+      void enqueueMany(treeId, mutations)
+        .then(() => clearLocalDraft(userId, treeId, draftToken))
+        .catch((error) => {
+          setSaveError(
+            error instanceof Error
+              ? `Salinan lokal tetap aman, tetapi antrian sync belum diperbarui: ${error.message}`
+              : "Salinan lokal tetap aman, tetapi antrian sync belum diperbarui."
+          );
+        });
     },
-    [enqueueMany]
+    [enqueueMany, userId]
+  );
+
+  const getCurrentTreeSnapshot = useCallback(
+    () => treesRef.current.find((tree) => tree.id === currentTreeId) ?? null,
+    [currentTreeId]
   );
 
   // Create initial tree
@@ -619,7 +732,8 @@ export function useTreeState(userId: string, userName: string) {
         initialChildrenIds?: string[];
       }
     ): { success: boolean; error?: string; node?: FamilyNode } => {
-      if (!currentTree) return { success: false, error: "No tree selected" };
+      const activeTree = getCurrentTreeSnapshot();
+      if (!activeTree) return { success: false, error: "No tree selected" };
 
       const { initialChildrenIds, ...rest } = nodeData as any;
 
@@ -635,7 +749,7 @@ export function useTreeState(userId: string, userName: string) {
       });
 
       // basic cycle detection
-      if (detectCycle(currentTree.nodes, newNode)) {
+      if (detectCycle(activeTree.nodes, newNode)) {
         return {
           success: false,
           error:
@@ -644,7 +758,7 @@ export function useTreeState(userId: string, userName: string) {
       }
 
       let updatedNodes: FamilyNode[] = sanitizeGraph([
-        ...currentTree.nodes.map((n) => normalizeNode(n)),
+        ...activeTree.nodes.map((n) => normalizeNode(n)),
         newNode,
       ]);
 
@@ -683,28 +797,32 @@ export function useTreeState(userId: string, userName: string) {
 
       const finalNewNode = updatedNodes.find((n) => n.id === newNodeId)!;
 
+      if (!commitTreeNodesLocally(activeTree.id, updatedNodes)) {
+        return {
+          success: false,
+          error: "Penyimpanan lokal penuh atau tidak tersedia.",
+        };
+      }
       pushHistory(updatedNodes);
-      queueNodeMutations(currentTree.id, currentTree.nodes, updatedNodes);
-
-      setTrees((prev) =>
-        prev.map((t) =>
-          t.id === currentTreeId
-            ? { ...t, nodes: updatedNodes, updatedAt: new Date().toISOString() }
-            : t
-        )
-      );
+      queueNodeMutations(activeTree.id, activeTree.nodes, updatedNodes);
 
       return { success: true, node: finalNewNode };
     },
-    [currentTree, currentTreeId, pushHistory, queueNodeMutations]
+    [
+      commitTreeNodesLocally,
+      getCurrentTreeSnapshot,
+      pushHistory,
+      queueNodeMutations,
+    ]
   );
 
   const updateNode = useCallback(
     (nodeId: string, updates: Partial<FamilyNode>) => {
-      if (!currentTree) return;
+      const activeTree = getCurrentTreeSnapshot();
+      if (!activeTree) return;
 
       let updatedNodes = sanitizeGraph(
-        currentTree.nodes.map((n) =>
+        activeTree.nodes.map((n) =>
           n.id === nodeId
             ? normalizeNode({ ...n, ...updates })
             : normalizeNode(n)
@@ -713,25 +831,24 @@ export function useTreeState(userId: string, userName: string) {
 
       updatedNodes = recomputeAllGenerations(updatedNodes);
 
+      if (!commitTreeNodesLocally(activeTree.id, updatedNodes)) return;
       pushHistory(updatedNodes);
-      queueNodeMutations(currentTree.id, currentTree.nodes, updatedNodes);
-
-      setTrees((prev) =>
-        prev.map((t) =>
-          t.id === currentTreeId
-            ? { ...t, nodes: updatedNodes, updatedAt: new Date().toISOString() }
-            : t
-        )
-      );
+      queueNodeMutations(activeTree.id, activeTree.nodes, updatedNodes);
     },
-    [currentTree, currentTreeId, pushHistory, queueNodeMutations]
+    [
+      commitTreeNodesLocally,
+      getCurrentTreeSnapshot,
+      pushHistory,
+      queueNodeMutations,
+    ]
   );
 
   const updateNodes = useCallback(
     (updates: { nodeId: string; data: Partial<FamilyNode> }[]) => {
-      if (!currentTree) return;
+      const activeTree = getCurrentTreeSnapshot();
+      if (!activeTree) return;
 
-      let updated = currentTree.nodes.map((n) => normalizeNode(n));
+      let updated = activeTree.nodes.map((n) => normalizeNode(n));
 
       for (const { nodeId, data } of updates) {
         updated = updated.map((n) =>
@@ -742,28 +859,31 @@ export function useTreeState(userId: string, userName: string) {
       let updatedNodes = sanitizeGraph(updated);
       updatedNodes = recomputeAllGenerations(updatedNodes);
 
+      if (!commitTreeNodesLocally(activeTree.id, updatedNodes)) return;
       pushHistory(updatedNodes);
-      queueNodeMutations(currentTree.id, currentTree.nodes, updatedNodes);
-
-      setTrees((prev) =>
-        prev.map((t) =>
-          t.id === currentTreeId
-            ? { ...t, nodes: updatedNodes, updatedAt: new Date().toISOString() }
-            : t
-        )
-      );
+      queueNodeMutations(activeTree.id, activeTree.nodes, updatedNodes);
     },
-    [currentTree, currentTreeId, pushHistory, queueNodeMutations]
+    [
+      commitTreeNodesLocally,
+      getCurrentTreeSnapshot,
+      pushHistory,
+      queueNodeMutations,
+    ]
   );
 
   const deleteNode = useCallback(
     (nodeId: string) => {
-      if (!currentTree) return;
+      const activeTree = getCurrentTreeSnapshot();
+      if (!activeTree) return;
 
-      const nodeToDelete = currentTree.nodes.find((n) => n.id === nodeId);
+      const nodeToDelete = activeTree.nodes.find((n) => n.id === nodeId);
       if (!nodeToDelete) return;
+      if (activeTree.nodes.length <= 1) {
+        setSaveError("Pohon keluarga harus memiliki minimal satu anggota.");
+        return;
+      }
 
-      let updatedNodes = currentTree.nodes
+      let updatedNodes = activeTree.nodes
         .map((n) => normalizeNode(n))
         .filter((n) => n.id !== nodeId);
 
@@ -813,90 +933,81 @@ export function useTreeState(userId: string, userName: string) {
       updatedNodes = sanitizeGraph(updatedNodes);
       updatedNodes = recomputeAllGenerations(updatedNodes);
 
+      if (!commitTreeNodesLocally(activeTree.id, updatedNodes)) return;
       pushHistory(updatedNodes);
-      queueNodeMutations(currentTree.id, currentTree.nodes, updatedNodes);
-
-      setTrees((prev) =>
-        prev.map((t) =>
-          t.id === currentTreeId
-            ? { ...t, nodes: updatedNodes, updatedAt: new Date().toISOString() }
-            : t
-        )
-      );
+      queueNodeMutations(activeTree.id, activeTree.nodes, updatedNodes);
     },
-    [currentTree, currentTreeId, pushHistory, queueNodeMutations]
+    [
+      commitTreeNodesLocally,
+      getCurrentTreeSnapshot,
+      pushHistory,
+      queueNodeMutations,
+    ]
   );
 
   const undo = useCallback(() => {
     if (history.past.length === 0) return;
+    const activeTree = getCurrentTreeSnapshot();
+    if (!activeTree) return;
 
     const previous = history.past[history.past.length - 1];
     const newPast = history.past.slice(0, -1);
 
+    if (!commitTreeNodesLocally(activeTree.id, previous)) return;
     setHistory({
       past: newPast,
       present: previous,
       future: [history.present, ...history.future],
     });
-
-    if (currentTree) {
-      queueNodeMutations(currentTree.id, history.present, previous);
-    }
-
-    setTrees((prev) =>
-      prev.map((t) =>
-        t.id === currentTreeId
-          ? { ...t, nodes: previous, updatedAt: new Date().toISOString() }
-          : t
-      )
-    );
-  }, [currentTree, history, currentTreeId, queueNodeMutations]);
+    queueNodeMutations(activeTree.id, activeTree.nodes, previous);
+  }, [
+    commitTreeNodesLocally,
+    getCurrentTreeSnapshot,
+    history,
+    queueNodeMutations,
+  ]);
 
   const redo = useCallback(() => {
     if (history.future.length === 0) return;
+    const activeTree = getCurrentTreeSnapshot();
+    if (!activeTree) return;
 
     const next = history.future[0];
     const newFuture = history.future.slice(1);
 
+    if (!commitTreeNodesLocally(activeTree.id, next)) return;
     setHistory({
       past: [...history.past, history.present],
       present: next,
       future: newFuture,
     });
-
-    if (currentTree) {
-      queueNodeMutations(currentTree.id, history.present, next);
-    }
-
-    setTrees((prev) =>
-      prev.map((t) =>
-        t.id === currentTreeId
-          ? { ...t, nodes: next, updatedAt: new Date().toISOString() }
-          : t
-      )
-    );
-  }, [currentTree, history, currentTreeId, queueNodeMutations]);
+    queueNodeMutations(activeTree.id, activeTree.nodes, next);
+  }, [
+    commitTreeNodesLocally,
+    getCurrentTreeSnapshot,
+    history,
+    queueNodeMutations,
+  ]);
 
   const importNodes = useCallback(
     (nodes: FamilyNode[]) => {
-      if (!currentTree) return;
+      const activeTree = getCurrentTreeSnapshot();
+      if (!activeTree) return;
 
       let importedNodes = nodes.map((n) => normalizeNode(n));
       importedNodes = sanitizeGraph(importedNodes);
       importedNodes = recomputeAllGenerations(importedNodes);
 
+      if (!commitTreeNodesLocally(activeTree.id, importedNodes)) return;
       pushHistory(importedNodes);
-      queueNodeMutations(currentTree.id, currentTree.nodes, importedNodes);
-
-      setTrees((prev) =>
-        prev.map((t) =>
-          t.id === currentTreeId
-            ? { ...t, nodes: importedNodes, updatedAt: new Date().toISOString() }
-            : t
-        )
-      );
+      queueNodeMutations(activeTree.id, activeTree.nodes, importedNodes);
     },
-    [currentTree, currentTreeId, pushHistory, queueNodeMutations]
+    [
+      commitTreeNodesLocally,
+      getCurrentTreeSnapshot,
+      pushHistory,
+      queueNodeMutations,
+    ]
   );
 
   const getNode = useCallback(
@@ -930,6 +1041,8 @@ export function useTreeState(userId: string, userName: string) {
     saveError,
     syncStatus: legacySyncStatus,
     syncStatusInfo,
+    syncConflict,
+    resolveSyncConflict: resolveConflict,
     retrySync: retryFailed,
     forceSync,
     canUndo: history.past.length > 0,

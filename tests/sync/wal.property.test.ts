@@ -106,6 +106,30 @@ describe("data reliability write-ahead log", () => {
     expect(await log.getCount()).toBe(1);
   });
 
+  it("rejects an oversized mutation batch without storing a partial action", async () => {
+    const log = wal(2);
+    await expect(
+      log.appendMutations("tree-1", [
+        {
+          type: "add",
+          nodeId: "a",
+          payload: person("a", "A"),
+        },
+        {
+          type: "add",
+          nodeId: "b",
+          payload: person("b", "B"),
+        },
+        {
+          type: "add",
+          nodeId: "c",
+          payload: person("c", "C"),
+        },
+      ])
+    ).rejects.toThrow(/capacity/);
+    expect(await log.getCount()).toBe(0);
+  });
+
   it("does not prune active entries younger than the retention window", async () => {
     // Feature: data-reliability-sync, Property 16: WAL Retention Policy
     const log = wal();

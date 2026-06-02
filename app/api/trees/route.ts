@@ -2,7 +2,11 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { requireActiveSubscriber, requireUser } from "../../../lib/auth-helpers";
-import { createTreeForUser, listTreesForUser } from "../../../lib/tree/repository";
+import {
+  createTreeForUser,
+  InvalidTreeGraphError,
+  listTreesForUser,
+} from "../../../lib/tree/repository";
 import type { FamilyNode } from "../../../lib/types/tree";
 import {
   formatZodErrors,
@@ -10,9 +14,8 @@ import {
   validateBody,
 } from "../../../lib/validations";
 
-// Graceful fallback for P2021 (table does not exist). This lets the app
-// keep working in local/offline mode even when the family-tree migration
-// has not been applied to the connected database yet.
+// Missing persistence tables are an outage, not an empty archive. Returning
+// 503 keeps browser caches intact while deployment is repaired.
 function isMissingTableError(error: unknown): boolean {
   return (
     error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -29,10 +32,13 @@ export async function GET() {
     const trees = await listTreesForUser(userId);
     return NextResponse.json({ trees });
   } catch (error) {
+    if (error instanceof InvalidTreeGraphError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     if (isMissingTableError(error)) {
       return NextResponse.json(
-        { trees: [], warning: "tree-tables-not-migrated" },
-        { status: 200 }
+        { error: "tree-tables-not-migrated" },
+        { status: 503 }
       );
     }
     console.error("trees list error", error);

@@ -5,6 +5,7 @@ import {
   applyTreeMutations,
   getChangedNodeIdsSince,
   getTreeForUser,
+  InvalidTreeGraphError,
   pruneOldSyncReceipts,
   TreeAccessError,
   VersionConflictError,
@@ -27,6 +28,9 @@ function isMissingTableError(error: unknown): boolean {
 function handleError(error: unknown) {
   if (error instanceof TreeAccessError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
+  }
+  if (error instanceof InvalidTreeGraphError) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
   if (isMissingTableError(error)) {
     return NextResponse.json(

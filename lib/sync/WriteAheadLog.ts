@@ -18,6 +18,7 @@ export interface WriteAheadLog {
     >
   ): Promise<WALEntry>;
   appendMutation(treeId: string, mutation: Mutation): Promise<WALEntry>;
+  appendMutations(treeId: string, mutations: Mutation[]): Promise<WALEntry[]>;
   acknowledge(seqNo: number): Promise<void>;
   markSending(seqNos: number[]): Promise<void>;
   markPending(seqNos: number[]): Promise<void>;
@@ -26,6 +27,7 @@ export interface WriteAheadLog {
   resetFailed(): Promise<void>;
   getPending(treeId: string): Promise<WALEntry[]>;
   getAllPending(): Promise<WALEntry[]>;
+  hasUnresolved(treeId: string): Promise<boolean>;
   getCount(): Promise<number>;
   getPermanentlyFailedCount(): Promise<number>;
   clear(treeId: string): Promise<void>;
@@ -185,6 +187,44 @@ export class LocalStorageWriteAheadLog implements WriteAheadLog {
     });
   }
 
+  async appendMutations(
+    treeId: string,
+    mutations: Mutation[]
+  ): Promise<WALEntry[]> {
+    if (mutations.length === 0) return [];
+
+    const state = this.read();
+    if (
+      state.entries.filter(isUnresolved).length + mutations.length >
+      this.maxEntries
+    ) {
+      throw new Error("Offline save capacity has been reached");
+    }
+
+    let lastSeqNo = Number(state.meta.lastSeqNo ?? 0);
+    const entries = mutations.map((mutation) => {
+      const walEntry: WALEntry = {
+        treeId,
+        timestamp: mutation.timestamp ?? Date.now(),
+        type: mutation.type,
+        nodeId: mutation.nodeId,
+        payload: mutation.payload,
+        id: uuid(),
+        seqNo: ++lastSeqNo,
+        status: "pending",
+        retryCount: 0,
+        lastAttempt: null,
+        errorMessage: null,
+      };
+      return walEntry;
+    });
+
+    state.meta.lastSeqNo = lastSeqNo;
+    state.entries.push(...entries);
+    this.write(state);
+    return entries;
+  }
+
   async acknowledge(seqNo: number): Promise<void> {
     const state = this.read();
     state.entries = state.entries.filter((entry) => entry.seqNo !== seqNo);
@@ -239,6 +279,12 @@ export class LocalStorageWriteAheadLog implements WriteAheadLog {
 
   async getAllPending(): Promise<WALEntry[]> {
     return sortBySeq(this.read().entries.filter(isActive));
+  }
+
+  async hasUnresolved(treeId: string): Promise<boolean> {
+    return this.read().entries.some(
+      (entry) => entry.treeId === treeId && isUnresolved(entry)
+    );
   }
 
   async getCount(): Promise<number> {
@@ -423,6 +469,60 @@ export class IndexedDbWriteAheadLog implements WriteAheadLog {
     });
   }
 
+  async appendMutations(
+    treeId: string,
+    mutations: Mutation[]
+  ): Promise<WALEntry[]> {
+    if (mutations.length === 0) return [];
+
+    const operation = this.appendQueue.then(() =>
+      this.appendMutationsExclusive(treeId, mutations)
+    );
+    this.appendQueue = operation.then(
+      () => undefined,
+      () => undefined
+    );
+    return operation;
+  }
+
+  private async appendMutationsExclusive(
+    treeId: string,
+    mutations: Mutation[]
+  ): Promise<WALEntry[]> {
+    if ((await this.getCount()) + mutations.length > this.maxEntries) {
+      throw new Error("Offline save capacity has been reached");
+    }
+
+    const transaction = this.db.transaction(["wal", "meta"], "readwrite");
+    const meta = transaction.objectStore("meta");
+    const lastSeq = await requestToPromise<
+      { key: string; value: number } | undefined
+    >(meta.get("lastSeqNo"));
+    let lastSeqNo = Number(lastSeq?.value ?? 0);
+    const entries = mutations.map((mutation) => {
+      const walEntry: WALEntry = {
+        treeId,
+        timestamp: mutation.timestamp ?? Date.now(),
+        type: mutation.type,
+        nodeId: mutation.nodeId,
+        payload: mutation.payload,
+        id: uuid(),
+        seqNo: ++lastSeqNo,
+        status: "pending",
+        retryCount: 0,
+        lastAttempt: null,
+        errorMessage: null,
+      };
+      return walEntry;
+    });
+
+    meta.put({ key: "lastSeqNo", value: lastSeqNo });
+    const store = transaction.objectStore("wal");
+    entries.forEach((entry) => store.put(entry));
+    await transactionDone(transaction);
+    return entries;
+  }
+
   async acknowledge(seqNo: number): Promise<void> {
     const entries = await this.getAllEntries();
     const match = entries.find((entry) => entry.seqNo === seqNo);
@@ -482,6 +582,12 @@ export class IndexedDbWriteAheadLog implements WriteAheadLog {
 
   async getAllPending(): Promise<WALEntry[]> {
     return sortBySeq((await this.getAllEntries()).filter(isActive));
+  }
+
+  async hasUnresolved(treeId: string): Promise<boolean> {
+    return (await this.getAllEntries()).some(
+      (entry) => entry.treeId === treeId && isUnresolved(entry)
+    );
   }
 
   async getCount(): Promise<number> {

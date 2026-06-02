@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Button } from "../ui/Button";
-import { compressImage, getBase64Size } from "../../lib/utils/imageUtils";
+import { compressImage } from "../../lib/utils/imageUtils";
 import type { MediaItem } from "../../lib/types/tree";
 import { useLanguage } from "../providers/LanguageProvider";
 
@@ -63,20 +63,6 @@ export default function GalleryManager({
             url: compressed,
             caption: file.name.replace(/\.[^/.]+$/, ""),
           });
-        } else if (file.type.startsWith("video/")) {
-          const reader = new FileReader();
-          const dataUrl = await new Promise<string>((resolve) => {
-            reader.onload = () => resolve(reader.result as string);
-            reader.readAsDataURL(file);
-          });
-
-          if (getBase64Size(dataUrl) < 500 * 1024) {
-            newMedia.push({
-              type: "video",
-              url: dataUrl,
-              caption: file.name.replace(/\.[^/.]+$/, ""),
-            });
-          }
         }
       }
 
@@ -167,7 +153,7 @@ export default function GalleryManager({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,video/*"
+            accept="image/*"
             multiple
             onChange={handleUpload}
             className="hidden"
