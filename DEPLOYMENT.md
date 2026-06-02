@@ -138,9 +138,11 @@ run with:
 ALLOW_AUTH_SMOKE=1 AUTH_SMOKE_BASE_URL=https://lifestory.co.id npm run auth:smoke
 ```
 
-The script creates one synthetic user directly in Supabase and deletes it in a
-`finally` block. It does not send an email. Inbox delivery still needs the
-manual forgot-password check above.
+The script creates three synthetic users and one temporary tree directly in
+Supabase, exercises entitlement, incremental sync, invite isolation, and
+session revocation, then deletes the temporary tree and users in a `finally`
+block. It does not send an email. Inbox delivery still needs the manual
+forgot-password check above.
 
 ## Known limitations
 

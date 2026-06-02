@@ -273,7 +273,17 @@ try {
     revokedTreeStatus,
   };
 } finally {
-  await prisma.user.deleteMany({ where: { email: { in: Object.values(emails) } } });
+  const syntheticEmails = Object.values(emails);
+  const syntheticUserIds = (
+    await prisma.user.findMany({
+      where: { email: { in: syntheticEmails } },
+      select: { id: true },
+    })
+  ).map((user) => user.id);
+  await prisma.$transaction([
+    prisma.tree.deleteMany({ where: { ownerId: { in: syntheticUserIds } } }),
+    prisma.user.deleteMany({ where: { email: { in: syntheticEmails } } }),
+  ]);
   await prisma.$disconnect();
 }
 
