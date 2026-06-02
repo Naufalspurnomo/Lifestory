@@ -62,6 +62,12 @@ class StuckOfflineNetworkDetector extends NetworkDetector {
   }
 }
 
+class ManualNetworkDetector extends NetworkDetector {
+  override start(): void {}
+
+  override stop(): void {}
+}
+
 function person(id: string): FamilyNode {
   return {
     id,
@@ -212,6 +218,106 @@ describe("SyncEngine reliability boundaries", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(await wal.getCount()).toBe(0);
     expect(engine.getStatus().status).toBe("saved");
+    engine.destroy();
+  });
+
+  it("retries queued edits automatically while health probing reports offline", async () => {
+    vi.useFakeTimers();
+    try {
+      const wal = new LocalStorageWriteAheadLog({
+        storage: new TestStorage(),
+      });
+      const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body));
+        return jsonResponse({
+          success: true,
+          newVersion: 2,
+          acknowledgedSeqNos: body.mutations.map(
+            (mutation: { seqNo: number }) => mutation.seqNo
+          ),
+        });
+      });
+      const engine = new SyncEngine({
+        wal,
+        fetchImpl: fetchMock as unknown as typeof fetch,
+        networkDetector: new StuckOfflineNetworkDetector(),
+        config: { debounceMs: 10, offlineRetryDelayMs: 20 },
+      });
+
+      await engine.enqueueMany("tree-1", mutations(1));
+      await vi.advanceTimersByTimeAsync(10);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(engine.getStatus().status).toBe("offline");
+
+      await vi.advanceTimersByTimeAsync(20);
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(await wal.getCount()).toBe(0);
+      expect(engine.getStatus().status).toBe("saved");
+      engine.destroy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps transport failures queued for automatic recovery", async () => {
+    let rejectSync = true;
+    const wal = new LocalStorageWriteAheadLog({
+      storage: new TestStorage(),
+    });
+    const detector = new NetworkDetector(
+      "/api/health",
+      30_000,
+      vi.fn(async () => {
+        throw new Error("offline");
+      }) as unknown as typeof fetch
+    );
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (rejectSync) throw new Error("offline");
+      const body = JSON.parse(String(init?.body));
+      return jsonResponse({
+        success: true,
+        newVersion: 2,
+        acknowledgedSeqNos: body.mutations.map(
+          (mutation: { seqNo: number }) => mutation.seqNo
+        ),
+      });
+    });
+    const engine = new SyncEngine({
+      wal,
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      networkDetector: detector,
+      config: { debounceMs: 60_000 },
+    });
+
+    await engine.enqueueMany("tree-1", mutations(1));
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      await engine.forceSync();
+    }
+
+    expect(await wal.getCount()).toBe(1);
+    expect(await wal.getPermanentlyFailedCount()).toBe(0);
+
+    rejectSync = false;
+    await engine.forceSync();
+    expect(await wal.getCount()).toBe(0);
+    expect(engine.getStatus().status).toBe("saved");
+    engine.destroy();
+  });
+
+  it("does not show Offline when there are no edits waiting to sync", async () => {
+    const wal = new LocalStorageWriteAheadLog({
+      storage: new TestStorage(),
+    });
+    const detector = new ManualNetworkDetector();
+    const engine = new SyncEngine({
+      wal,
+      networkDetector: detector,
+    });
+
+    await engine.initialize();
+    detector.reportOffline("offline");
+    await vi.waitFor(() => expect(engine.getStatus().status).toBe("saved"));
+    expect(engine.getStatus().errorMessage).toBeUndefined();
     engine.destroy();
   });
 

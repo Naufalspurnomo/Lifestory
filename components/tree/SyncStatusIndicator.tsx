@@ -16,19 +16,19 @@ type Props = {
 
 const LABELS = {
   saved: "Saved",
-  syncing: "Syncing",
-  pending: "Pending",
-  offline: "Offline",
-  error: "Sync error",
+  syncing: "Saving",
+  pending: "Saving",
+  offline: "Saved locally",
+  error: "Needs attention",
 };
 
 export default function SyncStatusIndicator({ status, onRetry }: Props) {
   const isError = status.status === "error";
-  const canRetry = isError || status.status === "offline";
+  const canRetry = isError;
   const message =
     status.errorMessage ??
     (status.status === "offline"
-      ? "Changes are stored locally and will sync when connection returns."
+      ? "Changes are safe in this browser and will sync automatically when the connection returns."
       : status.warningMessage);
 
   const iconClass = "h-3.5 w-3.5";
@@ -75,7 +75,7 @@ export default function SyncStatusIndicator({ status, onRetry }: Props) {
           onClick={onRetry}
           className="ml-1 rounded-full border border-white/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide hover:bg-white/10"
         >
-          Retry
+          Retry now
         </button>
       )}
     </div>

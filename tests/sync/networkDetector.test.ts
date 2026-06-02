@@ -39,4 +39,34 @@ describe("NetworkDetector", () => {
     await expect(detector.check()).resolves.toBe(false);
     expect(detector.getLastError()).toBe("Health check failed with HTTP 503");
   });
+
+  it("does not declare an outage after one transient health failure", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("{}", { status: 503 }))
+      .mockResolvedValueOnce(new Response("{}", { status: 200 }));
+    const detector = new NetworkDetector(
+      "/api/health",
+      30_000,
+      fetchMock as unknown as typeof fetch
+    );
+
+    await expect(detector.check()).resolves.toBe(false);
+    expect(detector.isOnline()).toBe(true);
+    await expect(detector.check()).resolves.toBe(true);
+    expect(detector.isOnline()).toBe(true);
+  });
+
+  it("declares an outage after consecutive health failures", async () => {
+    const detector = new NetworkDetector(
+      "/api/health",
+      30_000,
+      vi.fn(async () => new Response("{}", { status: 503 })) as unknown as typeof fetch
+    );
+
+    await expect(detector.check()).resolves.toBe(false);
+    expect(detector.isOnline()).toBe(true);
+    await expect(detector.check()).resolves.toBe(false);
+    expect(detector.isOnline()).toBe(false);
+  });
 });

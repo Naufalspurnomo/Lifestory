@@ -145,11 +145,12 @@ export class SyncEngine {
   async initialize(): Promise<void> {
     this.networkDetector.onStatusChange((online) => {
       if (online) {
-        this.updateStatus("syncing");
         this.scheduleFlush(0);
-      } else {
-        this.updateStatus("offline", this.networkDetector.getLastError());
       }
+      void this.refreshStatus(
+        undefined,
+        online ? undefined : this.networkDetector.getLastError()
+      );
     });
     this.networkDetector.start();
     await this.refreshStatus();
@@ -185,6 +186,7 @@ export class SyncEngine {
         "offline",
         this.networkDetector.getLastError()
       );
+      this.scheduleRetry(this.config.offlineRetryDelayMs, true);
       return;
     }
 
@@ -447,12 +449,15 @@ export class SyncEngine {
 
       await this.handleRetryableFailure(ordered, await readErrorMessage(response));
     } catch (error) {
-      this.networkDetector.reportOffline(
-        error instanceof Error ? error.message : "Network error"
-      );
+      const message = error instanceof Error ? error.message : "Network error";
+      this.networkDetector.reportFailure(message);
       await this.handleRetryableFailure(
         ordered,
-        error instanceof Error ? error.message : "Network error"
+        message,
+        {
+          exhaustible: false,
+          offline: !this.networkDetector.isOnline(),
+        }
       );
     }
   }
@@ -495,7 +500,8 @@ export class SyncEngine {
 
   private async handleRetryableFailure(
     ordered: WALEntry[],
-    message: string
+    message: string,
+    options: { exhaustible?: boolean; offline?: boolean } = {}
   ): Promise<void> {
     const [first, ...rest] = ordered;
     if (!first) return;
@@ -510,16 +516,24 @@ export class SyncEngine {
     );
     const retryCount = updatedFirst?.retryCount ?? first.retryCount + 1;
 
-    if (retryCount >= this.config.maxRetries) {
+    if (options.exhaustible !== false && retryCount >= this.config.maxRetries) {
       await this.wal.markPermanentlyFailed(first.seqNo, message);
       this.updateStatus("error", "A save could not be completed after repeated retries.");
       return;
     }
 
     const schedule = this.retryQueue.schedule(first.seqNo);
-    this.scheduleRetry(schedule.nextAttemptAt - Date.now());
+    const retryDelay = schedule.nextAttemptAt - Date.now();
+    this.scheduleRetry(
+      options.offline
+        ? Math.max(retryDelay, this.config.offlineRetryDelayMs)
+        : retryDelay,
+      true
+    );
 
-    if (retryCount >= this.config.visibleErrorRetryThreshold) {
+    if (options.offline) {
+      await this.refreshStatus("offline", message);
+    } else if (retryCount >= this.config.visibleErrorRetryThreshold) {
       this.updateStatus("error", message);
     } else {
       await this.refreshStatus("pending");
@@ -573,11 +587,11 @@ export class SyncEngine {
     }, Math.max(0, delayMs));
   }
 
-  private scheduleRetry(delayMs: number): void {
+  private scheduleRetry(delayMs: number, allowOfflineAttempt = false): void {
     if (this.retryTimer) clearTimeout(this.retryTimer);
     this.retryTimer = setTimeout(() => {
       this.retryTimer = null;
-      void this.flush();
+      void this.flush({ allowOfflineAttempt });
     }, Math.max(0, delayMs));
   }
 
@@ -596,10 +610,14 @@ export class SyncEngine {
         : this.networkDetector.isOnline()
         ? "pending"
         : "offline");
+    const visibleErrorMessage =
+      status === "offline" || status === "error"
+        ? errorMessage ??
+          (status === "offline" ? this.networkDetector.getLastError() : undefined)
+        : undefined;
     this.updateStatus(
       status,
-      errorMessage ??
-        (status === "offline" ? this.networkDetector.getLastError() : undefined),
+      visibleErrorMessage,
       pendingCount
     );
   }
