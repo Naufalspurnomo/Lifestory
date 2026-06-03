@@ -836,6 +836,7 @@ export default function AppHome() {
               setEditingNode(null);
             }}
             onSave={handleSaveNode}
+            treeId={currentTree?.id}
             editingNode={editingNode}
             addType={addType}
             parentId={addParentId}

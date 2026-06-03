@@ -32,6 +32,9 @@ function mapNode(row: {
   deathYear: number | null;
   line: string;
   imageUrl: string | null;
+  imageStorageKey: string | null;
+  imageMimeType: string | null;
+  imageSizeBytes: number | null;
   description: string;
   media: unknown;
   works: unknown;
@@ -48,6 +51,9 @@ function mapNode(row: {
     deathYear: row.deathYear,
     line: row.line,
     imageUrl: row.imageUrl,
+    imageStorageKey: row.imageStorageKey,
+    imageMimeType: row.imageMimeType,
+    imageSizeBytes: row.imageSizeBytes,
     description: row.description,
     media: row.media,
     works: row.works,
@@ -209,6 +215,9 @@ export class BackupManager {
             deathYear: node.deathYear,
             line: node.line,
             imageUrl: node.imageUrl,
+            imageStorageKey: node.imageStorageKey,
+            imageMimeType: node.imageMimeType,
+            imageSizeBytes: node.imageSizeBytes,
             description: node.description,
             media: node.media as any,
             works: node.works as any,

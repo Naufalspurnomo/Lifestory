@@ -78,7 +78,9 @@ const textEncoder = new TextEncoder();
 
 const MAX_MEDIA_ITEMS_PER_NODE = 10;
 const MAX_TREE_MEDIA_BYTES = 5 * 1024 * 1024;
+const MAX_TREE_OBJECT_MEDIA_BYTES = 5 * 1024 * 1024 * 1024;
 const MAX_TREE_TEXT_BYTES = 1 * 1024 * 1024;
+const MAX_MEDIA_UPLOAD_BYTES = 5 * 1024 * 1024;
 
 const allowedDataMediaTypes = new Set([
   "image/avif",
@@ -130,10 +132,29 @@ const optionalMediaUrlSchema = z.preprocess(
   mediaUrlSchema.nullable().optional().default(null)
 );
 
+const storageKeySchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(700)
+  .refine((value) => !value.includes("..") && !value.includes("\\"), {
+    message: "Invalid storage key",
+  });
+
+const mimeTypeSchema = z
+  .string()
+  .trim()
+  .max(120)
+  .regex(/^[a-z0-9.+-]+\/[a-z0-9.+-]+$/i, "Invalid MIME type");
+
 const mediaItemSchema = z.object({
   type: z.enum(["image", "video"]),
   url: mediaUrlSchema,
   caption: z.string().max(500).optional(),
+  storageKey: storageKeySchema.optional(),
+  mimeType: mimeTypeSchema.optional(),
+  sizeBytes: z.number().int().positive().max(MAX_MEDIA_UPLOAD_BYTES).optional(),
+  uploadedAt: z.string().datetime().optional(),
 });
 
 const workItemSchema = z.object({
@@ -160,6 +181,15 @@ const familyNodeSchema = z.object({
     .optional()
     .default("default"),
   imageUrl: optionalMediaUrlSchema,
+  imageStorageKey: storageKeySchema.nullable().optional(),
+  imageMimeType: mimeTypeSchema.nullable().optional(),
+  imageSizeBytes: z
+    .number()
+    .int()
+    .positive()
+    .max(MAX_MEDIA_UPLOAD_BYTES)
+    .nullable()
+    .optional(),
   content: z
     .object({
       description: z.string().max(20_000).optional().default(""),
@@ -237,10 +267,20 @@ function validateFamilyTreeStorageBudget(
   ctx: z.RefinementCtx
 ) {
   let mediaBytes = 0;
+  let objectMediaBytes = 0;
   let textBytes = 0;
 
   nodes.forEach((node) => {
-    mediaBytes += stringBytes(node.imageUrl);
+    if (node.imageUrl?.toLowerCase().startsWith("data:")) {
+      mediaBytes += stringBytes(node.imageUrl);
+    } else {
+      textBytes += stringBytes(node.imageUrl);
+    }
+    if (node.imageStorageKey) {
+      objectMediaBytes += node.imageSizeBytes ?? 0;
+      textBytes += stringBytes(node.imageStorageKey);
+      textBytes += stringBytes(node.imageMimeType);
+    }
     textBytes += stringBytes(node.label);
     textBytes += stringBytes(node.content?.description);
     textBytes += stringBytes(node.content?.instagram);
@@ -248,7 +288,16 @@ function validateFamilyTreeStorageBudget(
     textBytes += stringBytes(node.content?.linkedin);
 
     for (const media of node.content?.media ?? []) {
-      mediaBytes += stringBytes(media.url);
+      if (media.url.toLowerCase().startsWith("data:")) {
+        mediaBytes += stringBytes(media.url);
+      } else {
+        textBytes += stringBytes(media.url);
+      }
+      if (media.storageKey) {
+        objectMediaBytes += media.sizeBytes ?? 0;
+        textBytes += stringBytes(media.storageKey);
+        textBytes += stringBytes(media.mimeType);
+      }
       textBytes += stringBytes(media.caption);
     }
 
@@ -265,6 +314,16 @@ function validateFamilyTreeStorageBudget(
       message: `Tree media exceeds ${Math.floor(
         MAX_TREE_MEDIA_BYTES / 1024 / 1024
       )} MB. Move larger media to object storage and keep only public URLs in the tree.`,
+    });
+  }
+
+  if (objectMediaBytes > MAX_TREE_OBJECT_MEDIA_BYTES) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [],
+      message: `Tree object media exceeds ${Math.floor(
+        MAX_TREE_OBJECT_MEDIA_BYTES / 1024 / 1024 / 1024
+      )} GB.`,
     });
   }
 
@@ -325,6 +384,20 @@ export const treeSyncPayloadSchema = z.object({
 export const inviteCreateSchema = z.object({
   treeId: nodeIdSchema,
   role: z.enum(["editor", "viewer"]).optional().default("editor"),
+});
+
+export const mediaUploadIntentSchema = z.object({
+  treeId: nodeIdSchema,
+  nodeId: nodeIdSchema.nullable().optional(),
+  purpose: z.enum(["profile", "gallery"]),
+  fileName: z.string().trim().min(1).max(240),
+  contentType: mimeTypeSchema,
+  sizeBytes: z.number().int().positive().max(MAX_MEDIA_UPLOAD_BYTES),
+});
+
+export const mediaDeleteSchema = z.object({
+  treeId: nodeIdSchema,
+  storageKey: storageKeySchema,
 });
 
 // ====== Helper: Validate and parse ======

@@ -24,10 +24,10 @@ import {
 import GalleryManager from "./GalleryManager";
 import type { FamilyNode, MediaItem, WorkItem } from "../../lib/types/tree";
 import {
-  compressImage,
   formatFileSize,
   getBase64Size,
 } from "../../lib/utils/imageUtils";
+import { uploadMediaFile } from "../../lib/media/client";
 import {
   normalizeInstagramHandle,
   normalizeTikTokHandle,
@@ -39,6 +39,7 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   onSave: (node: Omit<FamilyNode, "id" | "generation" | "childrenIds">) => void;
+  treeId?: string;
   editingNode?: FamilyNode | null;
   addType?: "parent" | "partner" | "child" | "sibling";
   parentId?: string | null;
@@ -52,6 +53,7 @@ export default function NodeEditor({
   isOpen,
   onClose,
   onSave,
+  treeId,
   editingNode,
   addType = "child",
   parentId = null,
@@ -67,6 +69,8 @@ export default function NodeEditor({
   const [tiktok, setTiktok] = useState("");
   const [linkedin, setLinkedin] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageStorageKey, setImageStorageKey] = useState<string | null>(null);
+  const [imageMimeType, setImageMimeType] = useState<string | null>(null);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [works, setWorks] = useState<WorkItem[]>([]);
   const [imageSize, setImageSize] = useState<number>(0);
@@ -102,6 +106,8 @@ export default function NodeEditor({
           archiveSection: "Galeri & Arsip",
           galleryMedia: "Foto dan media arsip",
           imageProcessFailed: "Gagal memproses gambar",
+          imageUploadFailed: "Gagal mengunggah foto",
+          saveTreeFirst: "Pohon keluarga harus tersimpan sebelum upload foto.",
           requiredName: "Nama wajib diisi",
           invalidInstagram:
             "Format Instagram tidak valid. Gunakan @username atau link instagram.com/username",
@@ -161,6 +167,8 @@ export default function NodeEditor({
           archiveSection: "Gallery & Archive",
           galleryMedia: "Archive photos and media",
           imageProcessFailed: "Failed to process image",
+          imageUploadFailed: "Failed to upload photo",
+          saveTreeFirst: "The family tree must be saved before uploading photos.",
           requiredName: "Name is required",
           invalidInstagram:
             "Invalid Instagram format. Use @username or instagram.com/username",
@@ -210,10 +218,16 @@ export default function NodeEditor({
       setTiktok(editingNode.content?.tiktok || "");
       setLinkedin(editingNode.content?.linkedin || "");
       setImageUrl(editingNode.imageUrl);
+      setImageStorageKey(editingNode.imageStorageKey ?? null);
+      setImageMimeType(editingNode.imageMimeType ?? null);
       setMedia(editingNode.content?.media || []);
       setWorks(editingNode.works || []);
-      if (editingNode.imageUrl) {
+      if (editingNode.imageSizeBytes) {
+        setImageSize(editingNode.imageSizeBytes);
+      } else if (editingNode.imageUrl?.startsWith("data:")) {
         setImageSize(getBase64Size(editingNode.imageUrl));
+      } else {
+        setImageSize(0);
       }
     } else {
       resetForm();
@@ -242,6 +256,8 @@ export default function NodeEditor({
     setTiktok("");
     setLinkedin("");
     setImageUrl(null);
+    setImageStorageKey(null);
+    setImageMimeType(null);
     setMedia([]);
     setWorks([]);
     setImageSize(0);
@@ -258,11 +274,24 @@ export default function NodeEditor({
     setError(null);
 
     try {
-      const compressed = await compressImage(file);
-      setImageUrl(compressed);
-      setImageSize(getBase64Size(compressed));
+      if (!treeId) {
+        setError(copy.saveTreeFirst);
+        return;
+      }
+
+      const asset = await uploadMediaFile({
+        treeId,
+        nodeId: editingNode?.id ?? null,
+        purpose: "profile",
+        file,
+      });
+      setImageUrl(asset.url);
+      setImageStorageKey(asset.storageKey);
+      setImageMimeType(asset.mimeType);
+      setImageSize(asset.sizeBytes);
     } catch (err) {
-      setError(copy.imageProcessFailed);
+      const message = err instanceof Error ? err.message : copy.imageProcessFailed;
+      setError(`${copy.imageUploadFailed}: ${message}`);
       console.error(err);
     } finally {
       setIsUploading(false);
@@ -343,6 +372,9 @@ export default function NodeEditor({
       deathYear: death,
       ...relationData,
       imageUrl,
+      imageStorageKey,
+      imageMimeType,
+      imageSizeBytes: imageSize > 0 ? imageSize : null,
       content: {
         description,
         media,
@@ -698,7 +730,14 @@ export default function NodeEditor({
               <p className="mb-3 text-sm font-semibold text-ink-500">
                 {copy.galleryMedia}
               </p>
-              <GalleryManager media={media} onChange={setMedia} maxItems={10} />
+              <GalleryManager
+                media={media}
+                onChange={setMedia}
+                maxItems={10}
+                treeId={treeId}
+                nodeId={editingNode?.id ?? null}
+                onError={setError}
+              />
             </section>
 
             {error && (

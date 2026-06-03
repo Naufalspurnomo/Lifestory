@@ -5,7 +5,13 @@ export type MediaItem = {
   type: "image" | "video";
   url: string;
   caption?: string;
+  storageKey?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  uploadedAt?: string;
 };
+
+export type MediaPurpose = "profile" | "gallery";
 
 export type WorkItem = {
   type: "book" | "music" | "film" | "art" | "other";
@@ -60,7 +66,10 @@ export type FamilyNode = {
   childrenIds: string[]; // Children IDs
   generation: number; // Depth level
   line?: "paternal" | "maternal" | "union" | "descendant" | "self" | "default";
-  imageUrl: string | null; // Base64 WebP (< 50kb)
+  imageUrl: string | null;
+  imageStorageKey?: string | null;
+  imageMimeType?: string | null;
+  imageSizeBytes?: number | null;
   content: NodeContent;
   works?: WorkItem[]; // Member's works/creations
 

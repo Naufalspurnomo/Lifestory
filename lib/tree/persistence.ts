@@ -23,6 +23,9 @@ export type DbNode = {
   deathYear: number | null;
   line: string;
   imageUrl: string | null;
+  imageStorageKey: string | null;
+  imageMimeType: string | null;
+  imageSizeBytes: number | null;
   description: string;
   media: unknown;
   works: unknown;
@@ -89,6 +92,9 @@ export function serializeTreeToRows(nodes: FamilyNode[]): DbTreeSnapshot {
     deathYear: n.deathYear ?? null,
     line: n.line || "default",
     imageUrl: n.imageUrl ?? null,
+    imageStorageKey: n.imageStorageKey ?? null,
+    imageMimeType: n.imageMimeType ?? null,
+    imageSizeBytes: n.imageSizeBytes ?? null,
     description: n.content?.description ?? "",
     media: n.content?.media ?? [],
     works: n.works ?? [],
@@ -161,6 +167,9 @@ export function deserializeRowsToTree(
       generation: row.generationCached ?? 0,
       line: (row.line as FamilyNode["line"]) || "default",
       imageUrl: row.imageUrl,
+      imageStorageKey: row.imageStorageKey,
+      imageMimeType: row.imageMimeType,
+      imageSizeBytes: row.imageSizeBytes,
       content,
       works: parseJsonArray(row.works, isWorkItem),
     });

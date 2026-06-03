@@ -158,6 +158,9 @@ model Node {
   deathYear         Int?
   line              String   @default("default")
   imageUrl          String?
+  imageStorageKey   String?
+  imageMimeType     String?
+  imageSizeBytes    Int?
   description       String   @default("")
   // JSON blobs for rich content that doesn't need relational queries yet.
   media             Json     @default("[]")

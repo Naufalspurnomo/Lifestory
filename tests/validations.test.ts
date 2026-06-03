@@ -237,6 +237,34 @@ describe("family tree validation", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts object-storage media metadata", () => {
+    const result = familyTreeNodesSchema.safeParse([
+      {
+        id: "node-1",
+        label: "A",
+        imageUrl: "https://cdn.example.com/trees/tree-1/profile.webp",
+        imageStorageKey: "trees/tree-1/nodes/node-1/profile/profile.webp",
+        imageMimeType: "image/webp",
+        imageSizeBytes: 42_000,
+        content: {
+          description: "",
+          media: [
+            {
+              type: "image",
+              url: "https://cdn.example.com/trees/tree-1/gallery.webp",
+              storageKey: "trees/tree-1/nodes/node-1/gallery/gallery.webp",
+              mimeType: "image/webp",
+              sizeBytes: 128_000,
+              uploadedAt: "2026-06-03T00:00:00.000Z",
+            },
+          ],
+        },
+      },
+    ]);
+
+    expect(result.success).toBe(true);
+  });
+
   it("rejects scriptable or unsupported media URLs", () => {
     expect(
       familyTreeNodesSchema.safeParse([

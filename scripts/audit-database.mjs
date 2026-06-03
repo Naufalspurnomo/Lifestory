@@ -9,6 +9,7 @@ const relevantTables = new Set([
   "TreeInvite",
   "TreeSnapshot",
   "TreeSyncReceipt",
+  "Node",
   "_prisma_migrations",
 ]);
 const requiredColumns = new Set([
@@ -25,6 +26,9 @@ const requiredColumns = new Set([
   "TreeInvite.treeId",
   "TreeInvite.expiresAt",
   "TreeSyncReceipt.id",
+  "Node.imageStorageKey",
+  "Node.imageMimeType",
+  "Node.imageSizeBytes",
 ]);
 const rlsRequiredTables = new Set([
   "User",

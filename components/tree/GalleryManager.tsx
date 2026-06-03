@@ -11,7 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { compressImage } from "../../lib/utils/imageUtils";
+import { uploadMediaFile } from "../../lib/media/client";
 import type { MediaItem } from "../../lib/types/tree";
 import { useLanguage } from "../providers/LanguageProvider";
 
@@ -20,6 +20,9 @@ type Props = {
   onChange?: (media: MediaItem[]) => void;
   maxItems?: number;
   readOnly?: boolean;
+  treeId?: string;
+  nodeId?: string | null;
+  onError?: (message: string) => void;
 };
 
 export default function GalleryManager({
@@ -27,6 +30,9 @@ export default function GalleryManager({
   onChange,
   maxItems = 10,
   readOnly = false,
+  treeId,
+  nodeId,
+  onError,
 }: Props) {
   const { locale } = useLanguage();
   const [isUploading, setIsUploading] = useState(false);
@@ -39,6 +45,8 @@ export default function GalleryManager({
           emptyTitle: "Belum ada arsip.",
           emptyBody: "Tambahkan foto atau media yang menjadi bagian dari cerita keluarga.",
           uploading: "Mengunggah...",
+          uploadNeedsTree: "Pohon keluarga harus tersimpan sebelum upload media.",
+          uploadFailed: "Gagal mengunggah media",
           addMedia: (count: number, max: number) =>
             `Tambah media (${count}/${max})`,
           noCaption: "Tanpa keterangan",
@@ -52,6 +60,8 @@ export default function GalleryManager({
           emptyTitle: "No archive media yet.",
           emptyBody: "Add photos or media that belong to this family story.",
           uploading: "Uploading...",
+          uploadNeedsTree: "The family tree must be saved before uploading media.",
+          uploadFailed: "Failed to upload media",
           addMedia: (count: number, max: number) =>
             `Add media (${count}/${max})`,
           noCaption: "No caption",
@@ -72,14 +82,24 @@ export default function GalleryManager({
     const newMedia: MediaItem[] = [];
 
     try {
+      if (!treeId) {
+        onError?.(copy.uploadNeedsTree);
+        return;
+      }
+
       for (const file of Array.from(files)) {
         if (media.length + newMedia.length >= maxItems) break;
 
         if (file.type.startsWith("image/")) {
-          const compressed = await compressImage(file);
+          const uploaded = await uploadMediaFile({
+            treeId,
+            nodeId,
+            purpose: "gallery",
+            file,
+          });
           newMedia.push({
+            ...uploaded,
             type: "image",
-            url: compressed,
             caption: file.name.replace(/\.[^/.]+$/, ""),
           });
         }
@@ -89,6 +109,8 @@ export default function GalleryManager({
         onChange([...media, ...newMedia]);
       }
     } catch (err) {
+      const message = err instanceof Error ? err.message : copy.uploadFailed;
+      onError?.(`${copy.uploadFailed}: ${message}`);
       console.error("Upload failed:", err);
     } finally {
       setIsUploading(false);

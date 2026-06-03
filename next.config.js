@@ -1,5 +1,21 @@
 const isDevelopment = process.env.NODE_ENV === "development";
 
+function originFromEnv(value) {
+  if (!value || value === "replace_me") return null;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+const storageConnectSources = [
+  originFromEnv(process.env.S3_ENDPOINT),
+  originFromEnv(process.env.S3_PUBLIC_BASE_URL),
+]
+  .filter(Boolean)
+  .join(" ");
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -13,7 +29,9 @@ const contentSecurityPolicy = [
   "img-src 'self' data: https: blob:",
   "media-src 'self' data: https: blob:",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' https://vercel.live",
+  `connect-src 'self' https://vercel.live${
+    storageConnectSources ? ` ${storageConnectSources}` : ""
+  }`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   isDevelopment ? "" : "upgrade-insecure-requests",
