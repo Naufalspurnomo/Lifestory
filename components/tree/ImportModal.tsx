@@ -188,8 +188,8 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl">
-        <div className="shrink-0 border-b border-warm-200 px-6 py-4">
+      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl">
+        <div className="shrink-0 border-b border-warm-200 px-4 py-4 sm:px-6">
           <h2 className="text-xl font-semibold text-warmText">{copy.title}</h2>
           <p className="text-sm text-warmMuted">
             {step === "upload" && copy.subtitleUpload}
@@ -198,7 +198,7 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
           </p>
         </div>
 
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto p-4 sm:p-6">
           {step === "upload" && (
             <div className="space-y-6">
               <div className="flex justify-center">
@@ -219,7 +219,7 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`cursor-pointer rounded-xl border-2 border-dashed p-12 text-center transition-all duration-200 ${
+                className={`cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-all duration-200 sm:p-12 ${
                   isDragging
                     ? "border-gold-500 bg-gold-50"
                     : "border-warm-300 hover:border-gold-400 hover:bg-warm-50"
@@ -357,8 +357,8 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
           )}
         </div>
 
-        <div className="shrink-0 border-t border-warm-200 px-6 py-4">
-          <div className="flex justify-end gap-3">
+        <div className="shrink-0 border-t border-warm-200 px-4 py-4 sm:px-6">
+          <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
             {step === "upload" && (
               <Button variant="secondary" onClick={handleClose}>
                 {copy.cancel}

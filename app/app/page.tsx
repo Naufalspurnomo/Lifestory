@@ -390,6 +390,24 @@ export default function AppHome() {
     }
   }, [copy, currentTree, showNotification]);
 
+  const treeActions = [
+    {
+      label: copy.invite,
+      onClick: () => setShowInviteModal(true),
+      icon: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8 12 3 7 8 M12 3v12",
+    },
+    {
+      label: copy.import,
+      onClick: () => setShowImportModal(true),
+      icon: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3",
+    },
+    {
+      label: copy.export,
+      onClick: handleExportTree,
+      icon: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6",
+    },
+  ];
+
   const stats = {
     generations: 0,
     members: currentTree?.nodes.length || 0,
@@ -441,7 +459,7 @@ export default function AppHome() {
   }
 
   return (
-    <div className={showTree ? "h-screen w-screen overflow-hidden bg-[#2c1e16] flex flex-col relative text-[#3f342d]" : "min-h-screen bg-[#f7f5f1] pb-32"}>
+    <div className={showTree ? "h-[100dvh] w-screen overflow-hidden bg-[#2c1e16] flex flex-col relative text-[#3f342d]" : "min-h-screen bg-[#f7f5f1] pb-32"}>
       {/* Vignette removed for a cleaner look */}
       {!showTree && !hasCreatedTree && (
         <WelcomeScreen userName={userName} onStart={handleStartTree} />
@@ -451,58 +469,121 @@ export default function AppHome() {
         <>
           {/* HUD HEADER */}
           <header 
-            className="fixed top-0 left-0 right-0 h-16 text-[#3f342d] border-b border-[#dccfb3] z-40 flex items-center justify-between pl-6 sm:pl-8 pr-6 shadow-[0_4px_16px_rgba(59,43,24,0.08)]"
+            className="fixed top-0 left-0 right-0 z-40 flex h-[148px] flex-col justify-center gap-2 border-b border-[#dccfb3] px-3 py-2 text-[#3f342d] shadow-[0_4px_16px_rgba(59,43,24,0.08)] sm:h-[112px] sm:px-4 lg:h-16 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-6 xl:px-8"
             style={{ 
               background: "linear-gradient(180deg, #fdfbf6 0%, #faf6ed 100%)",
             }}
           >
             {/* Sisi Kiri: Logo Lifestory & Nama Dinasti */}
-            <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                className="flex items-center group transition-all"
-                title="Kembali ke Beranda"
-              >
-                <div className="relative flex items-center justify-center p-1.5 rounded-lg hover:bg-[#ece2cc] transition-colors">
-                  <svg className="h-4 w-4 mr-2 text-[#73685f] group-hover:text-[#3f342d] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                  </svg>
-                  <img 
-                    src="/logo/lifestory-logo.webp" 
-                    alt="Lifestory Logo" 
-                    className="h-6 w-auto object-contain drop-shadow-[0_1px_2px_rgba(59,43,24,0.1)] transition-transform group-hover:scale-105" 
-                  />
-                </div>
-              </Link>
-              <div className="h-6 w-px bg-[#dccfb3]" />
-              {treeSummaries.length > 1 ? (
-                <select
-                  value={currentTree!.id}
-                  onChange={(event) => {
-                    void selectTree(event.target.value);
-                  }}
-                  className="max-w-[170px] rounded-lg border border-[#dccfb3] bg-[#fdfbf6] px-2 py-1.5 font-playfair text-sm font-bold tracking-wide text-[#3f342d] outline-none sm:max-w-xs"
-                  aria-label={locale === "id" ? "Pilih pohon keluarga" : "Select family tree"}
+            <div className="flex w-full min-w-0 items-center justify-between gap-3 lg:w-auto lg:shrink-0">
+              <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+                <Link
+                  href="/"
+                  className="flex shrink-0 items-center group transition-all"
+                  title="Kembali ke Beranda"
                 >
-                  {treeSummaries.map((tree) => (
-                    <option key={tree.id} value={tree.id}>
-                      {tree.name} ({tree.nodeCount})
-                    </option>
+                  <div className="relative flex items-center justify-center rounded-lg p-1.5 transition-colors hover:bg-[#ece2cc]">
+                    <svg className="mr-1.5 h-4 w-4 text-[#73685f] transition-colors group-hover:text-[#3f342d] sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <img
+                      src="/logo/lifestory-logo.webp"
+                      alt="Lifestory Logo"
+                      className="h-6 w-auto object-contain drop-shadow-[0_1px_2px_rgba(59,43,24,0.1)] transition-transform group-hover:scale-105"
+                    />
+                  </div>
+                </Link>
+                <div className="hidden h-6 w-px bg-[#dccfb3] sm:block" />
+                {treeSummaries.length > 1 ? (
+                  <select
+                    value={currentTree!.id}
+                    onChange={(event) => {
+                      void selectTree(event.target.value);
+                    }}
+                    className="min-w-0 max-w-[150px] rounded-lg border border-[#dccfb3] bg-[#fdfbf6] px-2 py-1.5 font-playfair text-sm font-bold tracking-wide text-[#3f342d] outline-none sm:max-w-[260px] lg:max-w-xs"
+                    aria-label={locale === "id" ? "Pilih pohon keluarga" : "Select family tree"}
+                  >
+                    {treeSummaries.map((tree) => (
+                      <option key={tree.id} value={tree.id}>
+                        {tree.name} ({tree.nodeCount})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <h1 className="min-w-0 truncate font-playfair text-base font-bold tracking-wide text-[#3f342d] sm:max-w-[260px] lg:max-w-xs lg:text-lg">
+                    {currentTree!.name}
+                  </h1>
+                )}
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2 rounded-full border border-[#dccfb3] bg-[#fdfbf6] px-2 py-1.5 lg:hidden">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#dccfb3] bg-gradient-to-br from-[#e6ab2f] to-[#82693c] text-sm font-bold text-white shadow-sm">
+                  {userName.charAt(0).toUpperCase()}
+                </span>
+                <div className="hidden text-left leading-none sm:block">
+                  <p className="max-w-[100px] truncate text-[11px] font-bold text-[#3f342d]">{userName}</p>
+                  <p className="text-[9px] font-semibold uppercase tracking-wider text-[#73685f]">
+                    {accountRoleLabel}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile/tablet controls */}
+            <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center lg:hidden">
+              <div className="min-w-0 flex-1">
+                <SearchBar nodes={currentTree!.nodes} onSelect={setSelectedId} />
+              </div>
+              <div className="flex shrink-0 items-center justify-between gap-2">
+                <div className="inline-flex flex-1 items-center gap-1 rounded-full border border-[#dccfb3] bg-[#f5efe1] p-1 sm:flex-none">
+                  <button
+                    onClick={() => setViewMode("tree")}
+                    className={`h-8 flex-1 rounded-full px-3 text-[11px] font-bold uppercase transition-all sm:flex-none ${
+                      viewMode === "tree"
+                        ? "bg-[#82693c] text-white shadow-sm"
+                        : "text-[#73685f] hover:bg-[#ece2cc] hover:text-[#3f342d]"
+                    }`}
+                  >
+                    {copy.viewTree}
+                  </button>
+                  <button
+                    onClick={() => setViewMode("timeline")}
+                    className={`h-8 flex-1 rounded-full px-3 text-[11px] font-bold uppercase transition-all sm:flex-none ${
+                      viewMode === "timeline"
+                        ? "bg-[#82693c] text-white shadow-sm"
+                        : "text-[#73685f] hover:bg-[#ece2cc] hover:text-[#3f342d]"
+                    }`}
+                  >
+                    {copy.viewTimeline}
+                  </button>
+                </div>
+                <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#dccfb3] bg-[#f5efe1] p-1">
+                  {treeActions.map((btn) => (
+                    <button
+                      key={btn.label}
+                      onClick={btn.onClick}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#5a4d42] transition-colors hover:bg-[#ece2cc] hover:text-[#3f342d] sm:w-auto sm:px-2.5"
+                      title={btn.label}
+                      aria-label={btn.label}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        {btn.icon.split(" M").map((d, i) => (
+                          <path key={i} d={i === 0 ? d : `M${d}`} />
+                        ))}
+                      </svg>
+                      <span className="ml-1.5 hidden text-[11px] font-bold sm:inline">{btn.label}</span>
+                    </button>
                   ))}
-                </select>
-              ) : (
-                <h1 className="font-playfair text-base md:text-lg font-bold tracking-wide text-[#3f342d] truncate max-w-[120px] sm:max-w-xs">
-                  {currentTree!.name}
-                </h1>
-              )}
+                </div>
+              </div>
             </div>
 
             {/* Sisi Tengah: Search & View Mode */}
-            <div className="flex items-center gap-3">
-              <div className="w-36 sm:w-48 md:w-64 lg:w-72">
+            <div className="hidden items-center gap-3 lg:flex">
+              <div className="w-64 lg:w-72">
                 <SearchBar nodes={currentTree!.nodes} onSelect={setSelectedId} />
               </div>
-              <div className="hidden sm:inline-flex items-center gap-1 px-1.5 py-1.5 rounded-full bg-[#f5efe1] border border-[#dccfb3]">
+              <div className="inline-flex items-center gap-1 px-1.5 py-1.5 rounded-full bg-[#f5efe1] border border-[#dccfb3]">
                 <button
                   onClick={() => setViewMode("tree")}
                   className={`px-4 py-1.5 text-xs font-bold uppercase transition-all rounded-full ${
@@ -527,7 +608,7 @@ export default function AppHome() {
             </div>
 
             {/* Sisi Kanan: Operasi & Profil Lord */}
-            <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-3 lg:flex">
               <div className="hidden xl:block">
                 <SyncStatusIndicator
                   status={syncStatusInfo}
@@ -536,12 +617,8 @@ export default function AppHome() {
                   }}
                 />
               </div>
-              <div className="hidden lg:flex items-center gap-2 px-2 py-1.5 rounded-full bg-[#f5efe1] border border-[#dccfb3]">
-                {[
-                  { label: copy.invite, onClick: () => setShowInviteModal(true), icon: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8 12 3 7 8 M12 3v12" },
-                  { label: copy.import, onClick: () => setShowImportModal(true), icon: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3" },
-                  { label: copy.export, onClick: handleExportTree, icon: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6" },
-                ].map((btn) => (
+              <div className="flex items-center gap-2 px-2 py-1.5 rounded-full bg-[#f5efe1] border border-[#dccfb3]">
+                {treeActions.map((btn) => (
                   <button
                     key={btn.label}
                     onClick={btn.onClick}
@@ -572,7 +649,7 @@ export default function AppHome() {
             </div>
           </header>
 
-          <div className="fixed left-4 top-20 z-50 xl:hidden">
+          <div className="fixed left-3 top-[156px] z-50 sm:left-4 sm:top-[120px] lg:top-20 xl:hidden">
             <SyncStatusIndicator
               status={syncStatusInfo}
               onRetry={() => {
@@ -582,7 +659,7 @@ export default function AppHome() {
           </div>
 
           {/* MAIN CANVAS */}
-          <main className="flex-1 w-full h-full relative overflow-hidden mt-16">
+          <main className="flex-1 w-full h-full relative overflow-hidden mt-[148px] sm:mt-[112px] lg:mt-16">
             {viewMode === "tree" ? (
               <CanvasErrorBoundary
                 fallbackMessage={locale === "id" ? "Terjadi kesalahan pada canvas" : "Canvas rendering error"}
@@ -595,7 +672,7 @@ export default function AppHome() {
                 />
               </CanvasErrorBoundary>
             ) : (
-              <div className="h-full overflow-y-auto bg-[#FAF7F0] p-8">
+              <div className="h-full overflow-y-auto bg-[#FAF7F0] p-3 sm:p-5 lg:p-8">
                 <TimelineView
                   nodes={currentTree!.nodes}
                   onSelectNode={(node) => setSelectedId(node.id)}
@@ -604,7 +681,7 @@ export default function AppHome() {
             )}
 
             {/* FLOATING ACTION DRAWERS AT BOTTOM LEFT */}
-            <div className="absolute bottom-6 left-6 z-30 flex items-center gap-2 pointer-events-auto select-none">
+            <div className="absolute bottom-3 left-3 z-30 flex items-center gap-2 pointer-events-auto select-none sm:bottom-4 sm:left-4 lg:bottom-6 lg:left-6">
               <div className="flex items-center bg-white/70 backdrop-blur-md rounded-xl border border-[#dccfb3] p-1 shadow-sm">
                 <button
                   onClick={() => {
@@ -648,7 +725,7 @@ export default function AppHome() {
 
           {/* TOME OF CHRONICLES (SLIDE OUT DRAWER - RIGHT) */}
           <div
-            className={`fixed top-16 right-0 bottom-0 w-80 md:w-[420px] border-l border-[#dccfb3] shadow-[-8px_0_24px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-[#fdfbf6] ${
+            className={`fixed top-[148px] right-0 bottom-0 w-full border-l border-[#dccfb3] shadow-[-8px_0_24px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-[#fdfbf6] sm:top-[112px] sm:w-96 md:w-[420px] lg:top-16 ${
               isTomeOpen ? "translate-x-0" : "translate-x-full"
             }`}
           >
@@ -715,7 +792,7 @@ export default function AppHome() {
 
           {/* ROYAL VAULT (SLIDE UP DRAWER - BOTTOM) */}
           <div
-            className={`fixed bottom-0 left-0 right-0 h-64 border-t border-[#dccfb3] shadow-[0_-4px_16px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-[#fdfbf6] ${
+            className={`fixed bottom-0 left-0 right-0 h-[38dvh] min-h-56 max-h-80 border-t border-[#dccfb3] shadow-[0_-4px_16px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-[#fdfbf6] sm:h-64 ${
               isVaultOpen ? "translate-y-0" : "translate-y-full"
             }`}
           >
@@ -789,7 +866,7 @@ export default function AppHome() {
           </div>
 
           {/* Compact stats pill — top right below header */}
-          <div className="fixed top-20 right-6 z-30 pointer-events-none hidden md:block">
+          <div className="fixed top-20 right-6 z-30 pointer-events-none hidden lg:block">
             <div className="rounded-xl border border-[#dccfb3] bg-white/70 px-4 py-2 shadow-sm backdrop-blur-md text-[#5a4d42] text-xs flex items-center gap-3 whitespace-nowrap">
               <div className="flex items-center gap-1.5" title={copy.statMembers}>
                 <Users className="h-3.5 w-3.5 text-[#82693c]" />
@@ -873,7 +950,7 @@ export default function AppHome() {
           )}
 
           {notification && (
-            <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full border border-[#dccfb3] bg-[#fdfbf6]/95 px-6 py-3 text-sm font-medium text-[#3f342d] shadow-md backdrop-blur">
+            <div className="fixed left-1/2 top-[156px] z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 rounded-full border border-[#dccfb3] bg-[#fdfbf6]/95 px-5 py-3 text-center text-sm font-medium text-[#3f342d] shadow-md backdrop-blur sm:top-[120px] lg:top-20">
               {notification}
             </div>
           )}

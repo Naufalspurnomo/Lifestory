@@ -1066,7 +1066,7 @@ export default function FamilyTreeCanvas({
       <canvas ref={canvasRef} className="block" />
 
       <div
-        className="absolute left-6 top-6 flex flex-wrap items-center gap-2"
+        className="absolute left-3 top-3 flex flex-wrap items-center gap-2 sm:left-4 sm:top-4 lg:left-6 lg:top-6"
         onPointerDown={(event) => event.stopPropagation()}
       >
         <div className="flex overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md">
@@ -1127,7 +1127,7 @@ export default function FamilyTreeCanvas({
         })}
       </div>
 
-      <div className="absolute bottom-6 right-6 flex flex-col items-end gap-3 select-none" onPointerDown={(event) => event.stopPropagation()}>
+      <div className="absolute bottom-3 right-3 flex flex-col items-end gap-3 select-none sm:bottom-4 sm:right-4 lg:bottom-6 lg:right-6" onPointerDown={(event) => event.stopPropagation()}>
         <div className="flex flex-col overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md">
           <button
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#5c4314] hover:bg-white hover:shadow-sm transition"

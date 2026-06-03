@@ -131,13 +131,13 @@ export default function InviteModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
-        <div className="border-b border-warm-200 px-6 py-4">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="border-b border-warm-200 px-4 py-4 sm:px-6">
           <h2 className="text-xl font-semibold text-warmText">{copy.title}</h2>
           <p className="text-sm text-warmMuted">{copy.subtitle}</p>
         </div>
 
-        <div className="space-y-6 p-6">
+        <div className="max-h-[calc(100dvh-12rem)] space-y-6 overflow-y-auto p-4 sm:p-6">
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {error}
@@ -148,11 +148,11 @@ export default function InviteModal({
             <label className="text-sm font-medium text-warmMuted">
               {copy.labelInviteLink}
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 readOnly
                 value={loading ? copy.creatingLink : inviteLink}
-                className="flex-1 truncate rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warmMuted"
+                className="min-w-0 flex-1 truncate rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warmMuted"
               />
               <Button onClick={copyLink} variant="secondary" disabled={!canShare}>
                 {copied ? copy.copied : copy.copy}
@@ -212,7 +212,7 @@ export default function InviteModal({
           </div>
         </div>
 
-        <div className="border-t border-warm-200 px-6 py-4">
+        <div className="border-t border-warm-200 px-4 py-4 sm:px-6">
           <Button variant="secondary" block onClick={onClose}>
             {copy.close}
           </Button>
