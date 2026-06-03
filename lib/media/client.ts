@@ -1,4 +1,5 @@
 import type { MediaItem, MediaPurpose } from "../types/tree";
+import { prepareMediaFileForUpload } from "./image-optimizer";
 
 export type UploadedMediaAsset = MediaItem & {
   storageKey: string;
@@ -32,6 +33,9 @@ export async function uploadMediaFile(input: {
   purpose: MediaPurpose;
   file: File;
 }): Promise<UploadedMediaAsset> {
+  const prepared = await prepareMediaFileForUpload(input.file, input.purpose);
+  const file = prepared.file;
+
   const presignResponse = await fetch("/api/media/presign", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -39,9 +43,9 @@ export async function uploadMediaFile(input: {
       treeId: input.treeId,
       nodeId: input.nodeId ?? null,
       purpose: input.purpose,
-      fileName: input.file.name,
-      contentType: input.file.type,
-      sizeBytes: input.file.size,
+      fileName: file.name,
+      contentType: file.type,
+      sizeBytes: file.size,
     }),
   });
   const presignPayload = await presignResponse.json().catch(() => ({}));
@@ -55,7 +59,7 @@ export async function uploadMediaFile(input: {
   const putResponse = await fetch(upload.uploadUrl, {
     method: upload.method,
     headers: upload.headers,
-    body: input.file,
+    body: file,
   });
   if (!putResponse.ok) {
     throw new Error(`Media upload failed with HTTP ${putResponse.status}`);

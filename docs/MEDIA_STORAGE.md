@@ -22,6 +22,23 @@ MEDIA_UPLOAD_URL_TTL_SECONDS="600"
 `S3_PUBLIC_BASE_URL` must serve objects publicly, usually through a bucket public
 domain or CDN custom domain.
 
+## Browser Image Optimization
+
+Photo uploads are optimized in the browser before the app asks for a presigned
+upload URL. This keeps the database payload small and reduces storage usage
+without making archive photos look obviously degraded.
+
+- Profile photos are converted to WebP when possible, capped to a 640 px long
+  edge, and targeted around 120 KB.
+- Gallery photos are converted to WebP when possible, capped to a 1800 px long
+  edge, and targeted around 900 KB.
+- If WebP encoding is unavailable in the browser, uploads fall back to JPEG.
+- Animated GIF files are preserved as-is so animation is not flattened.
+- Source photos larger than 25 MB are rejected client-side before upload.
+
+The server still enforces `MEDIA_FILE_MAX_BYTES`, supported MIME types, tree
+quota, and per-member gallery item limits after client-side optimization.
+
 ## Bucket CORS
 
 Allow browser uploads from the app origin:
