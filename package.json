@@ -22,6 +22,7 @@
     "db:audit": "node scripts/audit-database.mjs",
     "auth:smoke": "node scripts/smoke-auth-production.mjs",
     "auth:reset-smoke": "node scripts/smoke-password-reset-production.mjs",
+    "media:smoke": "node scripts/smoke-media-production.mjs",
     "postinstall": "npx prisma generate"
   },
   "dependencies": {

@@ -48,3 +48,4 @@ Add `https://www.lifestory.co.id` if that host is used for logged-in users.
 4. Save the profile and wait for `Saved`.
 5. Refresh both sessions and confirm every image still loads.
 6. Run `npm run db:audit` and verify no missing media metadata columns.
+7. Run `ALLOW_MEDIA_SMOKE=1 MEDIA_SMOKE_BASE_URL=https://lifestory.co.id npm run media:smoke`.
