@@ -649,7 +649,7 @@ export default function AppHome() {
             </div>
           </header>
 
-          <div className="fixed left-3 top-[156px] z-50 sm:left-4 sm:top-[120px] lg:top-20 xl:hidden">
+          <div className="fixed right-3 top-[156px] z-50 sm:right-4 sm:top-[120px] lg:top-20 xl:hidden">
             <SyncStatusIndicator
               status={syncStatusInfo}
               onRetry={() => {
