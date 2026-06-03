@@ -21,7 +21,8 @@ npm run db:audit
 npm test
 npm run build
 npm audit --omit=dev
-curl https://lifestory.co.id/api/health?database=1
+curl -H "Authorization: Bearer $HEALTH_DATABASE_CHECK_TOKEN" \
+  https://lifestory.co.id/api/health?database=1
 ```
 
 The deep health response must be:
@@ -64,11 +65,14 @@ NEXTAUTH_SECRET="..."
 NEXTAUTH_URL="https://lifestory.co.id"
 ALLOWED_ORIGINS="https://lifestory.co.id,https://www.lifestory.co.id"
 ALLOWED_HOSTS="lifestory.co.id,www.lifestory.co.id"
+HEALTH_DATABASE_CHECK_TOKEN="..."
 RESEND_API_KEY="..."
 PASSWORD_RESET_FROM_EMAIL="Lifestory <no-reply@lifestory.co.id>"
 ```
 
 `NEXTAUTH_URL` must not point to localhost in Vercel Production.
+`HEALTH_DATABASE_CHECK_TOKEN` is required only for the deep database health
+probe. `/api/health` remains public and does not touch Supabase.
 
 ## Apply migrations
 
@@ -106,7 +110,8 @@ into a separate database.
 
 ## Post-deploy smoke test
 
-1. Open `https://lifestory.co.id/api/health?database=1`.
+1. Call `https://lifestory.co.id/api/health?database=1` with
+   `Authorization: Bearer $HEALTH_DATABASE_CHECK_TOKEN`.
 2. Log in with a non-admin test account that has an active subscription.
 3. Create a new tree and confirm the initial person remains after reload.
 4. Add and edit a person, wait for the Saved indicator, then reload.

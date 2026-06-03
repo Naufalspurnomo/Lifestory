@@ -9,6 +9,7 @@ import {
   resetPasswordSchema,
   validateBody,
 } from "../../../../lib/validations";
+import { jsonBodyLimits, parseJsonBody } from "../../../../lib/request-body";
 
 class InvalidResetTokenError extends Error {}
 
@@ -20,12 +21,10 @@ export async function POST(request: Request) {
   );
   if (rateLimitError) return rateLimitError;
 
-  const body = await request.json().catch(() => null);
-  if (!body) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const bodyResult = await parseJsonBody(request, jsonBodyLimits.auth);
+  if (!bodyResult.success) return bodyResult.response;
 
-  const validation = validateBody(resetPasswordSchema, body);
+  const validation = validateBody(resetPasswordSchema, bodyResult.body);
   if (!validation.success) {
     return NextResponse.json(
       {

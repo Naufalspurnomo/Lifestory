@@ -9,6 +9,7 @@ import {
   inviteCreateSchema,
   validateBody,
 } from "../../../lib/validations";
+import { jsonBodyLimits, parseJsonBody } from "../../../lib/request-body";
 
 const INVITE_EXPIRY_DAYS = 7;
 
@@ -30,12 +31,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json().catch(() => null);
-  if (!body) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const bodyResult = await parseJsonBody(request, jsonBodyLimits.tiny);
+  if (!bodyResult.success) return bodyResult.response;
 
-  const validation = validateBody(inviteCreateSchema, body);
+  const validation = validateBody(inviteCreateSchema, bodyResult.body);
   if (!validation.success) {
     return NextResponse.json(
       {

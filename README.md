@@ -147,6 +147,7 @@ NEXTAUTH_SECRET="your-random-32-char-string"
 NEXTAUTH_URL="http://localhost:3000"
 ALLOWED_ORIGINS="http://localhost:3000"
 ALLOWED_HOSTS="localhost"
+HEALTH_DATABASE_CHECK_TOKEN="your-random-32-char-string"
 
 # Email (Resend)
 RESEND_API_KEY="your-resend-api-key"

@@ -7,6 +7,7 @@ import {
   formatZodErrors,
 } from "../../../../lib/validations";
 import { prisma } from "../../../../lib/db";
+import { jsonBodyLimits, parseJsonBody } from "../../../../lib/request-body";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -35,16 +36,11 @@ export async function PATCH(request: Request, { params }: Params) {
     }
 
     // Parse and validate body
-    const body = await request.json().catch(() => null);
-    if (!body) {
-      return NextResponse.json(
-        { error: "Invalid request body" },
-        { status: 400 }
-      );
-    }
+    const bodyResult = await parseJsonBody(request, jsonBodyLimits.tiny);
+    if (!bodyResult.success) return bodyResult.response;
 
     // Zod validation
-    const validation = validateBody(updateUserStatusSchema, body);
+    const validation = validateBody(updateUserStatusSchema, bodyResult.body);
     if (!validation.success) {
       return NextResponse.json(
         {

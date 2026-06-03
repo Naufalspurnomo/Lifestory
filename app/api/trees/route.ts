@@ -13,6 +13,7 @@ import {
   treeCreateSchema,
   validateBody,
 } from "../../../lib/validations";
+import { jsonBodyLimits, parseJsonBody } from "../../../lib/request-body";
 
 // Missing persistence tables are an outage, not an empty archive. Returning
 // 503 keeps browser caches intact while deployment is repaired.
@@ -51,8 +52,10 @@ export async function POST(request: Request) {
   if (!authResult.success) return authResult.response;
   const userId = authResult.session.user.id;
 
-  const body = await request.json().catch(() => ({}));
-  const validation = validateBody(treeCreateSchema, body);
+  const bodyResult = await parseJsonBody(request, jsonBodyLimits.treeMutation);
+  if (!bodyResult.success) return bodyResult.response;
+
+  const validation = validateBody(treeCreateSchema, bodyResult.body);
   if (!validation.success) {
     return NextResponse.json(
       {

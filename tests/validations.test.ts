@@ -212,6 +212,102 @@ describe("family tree validation", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts safe profile and gallery media URLs", () => {
+    const result = familyTreeNodesSchema.safeParse([
+      {
+        id: "node-1",
+        label: "A",
+        imageUrl: "data:image/webp;base64,AAAA",
+        content: {
+          description: "",
+          media: [
+            {
+              type: "image",
+              url: "https://cdn.example.com/family/photo.jpg",
+            },
+            {
+              type: "video",
+              url: "data:video/webm;base64,AAAA",
+            },
+          ],
+        },
+      },
+    ]);
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects scriptable or unsupported media URLs", () => {
+    expect(
+      familyTreeNodesSchema.safeParse([
+        { id: "node-1", label: "A", imageUrl: "javascript:alert(1)" },
+      ]).success
+    ).toBe(false);
+
+    expect(
+      familyTreeNodesSchema.safeParse([
+        {
+          id: "node-1",
+          label: "A",
+          content: {
+            description: "",
+            media: [{ type: "video", url: "data:text/html,<script></script>" }],
+          },
+        },
+      ]).success
+    ).toBe(false);
+
+    expect(
+      familyTreeNodesSchema.safeParse([
+        {
+          id: "node-1",
+          label: "A",
+          content: {
+            description: "",
+            media: [{ type: "image", url: "data:image/svg+xml;base64,AAAA" }],
+          },
+        },
+      ]).success
+    ).toBe(false);
+  });
+
+  it("caps gallery media at the UI-supported count per person", () => {
+    const safeMedia = {
+      type: "image" as const,
+      url: "data:image/webp;base64,AAAA",
+    };
+
+    const result = familyTreeNodesSchema.safeParse([
+      {
+        id: "node-1",
+        label: "A",
+        content: {
+          description: "",
+          media: Array.from({ length: 11 }, () => safeMedia),
+        },
+      },
+    ]);
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects trees whose aggregate media would bloat database storage", () => {
+    const largeSafeUrl = `data:image/webp;base64,${"A".repeat(9_000)}`;
+    const nodes = Array.from({ length: 60 }, (_, nodeIndex) => ({
+      id: `node-${nodeIndex}`,
+      label: `Node ${nodeIndex}`,
+      content: {
+        description: "",
+        media: Array.from({ length: 10 }, () => ({
+          type: "image" as const,
+          url: largeSafeUrl,
+        })),
+      },
+    }));
+
+    expect(familyTreeNodesSchema.safeParse(nodes).success).toBe(false);
+  });
+
   it("trims and validates tree names", () => {
     const parsed = treeCreateSchema.parse({
       name: "  Keluarga Naufal  ",

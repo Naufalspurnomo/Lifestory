@@ -18,6 +18,7 @@ import {
   validateBody,
 } from "../../../../../lib/validations";
 import type { FamilyNode } from "../../../../../lib/types/tree";
+import { jsonBodyLimits, parseJsonBody } from "../../../../../lib/request-body";
 
 function isMissingTableError(error: unknown): boolean {
   return (
@@ -101,15 +102,10 @@ export async function POST(
   if (!authResult.success) return authResult.response;
   const userId = authResult.session.user.id;
 
-  const body = await request.json().catch(() => null);
-  if (!body) {
-    return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 }
-    );
-  }
+  const bodyResult = await parseJsonBody(request, jsonBodyLimits.treeMutation);
+  if (!bodyResult.success) return bodyResult.response;
 
-  const validation = validateBody(treeSyncPayloadSchema, body);
+  const validation = validateBody(treeSyncPayloadSchema, bodyResult.body);
   if (!validation.success) {
     return NextResponse.json(
       {

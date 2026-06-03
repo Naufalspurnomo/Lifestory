@@ -74,10 +74,65 @@ export const resetPasswordSchema = z.object({
 
 const nodeIdSchema = z.string().trim().min(1).max(128);
 const yearSchema = z.number().int().min(0).max(9999).nullable();
+const textEncoder = new TextEncoder();
+
+const MAX_MEDIA_ITEMS_PER_NODE = 10;
+const MAX_TREE_MEDIA_BYTES = 5 * 1024 * 1024;
+const MAX_TREE_TEXT_BYTES = 1 * 1024 * 1024;
+
+const allowedDataMediaTypes = new Set([
+  "image/avif",
+  "image/gif",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "video/mp4",
+  "video/ogg",
+  "video/webm",
+]);
+
+function isSafeMediaUrl(value: string): boolean {
+  const trimmed = value.trim();
+  const lower = trimmed.toLowerCase();
+
+  if (lower.startsWith("data:")) {
+    const commaIndex = lower.indexOf(",");
+    if (commaIndex === -1) return false;
+
+    const metadata = lower.slice("data:".length, commaIndex);
+    const [mediaType, ...parameters] = metadata.split(";");
+    return (
+      allowedDataMediaTypes.has(mediaType) &&
+      parameters.includes("base64")
+    );
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+const mediaUrlSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100_000)
+  .refine(isSafeMediaUrl, {
+    message:
+      "URL must be http(s) or a base64 data URL for supported image/video media",
+  });
+
+const optionalMediaUrlSchema = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+  mediaUrlSchema.nullable().optional().default(null)
+);
 
 const mediaItemSchema = z.object({
   type: z.enum(["image", "video"]),
-  url: z.string().min(1).max(100_000),
+  url: mediaUrlSchema,
   caption: z.string().max(500).optional(),
 });
 
@@ -104,11 +159,15 @@ const familyNodeSchema = z.object({
     .enum(["paternal", "maternal", "union", "descendant", "self", "default"])
     .optional()
     .default("default"),
-  imageUrl: z.string().max(100_000).nullable().optional().default(null),
+  imageUrl: optionalMediaUrlSchema,
   content: z
     .object({
       description: z.string().max(20_000).optional().default(""),
-      media: z.array(mediaItemSchema).max(50).optional().default([]),
+      media: z
+        .array(mediaItemSchema)
+        .max(MAX_MEDIA_ITEMS_PER_NODE)
+        .optional()
+        .default([]),
       instagram: z.string().trim().max(120).optional(),
       tiktok: z.string().trim().max(120).optional(),
       linkedin: z.string().trim().max(160).optional(),
@@ -169,13 +228,71 @@ function validateFamilyTreeNodeRefs(
   });
 }
 
-export const familyTreeNodesSchema = familyTreeNodesBaseSchema.superRefine(
-  validateFamilyTreeNodeRefs
-);
+function stringBytes(value: string | null | undefined): number {
+  return value ? textEncoder.encode(value).byteLength : 0;
+}
+
+function validateFamilyTreeStorageBudget(
+  nodes: z.infer<typeof familyTreeNodesBaseSchema>,
+  ctx: z.RefinementCtx
+) {
+  let mediaBytes = 0;
+  let textBytes = 0;
+
+  nodes.forEach((node) => {
+    mediaBytes += stringBytes(node.imageUrl);
+    textBytes += stringBytes(node.label);
+    textBytes += stringBytes(node.content?.description);
+    textBytes += stringBytes(node.content?.instagram);
+    textBytes += stringBytes(node.content?.tiktok);
+    textBytes += stringBytes(node.content?.linkedin);
+
+    for (const media of node.content?.media ?? []) {
+      mediaBytes += stringBytes(media.url);
+      textBytes += stringBytes(media.caption);
+    }
+
+    for (const work of node.works ?? []) {
+      textBytes += stringBytes(work.title);
+      textBytes += stringBytes(work.description);
+    }
+  });
+
+  if (mediaBytes > MAX_TREE_MEDIA_BYTES) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [],
+      message: `Tree media exceeds ${Math.floor(
+        MAX_TREE_MEDIA_BYTES / 1024 / 1024
+      )} MB. Move larger media to object storage and keep only public URLs in the tree.`,
+    });
+  }
+
+  if (textBytes > MAX_TREE_TEXT_BYTES) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [],
+      message: `Tree text content exceeds ${Math.floor(
+        MAX_TREE_TEXT_BYTES / 1024 / 1024
+      )} MB.`,
+    });
+  }
+}
+
+function validateFamilyTree(
+  nodes: z.infer<typeof familyTreeNodesBaseSchema>,
+  ctx: z.RefinementCtx
+) {
+  validateFamilyTreeNodeRefs(nodes, ctx);
+  validateFamilyTreeStorageBudget(nodes, ctx);
+}
+
+export const familyTreeNodesSchema =
+  familyTreeNodesBaseSchema.superRefine(validateFamilyTree);
 
 export const nonEmptyFamilyTreeNodesSchema = familyTreeNodesBaseSchema
   .min(1, "treeData.nodes is required")
-  .superRefine(validateFamilyTreeNodeRefs);
+  .superRefine(validateFamilyTree);
 
 export const treeCreateSchema = z.object({
   id: nodeIdSchema.optional(),

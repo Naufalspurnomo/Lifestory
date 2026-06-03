@@ -1,3 +1,26 @@
+const isDevelopment = process.env.NODE_ENV === "development";
+
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+  "object-src 'none'",
+  `script-src 'self' 'unsafe-inline'${
+    isDevelopment ? " 'unsafe-eval'" : ""
+  } https://vercel.live`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: https: blob:",
+  "media-src 'self' data: https: blob:",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "connect-src 'self' https://vercel.live",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  isDevelopment ? "" : "upgrade-insecure-requests",
+]
+  .filter(Boolean)
+  .join("; ");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -38,7 +61,12 @@ const nextConfig = {
           // Prevent embedding in iframes (same as X-Frame-Options but more modern)
           {
             key: "Content-Security-Policy",
-            value: "frame-ancestors 'self'",
+            value: contentSecurityPolicy,
+          },
+          // Enforce HTTPS once the site has been reached over HTTPS.
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains; preload",
           },
         ],
       },
