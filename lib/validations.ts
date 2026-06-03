@@ -198,6 +198,7 @@ export const treeSyncPayloadSchema = z.object({
         type: z.enum(["add", "update", "delete"]),
         nodeId: nodeIdSchema,
         payload: familyNodeSchema.nullable(),
+        previousPayload: familyNodeSchema.nullable().optional(),
       })
     )
     .min(1, "At least one mutation is required")

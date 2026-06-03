@@ -343,6 +343,87 @@ describe("SyncEngine reliability boundaries", () => {
     engine.destroy();
   });
 
+  it("persists concurrent sibling additions as one merged shared-tree version", async () => {
+    const wal = new LocalStorageWriteAheadLog({
+      storage: new TestStorage(),
+    });
+    const baseParent = person("parent");
+    const localParent = { ...baseParent, childrenIds: ["local-child"] };
+    const serverParent = { ...baseParent, childrenIds: ["remote-child"] };
+    const localChild = {
+      ...person("local-child"),
+      parentId: "parent",
+      parentIds: ["parent"],
+    };
+    const remoteChild = {
+      ...person("remote-child"),
+      parentId: "parent",
+      parentIds: ["parent"],
+    };
+    let rebased: FamilyNode[] = [];
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "PUT") {
+        const body = JSON.parse(String(init.body));
+        expect(body.expectedVersion).toBe(2);
+        const mergedParent = body.nodes.find(
+          (node: FamilyNode) => node.id === "parent"
+        );
+        expect(mergedParent.childrenIds.sort()).toEqual([
+          "local-child",
+          "remote-child",
+        ]);
+        return jsonResponse({ ok: true, newVersion: 3 });
+      }
+      return jsonResponse(
+        {
+          error: "version-conflict",
+          currentVersion: 2,
+          serverState: [serverParent, remoteChild],
+          conflictingNodeIds: ["parent"],
+        },
+        409
+      );
+    });
+    const engine = new SyncEngine({
+      wal,
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      getTreeNodes: () => [localParent, localChild],
+      networkDetector: new AlwaysOnlineNetworkDetector(),
+      config: { debounceMs: 60_000 },
+      events: {
+        rebased: (_treeId, nodes) => {
+          rebased = nodes;
+        },
+      },
+    });
+
+    await engine.enqueueMany("tree-1", [
+      {
+        type: "update",
+        nodeId: localParent.id,
+        payload: localParent,
+        previousPayload: baseParent,
+      },
+      {
+        type: "add",
+        nodeId: localChild.id,
+        payload: localChild,
+        previousPayload: null,
+      },
+    ]);
+    await engine.forceSync();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(rebased.map((node) => node.id).sort()).toEqual([
+      "local-child",
+      "parent",
+      "remote-child",
+    ]);
+    expect(await wal.hasUnresolved("tree-1")).toBe(false);
+    expect(await wal.getLastSyncedVersion("tree-1")).toBe(3);
+    engine.destroy();
+  });
+
   it("persists a manual conflict resolution as a new versioned snapshot", async () => {
     const wal = new LocalStorageWriteAheadLog({
       storage: new TestStorage(),

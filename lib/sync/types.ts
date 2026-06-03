@@ -8,6 +8,7 @@ export type Mutation = {
   type: MutationType;
   nodeId: string;
   payload: FamilyNode | null;
+  previousPayload?: FamilyNode | null;
   timestamp?: number;
 };
 
@@ -20,6 +21,7 @@ export type SyncBatch = {
     type: MutationType;
     nodeId: string;
     payload: FamilyNode | null;
+    previousPayload?: FamilyNode | null;
   }>;
 };
 
@@ -50,6 +52,7 @@ export type WALEntry = {
   type: MutationType;
   nodeId: string;
   payload: FamilyNode | null;
+  previousPayload?: FamilyNode | null;
   status: WALStatus;
   retryCount: number;
   lastAttempt: number | null;

@@ -3,6 +3,7 @@
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
+import { applyNodeMutations } from "../sync/applyMutations";
 import { IntegrityValidator } from "../sync/IntegrityValidator";
 import {
   deserializeRowsToTree,
@@ -245,6 +246,23 @@ export async function getTreeForUser(
   };
 }
 
+export async function getTreeVersionForUser(
+  treeId: string,
+  userId: string
+): Promise<number> {
+  const tree = await prisma.tree.findFirst({
+    where: {
+      id: treeId,
+      deletedAt: null,
+      OR: [{ ownerId: userId }, { memberships: { some: { userId } } }],
+    },
+    select: { version: true },
+  });
+
+  if (!tree) throw new TreeAccessError("Tree not found", 404);
+  return tree.version;
+}
+
 export async function createTreeForUser(
   userId: string,
   name: string,
@@ -391,6 +409,7 @@ export async function applyTreeMutations(
     type: "add" | "update" | "delete";
     nodeId: string;
     payload: FamilyNode | null;
+    previousPayload?: FamilyNode | null;
   }>
 ): Promise<{
   newVersion: number;
@@ -473,34 +492,12 @@ export async function applyTreeMutations(
       })),
     });
 
-    const byId = new Map(currentNodes.map((node) => [node.id, node]));
     const ordered = [...mutations].sort((a, b) => a.seqNo - b.seqNo);
-
-    for (const mutation of ordered) {
-      if (mutation.type === "delete") {
-        byId.delete(mutation.nodeId);
-        for (const node of byId.values()) {
-          node.parentIds = (node.parentIds || []).filter(
-            (id) => id !== mutation.nodeId
-          );
-          node.parentId =
-            node.parentId === mutation.nodeId ? node.parentIds[0] ?? null : node.parentId;
-          node.adoptiveParentIds = (node.adoptiveParentIds || []).filter(
-            (id) => id !== mutation.nodeId
-          );
-          node.partners = (node.partners || []).filter(
-            (id) => id !== mutation.nodeId
-          );
-          node.childrenIds = (node.childrenIds || []).filter(
-            (id) => id !== mutation.nodeId
-          );
-        }
-      } else if (mutation.payload) {
-        byId.set(mutation.nodeId, mutation.payload);
-      }
-    }
-
-    const snapshot = await writeGraph(tx, treeId, Array.from(byId.values()));
+    const snapshot = await writeGraph(
+      tx,
+      treeId,
+      applyNodeMutations(currentNodes, ordered)
+    );
     const newVersion = clientVersion + 1;
     const acknowledgedSeqNos = ordered.map((mutation) => mutation.seqNo);
     await tx.treeSyncReceipt.create({

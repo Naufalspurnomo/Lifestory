@@ -29,6 +29,7 @@ const FIELD_LABELS: Record<string, string> = {
   imageUrl: "Photo",
   content: "Biography",
   works: "Works",
+  __node__: "Person record",
 };
 
 function formatValue(value: unknown): string {

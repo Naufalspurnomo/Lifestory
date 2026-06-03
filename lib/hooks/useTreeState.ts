@@ -20,9 +20,11 @@ import {
   collapseLegacyDuplicateTrees,
   listTrees,
   loadTree,
+  pullTreeChanges,
   type TreeSummary,
   TreeApiError,
 } from "../tree/apiClient";
+import { RemoteTreePoller } from "../sync/RemoteTreePoller";
 import { useSyncEngine } from "../sync/useSyncEngine";
 import type { Mutation } from "../sync/types";
 
@@ -305,19 +307,30 @@ function buildNodeMutations(
   for (const node of after) {
     const existing = previous.get(node.id);
     if (!existing) {
-      mutations.push({ type: "add", nodeId: node.id, payload: stripRuntimeNodeFields(node) });
+      mutations.push({
+        type: "add",
+        nodeId: node.id,
+        payload: stripRuntimeNodeFields(node),
+        previousPayload: null,
+      });
     } else if (!samePersistedNode(existing, node)) {
       mutations.push({
         type: "update",
         nodeId: node.id,
         payload: stripRuntimeNodeFields(node),
+        previousPayload: stripRuntimeNodeFields(existing),
       });
     }
   }
 
   for (const node of before) {
     if (!next.has(node.id)) {
-      mutations.push({ type: "delete", nodeId: node.id, payload: null });
+      mutations.push({
+        type: "delete",
+        nodeId: node.id,
+        payload: null,
+        previousPayload: stripRuntimeNodeFields(node),
+      });
     }
   }
 
@@ -342,6 +355,7 @@ export function useTreeState(userId: string, userName: string) {
   >("idle");
 
   const treesRef = useRef<TreeData[]>([]);
+  const localRevisionRef = useRef(new Map<string, number>());
   // C6: Guard against concurrent createTreeApi calls from createTree().
   const createInFlightRef = useRef(false);
   const syncEngine = useSyncEngine(userId, {
@@ -360,15 +374,22 @@ export function useTreeState(userId: string, userName: string) {
       const rebasedNodes = recomputeAllGenerations(
         sanitizeGraph(nodes.map((node) => normalizeNode(node)))
       );
-      setTrees((prev) =>
-        prev.map((tree) =>
+      const nextTrees = treesRef.current.map((tree) =>
           tree.id === treeId
             ? { ...tree, nodes: rebasedNodes, updatedAt: new Date().toISOString() }
             : tree
-        )
       );
+      treesRef.current = nextTrees;
+      setTrees(nextTrees);
+      const result = saveTrees(nextTrees, userId);
+      if (!result.success) {
+        setSaveError(result.error || "Salinan lokal belum bisa diperbarui.");
+      }
+      setStorageInfo(checkStorageQuota());
       if (currentTreeId === treeId) {
-        setHistory((prev) => ({ ...prev, present: rebasedNodes }));
+        // Undo entries from an older shared version could erase a
+        // collaborator's work after conflict rebasing.
+        setHistory({ past: [], present: rebasedNodes, future: [] });
       }
     },
   });
@@ -379,6 +400,7 @@ export function useTreeState(userId: string, userName: string) {
     retryFailed,
     forceSync,
     setLastSyncedVersion,
+    getLastSyncedVersion,
     hasUnresolvedChanges,
     resolveConflict,
   } = syncEngine;
@@ -561,6 +583,105 @@ export function useTreeState(userId: string, userName: string) {
   const currentTree = trees.find((t) => t.id === currentTreeId) || null;
   const userTree = trees.find((t) => t.ownerId === userId) || null;
 
+  const applyRemoteTree = useCallback(
+    async (remoteTree: TreeData) => {
+      const nodes = recomputeAllGenerations(
+        sanitizeGraph(remoteTree.nodes.map((node) => normalizeNode(node)))
+      );
+      const hydrated = { ...remoteTree, nodes };
+      let found = false;
+      const nextTrees = treesRef.current.map((tree) => {
+        if (tree.id !== hydrated.id) return tree;
+        found = true;
+        return hydrated;
+      });
+      if (!found) nextTrees.push(hydrated);
+
+      treesRef.current = nextTrees;
+      setTrees(nextTrees);
+      setTreeSummaries((prev) => [
+        {
+          id: hydrated.id,
+          name: hydrated.name,
+          ownerId: hydrated.ownerId,
+          version: hydrated.version,
+          nodeCount: hydrated.nodes.length,
+          createdAt: hydrated.createdAt,
+          updatedAt: hydrated.updatedAt,
+        },
+        ...prev.filter((tree) => tree.id !== hydrated.id),
+      ]);
+      if (currentTreeId === hydrated.id) {
+        // Undo history from an older remote version could erase a
+        // collaborator's work, so start a fresh local history baseline.
+        setHistory({ past: [], present: hydrated.nodes, future: [] });
+      }
+
+      const result = saveTrees(nextTrees, userId);
+      if (!result.success) {
+        setSaveError(
+          result.error ||
+            "Perubahan keluarga terbaru sudah tampil, tetapi cache browser belum bisa diperbarui."
+        );
+      }
+      setStorageInfo(checkStorageQuota());
+      await setLastSyncedVersion(hydrated.id, hydrated.version ?? 1);
+    },
+    [currentTreeId, setLastSyncedVersion, userId]
+  );
+
+  useEffect(() => {
+    if (!userId || !currentTreeId) return;
+
+    const poller = new RemoteTreePoller({
+      getActiveTreeId: () => currentTreeId,
+      getLastSyncedVersion,
+      getLocalRevision: (treeId) =>
+        localRevisionRef.current.get(treeId) ?? 0,
+      hasUnresolvedChanges: async (treeId) =>
+        hasLocalDraft(userId, treeId) ||
+        (await hasUnresolvedChanges(treeId)),
+      fetchRemoteChanges: pullTreeChanges,
+      applyRemoteTree,
+      isVisible: () => document.visibilityState !== "hidden",
+      onError: (error) => {
+        if (error instanceof TreeApiError && error.status === 401) {
+          setSaveError(
+            "Sesi berakhir. Login ulang untuk melanjutkan sinkronisasi keluarga."
+          );
+        } else if (
+          error instanceof TreeApiError &&
+          (error.status === 403 || error.status === 404)
+        ) {
+          setSaveError(
+            "Akses ke pohon keluarga ini sudah berubah. Muat ulang halaman untuk memperbarui akses."
+          );
+        }
+      },
+    });
+    const refresh = () => void poller.refreshNow();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState !== "hidden") refresh();
+    };
+
+    poller.start();
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      poller.stop();
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [
+    applyRemoteTree,
+    currentTreeId,
+    getLastSyncedVersion,
+    hasUnresolvedChanges,
+    userId,
+  ]);
+
   const selectTree = useCallback(
     async (treeId: string) => {
       if (!treeId || treeId === currentTreeId) return;
@@ -618,6 +739,10 @@ export function useTreeState(userId: string, userName: string) {
         return false;
       }
 
+      localRevisionRef.current.set(
+        treeId,
+        (localRevisionRef.current.get(treeId) ?? 0) + 1
+      );
       treesRef.current = nextTrees;
       setTrees(nextTrees);
       setStorageInfo(checkStorageQuota());

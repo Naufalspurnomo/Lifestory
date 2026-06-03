@@ -41,7 +41,7 @@ export default function InviteModal({
           processing: "Memproses...",
           regen: "Generate Ulang Link",
           warning:
-            "Link hanya dapat dipakai satu kali. Penerima akan menjadi editor pada pohon keluarga yang sama.",
+            "Link hanya dapat dipakai satu kali. Penerima akan menjadi editor pada canvas keluarga yang sama dan perubahan aktif tersinkron otomatis.",
           close: "Tutup",
           whatsappMessage: (name: string, link: string) =>
             `Hai! Saya mengundang kamu untuk berkontribusi ke pohon keluarga "${name}" di Lifestory.\n\nKlik link berikut untuk bergabung:\n${link}`,
@@ -61,7 +61,7 @@ export default function InviteModal({
           processing: "Processing...",
           regen: "Regenerate Link",
           warning:
-            "This link can only be used once. The recipient will become an editor on the same family tree.",
+            "This link can only be used once. The recipient becomes an editor on the same live canvas and active changes sync automatically.",
           close: "Close",
           whatsappMessage: (name: string, link: string) =>
             `Hi! I invite you to contribute to the "${name}" family tree on Lifestory.\n\nClick the following link to join:\n${link}`,

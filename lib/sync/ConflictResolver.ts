@@ -6,6 +6,7 @@ import type {
   ManualMergeResult,
   WALEntry,
 } from "./types";
+import { applyNodeMutation, deleteNodeFromGraph } from "./applyMutations";
 
 const CONFLICT_FIELDS: Array<keyof FamilyNode> = [
   "label",
@@ -23,9 +24,94 @@ const CONFLICT_FIELDS: Array<keyof FamilyNode> = [
   "content",
   "works",
 ];
+const SET_MERGE_FIELDS = new Set<keyof FamilyNode>([
+  "parentIds",
+  "adoptiveParentIds",
+  "partners",
+  "childrenIds",
+]);
 
 function stableValue(value: unknown): string {
   return JSON.stringify(value ?? null);
+}
+
+function mergeStringSet(
+  baseValue: unknown,
+  localValue: unknown,
+  serverValue: unknown
+): string[] | null {
+  if (
+    !Array.isArray(baseValue) ||
+    !Array.isArray(localValue) ||
+    !Array.isArray(serverValue)
+  ) {
+    return null;
+  }
+
+  const base = new Set(baseValue as string[]);
+  const local = new Set(localValue as string[]);
+  const server = new Set(serverValue as string[]);
+  const removed = new Set(
+    [...base].filter((value) => !local.has(value) || !server.has(value))
+  );
+  const merged = (serverValue as string[]).filter(
+    (value) => !removed.has(value)
+  );
+
+  for (const value of localValue as string[]) {
+    if (!removed.has(value) && !merged.includes(value)) merged.push(value);
+  }
+  return merged;
+}
+
+function mergeConcurrentNode(
+  entry: WALEntry,
+  serverNode: FamilyNode
+): { node: FamilyNode; conflicts: ConflictInfo[] } {
+  const localNode = entry.payload;
+  const baseNode = entry.previousPayload;
+  if (!localNode || !baseNode) {
+    return {
+      node: serverNode,
+      conflicts: localNode
+        ? diffNodeFields(localNode, serverNode, entry.timestamp)
+        : [],
+    };
+  }
+
+  const node = { ...serverNode };
+  const conflicts: ConflictInfo[] = [];
+  for (const field of CONFLICT_FIELDS) {
+    const baseValue = baseNode[field];
+    const localValue = localNode[field];
+    const serverValue = serverNode[field];
+    const localChanged = stableValue(localValue) !== stableValue(baseValue);
+    const serverChanged = stableValue(serverValue) !== stableValue(baseValue);
+    if (!localChanged) continue;
+
+    if (!serverChanged || stableValue(localValue) === stableValue(serverValue)) {
+      (node as unknown as Record<string, unknown>)[field] = localValue;
+      continue;
+    }
+
+    if (SET_MERGE_FIELDS.has(field)) {
+      const merged = mergeStringSet(baseValue, localValue, serverValue);
+      if (merged) {
+        (node as unknown as Record<string, unknown>)[field] = merged;
+        continue;
+      }
+    }
+
+    conflicts.push({
+      nodeId: entry.nodeId,
+      field,
+      localValue,
+      serverValue,
+      localTimestamp: entry.timestamp,
+      serverTimestamp: Date.now(),
+    });
+  }
+  return { node, conflicts };
 }
 
 export function diffNodeFields(
@@ -59,47 +145,63 @@ export class ConflictResolver {
     serverVersion: number,
     serverChangedNodeIds?: string[]
   ): AutoMergeResult | ManualMergeResult {
-    const serverById = new Map(serverState.map((node) => [node.id, node]));
-    const localNodeIds = new Set(localMutations.map((entry) => entry.nodeId));
-    const changedServerIds = new Set(serverChangedNodeIds ?? serverById.keys());
-
-    if ([...localNodeIds].every((nodeId) => !changedServerIds.has(nodeId))) {
-      return {
-        type: "auto-merged",
-        mergedNodes: this.mergeDisjoint(localMutations, serverState),
-        newVersion: serverVersion,
-      };
-    }
-
+    const byId = new Map(serverState.map((node) => [node.id, node]));
+    const changedServerIds = new Set(serverChangedNodeIds ?? byId.keys());
     const conflicts: ConflictInfo[] = [];
-    const nonConflictingMerge = this.mergeDisjoint(
-      localMutations.filter((entry) => !changedServerIds.has(entry.nodeId)),
-      serverState
-    );
 
-    for (const entry of localMutations) {
+    for (const entry of [...localMutations].sort((a, b) => a.seqNo - b.seqNo)) {
+      if (!changedServerIds.has(entry.nodeId)) {
+        applyNodeMutation(byId, entry);
+        continue;
+      }
+
+      const serverNode = byId.get(entry.nodeId);
+      if (entry.type === "delete") {
+        if (!serverNode) continue;
+        if (
+          entry.previousPayload &&
+          stableValue(entry.previousPayload) === stableValue(serverNode)
+        ) {
+          deleteNodeFromGraph(byId, entry.nodeId);
+        } else {
+          conflicts.push({
+            nodeId: entry.nodeId,
+            field: "__node__",
+            localValue: null,
+            serverValue: serverNode,
+            localTimestamp: entry.timestamp,
+            serverTimestamp: Date.now(),
+          });
+        }
+        continue;
+      }
+
       if (!entry.payload) continue;
-      const serverNode = serverById.get(entry.nodeId);
-      if (!serverNode) continue;
-      conflicts.push(
-        ...diffNodeFields(
-          entry.payload,
-          serverNode,
-          entry.timestamp,
-          Date.now()
-        )
-      );
+      if (!serverNode) {
+        conflicts.push({
+          nodeId: entry.nodeId,
+          field: "__node__",
+          localValue: entry.payload,
+          serverValue: null,
+          localTimestamp: entry.timestamp,
+          serverTimestamp: Date.now(),
+        });
+        continue;
+      }
+
+      const merged = mergeConcurrentNode(entry, serverNode);
+      byId.set(entry.nodeId, merged.node);
+      conflicts.push(...merged.conflicts);
     }
 
-    if (conflicts.length === 0) {
-      return {
-        type: "auto-merged",
-        mergedNodes: this.mergeDisjoint(localMutations, serverState),
-        newVersion: serverVersion,
-      };
-    }
-
-    return { type: "manual-required", conflicts, nonConflictingMerge };
+    const mergedNodes = Array.from(byId.values());
+    return conflicts.length === 0
+      ? { type: "auto-merged", mergedNodes, newVersion: serverVersion }
+      : {
+          type: "manual-required",
+          conflicts,
+          nonConflictingMerge: mergedNodes,
+        };
   }
 
   resolve(
@@ -119,6 +221,14 @@ export class ConflictResolver {
     for (const conflict of conflicts) {
       const choice = choices.get(resolutionKey(conflict.nodeId, conflict.field));
       if (!choice) continue;
+      if (conflict.field === "__node__") {
+        if (choice.chosenValue === null) {
+          deleteNodeFromGraph(byId, conflict.nodeId);
+        } else {
+          byId.set(conflict.nodeId, choice.chosenValue as FamilyNode);
+        }
+        continue;
+      }
       const current = byId.get(conflict.nodeId) ?? ({ id: conflict.nodeId } as FamilyNode);
       byId.set(conflict.nodeId, {
         ...current,
@@ -134,25 +244,9 @@ export class ConflictResolver {
     serverState: FamilyNode[],
     serverChangedNodeIds?: string[]
   ): boolean {
-    const localNodeIds = new Set(localMutations.map((entry) => entry.nodeId));
-    const changedServerIds = new Set(
-      serverChangedNodeIds ?? serverState.map((node) => node.id)
+    return (
+      this.detect(localMutations, serverState, 1, serverChangedNodeIds).type ===
+      "auto-merged"
     );
-    return [...localNodeIds].every((nodeId) => !changedServerIds.has(nodeId));
-  }
-
-  private mergeDisjoint(
-    localMutations: WALEntry[],
-    serverState: FamilyNode[]
-  ): FamilyNode[] {
-    const byId = new Map(serverState.map((node) => [node.id, node]));
-    for (const mutation of localMutations) {
-      if (mutation.type === "delete") {
-        byId.delete(mutation.nodeId);
-      } else if (mutation.payload) {
-        byId.set(mutation.nodeId, mutation.payload);
-      }
-    }
-    return Array.from(byId.values());
   }
 }

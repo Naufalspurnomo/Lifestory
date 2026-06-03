@@ -152,9 +152,10 @@ forgot-password check above.
 - The legacy wholesale `PUT /api/trees/[id]` path remains for guarded recovery
   writes and conflict resolution. Interactive editor autosave uses incremental
   WAL batches.
-- Same-field collaborative edits open a manual conflict-resolution modal.
-  This is recovery-oriented collaboration, not real-time Google Docs-style
-  co-editing.
+- Active shared canvases check lightweight server versions every 1.25 seconds
+  and apply collaborator changes automatically without a reload. Same-field
+  concurrent edits still open a manual conflict-resolution modal. Cursor
+  presence and character-level CRDT merging are not implemented.
 - Prisma ORM 6 CLI remains in the build toolchain. Plan the Prisma ORM 7
   migration separately because it requires ESM, generated-client import, and
   Postgres driver-adapter changes.

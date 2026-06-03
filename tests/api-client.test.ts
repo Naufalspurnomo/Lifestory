@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   listTrees,
   loadTree,
+  pullTreeChanges,
   createTreeApi,
   saveTreeNodes,
   deleteTreeApi,
@@ -114,6 +115,23 @@ describe("apiClient - happy paths", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/trees/abc",
       expect.objectContaining({ cache: "no-store" })
+    );
+  });
+
+  it("pullTreeChanges uses the lightweight version-aware sync URL", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ changed: false, currentVersion: 7 })
+    );
+    const result = await pullTreeChanges(
+      "tree id",
+      7,
+      fetchMock as unknown as typeof fetch
+    );
+
+    expect(result).toEqual({ changed: false, currentVersion: 7 });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/trees/tree%20id/sync?sinceVersion=7",
+      { cache: "no-store" }
     );
   });
 

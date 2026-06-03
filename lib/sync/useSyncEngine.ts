@@ -146,6 +146,14 @@ export function useSyncEngine(
     [getReadyEngine]
   );
 
+  const getLastSyncedVersion = useCallback(
+    async (treeId: string) => {
+      const engine = await getReadyEngine();
+      return engine.getLastSyncedVersion(treeId);
+    },
+    [getReadyEngine]
+  );
+
   const hasUnresolvedChanges = useCallback(
     async (treeId: string) => {
       const engine = await getReadyEngine();
@@ -171,6 +179,7 @@ export function useSyncEngine(
     retryFailed,
     forceSync,
     setLastSyncedVersion,
+    getLastSyncedVersion,
     hasUnresolvedChanges,
     resolveConflict,
   };

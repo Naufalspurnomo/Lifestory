@@ -20,6 +20,16 @@ export class TreeApiError extends Error {
   }
 }
 
+export type TreePullResult =
+  | { changed: false; currentVersion: number }
+  | {
+      changed: true;
+      currentVersion: number;
+      tree: TreeData;
+      changedNodeIds: string[];
+      complete: boolean;
+    };
+
 export function choosePrimaryTree(
   summaries: TreeSummary[],
   preferredTreeId: string | null
@@ -90,6 +100,20 @@ export async function loadTree(
   await expectOk(res);
   const body = (await res.json()) as { tree: TreeData };
   return body.tree;
+}
+
+export async function pullTreeChanges(
+  id: string,
+  sinceVersion: number,
+  fetchImpl: typeof fetch = fetch
+): Promise<TreePullResult> {
+  const params = new URLSearchParams({ sinceVersion: String(sinceVersion) });
+  const res = await fetchImpl(
+    `/api/trees/${encodeURIComponent(id)}/sync?${params}`,
+    { cache: "no-store" }
+  );
+  await expectOk(res);
+  return (await res.json()) as TreePullResult;
 }
 
 export async function createTreeApi(

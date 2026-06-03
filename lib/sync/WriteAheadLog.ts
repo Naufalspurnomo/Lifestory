@@ -184,6 +184,7 @@ export class LocalStorageWriteAheadLog implements WriteAheadLog {
       type: mutation.type,
       nodeId: mutation.nodeId,
       payload: mutation.payload,
+      previousPayload: mutation.previousPayload,
     });
   }
 
@@ -209,6 +210,7 @@ export class LocalStorageWriteAheadLog implements WriteAheadLog {
         type: mutation.type,
         nodeId: mutation.nodeId,
         payload: mutation.payload,
+        previousPayload: mutation.previousPayload,
         id: uuid(),
         seqNo: ++lastSeqNo,
         status: "pending",
@@ -466,6 +468,7 @@ export class IndexedDbWriteAheadLog implements WriteAheadLog {
       type: mutation.type,
       nodeId: mutation.nodeId,
       payload: mutation.payload,
+      previousPayload: mutation.previousPayload,
     });
   }
 
@@ -506,6 +509,7 @@ export class IndexedDbWriteAheadLog implements WriteAheadLog {
         type: mutation.type,
         nodeId: mutation.nodeId,
         payload: mutation.payload,
+        previousPayload: mutation.previousPayload,
         id: uuid(),
         seqNo: ++lastSeqNo,
         status: "pending",

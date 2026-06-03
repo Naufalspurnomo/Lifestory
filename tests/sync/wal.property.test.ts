@@ -87,6 +87,24 @@ describe("data reliability write-ahead log", () => {
     expect(pending.map((entry) => entry.nodeId)).toEqual(["a"]);
   });
 
+  it("preserves previous node state for three-way conflict merging", async () => {
+    const log = wal();
+    const previous = person("a", "Before");
+    const current = person("a", "After");
+
+    await log.appendMutations("tree-1", [
+      {
+        type: "update",
+        nodeId: "a",
+        payload: current,
+        previousPayload: previous,
+      },
+    ]);
+
+    const [entry] = await log.getAllPending();
+    expect(entry.previousPayload).toEqual(previous);
+  });
+
   it("enforces capacity without growing the queue", async () => {
     // Feature: data-reliability-sync, Property 5: WAL Capacity Enforcement
     const log = wal(1);

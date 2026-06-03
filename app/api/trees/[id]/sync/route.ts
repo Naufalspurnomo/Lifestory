@@ -5,6 +5,7 @@ import {
   applyTreeMutations,
   getChangedNodeIdsSince,
   getTreeForUser,
+  getTreeVersionForUser,
   InvalidTreeGraphError,
   pruneOldSyncReceipts,
   TreeAccessError,
@@ -42,6 +43,55 @@ function handleError(error: unknown) {
   return NextResponse.json({ error: "Internal error" }, { status: 500 });
 }
 
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const authResult = await requireUser();
+  if (!authResult.success) return authResult.response;
+  const userId = authResult.session.user.id;
+  const rawSinceVersion = new URL(request.url).searchParams.get("sinceVersion");
+  const sinceVersion = Number(rawSinceVersion);
+
+  if (!Number.isInteger(sinceVersion) || sinceVersion < 1) {
+    return NextResponse.json(
+      { error: "sinceVersion must be a positive integer" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const currentVersion = await getTreeVersionForUser(id, userId);
+    if (currentVersion === sinceVersion) {
+      return NextResponse.json(
+        { changed: false, currentVersion },
+        { headers: { "Cache-Control": "private, no-store" } }
+      );
+    }
+
+    const tree = await getTreeForUser(id, userId);
+    const targetVersion = tree.version ?? currentVersion;
+    const changes =
+      sinceVersion < targetVersion
+        ? await getChangedNodeIdsSince(id, sinceVersion, targetVersion)
+        : { complete: false, nodeIds: [] };
+
+    return NextResponse.json(
+      {
+        changed: true,
+        currentVersion: targetVersion,
+        tree,
+        changedNodeIds: changes.nodeIds,
+        complete: changes.complete,
+      },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -74,6 +124,10 @@ export async function POST(
     const mutations = validation.data.mutations.map((mutation) => ({
       ...mutation,
       payload: mutation.payload as FamilyNode | null,
+      previousPayload: mutation.previousPayload as
+        | FamilyNode
+        | null
+        | undefined,
     }));
 
     const result = await applyTreeMutations(

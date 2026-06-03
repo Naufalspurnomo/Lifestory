@@ -49,4 +49,80 @@ describe("data reliability conflict resolver", () => {
       ]);
     }
   });
+
+  it("three-way merges children added concurrently to the same parent", () => {
+    const resolver = new ConflictResolver();
+    const baseParent = person("parent", "Parent");
+    const localParent = person("parent", "Parent", {
+      childrenIds: ["local-child"],
+    });
+    const serverParent = person("parent", "Parent", {
+      childrenIds: ["remote-child"],
+    });
+    const localChild = person("local-child", "Local Child", {
+      parentId: "parent",
+      parentIds: ["parent"],
+    });
+    const remoteChild = person("remote-child", "Remote Child", {
+      parentId: "parent",
+      parentIds: ["parent"],
+    });
+    const parentUpdate: WALEntry = {
+      ...wal("parent"),
+      payload: localParent,
+      previousPayload: baseParent,
+    };
+    const childAdd: WALEntry = {
+      ...wal("local-child"),
+      seqNo: 2,
+      type: "add",
+      payload: localChild,
+      previousPayload: null,
+    };
+
+    const result = resolver.detect(
+      [parentUpdate, childAdd],
+      [serverParent, remoteChild],
+      2,
+      ["parent", "remote-child"]
+    );
+
+    expect(result.type).toBe("auto-merged");
+    if (result.type === "auto-merged") {
+      const mergedParent = result.mergedNodes.find(
+        (node) => node.id === "parent"
+      );
+      expect(mergedParent?.childrenIds.sort()).toEqual([
+        "local-child",
+        "remote-child",
+      ]);
+      expect(result.mergedNodes.map((node) => node.id).sort()).toEqual([
+        "local-child",
+        "parent",
+        "remote-child",
+      ]);
+    }
+  });
+
+  it("keeps a concurrent scalar edit explicit instead of silently overwriting it", () => {
+    const resolver = new ConflictResolver();
+    const update: WALEntry = {
+      ...wal("person"),
+      payload: person("person", "Laptop"),
+      previousPayload: person("person", "Before"),
+    };
+    const result = resolver.detect(
+      [update],
+      [person("person", "Phone")],
+      2,
+      ["person"]
+    );
+
+    expect(result.type).toBe("manual-required");
+    if (result.type === "manual-required") {
+      expect(result.conflicts.map((conflict) => conflict.field)).toEqual([
+        "label",
+      ]);
+    }
+  });
 });

@@ -6,3 +6,5 @@ export * from "./IntegrityValidator";
 export * from "./ConflictResolver";
 export * from "./ExportManager";
 export * from "./SyncEngine";
+export * from "./RemoteTreePoller";
+export * from "./applyMutations";
