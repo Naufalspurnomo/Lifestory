@@ -1,7 +1,16 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Button } from "../ui/Button";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Film,
+  ImageIcon,
+  ImagePlus,
+  Loader2,
+  Trash2,
+  X,
+} from "lucide-react";
 import { compressImage } from "../../lib/utils/imageUtils";
 import type { MediaItem } from "../../lib/types/tree";
 import { useLanguage } from "../providers/LanguageProvider";
@@ -27,20 +36,30 @@ export default function GalleryManager({
   const copy =
     locale === "id"
       ? {
-          empty: "Belum ada foto/video di galeri ini.",
+          emptyTitle: "Belum ada arsip.",
+          emptyBody: "Tambahkan foto atau media yang menjadi bagian dari cerita keluarga.",
           uploading: "Mengunggah...",
           addMedia: (count: number, max: number) =>
-            `Tambah Foto/Video (${count}/${max})`,
+            `Tambah media (${count}/${max})`,
           noCaption: "Tanpa keterangan",
           captionPlaceholder: "Tambahkan keterangan...",
+          removeMedia: "Hapus media",
+          close: "Tutup galeri",
+          previous: "Sebelumnya",
+          next: "Berikutnya",
         }
       : {
-          empty: "No photos/videos in this gallery yet.",
+          emptyTitle: "No archive media yet.",
+          emptyBody: "Add photos or media that belong to this family story.",
           uploading: "Uploading...",
           addMedia: (count: number, max: number) =>
-            `Add Photos/Videos (${count}/${max})`,
+            `Add media (${count}/${max})`,
           noCaption: "No caption",
           captionPlaceholder: "Add caption...",
+          removeMedia: "Remove media",
+          close: "Close gallery",
+          previous: "Previous",
+          next: "Next",
         };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,52 +119,69 @@ export default function GalleryManager({
   return (
     <div className="space-y-4">
       {media.length > 0 ? (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {media.map((item, index) => (
             <div
-              key={index}
-              className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg bg-warm-100"
+              key={`${item.url}-${index}`}
+              role="button"
+              tabIndex={0}
+              className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-brand-200 bg-cream-200 text-left shadow-soft transition hover:border-brand-400 hover:shadow-elev"
               onClick={() => openLightbox(index)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openLightbox(index);
+                }
+              }}
             >
               {item.type === "image" ? (
                 <img
                   src={item.url}
                   alt={item.caption || `Media ${index + 1}`}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                 />
               ) : (
                 <video src={item.url} className="h-full w-full object-cover" muted />
               )}
 
-              {!readOnly && (
-                <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition group-hover:opacity-100">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemove(index);
-                    }}
-                    className="rounded-full bg-red-500 p-2 text-white hover:bg-red-600"
-                    aria-label="remove media"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-ink-900/70 via-ink-900/10 to-transparent opacity-80 transition group-hover:opacity-100" />
+
+              <div className="absolute bottom-2 left-2 right-2">
+                <p className="truncate text-xs font-black text-white">
+                  {item.caption || copy.noCaption}
+                </p>
+              </div>
 
               {item.type === "video" && (
-                <div className="absolute left-1 top-1 rounded bg-black/60 px-1 text-xs text-white">
-                  🎬
-                </div>
+                <span className="absolute left-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-ink-900/70 text-white backdrop-blur-md">
+                  <Film className="h-4 w-4" />
+                </span>
+              )}
+
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleRemove(index);
+                  }}
+                  className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-600/90 text-white opacity-0 shadow-sm transition hover:bg-red-700 group-hover:opacity-100"
+                  aria-label={copy.removeMedia}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               )}
             </div>
           ))}
         </div>
       ) : (
-        readOnly && (
-          <div className="rounded-xl border-2 border-dashed border-warm-200 py-12 text-center text-warmMuted">
-            {copy.empty}
-          </div>
-        )
+        <div className="rounded-xl border border-dashed border-brand-300 bg-cream-100/78 px-5 py-8 text-center">
+          <ImageIcon className="mx-auto mb-3 h-8 w-8 text-brand-700" />
+          <p className="font-serif text-lg font-bold text-ink-800">{copy.emptyTitle}</p>
+          <p className="mx-auto mt-1 max-w-xs text-sm leading-6 text-ink-500">
+            {copy.emptyBody}
+          </p>
+        </div>
       )}
 
       {!readOnly && media.length < maxItems && (
@@ -158,87 +194,94 @@ export default function GalleryManager({
             onChange={handleUpload}
             className="hidden"
           />
-          <Button
+          <button
             type="button"
-            variant="secondary"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            block
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-brand-300 bg-cream-100 px-4 text-sm font-black text-brand-800 shadow-sm transition hover:bg-cream-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isUploading ? (
               <>
-                <span className="mr-2 inline-block animate-spin">⏳</span>
+                <Loader2 className="h-4 w-4 animate-spin" />
                 {copy.uploading}
               </>
             ) : (
-              <>📷 {copy.addMedia(media.length, maxItems)}</>
+              <>
+                <ImagePlus className="h-4 w-4" />
+                {copy.addMedia(media.length, maxItems)}
+              </>
             )}
-          </Button>
+          </button>
         </div>
       )}
 
       {showLightbox && selectedIndex !== null && media[selectedIndex] && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          className="fixed inset-0 z-[140] flex items-center justify-center bg-ink-900/92 p-4"
           onClick={() => setShowLightbox(false)}
         >
           <div
-            className="relative w-full max-w-4xl"
-            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-5xl"
+            onClick={(event) => event.stopPropagation()}
           >
             <button
+              type="button"
               onClick={() => setShowLightbox(false)}
-              className="absolute -top-12 right-0 text-2xl text-white hover:text-warm-200"
-              aria-label="close lightbox"
+              className="absolute -top-12 right-0 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
+              aria-label={copy.close}
             >
-              ×
+              <X className="h-5 w-5" />
             </button>
 
-            {media[selectedIndex].type === "image" ? (
-              <img
-                src={media[selectedIndex].url}
-                alt={media[selectedIndex].caption || ""}
-                className="w-full rounded-lg"
-              />
-            ) : (
-              <video
-                src={media[selectedIndex].url}
-                controls
-                className="w-full rounded-lg"
-              />
-            )}
+            <div className="overflow-hidden rounded-xl border border-white/15 bg-black shadow-deep">
+              {media[selectedIndex].type === "image" ? (
+                <img
+                  src={media[selectedIndex].url}
+                  alt={media[selectedIndex].caption || ""}
+                  className="max-h-[78dvh] w-full object-contain"
+                />
+              ) : (
+                <video
+                  src={media[selectedIndex].url}
+                  controls
+                  className="max-h-[78dvh] w-full"
+                />
+              )}
+            </div>
 
             {readOnly ? (
-              <div className="mt-4 text-center font-playfair text-lg italic text-white">
+              <div className="mt-4 text-center font-serif text-lg italic text-cream-50">
                 {media[selectedIndex].caption || copy.noCaption}
               </div>
             ) : (
               <input
                 type="text"
                 value={media[selectedIndex].caption || ""}
-                onChange={(e) => handleCaptionChange(selectedIndex, e.target.value)}
+                onChange={(event) => handleCaptionChange(selectedIndex, event.target.value)}
                 placeholder={copy.captionPlaceholder}
-                className="mt-4 w-full rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-white placeholder:text-white/50 focus:border-gold-500 focus:outline-none"
+                className="mt-4 w-full rounded-lg border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-white placeholder:text-white/50 focus:border-brand-400 focus:outline-none"
               />
             )}
 
             {media.length > 1 && (
-              <div className="absolute left-0 right-0 top-1/2 flex -translate-y-1/2 justify-between px-4">
+              <div className="pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center justify-between px-3">
                 <button
+                  type="button"
                   onClick={() =>
                     setSelectedIndex((selectedIndex - 1 + media.length) % media.length)
                   }
-                  className="rounded-full bg-white/20 p-3 text-white hover:bg-white/30"
-                  aria-label="previous media"
+                  className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-lg bg-white/14 text-white backdrop-blur-md transition hover:bg-white/24"
+                  aria-label={copy.previous}
                 >
-                  ←
+                  <ChevronLeft className="h-6 w-6" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setSelectedIndex((selectedIndex + 1) % media.length)}
-                  className="rounded-full bg-white/20 p-3 text-white hover:bg-white/30"
-                  aria-label="next media"
+                  className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-lg bg-white/14 text-white backdrop-blur-md transition hover:bg-white/24"
+                  aria-label={copy.next}
                 >
-                  →
+                  <ChevronRight className="h-6 w-6" />
                 </button>
               </div>
             )}

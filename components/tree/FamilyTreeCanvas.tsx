@@ -5,11 +5,9 @@ import {
   Crosshair,
   Eye,
   Layers3,
-  LocateFixed,
   Maximize2,
   Minus,
   Plus,
-  RotateCcw,
 } from "lucide-react";
 import type { FamilyNode, LayoutGraph } from "../../lib/types/tree";
 import { LAYOUT } from "../../lib/types/tree";
@@ -34,15 +32,6 @@ type Transform = {
 type DensityMode = "auto" | "map" | "detail";
 type RenderMode = "overview" | "compact" | "detail";
 
-const COLORS = {
-  paternal: { border: "#2a4365", base: "#3182ce" }, // Royal Sapphire Blue
-  maternal: { border: "#9b2c2c", base: "#e53e3e" }, // Royal Ruby Red
-  union: { border: "#6b46c1", base: "#805ad5" }, // Amethyst Purple
-  descendant: { border: "#22543d", base: "#2f855a" }, // Emerald Green
-  self: { border: "#d4af37", base: "#b08e51" }, // Royal Gold
-  default: { border: "#5b5346", base: "#8c6d31" }, // Antique Bronze
-};
-
 const GEN_COLORS: Record<number, { border: string; labelId: string; labelEn: string }> = {
   [-2]: { border: "#805ad5", labelId: "Buyut", labelEn: "Great-grandparent" }, // Amethyst
   [-1]: { border: "#2f855a", labelId: "Kakek/Nenek", labelEn: "Grandparent" }, // Emerald
@@ -53,21 +42,17 @@ const GEN_COLORS: Record<number, { border: string; labelId: string; labelEn: str
   [4]: { border: "#d53f8c", labelId: "Cicit", labelEn: "Great-grandchild" }, // Rose Quartz
 };
 
-const NODE_CIRCLE_SIZE = 90;
+const NODE_CARD_WIDTH = 118;
+const NODE_CARD_HEIGHT = 108;
+const NODE_CARD_RADIUS = 9;
+const NODE_COMPACT_WIDTH = 96;
+const NODE_COMPACT_HEIGHT = 82;
 const BUTTON_SIZE = 30;
 const MIN_SCALE = 0.045;
 const MAX_SCALE = 4;
 const FIT_PADDING = 96;
 const MINIMAP_DESKTOP = { width: 188, height: 118 };
 const MINIMAP_MOBILE = { width: 148, height: 94 };
-
-const WORK_ICONS: Record<string, string> = {
-  book: "B",
-  music: "M",
-  film: "F",
-  art: "A",
-  other: "*",
-};
 
 // LRU image cache — evicts oldest entries when exceeding MAX_IMAGE_CACHE_SIZE
 const MAX_IMAGE_CACHE_SIZE = 200;
@@ -96,48 +81,82 @@ function truncateLabel(ctx: CanvasRenderingContext2D, label: string, maxWidth: n
   return `${next.trim()}...`;
 }
 
+function getNodeCardMetrics(
+  renderMode: RenderMode,
+  scale: number,
+  active = false
+) {
+  if (renderMode === "overview") {
+    const safeScale = Math.max(scale, MIN_SCALE);
+    return {
+      width: (active ? 12 : 8) / safeScale,
+      height: (active ? 8 : 5) / safeScale,
+      radius: 2 / safeScale,
+    };
+  }
+
+  if (renderMode === "compact") {
+    return {
+      width: NODE_COMPACT_WIDTH,
+      height: NODE_COMPACT_HEIGHT,
+      radius: 7,
+    };
+  }
+
+  return {
+    width: NODE_CARD_WIDTH,
+    height: NODE_CARD_HEIGHT,
+    radius: NODE_CARD_RADIUS,
+  };
+}
+
+function traceRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, height, radius);
+}
+
+function drawImageCover(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number
+) {
+  const scale = Math.max(width / img.width, height / img.height);
+  const drawWidth = img.width * scale;
+  const drawHeight = img.height * scale;
+  ctx.drawImage(
+    img,
+    x + (width - drawWidth) / 2,
+    y + (height - drawHeight) / 2,
+    drawWidth,
+    drawHeight
+  );
+}
+
 function traceNodeShape(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
-  r: number,
-  sex?: string | null
+  w: number,
+  h: number,
+  r: number
 ) {
-  if (sex === "M") {
-    // Tameng (Shield shape for male)
-    ctx.beginPath();
-    ctx.moveTo(x, y - r);
-    ctx.quadraticCurveTo(x + r, y - r, x + r, y - r * 0.1);
-    ctx.quadraticCurveTo(x + r, y + r * 0.35, x, y + r * 1.15);
-    ctx.quadraticCurveTo(x - r, y + r * 0.35, x - r, y - r * 0.1);
-    ctx.quadraticCurveTo(x - r, y - r, x, y - r);
-    ctx.closePath();
-  } else if (sex === "F") {
-    // Medali melingkar (Double ring medallion for female)
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-  } else {
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-  }
+  traceRoundedRect(ctx, x - w / 2, y - h / 2, w, h, r);
 }
 
 function drawCrown(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
-  // Sleek minimalist star/diamond vector to replace the cartoon crown
   ctx.save();
-  ctx.fillStyle = "#b08e51";
-  ctx.beginPath();
-  const cy = y - r - 8;
-  const size = 6;
-  ctx.moveTo(x, cy - size);
-  ctx.lineTo(x + size * 0.3, cy - size * 0.3);
-  ctx.lineTo(x + size, cy);
-  ctx.lineTo(x + size * 0.3, cy + size * 0.3);
-  ctx.lineTo(x, cy + size);
-  ctx.lineTo(x - size * 0.3, cy + size * 0.3);
-  ctx.lineTo(x - size, cy);
-  ctx.lineTo(x - size * 0.3, cy - size * 0.3);
-  ctx.closePath();
+  traceRoundedRect(ctx, x - 12, y - r - 5, 24, 8, 4);
+  ctx.fillStyle = "#d4af37";
   ctx.fill();
   ctx.restore();
 }
@@ -147,24 +166,24 @@ function getQuickAddButtons(node: FamilyNode) {
     {
       type: "parent" as const,
       x: node.x || 0,
-      y: (node.y || 0) - NODE_CIRCLE_SIZE / 2 - 26,
+      y: (node.y || 0) - NODE_CARD_HEIGHT / 2 - 24,
       icon: "^",
     },
     {
       type: "partner" as const,
-      x: (node.x || 0) + NODE_CIRCLE_SIZE / 2 + 32,
+      x: (node.x || 0) + NODE_CARD_WIDTH / 2 + 30,
       y: node.y || 0,
       icon: "+",
     },
     {
       type: "child" as const,
       x: node.x || 0,
-      y: (node.y || 0) + NODE_CIRCLE_SIZE / 2 + 62,
+      y: (node.y || 0) + NODE_CARD_HEIGHT / 2 + 36,
       icon: "v",
     },
     {
       type: "sibling" as const,
-      x: (node.x || 0) - NODE_CIRCLE_SIZE / 2 - 32,
+      x: (node.x || 0) - NODE_CARD_WIDTH / 2 - 30,
       y: node.y || 0,
       icon: "=",
     },
@@ -207,8 +226,6 @@ export default function FamilyTreeCanvas({
       locale === "id"
         ? {
             fit: "Lihat semua",
-            focus: "Fokus pilihan",
-            reset: "Reset",
             zoomIn: "Perbesar",
             zoomOut: "Perkecil",
             density: "Mode tampilan",
@@ -226,8 +243,6 @@ export default function FamilyTreeCanvas({
           }
         : {
             fit: "Fit all",
-            focus: "Focus selection",
-            reset: "Reset",
             zoomIn: "Zoom in",
             zoomOut: "Zoom out",
             density: "View mode",
@@ -345,23 +360,11 @@ export default function FamilyTreeCanvas({
     initializedRef.current = true;
   }, [calculateFitTransform, nodes.length, wrapperSize.width]);
 
-  const crestFrameRef = useRef<HTMLImageElement | null>(null);
-
   useEffect(() => {
     let loadedCount = 0;
     const toLoad = nodes.filter(
       (node) => node.imageUrl && !imageCache.has(node.imageUrl)
     );
-    
-    // Load noble crest frame
-    if (!crestFrameRef.current) {
-      const crestImg = new Image();
-      crestImg.src = "/brand/gold_crest_frame.png";
-      crestImg.onload = () => {
-        crestFrameRef.current = crestImg;
-        setImagesLoaded((val) => val + 1);
-      };
-    }
 
     if (toLoad.length === 0) return;
 
@@ -402,19 +405,24 @@ export default function FamilyTreeCanvas({
       const point = getRelativePoint(clientX, clientY);
       if (!point) return null;
       const world = screenToWorld(point.x, point.y);
-      const hitRadius = Math.max(NODE_CIRCLE_SIZE / 2, 16 / transform.k);
+      const baseHit = getNodeCardMetrics(renderMode, transform.k);
+      const hitWidth = Math.max(baseHit.width, 36 / transform.k);
+      const hitHeight = Math.max(baseHit.height, 28 / transform.k);
 
       for (let index = nodes.length - 1; index >= 0; index--) {
         const node = nodes[index];
         if (typeof node.x !== "number" || typeof node.y !== "number") continue;
-        const dx = world.x - node.x;
-        const dy = world.y - node.y;
-        if (dx * dx + dy * dy <= hitRadius * hitRadius) return node;
+        if (
+          Math.abs(world.x - node.x) <= hitWidth / 2 &&
+          Math.abs(world.y - node.y) <= hitHeight / 2
+        ) {
+          return node;
+        }
       }
 
       return null;
     },
-    [getRelativePoint, nodes, screenToWorld, transform.k]
+    [getRelativePoint, nodes, renderMode, screenToWorld, transform.k]
   );
 
   const findButtonAt = useCallback(
@@ -608,208 +616,180 @@ export default function FamilyTreeCanvas({
 
       const isSelected = node.id === selectedId;
       const isHovered = node.id === hoveredId;
-      const lineKey = (node.line as keyof typeof COLORS) || "default";
-      const colorSet = COLORS[lineKey] || COLORS.default;
       const displayGen = (node.generation ?? 0) - ownerGen + baseGen;
       const genColor = GEN_COLORS[displayGen]?.border || "#be123c";
-      const radius =
-        renderMode === "overview"
-          ? (isSelected || isHovered ? 5.5 : 3.6) / transform.k
-          : renderMode === "compact"
-          ? NODE_CIRCLE_SIZE * 0.38
-          : NODE_CIRCLE_SIZE / 2;
+      const metrics = getNodeCardMetrics(renderMode, transform.k, isSelected || isHovered);
+      const cardW = renderMode === "overview" ? ((isSelected || isHovered ? 11 : 7.2) / transform.k) : metrics.width;
+      const cardH = renderMode === "overview" ? ((isSelected || isHovered ? 11 : 7.2) / transform.k) : metrics.height;
+      const cardR = renderMode === "overview" ? ((isSelected || isHovered ? 5.5 : 3.6) / transform.k) : metrics.radius;
 
       if (renderMode !== "overview") {
         ctx.save();
-        // Soft warm shadow on parchment
-        ctx.shadowColor = "rgba(59,43,24,0.22)";
-        ctx.shadowBlur = 12 / transform.k;
-        ctx.shadowOffsetY = 4 / transform.k;
-        traceNodeShape(ctx, x, y, radius, node.sex);
-        ctx.fillStyle = "#faf6ed";
+        ctx.shadowColor =
+          isSelected || isHovered ? "rgba(130,105,60,0.38)" : "rgba(59,43,24,0.24)";
+        ctx.shadowBlur = (isSelected || isHovered ? 18 : 11) / transform.k;
+        ctx.shadowOffsetY = 5 / transform.k;
+        traceNodeShape(ctx, x, y, cardW, cardH, cardR);
+        const cardGrad = ctx.createLinearGradient(
+          x - cardW / 2,
+          y - cardH / 2,
+          x + cardW / 2,
+          y + cardH / 2
+        );
+        cardGrad.addColorStop(0, "#fffaf0");
+        cardGrad.addColorStop(0.54, "#f7edd8");
+        cardGrad.addColorStop(1, "#e9d7b6");
+        ctx.fillStyle = cardGrad;
+        ctx.fill();
+        ctx.restore();
+      } else {
+        ctx.save();
+        traceNodeShape(ctx, x, y, cardW, cardH, cardR);
+        ctx.fillStyle = genColor;
         ctx.fill();
         ctx.restore();
       }
 
       ctx.save();
-      traceNodeShape(ctx, x, y, radius, node.sex);
-      ctx.clip();
-
-      const img = node.imageUrl ? imageCache.get(node.imageUrl) : null;
-      if (renderMode === "detail" && img && img.complete && img.naturalWidth > 0) {
-        const scale = Math.max((radius * 2) / img.width, (radius * 2) / img.height);
-        const drawWidth = img.width * scale;
-        const drawHeight = img.height * scale;
-        ctx.drawImage(img, x - drawWidth / 2, y - drawHeight / 2, drawWidth, drawHeight);
-      } else {
-        // Wax-like / Aged parchment gradient for nodes without photos
-        if (renderMode === "overview") {
-          ctx.fillStyle = genColor;
-          ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-        } else {
-          // Warm ivory/cream fill for nodes without photos
-          const fillGrad = ctx.createRadialGradient(x, y, 2, x, y, radius);
-          if (node.line === "self") {
-            fillGrad.addColorStop(0, "#fdfbf6");
-            fillGrad.addColorStop(1, "#f5efe1");
-          } else {
-            fillGrad.addColorStop(0, "#faf6ed");
-            fillGrad.addColorStop(1, "#ece2cc");
-          }
-          ctx.fillStyle = fillGrad;
-          ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-
-          ctx.fillStyle = node.line === "self" ? "#82693c" : "#5a4d42";
-          ctx.font = `600 ${Math.max(14, radius * 0.72)}px Inter, system-ui, sans-serif`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(node.label.charAt(0).toUpperCase(), x, y + 1 / transform.k);
-        }
+      traceNodeShape(ctx, x, y, cardW, cardH, cardR);
+      ctx.strokeStyle = isSelected || isHovered ? "#d4af37" : "rgba(130,105,60,0.58)";
+      ctx.lineWidth = (isSelected || isHovered ? 2.4 : 1.2) / Math.max(transform.k, 0.35);
+      if (renderMode === "overview") {
+        ctx.strokeStyle = isSelected || isHovered ? "#d4af37" : genColor;
       }
+      ctx.stroke();
       ctx.restore();
 
-      // Metallic frame rendering (Shield or circular medallion)
-      if (renderMode === "detail") {
-        {
-          // Clean drawn frame — no PNG dependency
-          // Elegant thin gold frame
-          ctx.save();
-          traceNodeShape(ctx, x, y, radius, node.sex);
-          
-          const frameGrad = ctx.createLinearGradient(x - radius, y - radius, x + radius, y + radius);
-          if (isSelected || isHovered) {
-            frameGrad.addColorStop(0, "#e6ab2f");
-            frameGrad.addColorStop(0.5, "#d4af37");
-            frameGrad.addColorStop(1, "#b08e51");
-            ctx.shadowColor = "rgba(212,175,55,0.35)";
-            ctx.shadowBlur = 10 / transform.k;
-          } else {
-            frameGrad.addColorStop(0, "#c5b395");
-            frameGrad.addColorStop(0.5, "#b08e51");
-            frameGrad.addColorStop(1, "#8c7655");
-          }
-          ctx.strokeStyle = frameGrad;
-          ctx.lineWidth = (isSelected || isHovered ? 3.5 : 2.0) / Math.max(transform.k, 0.35);
-          ctx.stroke();
-          ctx.restore();
-        }
-      } else {
-        traceNodeShape(ctx, x, y, radius, node.sex);
-        ctx.strokeStyle = isSelected || isHovered ? "#b08e51" : genColor;
-        ctx.lineWidth = (isSelected || isHovered ? 2.5 : 1.5) / Math.max(transform.k, 0.35);
-        ctx.stroke();
-      }
-
-      if (renderMode === "detail") {
-        if (node.sex === "F") {
-          ctx.save();
-          ctx.fillStyle = "#c5b395";
-          ctx.strokeStyle = "#a89878";
-          ctx.lineWidth = 0.5;
-          const numStuds = 8;
-          for (let i = 0; i < numStuds; i++) {
-            const angle = (i * Math.PI * 2) / numStuds;
-            const sx = x + Math.cos(angle) * (radius + 2.5);
-            const sy = y + Math.sin(angle) * (radius + 2.5);
-            ctx.beginPath();
-            ctx.arc(sx, sy, 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-          }
-          ctx.restore();
-        }
-
-        if (node.line === "self") {
-          drawCrown(ctx, x, y, radius);
-        }
-      }
-
-      if (renderMode === "detail" && node.content?.description) {
-        const iconX = x + radius * 0.72;
-        const iconY = y - radius * 0.72;
-        ctx.beginPath();
-        ctx.arc(iconX, iconY, 12, 0, Math.PI * 2);
-        ctx.fillStyle = colorSet.base;
-        ctx.fill();
-        ctx.fillStyle = "white";
-        ctx.font = "700 10px Inter, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("S", iconX, iconY + 0.5);
-      }
-
-      if (renderMode === "detail" && node.works && node.works.length > 0) {
-        const iconX = x - radius * 0.72;
-        const iconY = y - radius * 0.72;
-        ctx.beginPath();
-        ctx.arc(iconX, iconY, 12, 0, Math.PI * 2);
-        ctx.fillStyle = "#b08e51";
-        ctx.fill();
-        ctx.fillStyle = "white";
-        ctx.font = "700 10px Inter, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(WORK_ICONS[node.works[0].type || "other"] || "*", iconX, iconY + 0.5);
-      }
-
-      const shouldShowLabel =
-        renderMode === "detail" ||
-        renderMode === "compact" ||
-        isSelected ||
-        isHovered;
-
-      if (shouldShowLabel) {
-        const labelFontSize = renderMode === "overview" ? 12 / transform.k : 14;
-        const labelY = y + radius + (renderMode === "overview" ? 9 / transform.k : 12);
-        const maxLabelWidth = renderMode === "overview" ? 96 / transform.k : 130;
+      if (renderMode !== "overview") {
         ctx.save();
-        ctx.font = `600 ${labelFontSize}px Inter, system-ui, sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        const label = truncateLabel(ctx, node.label, maxLabelWidth);
-        const metrics = ctx.measureText(label);
-
-        // Always show ivory placard behind label
-        const padX = renderMode === "overview" ? 12 / transform.k : 10;
-        const padY = renderMode === "overview" ? 6 / transform.k : 5;
-        const placardHeight = renderMode === "detail" && node.year ? labelFontSize + 18 + padY * 2 : labelFontSize + padY * 2;
-        
-        ctx.fillStyle = isSelected || isHovered ? "rgba(250,246,237, 0.96)" : "rgba(250,246,237, 0.88)";
-        ctx.strokeStyle = isSelected || isHovered ? "#b08e51" : "#dccfb3";
-        ctx.lineWidth = (isSelected || isHovered ? 1.5 : 1) / transform.k;
-        
         ctx.beginPath();
-        ctx.roundRect(
-          x - metrics.width / 2 - padX,
-          labelY - padY,
-          metrics.width + padX * 2,
-          placardHeight,
-          5 / transform.k
-        );
+        if (ctx.roundRect) {
+          ctx.roundRect(x - cardW / 2, y - cardH / 2, cardW, 6, [cardR, cardR, 0, 0] as any);
+        } else {
+          ctx.rect(x - cardW / 2, y - cardH / 2, cardW, 6);
+        }
+        ctx.globalAlpha = isSelected || isHovered ? 0.95 : 0.74;
+        ctx.fillStyle = node.line === "self" ? "#d4af37" : genColor;
         ctx.fill();
-        ctx.stroke();
+        ctx.restore();
+      }
 
-        ctx.fillStyle = isSelected || isHovered ? "#3f342d" : "#5a4d42";
-        ctx.fillText(label, x, labelY);
+      const avatarR = renderMode === "compact" ? 20 : 28;
+      const avatarY = y - cardH / 2 + avatarR + 20;
+      const avatarX = x;
 
-        if (renderMode === "detail" && node.year) {
-          ctx.fillStyle = "#73685f";
-          ctx.font = "500 11px Inter, system-ui, sans-serif";
-          const yearText = node.deathYear ? `${node.year} \u2013 ${node.deathYear}` : `${node.year}`;
-          ctx.fillText(yearText, x, labelY + labelFontSize + 4);
+      if (renderMode !== "overview") {
+        ctx.save();
+        traceRoundedRect(
+          ctx,
+          avatarX - avatarR,
+          avatarY - avatarR,
+          avatarR * 2,
+          avatarR * 2,
+          renderMode === "detail" ? 10 : 8
+        );
+        ctx.clip();
+
+        const img = node.imageUrl ? imageCache.get(node.imageUrl) : null;
+        if (img && img.complete && img.naturalWidth > 0) {
+          drawImageCover(
+            ctx,
+            img,
+            avatarX - avatarR,
+            avatarY - avatarR,
+            avatarR * 2,
+            avatarR * 2
+          );
+        } else {
+          const sealGrad = ctx.createLinearGradient(
+            avatarX - avatarR,
+            avatarY - avatarR,
+            avatarX + avatarR,
+            avatarY + avatarR
+          );
+          sealGrad.addColorStop(0, "#fff7e3");
+          sealGrad.addColorStop(1, "#dcc49a");
+          ctx.fillStyle = sealGrad;
+          ctx.fill();
+          ctx.fillStyle = node.line === "self" ? "#6a4b33" : "#5a4d42";
+          ctx.font = `800 ${Math.max(17, avatarR * 0.78)}px Inter, system-ui, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(node.label.charAt(0).toUpperCase(), avatarX, avatarY + 1);
         }
         ctx.restore();
+
+        ctx.save();
+        traceRoundedRect(
+          ctx,
+          avatarX - avatarR,
+          avatarY - avatarR,
+          avatarR * 2,
+          avatarR * 2,
+          renderMode === "detail" ? 10 : 8
+        );
+        ctx.strokeStyle = isSelected || isHovered ? "#d4af37" : "rgba(130,105,60,0.34)";
+        ctx.lineWidth = (isSelected || isHovered ? 2 : 1.1) / Math.max(transform.k, 0.45);
+        ctx.stroke();
+        ctx.restore();
+
+        const labelY = avatarY + avatarR + (renderMode === "detail" ? 14 : 10);
+        const maxTextW = cardW - 16;
+
+        ctx.save();
+        ctx.textAlign = "center";
+
+        if (renderMode === "detail") {
+          ctx.font = "800 13px Inter, system-ui, sans-serif";
+          ctx.fillStyle = "#3f342d";
+          ctx.textBaseline = "top";
+          const label = truncateLabel(ctx, node.label, maxTextW);
+          ctx.fillText(label, x, labelY);
+
+          ctx.font = "700 10px Inter, system-ui, sans-serif";
+          ctx.fillStyle = "#82693c";
+          const desc = [
+            node.year && (node.deathYear ? `${node.year} - ${node.deathYear}` : `${node.year}`),
+            node.content?.description ? "Story" : ""
+          ].filter(Boolean).join(" • ");
+          if (desc) {
+             ctx.fillText(truncateLabel(ctx, desc, maxTextW), x, labelY + 18);
+          }
+        } else {
+          ctx.font = "800 12px Inter, system-ui, sans-serif";
+          ctx.fillStyle = "#3f342d";
+          ctx.textBaseline = "top";
+          const label = truncateLabel(ctx, node.label, maxTextW);
+          ctx.fillText(label, x, labelY);
+        }
+        ctx.restore();
+
+        if (renderMode === "detail" && node.line === "self") {
+          drawCrown(ctx, x + cardW / 2 - 20, y - cardH / 2 + 18, 10);
+        }
       }
 
       if (isSelected && renderMode !== "overview") {
         for (const button of getQuickAddButtons(node)) {
-          ctx.beginPath();
-          ctx.arc(button.x, button.y + 2, BUTTON_SIZE / 2, 0, Math.PI * 2);
+          traceRoundedRect(
+            ctx,
+            button.x - BUTTON_SIZE / 2,
+            button.y - BUTTON_SIZE / 2 + 2,
+            BUTTON_SIZE,
+            BUTTON_SIZE,
+            7
+          );
           ctx.fillStyle = "rgba(0,0,0,0.16)";
           ctx.fill();
 
-          ctx.beginPath();
-          ctx.arc(button.x, button.y, BUTTON_SIZE / 2, 0, Math.PI * 2);
+          traceRoundedRect(
+            ctx,
+            button.x - BUTTON_SIZE / 2,
+            button.y - BUTTON_SIZE / 2,
+            BUTTON_SIZE,
+            BUTTON_SIZE,
+            7
+          );
           ctx.fillStyle = "#82693c";
           ctx.fill();
           ctx.strokeStyle = "white";
@@ -1099,24 +1079,6 @@ export default function FamilyTreeCanvas({
             <Maximize2 className="h-4 w-4 text-[#82693c]" />
             <span className="hidden sm:inline">{copy.fit}</span>
           </button>
-          <button
-            className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-bold text-[#5c4314] hover:bg-white hover:shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40"
-            onClick={() => selectedId && focusNode(selectedId)}
-            title={copy.focus}
-            type="button"
-            disabled={!selectedId}
-          >
-            <LocateFixed className="h-4 w-4 text-[#82693c]" />
-            <span className="hidden sm:inline">{copy.focus}</span>
-          </button>
-          <button
-            className="inline-flex h-9 items-center justify-center rounded-lg px-2 text-[#5c4314] hover:bg-white hover:shadow-sm transition"
-            onClick={() => setTransform(calculateFitTransform(0.82))}
-            title={copy.reset}
-            type="button"
-          >
-            <RotateCcw className="h-4 w-4 text-[#82693c]" />
-          </button>
         </div>
 
         <div className="hidden overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md md:flex">
@@ -1206,7 +1168,7 @@ export default function FamilyTreeCanvas({
               return (
                 <span
                   key={node.id}
-                  className="absolute rounded-full shadow-sm"
+                  className="absolute rounded-[2px] shadow-sm"
                   style={{
                     left: minimap.offsetX + (node.x || 0) * minimap.scale,
                     top: minimap.offsetY + (node.y || 0) * minimap.scale,

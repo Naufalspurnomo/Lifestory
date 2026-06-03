@@ -21,11 +21,19 @@ import { downloadTreeJson } from "../../lib/sync/ExportManager";
 import { Layers3, Users, GitBranch, History, ImageIcon, BookOpen } from "lucide-react";
 
 import type { FamilyNode } from "../../lib/types/tree";
+import type { MediaItem } from "../../lib/types/tree";
+
+type GalleryEntry = MediaItem & {
+  ownerId: string;
+  ownerName: string;
+  ownerYear: number | null;
+};
 
 export default function AppHome() {
   const { data: session, status } = useSession();
   const { locale } = useLanguage();
   const user = session?.user;
+  const isAdmin = user?.role === "admin";
 
   const copy = useMemo(
     () =>
@@ -111,6 +119,11 @@ export default function AppHome() {
 
   const userId = user?.id || user?.email || "";
   const userName = user?.name || copy.fallbackUser;
+  const accountRoleLabel = isAdmin
+    ? "Admin"
+    : locale === "id"
+      ? "Pengelola"
+      : "Manager";
 
   const {
     userTree,
@@ -162,9 +175,16 @@ export default function AppHome() {
       .sort((a, b) => (b.year && a.year ? b.year - a.year : 0));
   }, [currentTree]);
 
-  const relicsList = useMemo(() => {
+  const relicsList = useMemo<GalleryEntry[]>(() => {
     if (!currentTree) return [];
-    return currentTree.nodes.filter((n) => n.imageUrl);
+    return currentTree.nodes.flatMap((node) =>
+      (node.content?.media || []).map((item) => ({
+        ...item,
+        ownerId: node.id,
+        ownerName: node.label,
+        ownerYear: node.year,
+      }))
+    );
   }, [currentTree]);
 
   const storiesCount = storiesList.length;
@@ -545,7 +565,7 @@ export default function AppHome() {
                 <div className="text-left hidden sm:block leading-none">
                   <p className="text-[11px] font-bold text-[#3f342d] truncate max-w-[80px]">{userName}</p>
                   <p className="text-[9px] font-semibold text-[#73685f] uppercase tracking-wider">
-                    {locale === "id" ? "Pengelola" : "Admin"}
+                    {accountRoleLabel}
                   </p>
                 </div>
               </div>
@@ -723,27 +743,34 @@ export default function AppHome() {
             {/* List of Images */}
             <div className="flex-1 overflow-x-auto p-4 flex gap-4 items-center">
               {relicsList.length > 0 ? (
-                relicsList.map((node) => (
+                relicsList.map((item, index) => (
                   <div
-                    key={node.id}
+                    key={`${item.ownerId}-${index}`}
                     onClick={() => {
-                      setSelectedId(node.id);
+                      setSelectedId(item.ownerId);
                     }}
                     className="flex-none w-44 h-36 bg-[#faf6ed] rounded-xl border border-[#dccfb3] overflow-hidden relative group cursor-pointer transition-all hover:border-[#b08e51] hover:shadow-md"
                   >
-                    {node.imageUrl && (
+                    {item.type === "image" ? (
                       <img
-                        src={node.imageUrl}
+                        src={item.url}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        alt={node.label}
+                        alt={item.caption || item.ownerName}
+                      />
+                    ) : (
+                      <video
+                        src={item.url}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        muted
                       />
                     )}
                     <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/10 to-transparent p-2 text-white">
                       <span className="text-xs font-bold truncate">
-                        {node.label}
+                        {item.caption || item.ownerName}
                       </span>
                       <span className="text-[9px] text-[#e9e0d0] font-semibold">
-                        {node.year ? `${node.year}` : (locale === "id" ? "Tahun tidak diketahui" : "Unknown Year")}
+                        {item.ownerName}
+                        {item.ownerYear ? ` - ${item.ownerYear}` : ""}
                       </span>
                     </div>
                   </div>
@@ -754,7 +781,7 @@ export default function AppHome() {
                     {locale === "id" ? "Galeri masih kosong." : "Gallery is empty."}
                   </p>
                   <p className="text-xs text-[#9c8e7e] mt-1">
-                    {locale === "id" ? "Unggah foto profil anggota keluarga untuk memulai galeri." : "Upload profile photos of family members to start the gallery."}
+                    {locale === "id" ? "Tambahkan foto atau arsip dari tab Galeri di profil anggota keluarga." : "Add photos or archive media from a family member's Gallery tab."}
                   </p>
                 </div>
               )}

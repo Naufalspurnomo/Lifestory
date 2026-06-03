@@ -1,23 +1,27 @@
 import { useState } from "react";
-import { FamilyNode, WorkItem } from "../../lib/types/tree";
-import GalleryManager from "./GalleryManager";
 import {
+  ArrowDown,
+  ArrowUp,
   Book,
   Camera,
+  CalendarDays,
+  ExternalLink,
   Film,
+  Heart,
+  ImageIcon,
   Instagram,
   Linkedin,
   Music,
   Music2,
   Palette,
-  Star,
-  ExternalLink,
   Pencil,
+  Plus,
+  Star,
   Trash2,
-  ArrowUp,
-  ArrowDown,
-  Heart,
+  UserRound,
+  X,
 } from "lucide-react";
+import { FamilyNode, WorkItem } from "../../lib/types/tree";
 import {
   normalizeInstagramHandle,
   normalizeTikTokHandle,
@@ -27,6 +31,7 @@ import {
   toLinkedInUrl,
 } from "../../lib/utils/socialLinks";
 import { useLanguage } from "../providers/LanguageProvider";
+import GalleryManager from "./GalleryManager";
 
 interface BioModalProps {
   node: FamilyNode;
@@ -36,6 +41,8 @@ interface BioModalProps {
   onAddRelative: (type: "parent" | "partner" | "child") => void;
 }
 
+type Tab = "story" | "gallery" | "relations";
+
 export default function BioModal({
   node,
   onClose,
@@ -44,7 +51,7 @@ export default function BioModal({
   onAddRelative,
 }: BioModalProps) {
   const { locale } = useLanguage();
-  const [activeTab, setActiveTab] = useState<"story" | "gallery">("story");
+  const [activeTab, setActiveTab] = useState<Tab>("story");
   const isDeceased = node.deathYear !== null;
   const instagramHandle = normalizeInstagramHandle(node.content?.instagram);
   const instagramUrl = instagramHandle ? toInstagramUrl(instagramHandle) : null;
@@ -57,17 +64,37 @@ export default function BioModal({
       ? linkedinHandle.slice(3)
       : linkedinHandle
     : null;
+
   const copy =
     locale === "id"
       ? {
           memorial: "Mengenang",
           generation: "Generasi",
+          branch: "Cabang",
+          unknownYear: "Tahun belum dicatat",
           noMainPhoto: "Belum ada foto utama",
           tabStory: "Cerita",
-          tabGallery: "Galeri & Arsip",
-          noStory:
-            "Belum ada cerita yang ditulis. Klik edit untuk menambahkan biografi.",
+          tabGallery: "Galeri",
+          tabRelations: "Relasi",
+          noStoryTitle: "Cerita keluarga ini belum ditulis.",
+          noStoryBody: "Tambahkan biografi agar ingatan tentang anggota ini tersimpan rapi.",
+          writeStory: "Tulis cerita",
           worksTitle: "Karya & Kreasi",
+          archiveEmptyTitle: "Arsip belum berisi media.",
+          archiveEmptyBody: "Tambahkan foto atau dokumen dari mode edit profil.",
+          manageArchive: "Kelola arsip",
+          editProfile: "Edit profil",
+          deleteLabel: "Hapus anggota",
+          deleteConfirm: (name: string) =>
+            `Yakin hapus ${name} dari pohon keluarga?`,
+          relationsTitle: "Hubungan keluarga",
+          relationsBody: "Tambahkan relasi baru dari profil ini.",
+          parent: "Orang tua",
+          parentHint: "Tambah generasi di atas",
+          partner: "Pasangan",
+          partnerHint: "Hubungkan pasangan",
+          child: "Anak",
+          childHint: "Tambah keturunan",
           workTypes: {
             book: "Buku",
             music: "Musik",
@@ -75,24 +102,35 @@ export default function BioModal({
             art: "Seni",
             other: "Lainnya",
           } as Record<WorkItem["type"], string>,
-          editProfile: "Edit Profil",
-          deleteLabel: "Hapus",
-          deleteConfirm: (name: string) =>
-            `Yakin hapus ${name} dari pohon keluarga?`,
-          addRelations: "Tambah Hubungan Keluarga",
-          parent: "Orang Tua",
-          partner: "Pasangan",
-          child: "Anak",
-          manageGallery: "Kelola Galeri di Edit Mode",
         }
       : {
-          memorial: "In Memory",
+          memorial: "In memory",
           generation: "Generation",
+          branch: "Branch",
+          unknownYear: "Year not recorded",
           noMainPhoto: "No main photo yet",
           tabStory: "Story",
-          tabGallery: "Gallery & Archive",
-          noStory: "No story has been written yet. Click edit to add a biography.",
+          tabGallery: "Gallery",
+          tabRelations: "Relations",
+          noStoryTitle: "This family story has not been written.",
+          noStoryBody: "Add a biography to preserve this member's memory.",
+          writeStory: "Write story",
           worksTitle: "Works & Creations",
+          archiveEmptyTitle: "The archive has no media yet.",
+          archiveEmptyBody: "Add photos or documents from edit profile mode.",
+          manageArchive: "Manage archive",
+          editProfile: "Edit profile",
+          deleteLabel: "Delete member",
+          deleteConfirm: (name: string) =>
+            `Are you sure you want to delete ${name} from the family tree?`,
+          relationsTitle: "Family relations",
+          relationsBody: "Add a new relation from this profile.",
+          parent: "Parent",
+          parentHint: "Add an older generation",
+          partner: "Partner",
+          partnerHint: "Connect a partner",
+          child: "Child",
+          childHint: "Add a descendant",
           workTypes: {
             book: "Book",
             music: "Music",
@@ -100,19 +138,16 @@ export default function BioModal({
             art: "Art",
             other: "Other",
           } as Record<WorkItem["type"], string>,
-          editProfile: "Edit Profile",
-          deleteLabel: "Delete",
-          deleteConfirm: (name: string) =>
-            `Are you sure you want to delete ${name} from the family tree?`,
-          addRelations: "Add Family Relations",
-          parent: "Parent",
-          partner: "Partner",
-          child: "Child",
-          manageGallery: "Manage Gallery in Edit Mode",
         };
 
+  const lifespan = node.year
+    ? node.deathYear
+      ? `${node.year} - ${node.deathYear}`
+      : `${node.year}`
+    : copy.unknownYear;
+
   const getWorkIcon = (type: WorkItem["type"]) => {
-    const iconClass = "h-5 w-5";
+    const iconClass = "h-4 w-4";
     switch (type) {
       case "book":
         return <Book className={iconClass} />;
@@ -127,171 +162,209 @@ export default function BioModal({
     }
   };
 
+  const relationActions = [
+    {
+      type: "parent" as const,
+      label: copy.parent,
+      hint: copy.parentHint,
+      icon: ArrowUp,
+    },
+    {
+      type: "partner" as const,
+      label: copy.partner,
+      hint: copy.partnerHint,
+      icon: Heart,
+    },
+    {
+      type: "child" as const,
+      label: copy.child,
+      hint: copy.childHint,
+      icon: ArrowDown,
+    },
+  ];
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+    <div className="fixed inset-0 z-[100] flex justify-end">
+      <button
+        type="button"
+        className="absolute inset-0 bg-[#1d1610]/55 backdrop-blur-[2px]"
         onClick={onClose}
+        aria-label="close profile panel"
       />
 
-      <div
-        className="relative z-[1] w-full max-w-[860px] overflow-hidden rounded-2xl bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+      <aside
+        className="relative z-[1] flex h-full w-full max-w-[520px] flex-col border-l border-brand-200 bg-cream-50 bg-grain shadow-deep"
+        onClick={(event) => event.stopPropagation()}
       >
-        <button
-          onClick={onClose}
-          className="absolute right-6 top-6 z-10 rounded-full bg-warm-100 p-2 text-warmMuted transition-colors hover:bg-warm-200 hover:text-warmText"
-          aria-label="close profile modal"
-        >
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-
-        <div className="max-h-[88dvh] overflow-y-auto p-6 sm:p-8">
-          <h2 className="mb-2 pr-12 font-playfair text-2xl font-bold text-warmText sm:text-3xl">
-            {node.label}
-          </h2>
-          <div className="mb-6 flex flex-wrap items-center gap-2 text-sm font-medium text-warmMuted">
-            <span>
-              {node.year} {node.deathYear ? `- ${node.deathYear}` : ""}
-            </span>
-            {isDeceased && <span>| {copy.memorial}</span>}
-            <span>
-              | {copy.generation} {node.generation}
-            </span>
-          </div>
-
-          {(instagramUrl || tiktokUrl || linkedinUrl) && (
-            <div className="mb-6 flex flex-wrap gap-2">
-              {instagramUrl && (
-                <a
-                  href={instagramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-[#f1d4df] bg-gradient-to-r from-[#fff1f6] to-[#fff8fb] px-4 py-2 text-sm font-semibold text-[#b83b72] transition hover:-translate-y-0.5 hover:shadow-sm"
-                >
-                  <Instagram className="h-4 w-4" />
-                  <span>@{instagramHandle}</span>
-                  <ExternalLink className="h-3.5 w-3.5 opacity-80" />
-                </a>
-              )}
-
-              {tiktokUrl && (
-                <a
-                  href={tiktokUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-[#d8d8d8] bg-gradient-to-r from-[#f8f8f8] to-[#f1f1f1] px-4 py-2 text-sm font-semibold text-[#1f1f1f] transition hover:-translate-y-0.5 hover:shadow-sm"
-                >
-                  <Music2 className="h-4 w-4" />
-                  <span>@{tiktokHandle}</span>
-                  <ExternalLink className="h-3.5 w-3.5 opacity-80" />
-                </a>
-              )}
-
-              {linkedinUrl && (
-                <a
-                  href={linkedinUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-[#cddff2] bg-gradient-to-r from-[#eef5fc] to-[#f8fbff] px-4 py-2 text-sm font-semibold text-[#0a66c2] transition hover:-translate-y-0.5 hover:shadow-sm"
-                >
-                  <Linkedin className="h-4 w-4" />
-                  <span>{linkedinLabel || "LinkedIn"}</span>
-                  <ExternalLink className="h-3.5 w-3.5 opacity-80" />
-                </a>
-              )}
+        <div className="relative h-56 shrink-0 overflow-hidden border-b border-brand-200 bg-ink-900 text-cream-50">
+          {node.imageUrl ? (
+            <img src={node.imageUrl} alt={node.label} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,#82693c_0%,#4f3724_58%,#1d1610_100%)]">
+              <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-cream-300/45 bg-cream-50/10 text-5xl font-black text-cream-50 shadow-soft">
+                {node.label.charAt(0).toUpperCase()}
+              </div>
             </div>
           )}
-
-          <div className="relative mb-8 flex aspect-[16/8] items-center justify-center overflow-hidden rounded-xl bg-warm-100 shadow-inner sm:aspect-[16/7]">
-            {node.imageUrl ? (
-              <img
-                src={node.imageUrl}
-                alt={node.label}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="p-6 text-center text-warmMuted">
-                <span className="mb-2 inline-flex items-center justify-center">
-                  <Camera className="h-10 w-10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1d1610] via-[#1d1610]/42 to-transparent" />
+          <div className="absolute left-5 right-5 top-5 flex items-center justify-between">
+            <span className="inline-flex items-center gap-2 rounded-lg border border-cream-300/25 bg-cream-50/12 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] backdrop-blur-md">
+              <UserRound className="h-3.5 w-3.5" />
+              {node.line === "self" ? copy.branch : copy.generation}
+            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-cream-300/25 bg-cream-50/12 text-cream-50 backdrop-blur-md transition hover:bg-cream-50/22"
+              aria-label="close profile panel"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="absolute bottom-5 left-5 right-5">
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-cream-100/90">
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-cream-50/12 px-2.5 py-1 backdrop-blur-md">
+                <CalendarDays className="h-3.5 w-3.5" />
+                {lifespan}
+              </span>
+              {isDeceased && (
+                <span className="rounded-md bg-cream-50/12 px-2.5 py-1 backdrop-blur-md">
+                  {copy.memorial}
                 </span>
-                <span className="block text-sm">{copy.noMainPhoto}</span>
+              )}
+              <span className="rounded-md bg-cream-50/12 px-2.5 py-1 backdrop-blur-md">
+                {copy.generation} {node.generation}
+              </span>
+            </div>
+            <h2 className="font-serif text-3xl font-bold leading-tight tracking-normal text-cream-50">
+              {node.label}
+            </h2>
+          </div>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="border-b border-brand-200 bg-cream-100/86 px-5 py-4 backdrop-blur-md">
+            <div className="flex gap-2 rounded-xl border border-brand-200 bg-cream-50 p-1 shadow-soft">
+              {[
+                { id: "story" as const, label: copy.tabStory, icon: Book },
+                { id: "gallery" as const, label: copy.tabGallery, icon: ImageIcon },
+                { id: "relations" as const, label: copy.tabRelations, icon: Plus },
+              ].map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg text-xs font-bold transition ${
+                      activeTab === tab.id
+                        ? "bg-brand-700 text-white shadow-sm"
+                        : "text-ink-600 hover:bg-cream-200 hover:text-ink-800"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+            {(instagramUrl || tiktokUrl || linkedinUrl) && (
+              <div className="mb-5 flex flex-wrap gap-2">
+                {instagramUrl && (
+                  <a
+                    href={instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border border-brand-200 bg-cream-100 px-3 py-2 text-xs font-bold text-ink-700 transition hover:border-brand-400 hover:bg-cream-50"
+                  >
+                    <Instagram className="h-4 w-4 text-brand-700" />
+                    @{instagramHandle}
+                    <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+                  </a>
+                )}
+                {tiktokUrl && (
+                  <a
+                    href={tiktokUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border border-brand-200 bg-cream-100 px-3 py-2 text-xs font-bold text-ink-700 transition hover:border-brand-400 hover:bg-cream-50"
+                  >
+                    <Music2 className="h-4 w-4 text-brand-700" />
+                    @{tiktokHandle}
+                    <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+                  </a>
+                )}
+                {linkedinUrl && (
+                  <a
+                    href={linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border border-brand-200 bg-cream-100 px-3 py-2 text-xs font-bold text-ink-700 transition hover:border-brand-400 hover:bg-cream-50"
+                  >
+                    <Linkedin className="h-4 w-4 text-brand-700" />
+                    {linkedinLabel || "LinkedIn"}
+                    <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+                  </a>
+                )}
               </div>
             )}
-          </div>
 
-          <div className="mb-6 flex gap-1 border-b-2 border-warm-200">
-            <button
-              onClick={() => setActiveTab("story")}
-              className={`rounded-t-lg px-5 py-3 text-sm font-semibold transition-colors ${
-                activeTab === "story"
-                  ? "-mb-[2px] border-b-2 border-gold-500 bg-gold-100 text-gold-700"
-                  : "text-warmMuted hover:bg-warm-100 hover:text-warmText"
-              }`}
-            >
-              {copy.tabStory}
-            </button>
-            <button
-              onClick={() => setActiveTab("gallery")}
-              className={`rounded-t-lg px-5 py-3 text-sm font-semibold transition-colors ${
-                activeTab === "gallery"
-                  ? "-mb-[2px] border-b-2 border-gold-500 bg-gold-100 text-gold-700"
-                  : "text-warmMuted hover:bg-warm-100 hover:text-warmText"
-              }`}
-            >
-              {copy.tabGallery}
-            </button>
-          </div>
-
-          <div className="min-h-[200px]">
-            {activeTab === "story" ? (
-              <div className="animate-[fadeIn_0.3s] space-y-6">
-                <div className="prose prose-stone max-w-none">
-                  {node.content?.description ? (
-                    <p className="text-lg leading-relaxed text-warmText">
+            {activeTab === "story" && (
+              <div className="space-y-5">
+                {node.content?.description ? (
+                  <div className="rounded-xl border border-brand-200 bg-cream-50/92 p-5 shadow-soft">
+                    <p className="whitespace-pre-line text-base leading-8 text-ink-700">
                       {node.content.description}
                     </p>
-                  ) : (
-                    <p className="py-8 text-center italic text-warmMuted">
-                      {copy.noStory}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-brand-300 bg-cream-100/78 p-6 text-center">
+                    <Camera className="mx-auto mb-3 h-8 w-8 text-brand-700" />
+                    <h3 className="font-serif text-xl font-bold text-ink-800">
+                      {copy.noStoryTitle}
+                    </h3>
+                    <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-ink-500">
+                      {copy.noStoryBody}
                     </p>
-                  )}
-                </div>
+                    <button
+                      type="button"
+                      onClick={onEdit}
+                      className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-brand-700 px-4 text-sm font-bold text-white shadow-cta transition hover:bg-brand-800"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      {copy.writeStory}
+                    </button>
+                  </div>
+                )}
 
                 {node.works && node.works.length > 0 && (
-                  <div className="mt-6 border-t border-warm-200 pt-6">
-                    <h3 className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-warmMuted">
-                      <Book className="h-4 w-4" /> {copy.worksTitle}
+                  <section>
+                    <h3 className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-brand-700">
+                      <Book className="h-4 w-4" />
+                      {copy.worksTitle}
                     </h3>
-                    <div className="grid gap-3">
+                    <div className="space-y-3">
                       {node.works.map((work, index) => (
                         <div
-                          key={index}
-                          className="flex items-center gap-3 rounded-xl border border-gold-200 bg-gradient-to-r from-gold-50 to-warm-50 p-4"
+                          key={`${work.title}-${index}`}
+                          className="flex items-center gap-3 rounded-xl border border-brand-200 bg-cream-50/92 p-4 shadow-soft"
                         >
-                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gold-100 text-gold-700">
+                          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
                             {getWorkIcon(work.type)}
-                          </div>
+                          </span>
                           <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-warmText">{work.title}</p>
-                            <div className="flex items-center gap-2 text-xs text-warmMuted">
-                              <span>{copy.workTypes[work.type]}</span>
-                              {work.year && <span>| {work.year}</span>}
-                            </div>
+                            <p className="truncate text-sm font-bold text-ink-800">
+                              {work.title}
+                            </p>
+                            <p className="text-xs font-semibold text-ink-500">
+                              {copy.workTypes[work.type]}
+                              {work.year ? ` - ${work.year}` : ""}
+                            </p>
                             {work.description && (
-                              <p className="mt-1 text-sm text-warmMuted">
+                              <p className="mt-1 text-sm leading-5 text-ink-500">
                                 {work.description}
                               </p>
                             )}
@@ -299,78 +372,103 @@ export default function BioModal({
                         </div>
                       ))}
                     </div>
+                  </section>
+                )}
+              </div>
+            )}
+
+            {activeTab === "gallery" && (
+              <div className="space-y-5">
+                {node.content?.media?.length ? (
+                  <GalleryManager media={node.content.media} readOnly={true} />
+                ) : (
+                  <div className="rounded-xl border border-dashed border-brand-300 bg-cream-100/78 p-6 text-center">
+                    <ImageIcon className="mx-auto mb-3 h-8 w-8 text-brand-700" />
+                    <h3 className="font-serif text-xl font-bold text-ink-800">
+                      {copy.archiveEmptyTitle}
+                    </h3>
+                    <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-ink-500">
+                      {copy.archiveEmptyBody}
+                    </p>
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={onEdit}
+                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-brand-300 bg-cream-50 px-4 text-sm font-bold text-brand-800 transition hover:bg-cream-100"
+                >
+                  <Pencil className="h-4 w-4" />
+                  {copy.manageArchive}
+                </button>
+              </div>
+            )}
 
-                <div className="flex flex-col gap-3 pt-4 sm:flex-row">
-                  <button
-                    onClick={onEdit}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gold-700 px-4 py-2.5 font-semibold text-white shadow-sm transition-all hover:bg-gold-800 hover:shadow-md"
-                  >
-                    <Pencil className="h-4 w-4" />
-                    {copy.editProfile}
-                  </button>
-                  {node.line !== "self" && (
-                    <button
-                      onClick={() => {
-                        if (confirm(copy.deleteConfirm(node.label))) {
-                          onDelete();
-                        }
-                      }}
-                      className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 font-semibold text-red-600 transition-colors hover:bg-red-50"
-                      aria-label="delete node"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="hidden sm:inline">{copy.deleteLabel}</span>
-                    </button>
-                  )}
-                </div>
-
-                <div className="mt-8 border-t border-warm-200 pt-6">
-                  <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-warmMuted">
-                    {copy.addRelations}
+            {activeTab === "relations" && (
+              <div className="space-y-5">
+                <div className="rounded-xl border border-brand-200 bg-cream-50/92 p-5 shadow-soft">
+                  <h3 className="font-serif text-xl font-bold text-ink-800">
+                    {copy.relationsTitle}
                   </h3>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <button
-                      onClick={() => onAddRelative("parent")}
-                      className="flex flex-col items-center gap-2 rounded-xl border border-warm-200 bg-warm-100 p-3 text-warmMuted transition-all hover:bg-warm-200 hover:text-warmText hover:shadow-sm"
-                    >
-                      <ArrowUp className="h-5 w-5" />
-                      <span className="text-xs font-semibold">{copy.parent}</span>
-                    </button>
-                    <button
-                      onClick={() => onAddRelative("partner")}
-                      className="flex flex-col items-center gap-2 rounded-xl border border-warm-200 bg-warm-100 p-3 text-warmMuted transition-all hover:bg-warm-200 hover:text-warmText hover:shadow-sm"
-                    >
-                      <Heart className="h-5 w-5" />
-                      <span className="text-xs font-semibold">{copy.partner}</span>
-                    </button>
-                    <button
-                      onClick={() => onAddRelative("child")}
-                      className="flex flex-col items-center gap-2 rounded-xl border border-warm-200 bg-warm-100 p-3 text-warmMuted transition-all hover:bg-warm-200 hover:text-warmText hover:shadow-sm"
-                    >
-                      <ArrowDown className="h-5 w-5" />
-                      <span className="text-xs font-semibold">{copy.child}</span>
-                    </button>
+                  <p className="mt-1 text-sm leading-6 text-ink-500">
+                    {copy.relationsBody}
+                  </p>
+                  <div className="mt-5 grid gap-3">
+                    {relationActions.map((action) => {
+                      const Icon = action.icon;
+                      return (
+                        <button
+                          key={action.type}
+                          type="button"
+                          onClick={() => onAddRelative(action.type)}
+                          className="flex items-center gap-4 rounded-xl border border-brand-200 bg-cream-100 p-4 text-left transition hover:border-brand-400 hover:bg-cream-50 hover:shadow-soft"
+                        >
+                          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-700 text-white">
+                            <Icon className="h-5 w-5" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-black text-ink-800">
+                              {action.label}
+                            </span>
+                            <span className="block text-xs font-semibold text-ink-500">
+                              {action.hint}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="animate-[fadeIn_0.3s]">
-                <GalleryManager media={node.content?.media || []} readOnly={true} />
-                <div className="mt-6 border-t border-warm-200 pt-6 text-center">
+
+                {node.line !== "self" && (
                   <button
-                    onClick={onEdit}
-                    className="rounded-xl border border-warm-200 px-6 py-2 text-sm font-medium text-warmMuted transition-colors hover:bg-warm-100"
+                    type="button"
+                    onClick={() => {
+                      if (confirm(copy.deleteConfirm(node.label))) {
+                        onDelete();
+                      }
+                    }}
+                    className="inline-flex h-10 items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 text-sm font-bold text-red-700 transition hover:bg-red-100"
                   >
-                    {copy.manageGallery}
+                    <Trash2 className="h-4 w-4" />
+                    {copy.deleteLabel}
                   </button>
-                </div>
+                )}
               </div>
             )}
           </div>
+
+          <div className="border-t border-brand-200 bg-cream-100/92 px-5 py-4 backdrop-blur-md">
+            <button
+              type="button"
+              onClick={onEdit}
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-700 px-4 text-sm font-black text-white shadow-cta transition hover:bg-brand-800"
+            >
+              <Pencil className="h-4 w-4" />
+              {copy.editProfile}
+            </button>
+          </div>
         </div>
-      </div>
+      </aside>
     </div>
   );
 }
