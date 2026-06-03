@@ -102,6 +102,31 @@ describe("media object storage helpers", () => {
     );
   });
 
+  it("preserves path-prefixed S3 endpoints such as Supabase Storage", () => {
+    const supabaseConfig: MediaStorageConfig = {
+      ...config,
+      endpoint: "https://project-ref.storage.supabase.co/storage/v1/s3",
+      region: "ap-southeast-1",
+      publicBaseUrl:
+        "https://project-ref.supabase.co/storage/v1/object/public/lifestory-media",
+    };
+    const upload = createPresignedPutUrl(
+      supabaseConfig,
+      "trees/tree-1/nodes/node-1/gallery/2026/06/photo.webp",
+      new Date("2026-06-03T00:00:00.000Z")
+    );
+    const uploadUrl = new URL(upload.uploadUrl);
+
+    expect(uploadUrl.origin).toBe("https://project-ref.storage.supabase.co");
+    expect(uploadUrl.pathname).toBe(
+      "/storage/v1/s3/lifestory-media/trees/tree-1/nodes/node-1/gallery/2026/06/photo.webp"
+    );
+    expect(upload.uploadUrl).toContain("X-Amz-Signature=");
+    expect(upload.objectUrl).toBe(
+      "https://project-ref.supabase.co/storage/v1/object/public/lifestory-media/trees/tree-1/nodes/node-1/gallery/2026/06/photo.webp"
+    );
+  });
+
   it("allows only supported image upload types for the current gallery UI", () => {
     expect(isAllowedMediaContentType("image/jpeg")).toBe(true);
     expect(isAllowedMediaContentType("image/webp")).toBe(true);

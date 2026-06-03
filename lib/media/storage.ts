@@ -117,9 +117,7 @@ function credentialScope(dateStamp: string, region: string): string {
 
 function objectEndpointUrl(config: MediaStorageConfig, storageKey: string): URL {
   const url = new URL(stripTrailingSlash(config.endpoint));
-  url.pathname = `/${encodeRfc3986(config.bucket)}/${encodeStorageKey(
-    storageKey
-  )}`;
+  url.pathname = objectPathname(config, storageKey);
   return url;
 }
 
@@ -131,7 +129,19 @@ function canonicalQuery(params: URLSearchParams): string {
 }
 
 function canonicalObjectUri(config: MediaStorageConfig, storageKey: string) {
-  return `/${encodeRfc3986(config.bucket)}/${encodeStorageKey(storageKey)}`;
+  return objectPathname(config, storageKey);
+}
+
+function objectPathname(
+  config: MediaStorageConfig,
+  storageKey: string
+): string {
+  const endpoint = new URL(stripTrailingSlash(config.endpoint));
+  const basePath =
+    endpoint.pathname === "/" ? "" : endpoint.pathname.replace(/\/+$/, "");
+  return `${basePath}/${encodeRfc3986(config.bucket)}/${encodeStorageKey(
+    storageKey
+  )}`;
 }
 
 function isLikelyConfigured(value: string): boolean {
