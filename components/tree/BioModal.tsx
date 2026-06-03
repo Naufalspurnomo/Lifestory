@@ -30,6 +30,7 @@ import {
   toTikTokUrl,
   toLinkedInUrl,
 } from "../../lib/utils/socialLinks";
+import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import { useLanguage } from "../providers/LanguageProvider";
 import GalleryManager from "./GalleryManager";
 
@@ -63,6 +64,9 @@ export default function BioModal({
     ? linkedinHandle.startsWith("in/")
       ? linkedinHandle.slice(3)
       : linkedinHandle
+    : null;
+  const displayImageUrl = node.imageUrl
+    ? resolveDisplayMediaUrl(node.imageUrl)
     : null;
 
   const copy =
@@ -197,8 +201,8 @@ export default function BioModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="relative h-56 shrink-0 overflow-hidden border-b border-brand-200 bg-ink-900 text-cream-50">
-          {node.imageUrl ? (
-            <img src={node.imageUrl} alt={node.label} className="h-full w-full object-cover" />
+          {displayImageUrl ? (
+            <img src={displayImageUrl} alt={node.label} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,#82693c_0%,#4f3724_58%,#1d1610_100%)]">
               <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-cream-300/45 bg-cream-50/10 text-5xl font-black text-cream-50 shadow-soft">

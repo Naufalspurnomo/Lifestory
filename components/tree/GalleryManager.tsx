@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { uploadMediaFile } from "../../lib/media/client";
+import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import type { MediaItem } from "../../lib/types/tree";
 import { useLanguage } from "../providers/LanguageProvider";
 
@@ -138,63 +139,76 @@ export default function GalleryManager({
     setShowLightbox(true);
   };
 
+  const selectedMedia =
+    selectedIndex !== null ? media[selectedIndex] : undefined;
+  const selectedMediaUrl = selectedMedia
+    ? resolveDisplayMediaUrl(selectedMedia.url)
+    : "";
+
   return (
     <div className="space-y-4">
       {media.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {media.map((item, index) => (
-            <div
-              key={`${item.url}-${index}`}
-              role="button"
-              tabIndex={0}
-              className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-brand-200 bg-cream-200 text-left shadow-soft transition hover:border-brand-400 hover:shadow-elev"
-              onClick={() => openLightbox(index)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  openLightbox(index);
-                }
-              }}
-            >
-              {item.type === "image" ? (
-                <img
-                  src={item.url}
-                  alt={item.caption || `Media ${index + 1}`}
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                />
-              ) : (
-                <video src={item.url} className="h-full w-full object-cover" muted />
-              )}
+          {media.map((item, index) => {
+            const displayUrl = resolveDisplayMediaUrl(item.url);
+            return (
+              <div
+                key={`${item.url}-${index}`}
+                role="button"
+                tabIndex={0}
+                className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-brand-200 bg-cream-200 text-left shadow-soft transition hover:border-brand-400 hover:shadow-elev"
+                onClick={() => openLightbox(index)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openLightbox(index);
+                  }
+                }}
+              >
+                {item.type === "image" ? (
+                  <img
+                    src={displayUrl}
+                    alt={item.caption || `Media ${index + 1}`}
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <video
+                    src={displayUrl}
+                    className="h-full w-full object-cover"
+                    muted
+                  />
+                )}
 
-              <div className="absolute inset-0 bg-gradient-to-t from-ink-900/70 via-ink-900/10 to-transparent opacity-80 transition group-hover:opacity-100" />
+                <div className="absolute inset-0 bg-gradient-to-t from-ink-900/70 via-ink-900/10 to-transparent opacity-80 transition group-hover:opacity-100" />
 
-              <div className="absolute bottom-2 left-2 right-2">
-                <p className="truncate text-xs font-black text-white">
-                  {item.caption || copy.noCaption}
-                </p>
+                <div className="absolute bottom-2 left-2 right-2">
+                  <p className="truncate text-xs font-black text-white">
+                    {item.caption || copy.noCaption}
+                  </p>
+                </div>
+
+                {item.type === "video" && (
+                  <span className="absolute left-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-ink-900/70 text-white backdrop-blur-md">
+                    <Film className="h-4 w-4" />
+                  </span>
+                )}
+
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleRemove(index);
+                    }}
+                    className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-600/90 text-white opacity-0 shadow-sm transition hover:bg-red-700 group-hover:opacity-100"
+                    aria-label={copy.removeMedia}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
-
-              {item.type === "video" && (
-                <span className="absolute left-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-ink-900/70 text-white backdrop-blur-md">
-                  <Film className="h-4 w-4" />
-                </span>
-              )}
-
-              {!readOnly && (
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleRemove(index);
-                  }}
-                  className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-600/90 text-white opacity-0 shadow-sm transition hover:bg-red-700 group-hover:opacity-100"
-                  aria-label={copy.removeMedia}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-brand-300 bg-cream-100/78 px-5 py-8 text-center">
@@ -237,7 +251,7 @@ export default function GalleryManager({
         </div>
       )}
 
-      {showLightbox && selectedIndex !== null && media[selectedIndex] && (
+      {showLightbox && selectedIndex !== null && selectedMedia && (
         <div
           className="fixed inset-0 z-[140] flex items-center justify-center bg-ink-900/92 p-4"
           onClick={() => setShowLightbox(false)}
@@ -256,15 +270,15 @@ export default function GalleryManager({
             </button>
 
             <div className="overflow-hidden rounded-xl border border-white/15 bg-black shadow-deep">
-              {media[selectedIndex].type === "image" ? (
+              {selectedMedia.type === "image" ? (
                 <img
-                  src={media[selectedIndex].url}
-                  alt={media[selectedIndex].caption || ""}
+                  src={selectedMediaUrl}
+                  alt={selectedMedia.caption || ""}
                   className="max-h-[78dvh] w-full object-contain"
                 />
               ) : (
                 <video
-                  src={media[selectedIndex].url}
+                  src={selectedMediaUrl}
                   controls
                   className="max-h-[78dvh] w-full"
                 />
@@ -273,12 +287,12 @@ export default function GalleryManager({
 
             {readOnly ? (
               <div className="mt-4 text-center font-serif text-lg italic text-cream-50">
-                {media[selectedIndex].caption || copy.noCaption}
+                {selectedMedia.caption || copy.noCaption}
               </div>
             ) : (
               <input
                 type="text"
-                value={media[selectedIndex].caption || ""}
+                value={selectedMedia.caption || ""}
                 onChange={(event) => handleCaptionChange(selectedIndex, event.target.value)}
                 placeholder={copy.captionPlaceholder}
                 className="mt-4 w-full rounded-lg border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-white placeholder:text-white/50 focus:border-brand-400 focus:outline-none"

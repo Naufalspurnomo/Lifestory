@@ -1,4 +1,8 @@
 import { createHmac, createHash, randomUUID } from "crypto";
+import {
+  derivePublicBaseUrlFromEndpoint,
+  resolveDisplayMediaUrl,
+} from "./public-url";
 
 export type MediaPurpose = "profile" | "gallery";
 
@@ -163,7 +167,9 @@ export function getMediaStorageConfig(
   }
 
   const publicBaseUrl =
-    cleanEnv(env.S3_PUBLIC_BASE_URL) || `${stripTrailingSlash(endpoint)}/${bucket}`;
+    cleanEnv(env.S3_PUBLIC_BASE_URL) ||
+    derivePublicBaseUrlFromEndpoint(endpoint, bucket) ||
+    `${stripTrailingSlash(endpoint)}/${bucket}`;
 
   return {
     endpoint: stripTrailingSlash(endpoint),
@@ -227,7 +233,9 @@ export function buildObjectUrl(
   config: MediaStorageConfig,
   storageKey: string
 ): string {
-  return `${config.publicBaseUrl}/${encodeStorageKey(storageKey)}`;
+  return resolveDisplayMediaUrl(
+    `${config.publicBaseUrl}/${encodeStorageKey(storageKey)}`
+  );
 }
 
 export function createPresignedPutUrl(

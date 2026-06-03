@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { calculateTreeMediaUsage } from "../lib/media/quota";
 import {
+  derivePublicBaseUrlFromEndpoint,
+  resolveDisplayMediaUrl,
+} from "../lib/media/public-url";
+import {
   buildObjectUrl,
   createMediaStorageKey,
   createPresignedPutUrl,
@@ -124,6 +128,60 @@ describe("media object storage helpers", () => {
     expect(upload.uploadUrl).toContain("X-Amz-Signature=");
     expect(upload.objectUrl).toBe(
       "https://project-ref.supabase.co/storage/v1/object/public/lifestory-media/trees/tree-1/nodes/node-1/gallery/2026/06/photo.webp"
+    );
+  });
+
+  it("derives Supabase public object URLs from the S3 endpoint", () => {
+    expect(
+      derivePublicBaseUrlFromEndpoint(
+        "https://project-ref.storage.supabase.co/storage/v1/s3",
+        "lifestory-media"
+      )
+    ).toBe(
+      "https://project-ref.supabase.co/storage/v1/object/public/lifestory-media"
+    );
+
+    expect(
+      getMediaStorageConfig({
+        S3_ENDPOINT: "https://project-ref.storage.supabase.co/storage/v1/s3",
+        S3_BUCKET: "lifestory-media",
+        S3_ACCESS_KEY: config.accessKeyId,
+        S3_SECRET_KEY: config.secretAccessKey,
+      } as NodeJS.ProcessEnv)
+    ).toMatchObject({
+      publicBaseUrl:
+        "https://project-ref.supabase.co/storage/v1/object/public/lifestory-media",
+    });
+  });
+
+  it("normalizes Supabase S3 URLs before rendering media previews", () => {
+    expect(
+      resolveDisplayMediaUrl(
+        "https://project-ref.storage.supabase.co/storage/v1/s3/lifestory-media/trees/tree-1/photo.webp"
+      )
+    ).toBe(
+      "https://project-ref.supabase.co/storage/v1/object/public/lifestory-media/trees/tree-1/photo.webp"
+    );
+
+    expect(
+      resolveDisplayMediaUrl(
+        "https://project-ref.storage.supabase.co/lifestory-media/trees/tree-1/photo.webp"
+      )
+    ).toBe(
+      "https://project-ref.supabase.co/storage/v1/object/public/lifestory-media/trees/tree-1/photo.webp"
+    );
+
+    expect(
+      buildObjectUrl(
+        {
+          ...config,
+          publicBaseUrl:
+            "https://project-ref.storage.supabase.co/storage/v1/s3/lifestory-media",
+        },
+        "trees/tree-1/photo.webp"
+      )
+    ).toBe(
+      "https://project-ref.supabase.co/storage/v1/object/public/lifestory-media/trees/tree-1/photo.webp"
     );
   });
 

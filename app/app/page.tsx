@@ -19,6 +19,7 @@ import { LanguageToggle } from "../../components/site/LanguageToggle";
 import { useTreeState } from "../../lib/hooks/useTreeState";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 import { downloadTreeJson } from "../../lib/sync/ExportManager";
+import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import { Layers3, Users, GitBranch, History, ImageIcon, BookOpen } from "lucide-react";
 
 import type { FamilyNode } from "../../lib/types/tree";
@@ -181,6 +182,7 @@ export default function AppHome() {
     return currentTree.nodes.flatMap((node) =>
       (node.content?.media || []).map((item) => ({
         ...item,
+        url: resolveDisplayMediaUrl(item.url),
         ownerId: node.id,
         ownerName: node.label,
         ownerYear: node.year,

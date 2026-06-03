@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { FamilyNode, LayoutGraph } from "../../lib/types/tree";
 import { LAYOUT } from "../../lib/types/tree";
+import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import { useLanguage } from "../providers/LanguageProvider";
 
 type Props = {
@@ -362,18 +363,23 @@ export default function FamilyTreeCanvas({
 
   useEffect(() => {
     let loadedCount = 0;
-    const toLoad = nodes.filter(
-      (node) => node.imageUrl && !imageCache.has(node.imageUrl)
-    );
+    const toLoad = Array.from(
+      new Set(
+        nodes
+          .map((node) =>
+            node.imageUrl ? resolveDisplayMediaUrl(node.imageUrl) : null
+          )
+          .filter((url): url is string => Boolean(url))
+      )
+    ).filter((url) => !imageCache.has(url));
 
     if (toLoad.length === 0) return;
 
-    toLoad.forEach((node) => {
-      if (!node.imageUrl) return;
+    toLoad.forEach((imageUrl) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
-        imageCacheSet(node.imageUrl!, img);
+        imageCacheSet(imageUrl, img);
         loadedCount++;
         if (loadedCount === toLoad.length) setImagesLoaded((value) => value + 1);
       };
@@ -381,7 +387,7 @@ export default function FamilyTreeCanvas({
         loadedCount++;
         if (loadedCount === toLoad.length) setImagesLoaded((value) => value + 1);
       };
-      img.src = node.imageUrl;
+      img.src = imageUrl;
     });
   }, [nodes]);
 
@@ -690,7 +696,10 @@ export default function FamilyTreeCanvas({
         );
         ctx.clip();
 
-        const img = node.imageUrl ? imageCache.get(node.imageUrl) : null;
+        const imageUrl = node.imageUrl
+          ? resolveDisplayMediaUrl(node.imageUrl)
+          : null;
+        const img = imageUrl ? imageCache.get(imageUrl) : null;
         if (img && img.complete && img.naturalWidth > 0) {
           drawImageCover(
             ctx,

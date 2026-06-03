@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { FamilyNode } from "../../lib/types/tree";
+import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import { useLanguage } from "../providers/LanguageProvider";
 
 interface GlobalStoriesProps {
@@ -77,16 +78,20 @@ export default function GlobalStories({ nodes, onSelectNode }: GlobalStoriesProp
       {activeTab === "stories" ? (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {stories.length > 0 ? (
-            stories.map((node) => (
-              <div
-                key={node.id}
-                onClick={() => onSelectNode(node)}
-                className="group cursor-pointer overflow-hidden rounded-xl border border-warm-200 bg-white transition-all hover:border-gold-300 hover:shadow-lg"
-              >
-                {node.imageUrl ? (
+            stories.map((node) => {
+              const displayImageUrl = node.imageUrl
+                ? resolveDisplayMediaUrl(node.imageUrl)
+                : null;
+              return (
+                <div
+                  key={node.id}
+                  onClick={() => onSelectNode(node)}
+                  className="group cursor-pointer overflow-hidden rounded-xl border border-warm-200 bg-white transition-all hover:border-gold-300 hover:shadow-lg"
+                >
+                {displayImageUrl ? (
                   <div className="h-48 overflow-hidden">
                     <img
-                      src={node.imageUrl}
+                      src={displayImageUrl}
                       alt={node.label}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
@@ -121,8 +126,9 @@ export default function GlobalStories({ nodes, onSelectNode }: GlobalStoriesProp
                     </span>
                   </div>
                 </div>
-              </div>
-            ))
+                </div>
+              );
+            })
           ) : (
             <div className="col-span-full rounded-2xl border-2 border-dashed border-warm-200 bg-warm-50 py-20 text-center">
               <p className="mb-4 text-warmMuted">{copy.emptyStoriesTitle}</p>
@@ -139,15 +145,19 @@ export default function GlobalStories({ nodes, onSelectNode }: GlobalStoriesProp
           <div className="columns-2 space-y-4 gap-4 md:columns-3 lg:columns-4">
             {nodes
               .filter((n) => n.imageUrl)
-              .map((node) => (
-                <div
-                  key={node.id}
-                  className="group relative cursor-pointer overflow-hidden rounded-lg break-inside-avoid"
-                  onClick={() => onSelectNode(node)}
-                >
-                  {node.imageUrl && (
+              .map((node) => {
+                const displayImageUrl = node.imageUrl
+                  ? resolveDisplayMediaUrl(node.imageUrl)
+                  : null;
+                return (
+                  <div
+                    key={node.id}
+                    className="group relative cursor-pointer overflow-hidden rounded-lg break-inside-avoid"
+                    onClick={() => onSelectNode(node)}
+                  >
+                  {displayImageUrl && (
                     <img
-                      src={node.imageUrl}
+                      src={displayImageUrl}
                       className="w-full rounded-lg transition-all hover:brightness-110"
                       alt={node.label}
                     />
@@ -158,8 +168,9 @@ export default function GlobalStories({ nodes, onSelectNode }: GlobalStoriesProp
                     </span>
                     <span className="text-xs text-white/80">{node.year}</span>
                   </div>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
           </div>
 
           {nodes.filter((n) => n.imageUrl).length === 0 && (

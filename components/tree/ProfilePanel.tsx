@@ -1,5 +1,6 @@
 "use client";
 
+import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import { Button } from "../ui/Button";
 
 // Simple display props for profile panel
@@ -29,6 +30,9 @@ export default function ProfilePanel({
   const birthYear = member.birthDate ? parseInt(member.birthDate) : null;
   const deathYear = member.deathDate ? parseInt(member.deathDate) : null;
   const isDeceased = !!member.deathDate;
+  const displayPhotoUrl = member.photoUrl
+    ? resolveDisplayMediaUrl(member.photoUrl)
+    : null;
 
   const relationLabels: Record<string, string> = {
     root: "Diri Sendiri",
@@ -46,9 +50,9 @@ export default function ProfilePanel({
           <div className="flex items-center gap-4">
             {/* Avatar */}
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-forest-100 to-forest-200 overflow-hidden">
-              {member.photoUrl ? (
+              {displayPhotoUrl ? (
                 <img
-                  src={member.photoUrl}
+                  src={displayPhotoUrl}
                   alt={member.name}
                   className="h-full w-full object-cover"
                 />

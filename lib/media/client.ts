@@ -1,5 +1,6 @@
 import type { MediaItem, MediaPurpose } from "../types/tree";
 import { prepareMediaFileForUpload } from "./image-optimizer";
+import { resolveDisplayMediaUrl } from "./public-url";
 
 export type UploadedMediaAsset = MediaItem & {
   storageKey: string;
@@ -65,5 +66,8 @@ export async function uploadMediaFile(input: {
     throw new Error(`Media upload failed with HTTP ${putResponse.status}`);
   }
 
-  return upload.asset;
+  return {
+    ...upload.asset,
+    url: resolveDisplayMediaUrl(upload.asset.url),
+  };
 }

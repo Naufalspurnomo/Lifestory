@@ -28,6 +28,7 @@ import {
   getBase64Size,
 } from "../../lib/utils/imageUtils";
 import { uploadMediaFile } from "../../lib/media/client";
+import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import {
   normalizeInstagramHandle,
   normalizeTikTokHandle,
@@ -423,6 +424,7 @@ export default function NodeEditor({
   };
 
   const panelTitle = editingNode ? copy.editProfile : copy.addTypeLabels[addType];
+  const displayImageUrl = imageUrl ? resolveDisplayMediaUrl(imageUrl) : null;
   const inputClass =
     "w-full rounded-lg border border-brand-200 bg-cream-50 px-3 py-2.5 text-sm font-semibold text-ink-800 placeholder:text-ink-300 shadow-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100";
   const labelClass = "text-xs font-black uppercase tracking-[0.12em] text-ink-500";
@@ -478,8 +480,8 @@ export default function NodeEditor({
                   onClick={() => fileInputRef.current?.click()}
                   className="group relative flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-brand-200 bg-cream-200 text-brand-700 shadow-soft transition hover:border-brand-400"
                 >
-                  {imageUrl ? (
-                    <img src={imageUrl} alt="Preview" className="h-full w-full object-cover" />
+                  {displayImageUrl ? (
+                    <img src={displayImageUrl} alt="Preview" className="h-full w-full object-cover" />
                   ) : (
                     <Camera className="h-9 w-9" />
                   )}

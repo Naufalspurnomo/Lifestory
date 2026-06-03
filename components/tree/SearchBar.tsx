@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { FamilyNode } from "../../lib/types/tree";
+import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import { useLanguage } from "../providers/LanguageProvider";
 
 interface SearchBarProps {
@@ -79,8 +80,12 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
         <div className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-warm-200 bg-white shadow-xl animate-[fadeIn_0.2s]">
           {filteredNodes.length > 0 ? (
             <div className="max-h-60 overflow-y-auto py-2">
-              {filteredNodes.map((node) => (
-                <button
+              {filteredNodes.map((node) => {
+                const displayImageUrl = node.imageUrl
+                  ? resolveDisplayMediaUrl(node.imageUrl)
+                  : null;
+                return (
+                  <button
                   key={node.id}
                   onClick={() => {
                     onSelect(node.id);
@@ -90,9 +95,9 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
                   className="flex w-full items-center gap-3 border-b border-warm-100 px-4 py-3 text-left transition-colors last:border-0 hover:bg-warm-100"
                 >
                   <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-warm-100 text-xs font-bold text-warmMuted flex items-center justify-center">
-                    {node.imageUrl ? (
+                    {displayImageUrl ? (
                       <img
-                        src={node.imageUrl}
+                        src={displayImageUrl}
                         alt={node.label}
                         className="h-full w-full object-cover"
                       />
@@ -108,8 +113,9 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
                       {copy.generation} {node.generation} • {node.year || "?"}
                     </div>
                   </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <div className="p-4 text-center text-sm text-warmMuted">

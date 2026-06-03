@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useTreeState } from "../../lib/hooks/useTreeState";
 import { useLanguage } from "../../components/providers/LanguageProvider";
+import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import type { MediaItem } from "../../lib/types/tree";
 
 type MediaWithOwner = MediaItem & {
@@ -90,7 +91,7 @@ export default function ArchivePage() {
       if (node.imageUrl) {
         media.push({
           type: "image",
-          url: node.imageUrl,
+          url: resolveDisplayMediaUrl(node.imageUrl),
           caption: copy.profileCaption(node.label),
           ownerId: node.id,
           ownerName: node.label,
@@ -100,6 +101,7 @@ export default function ArchivePage() {
       for (const item of node.content.media) {
         media.push({
           ...item,
+          url: resolveDisplayMediaUrl(item.url),
           ownerId: node.id,
           ownerName: node.label,
         });

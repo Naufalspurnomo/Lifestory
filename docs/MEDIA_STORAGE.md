@@ -20,7 +20,15 @@ MEDIA_UPLOAD_URL_TTL_SECONDS="600"
 ```
 
 `S3_PUBLIC_BASE_URL` must serve objects publicly, usually through a bucket public
-domain or CDN custom domain.
+domain or CDN custom domain. For Supabase Storage, the app can derive this value
+when `S3_ENDPOINT` is set to
+`https://<project-ref>.storage.supabase.co/storage/v1/s3`; the derived public
+base becomes
+`https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>`.
+
+Keep the bucket public for media previews. A private bucket can still accept the
+upload, but `<img>` previews will look broken because the browser cannot read the
+object without a signed public-read URL.
 
 ## Browser Image Optimization
 
@@ -47,7 +55,7 @@ Allow browser uploads from the app origin:
 [
   {
     "AllowedOrigins": ["https://lifestory.co.id"],
-    "AllowedMethods": ["PUT"],
+    "AllowedMethods": ["GET", "PUT"],
     "AllowedHeaders": ["Content-Type"],
     "ExposeHeaders": ["ETag"],
     "MaxAgeSeconds": 3600

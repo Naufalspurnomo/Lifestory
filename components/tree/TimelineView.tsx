@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { FamilyNode } from "../../lib/types/tree";
+import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import { useLanguage } from "../providers/LanguageProvider";
 
 interface TimelineViewProps {
@@ -71,6 +72,9 @@ export default function TimelineView({ nodes, onSelectNode }: TimelineViewProps)
           <div className="space-y-8">
             {group.events.map((event, idx) => {
               const isLeft = idx % 2 === 0;
+              const displayImageUrl = event.node.imageUrl
+                ? resolveDisplayMediaUrl(event.node.imageUrl)
+                : null;
               return (
                 <div
                   key={`${event.node.id}-${event.type}`}
@@ -101,9 +105,9 @@ export default function TimelineView({ nodes, onSelectNode }: TimelineViewProps)
                       <div className={`flex items-center gap-2 text-xs text-warmMuted ${
                         isLeft ? "justify-start sm:justify-end" : "justify-start"
                       }`}>
-                        {event.node.imageUrl && (
+                        {displayImageUrl && (
                           <img
-                            src={event.node.imageUrl}
+                            src={displayImageUrl}
                             className="h-6 w-6 rounded-full object-cover"
                             alt=""
                           />
