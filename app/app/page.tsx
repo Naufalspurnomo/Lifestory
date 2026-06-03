@@ -15,6 +15,7 @@ import ConflictResolutionModal from "../../components/tree/ConflictResolutionMod
 import SearchBar from "../../components/tree/SearchBar";
 import TimelineView from "../../components/tree/TimelineView";
 import SyncStatusIndicator from "../../components/tree/SyncStatusIndicator";
+import { LanguageToggle } from "../../components/site/LanguageToggle";
 import { useTreeState } from "../../lib/hooks/useTreeState";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 import { downloadTreeJson } from "../../lib/sync/ExportManager";
@@ -575,6 +576,10 @@ export default function AppHome() {
                     </button>
                   ))}
                 </div>
+                <LanguageToggle
+                  compact
+                  className="shrink-0 border-[#dccfb3] bg-[#fdfbf6] shadow-sm"
+                />
               </div>
             </div>
 
@@ -633,6 +638,10 @@ export default function AppHome() {
                   </button>
                 ))}
               </div>
+              <LanguageToggle
+                compact
+                className="border-[#dccfb3] bg-[#fdfbf6] shadow-sm"
+              />
               
               {/* User Profile */}
               <div className="flex items-center gap-2 border border-[#dccfb3] bg-[#fdfbf6] px-2 py-1.5 rounded-full">

@@ -4,6 +4,7 @@ import { useLanguage, type Locale } from "../providers/LanguageProvider";
 
 type Props = {
   className?: string;
+  compact?: boolean;
 };
 
 const labels: Record<Locale, string> = {
@@ -11,7 +12,7 @@ const labels: Record<Locale, string> = {
   en: "EN",
 };
 
-export function LanguageToggle({ className = "" }: Props) {
+export function LanguageToggle({ className = "", compact = false }: Props) {
   const { locale, setLocale } = useLanguage();
 
   return (
@@ -26,7 +27,11 @@ export function LanguageToggle({ className = "" }: Props) {
             key={item}
             type="button"
             onClick={() => setLocale(item)}
-            className={`relative rounded-pill px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
+            className={`relative rounded-pill font-bold uppercase transition-colors ${
+              compact
+                ? "px-2 py-0.5 text-[10px] tracking-[0.08em]"
+                : "px-2.5 py-1 text-[11px] tracking-[0.12em]"
+            } ${
               active
                 ? "bg-brand-gradient text-white shadow-cta"
                 : "text-ink-500 hover:text-ink-800"
