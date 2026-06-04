@@ -11,7 +11,11 @@ export class IntegrityValidator {
     const errors = [
       ...this.checkDuplicateIds(nodes),
       ...this.checkParentReferences(nodes),
+      ...this.checkChildReferences(nodes),
+      ...this.checkAdoptiveParentReferences(nodes),
       ...this.checkBidirectionalPartners(nodes),
+      ...this.checkBidirectionalParentChildren(nodes),
+      ...this.checkSiblingPartners(nodes),
       ...this.checkCircularAncestors(nodes),
     ];
     return { valid: errors.length === 0, errors };
@@ -25,7 +29,7 @@ export class IntegrityValidator {
       for (const parentId of parentRefs(node)) {
         if (parentId === node.id) {
           errors.push({
-            type: "circular-ancestor",
+            type: "self-reference",
             nodeId: node.id,
             details: "Node references itself as a parent",
           });
@@ -42,18 +46,137 @@ export class IntegrityValidator {
     return errors;
   }
 
+  checkAdoptiveParentReferences(nodes: FamilyNode[]): ValidationError[] {
+    const ids = new Set(nodes.map((node) => node.id));
+    const errors: ValidationError[] = [];
+
+    for (const node of nodes) {
+      for (const parentId of uniq(node.adoptiveParentIds || [])) {
+        if (parentId === node.id) {
+          errors.push({
+            type: "self-reference",
+            nodeId: node.id,
+            details: "Node references itself as an adoptive parent",
+          });
+        } else if (!ids.has(parentId)) {
+          errors.push({
+            type: "orphan-adoptive-parent-ref",
+            nodeId: node.id,
+            details: `Adoptive parent ${parentId} does not exist`,
+          });
+        }
+      }
+    }
+
+    return errors;
+  }
+
+  checkChildReferences(nodes: FamilyNode[]): ValidationError[] {
+    const ids = new Set(nodes.map((node) => node.id));
+    const errors: ValidationError[] = [];
+
+    for (const node of nodes) {
+      for (const childId of uniq(node.childrenIds || [])) {
+        if (childId === node.id) {
+          errors.push({
+            type: "self-reference",
+            nodeId: node.id,
+            details: "Node references itself as a child",
+          });
+        } else if (!ids.has(childId)) {
+          errors.push({
+            type: "orphan-child-ref",
+            nodeId: node.id,
+            details: `Child ${childId} does not exist`,
+          });
+        }
+      }
+    }
+
+    return errors;
+  }
+
   checkBidirectionalPartners(nodes: FamilyNode[]): ValidationError[] {
     const byId = new Map(nodes.map((node) => [node.id, node]));
     const errors: ValidationError[] = [];
 
     for (const node of nodes) {
       for (const partnerId of uniq(node.partners || [])) {
+        if (partnerId === node.id) {
+          errors.push({
+            type: "self-reference",
+            nodeId: node.id,
+            details: "Node references itself as a partner",
+          });
+          continue;
+        }
+
         const partner = byId.get(partnerId);
         if (!partner || !(partner.partners || []).includes(node.id)) {
           errors.push({
             type: "unidirectional-partner",
             nodeId: node.id,
             details: `Partner link to ${partnerId} is not bidirectional`,
+          });
+        }
+      }
+    }
+
+    return errors;
+  }
+
+  checkBidirectionalParentChildren(nodes: FamilyNode[]): ValidationError[] {
+    const byId = new Map(nodes.map((node) => [node.id, node]));
+    const errors: ValidationError[] = [];
+
+    for (const node of nodes) {
+      for (const childId of uniq(node.childrenIds || [])) {
+        const child = byId.get(childId);
+        if (!child) continue;
+        if (!parentRefs(child).includes(node.id)) {
+          errors.push({
+            type: "unidirectional-parent-child",
+            nodeId: node.id,
+            details: `Child link to ${childId} is not reflected in the child's parentIds`,
+          });
+        }
+      }
+
+      for (const parentId of parentRefs(node)) {
+        const parent = byId.get(parentId);
+        if (!parent) continue;
+        if (!(parent.childrenIds || []).includes(node.id)) {
+          errors.push({
+            type: "unidirectional-parent-child",
+            nodeId: node.id,
+            details: `Parent link to ${parentId} is not reflected in the parent's childrenIds`,
+          });
+        }
+      }
+    }
+
+    return errors;
+  }
+
+  checkSiblingPartners(nodes: FamilyNode[]): ValidationError[] {
+    const byId = new Map(nodes.map((node) => [node.id, node]));
+    const errors: ValidationError[] = [];
+
+    for (const node of nodes) {
+      const nodeParents = new Set(parentRefs(node));
+      if (nodeParents.size === 0) continue;
+
+      for (const partnerId of uniq(node.partners || [])) {
+        const partner = byId.get(partnerId);
+        if (!partner) continue;
+        const sharesBiologicalParent = parentRefs(partner).some((parentId) =>
+          nodeParents.has(parentId)
+        );
+        if (sharesBiologicalParent) {
+          errors.push({
+            type: "sibling-partner",
+            nodeId: node.id,
+            details: `Partner link to ${partnerId} connects biological siblings`,
           });
         }
       }

@@ -183,44 +183,8 @@ function sanitizeGraph(nodes: FamilyNode[]): FamilyNode[] {
     }
   }
 
-  // C) infer missing co-parent when one parent has a single stable partner
-  for (const child of map.values()) {
-    const parentIds = uniq(child.parentIds || []);
-    if (parentIds.length !== 1) continue;
-
-    const knownParent = map.get(parentIds[0]);
-    if (!knownParent) continue;
-
-    const partnerCandidates = (knownParent.partners || []).filter((pid) =>
-      map.has(pid)
-    );
-    if (partnerCandidates.length === 0) continue;
-
-    const candidatesAlreadyLinkedToChild = partnerCandidates.filter((pid) =>
-      map.get(pid)?.childrenIds.includes(child.id)
-    );
-
-    const inferredPartnerId =
-      candidatesAlreadyLinkedToChild.length === 1
-        ? candidatesAlreadyLinkedToChild[0]
-        : partnerCandidates.length === 1
-        ? partnerCandidates[0]
-        : null;
-
-    if (!inferredPartnerId || parentIds.includes(inferredPartnerId)) continue;
-
-    const inferredPartner = map.get(inferredPartnerId);
-    if (!inferredPartner) continue;
-    if (sharesParent(knownParent, inferredPartner)) continue;
-
-    child.parentIds = uniq([...parentIds, inferredPartnerId]);
-
-    if (!inferredPartner.childrenIds.includes(child.id)) {
-      inferredPartner.childrenIds = uniq([...inferredPartner.childrenIds, child.id]);
-    }
-  }
-
-  // Final sync to keep arrays and legacy fields consistent
+  // Final sync to keep arrays and legacy fields consistent. Co-parents must
+  // stay explicit; a current partner is not automatically a child's parent.
   for (const child of map.values()) {
     child.parentIds = uniq(child.parentIds || []);
     for (const pid of child.parentIds) {

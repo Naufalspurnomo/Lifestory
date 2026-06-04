@@ -114,9 +114,14 @@ export type ManualMergeResult = {
 export type ValidationError = {
   type:
     | "orphan-parent-ref"
+    | "orphan-child-ref"
+    | "orphan-adoptive-parent-ref"
     | "unidirectional-partner"
+    | "unidirectional-parent-child"
     | "circular-ancestor"
-    | "duplicate-id";
+    | "duplicate-id"
+    | "self-reference"
+    | "sibling-partner";
   nodeId: string;
   details: string;
 };

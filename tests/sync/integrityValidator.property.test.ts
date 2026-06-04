@@ -37,4 +37,66 @@ describe("data reliability integrity validator", () => {
     const duplicate = [person("a", "A"), person("a", "A copy")];
     expect(validator.validate(duplicate).errors.some((e) => e.type === "duplicate-id")).toBe(true);
   });
+
+  it("detects broken child links, self links, adoptive orphans, and sibling partners", () => {
+    const oneWayParentChild = [
+      person("parent", "Parent", { childrenIds: ["child"] }),
+      person("child", "Child"),
+    ];
+    expect(
+      validator
+        .validate(oneWayParentChild)
+        .errors.some((e) => e.type === "unidirectional-parent-child")
+    ).toBe(true);
+
+    const oneWayChildParent = [
+      person("parent", "Parent"),
+      person("child", "Child", { parentId: "parent", parentIds: ["parent"] }),
+    ];
+    expect(
+      validator
+        .validate(oneWayChildParent)
+        .errors.some((e) => e.type === "unidirectional-parent-child")
+    ).toBe(true);
+
+    const missingChild = [person("parent", "Parent", { childrenIds: ["ghost"] })];
+    expect(
+      validator
+        .validate(missingChild)
+        .errors.some((e) => e.type === "orphan-child-ref")
+    ).toBe(true);
+
+    const missingAdoptive = [
+      person("child", "Child", { adoptiveParentIds: ["ghost"] }),
+    ];
+    expect(
+      validator
+        .validate(missingAdoptive)
+        .errors.some((e) => e.type === "orphan-adoptive-parent-ref")
+    ).toBe(true);
+
+    const selfPartner = [person("self", "Self", { partners: ["self"] })];
+    expect(
+      validator.validate(selfPartner).errors.some((e) => e.type === "self-reference")
+    ).toBe(true);
+
+    const siblingPartner = [
+      person("dad", "Dad", { childrenIds: ["a", "b"] }),
+      person("a", "A", {
+        parentId: "dad",
+        parentIds: ["dad"],
+        partners: ["b"],
+      }),
+      person("b", "B", {
+        parentId: "dad",
+        parentIds: ["dad"],
+        partners: ["a"],
+      }),
+    ];
+    expect(
+      validator
+        .validate(siblingPartner)
+        .errors.some((e) => e.type === "sibling-partner")
+    ).toBe(true);
+  });
 });

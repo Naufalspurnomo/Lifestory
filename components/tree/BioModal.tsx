@@ -39,7 +39,7 @@ interface BioModalProps {
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  onAddRelative: (type: "parent" | "partner" | "child") => void;
+  onAddRelative: (type: "parent" | "partner" | "child" | "sibling") => void;
 }
 
 type Tab = "story" | "gallery" | "relations";
@@ -99,6 +99,8 @@ export default function BioModal({
           partnerHint: "Hubungkan pasangan",
           child: "Anak",
           childHint: "Tambah keturunan",
+          sibling: "Saudara",
+          siblingHint: "Tambah anggota segenerasi",
           workTypes: {
             book: "Buku",
             music: "Musik",
@@ -135,6 +137,8 @@ export default function BioModal({
           partnerHint: "Connect a partner",
           child: "Child",
           childHint: "Add a descendant",
+          sibling: "Sibling",
+          siblingHint: "Add the same generation",
           workTypes: {
             book: "Book",
             music: "Music",
@@ -185,19 +189,18 @@ export default function BioModal({
       hint: copy.childHint,
       icon: ArrowDown,
     },
+    {
+      type: "sibling" as const,
+      label: copy.sibling,
+      hint: copy.siblingHint,
+      icon: UserRound,
+    },
   ];
 
   return (
-    <div className="fixed inset-0 z-[100] flex justify-end">
-      <button
-        type="button"
-        className="absolute inset-0 bg-[#1d1610]/55 backdrop-blur-[2px]"
-        onClick={onClose}
-        aria-label="close profile panel"
-      />
-
+    <div className="pointer-events-none fixed inset-0 z-[100] flex justify-end">
       <aside
-        className="relative z-[1] flex h-full w-full max-w-[520px] flex-col border-l border-brand-200 bg-cream-50 bg-grain shadow-deep"
+        className="pointer-events-auto relative z-[1] flex h-full w-full max-w-[520px] flex-col border-l border-brand-200 bg-cream-50 bg-grain shadow-deep"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="relative h-56 shrink-0 overflow-hidden border-b border-brand-200 bg-ink-900 text-cream-50">

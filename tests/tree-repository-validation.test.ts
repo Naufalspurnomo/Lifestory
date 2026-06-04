@@ -41,6 +41,23 @@ describe("server-side tree graph validation", () => {
     expect(() => assertTreeGraphValid([first, person("second")])).toThrow(
       InvalidTreeGraphError
     );
+
+    const parentOnly = {
+      ...person("parent"),
+      childrenIds: ["child"],
+    };
+    expect(() => assertTreeGraphValid([parentOnly, person("child")])).toThrow(
+      InvalidTreeGraphError
+    );
+
+    const childOnly = {
+      ...person("child"),
+      parentId: "parent",
+      parentIds: ["parent"],
+    };
+    expect(() => assertTreeGraphValid([person("parent"), childOnly])).toThrow(
+      InvalidTreeGraphError
+    );
   });
 
   it("rejects circular ancestry", () => {
@@ -57,6 +74,31 @@ describe("server-side tree graph validation", () => {
       childrenIds: ["first"],
     };
     expect(() => assertTreeGraphValid([first, second])).toThrow(
+      InvalidTreeGraphError
+    );
+  });
+
+  it("rejects self links and biological sibling partners", () => {
+    const selfPartner = { ...person("self"), partners: ["self"] };
+    expect(() => assertTreeGraphValid([selfPartner])).toThrow(
+      InvalidTreeGraphError
+    );
+
+    const parent = { ...person("parent"), childrenIds: ["a", "b"] };
+    const first = {
+      ...person("a"),
+      parentId: "parent",
+      parentIds: ["parent"],
+      partners: ["b"],
+    };
+    const second = {
+      ...person("b"),
+      parentId: "parent",
+      parentIds: ["parent"],
+      partners: ["a"],
+    };
+
+    expect(() => assertTreeGraphValid([parent, first, second])).toThrow(
       InvalidTreeGraphError
     );
   });

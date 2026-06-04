@@ -6,10 +6,12 @@ const relevantTables = new Set([
   "PasswordResetToken",
   "RateLimitBucket",
   "Tree",
+  "TreeMember",
   "TreeInvite",
   "TreeSnapshot",
   "TreeSyncReceipt",
   "Node",
+  "Edge",
   "_prisma_migrations",
 ]);
 const requiredColumns = new Set([
@@ -22,6 +24,9 @@ const requiredColumns = new Set([
   "RateLimitBucket.resetAt",
   "Tree.version",
   "Tree.deletedAt",
+  "TreeMember.treeId",
+  "TreeMember.userId",
+  "TreeMember.role",
   "TreeInvite.tokenHash",
   "TreeInvite.treeId",
   "TreeInvite.expiresAt",
@@ -29,6 +34,10 @@ const requiredColumns = new Set([
   "Node.imageStorageKey",
   "Node.imageMimeType",
   "Node.imageSizeBytes",
+  "Edge.treeId",
+  "Edge.fromId",
+  "Edge.toId",
+  "Edge.kind",
 ]);
 const rlsRequiredTables = new Set([
   "User",

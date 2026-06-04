@@ -269,6 +269,7 @@ export default function AppHome() {
     setAddType(type);
     setAddParentId(parentId);
     setEditingNode(null);
+    setSelectedId(null);
     setShowNodeEditor(true);
   };
 
@@ -912,7 +913,6 @@ export default function AppHome() {
               onDelete={() => handleDeleteNode(selectedNode.id)}
               onAddRelative={(type) => {
                 handleAddNode(selectedNode.id, type);
-                setSelectedId(null);
               }}
             />
           )}

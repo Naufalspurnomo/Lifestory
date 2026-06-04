@@ -18,6 +18,7 @@ export function person(
     deathYear: extra.deathYear ?? null,
     parentId: extra.parentId ?? null,
     parentIds: extra.parentIds ?? [],
+    adoptiveParentIds: extra.adoptiveParentIds ?? [],
     partners: extra.partners ?? [],
     childrenIds: extra.childrenIds ?? [],
     generation: extra.generation ?? 0,

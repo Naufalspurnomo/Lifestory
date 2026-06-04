@@ -43,11 +43,11 @@ const GEN_COLORS: Record<number, { border: string; labelId: string; labelEn: str
   [4]: { border: "#d53f8c", labelId: "Cicit", labelEn: "Great-grandchild" }, // Rose Quartz
 };
 
-const NODE_CARD_WIDTH = 118;
-const NODE_CARD_HEIGHT = 108;
-const NODE_CARD_RADIUS = 9;
-const NODE_COMPACT_WIDTH = 96;
-const NODE_COMPACT_HEIGHT = 82;
+const NODE_CARD_WIDTH = 138;
+const NODE_CARD_HEIGHT = 124;
+const NODE_CARD_RADIUS = 8;
+const NODE_COMPACT_WIDTH = 108;
+const NODE_COMPACT_HEIGHT = 90;
 const BUTTON_SIZE = 30;
 const MIN_SCALE = 0.045;
 const MAX_SCALE = 4;
@@ -624,17 +624,24 @@ export default function FamilyTreeCanvas({
       const isHovered = node.id === hoveredId;
       const displayGen = (node.generation ?? 0) - ownerGen + baseGen;
       const genColor = GEN_COLORS[displayGen]?.border || "#be123c";
-      const metrics = getNodeCardMetrics(renderMode, transform.k, isSelected || isHovered);
-      const cardW = renderMode === "overview" ? ((isSelected || isHovered ? 11 : 7.2) / transform.k) : metrics.width;
-      const cardH = renderMode === "overview" ? ((isSelected || isHovered ? 11 : 7.2) / transform.k) : metrics.height;
-      const cardR = renderMode === "overview" ? ((isSelected || isHovered ? 5.5 : 3.6) / transform.k) : metrics.radius;
+      const active = isSelected || isHovered;
+      const accentColor = node.line === "self" ? "#d4af37" : genColor;
+      const metrics = getNodeCardMetrics(renderMode, transform.k, active);
+      const cardW = renderMode === "overview" ? ((active ? 11 : 7.2) / transform.k) : metrics.width;
+      const cardH = renderMode === "overview" ? ((active ? 11 : 7.2) / transform.k) : metrics.height;
+      const cardR = renderMode === "overview" ? ((active ? 5.5 : 3.6) / transform.k) : metrics.radius;
 
       if (renderMode !== "overview") {
         ctx.save();
-        ctx.shadowColor =
-          isSelected || isHovered ? "rgba(130,105,60,0.38)" : "rgba(59,43,24,0.24)";
-        ctx.shadowBlur = (isSelected || isHovered ? 18 : 11) / transform.k;
-        ctx.shadowOffsetY = 5 / transform.k;
+        traceNodeShape(ctx, x, y + 4, cardW - 8, cardH - 2, cardR);
+        ctx.fillStyle = active ? "rgba(44,30,22,0.3)" : "rgba(44,30,22,0.2)";
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.shadowColor = active ? "rgba(44,30,22,0.4)" : "rgba(44,30,22,0.25)";
+        ctx.shadowBlur = (active ? 20 : 12) / transform.k;
+        ctx.shadowOffsetY = (active ? 8 : 4) / transform.k;
         traceNodeShape(ctx, x, y, cardW, cardH, cardR);
         const cardGrad = ctx.createLinearGradient(
           x - cardW / 2,
@@ -642,11 +649,26 @@ export default function FamilyTreeCanvas({
           x + cardW / 2,
           y + cardH / 2
         );
-        cardGrad.addColorStop(0, "#fffaf0");
-        cardGrad.addColorStop(0.54, "#f7edd8");
-        cardGrad.addColorStop(1, "#e9d7b6");
+        cardGrad.addColorStop(0, "#fdf8e9");
+        cardGrad.addColorStop(0.5, "#f1e5cd");
+        cardGrad.addColorStop(1, "#dfcca6");
         ctx.fillStyle = cardGrad;
         ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        traceNodeShape(ctx, x, y, cardW - 8, cardH - 8, cardR - 2);
+        ctx.strokeStyle = "rgba(140, 118, 85, 0.4)";
+        ctx.lineWidth = 1 / Math.max(transform.k, 0.45);
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(140, 118, 85, 0.6)";
+        const innerW = cardW - 8;
+        const innerH = cardH - 8;
+        ctx.beginPath(); ctx.arc(x - innerW / 2 + 3, y - innerH / 2 + 3, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + innerW / 2 - 3, y - innerH / 2 + 3, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x - innerW / 2 + 3, y + innerH / 2 - 3, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + innerW / 2 - 3, y + innerH / 2 - 3, 1.5, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
       } else {
         ctx.save();
@@ -658,42 +680,56 @@ export default function FamilyTreeCanvas({
 
       ctx.save();
       traceNodeShape(ctx, x, y, cardW, cardH, cardR);
-      ctx.strokeStyle = isSelected || isHovered ? "#d4af37" : "rgba(130,105,60,0.58)";
-      ctx.lineWidth = (isSelected || isHovered ? 2.4 : 1.2) / Math.max(transform.k, 0.35);
+      ctx.strokeStyle = active ? accentColor : "rgba(113,88,51,0.5)";
+      ctx.lineWidth = (active ? 2.4 : 1.1) / Math.max(transform.k, 0.35);
       if (renderMode === "overview") {
-        ctx.strokeStyle = isSelected || isHovered ? "#d4af37" : genColor;
+        ctx.strokeStyle = active ? "#d4af37" : genColor;
       }
       ctx.stroke();
       ctx.restore();
 
       if (renderMode !== "overview") {
+        if (active) {
+          ctx.save();
+          traceNodeShape(ctx, x, y, cardW + 6, cardH + 6, cardR + 3);
+          ctx.strokeStyle = "rgba(212,175,55,0.4)";
+          ctx.lineWidth = 3 / Math.max(transform.k, 0.45);
+          ctx.stroke();
+          ctx.restore();
+        }
+
         ctx.save();
         ctx.beginPath();
         if (ctx.roundRect) {
-          ctx.roundRect(x - cardW / 2, y - cardH / 2, cardW, 6, [cardR, cardR, 0, 0] as any);
+          ctx.roundRect(x - 16, y - cardH / 2, 32, 4, [0, 0, 4, 4] as any);
         } else {
-          ctx.rect(x - cardW / 2, y - cardH / 2, cardW, 6);
+          ctx.rect(x - 16, y - cardH / 2, 32, 4);
         }
-        ctx.globalAlpha = isSelected || isHovered ? 0.95 : 0.74;
-        ctx.fillStyle = node.line === "self" ? "#d4af37" : genColor;
+        ctx.fillStyle = accentColor;
         ctx.fill();
         ctx.restore();
       }
 
-      const avatarR = renderMode === "compact" ? 20 : 28;
-      const avatarY = y - cardH / 2 + avatarR + 20;
-      const avatarX = x;
-
       if (renderMode !== "overview") {
+        const avatarSize = renderMode === "compact" ? 44 : 58;
+        const avatarRadius = avatarSize / 2;
+        const avatarX = x;
+        const avatarY = y - cardH / 2 + (renderMode === "compact" ? 16 : 20);
+        const avatarCenterY = avatarY + avatarRadius;
+
         ctx.save();
-        traceRoundedRect(
-          ctx,
-          avatarX - avatarR,
-          avatarY - avatarR,
-          avatarR * 2,
-          avatarR * 2,
-          renderMode === "detail" ? 10 : 8
-        );
+        ctx.shadowColor = "rgba(59,43,24,0.3)";
+        ctx.shadowBlur = 6 / transform.k;
+        ctx.shadowOffsetY = 3 / transform.k;
+        ctx.beginPath();
+        ctx.arc(avatarX, avatarCenterY, avatarRadius + 3, 0, Math.PI * 2);
+        ctx.fillStyle = "#dfcca6";
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(avatarX, avatarCenterY, avatarRadius, 0, Math.PI * 2);
         ctx.clip();
 
         const imageUrl = node.imageUrl
@@ -704,69 +740,70 @@ export default function FamilyTreeCanvas({
           drawImageCover(
             ctx,
             img,
-            avatarX - avatarR,
-            avatarY - avatarR,
-            avatarR * 2,
-            avatarR * 2
+            avatarX - avatarRadius,
+            avatarY,
+            avatarSize,
+            avatarSize
           );
         } else {
           const sealGrad = ctx.createLinearGradient(
-            avatarX - avatarR,
-            avatarY - avatarR,
-            avatarX + avatarR,
-            avatarY + avatarR
+            avatarX - avatarRadius,
+            avatarY,
+            avatarX + avatarRadius,
+            avatarY + avatarSize
           );
-          sealGrad.addColorStop(0, "#fff7e3");
-          sealGrad.addColorStop(1, "#dcc49a");
+          sealGrad.addColorStop(0, "#f3eedc");
+          sealGrad.addColorStop(1, "#d1bfa3");
           ctx.fillStyle = sealGrad;
           ctx.fill();
-          ctx.fillStyle = node.line === "self" ? "#6a4b33" : "#5a4d42";
-          ctx.font = `800 ${Math.max(17, avatarR * 0.78)}px Inter, system-ui, sans-serif`;
+
+          ctx.fillStyle = node.line === "self" ? "#6a4b33" : "#4f4036";
+          ctx.font = `800 ${renderMode === "compact" ? 20 : 26}px "Playfair Display", serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(node.label.charAt(0).toUpperCase(), avatarX, avatarY + 1);
+          ctx.fillText(node.label.charAt(0).toUpperCase(), avatarX, avatarCenterY + 2);
         }
         ctx.restore();
 
         ctx.save();
-        traceRoundedRect(
-          ctx,
-          avatarX - avatarR,
-          avatarY - avatarR,
-          avatarR * 2,
-          avatarR * 2,
-          renderMode === "detail" ? 10 : 8
-        );
-        ctx.strokeStyle = isSelected || isHovered ? "#d4af37" : "rgba(130,105,60,0.34)";
-        ctx.lineWidth = (isSelected || isHovered ? 2 : 1.1) / Math.max(transform.k, 0.45);
+        ctx.beginPath();
+        ctx.arc(avatarX, avatarCenterY, avatarRadius + 3, 0, Math.PI * 2);
+        ctx.strokeStyle = active ? accentColor : "#a38d6d";
+        ctx.lineWidth = (active ? 2 : 1.5) / Math.max(transform.k, 0.45);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(avatarX, avatarCenterY, avatarRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255,255,255,0.6)";
+        ctx.lineWidth = 1 / Math.max(transform.k, 0.45);
         ctx.stroke();
         ctx.restore();
 
-        const labelY = avatarY + avatarR + (renderMode === "detail" ? 14 : 10);
-        const maxTextW = cardW - 16;
+        const labelY = avatarCenterY + avatarRadius + (renderMode === "detail" ? 14 : 10);
+        const maxTextW = cardW - 24;
 
         ctx.save();
         ctx.textAlign = "center";
 
         if (renderMode === "detail") {
-          ctx.font = "800 13px Inter, system-ui, sans-serif";
-          ctx.fillStyle = "#3f342d";
+          ctx.font = '700 14px "Playfair Display", serif';
+          ctx.fillStyle = "#3a2a18";
           ctx.textBaseline = "top";
           const label = truncateLabel(ctx, node.label, maxTextW);
           ctx.fillText(label, x, labelY);
 
-          ctx.font = "700 10px Inter, system-ui, sans-serif";
-          ctx.fillStyle = "#82693c";
+          ctx.font = '600 10px Inter, system-ui, sans-serif';
+          ctx.fillStyle = "#7a6749";
           const desc = [
             node.year && (node.deathYear ? `${node.year} - ${node.deathYear}` : `${node.year}`),
-            node.content?.description ? "Story" : ""
-          ].filter(Boolean).join(" • ");
+            node.content?.description ? "📖" : ""
+          ].filter(Boolean).join("  ");
           if (desc) {
              ctx.fillText(truncateLabel(ctx, desc, maxTextW), x, labelY + 18);
           }
         } else {
-          ctx.font = "800 12px Inter, system-ui, sans-serif";
-          ctx.fillStyle = "#3f342d";
+          ctx.font = '700 13px "Playfair Display", serif';
+          ctx.fillStyle = "#3a2a18";
           ctx.textBaseline = "top";
           const label = truncateLabel(ctx, node.label, maxTextW);
           ctx.fillText(label, x, labelY);
@@ -774,7 +811,7 @@ export default function FamilyTreeCanvas({
         ctx.restore();
 
         if (renderMode === "detail" && node.line === "self") {
-          drawCrown(ctx, x + cardW / 2 - 20, y - cardH / 2 + 18, 10);
+          drawCrown(ctx, x + cardW / 2 - 20, y - cardH / 2 + 20, 10);
         }
       }
 
