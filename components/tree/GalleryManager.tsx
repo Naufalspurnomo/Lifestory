@@ -11,7 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { uploadMediaFile } from "../../lib/media/client";
+import { uploadMediaFile, type MediaUploadStage } from "../../lib/media/client";
 import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import type { MediaItem } from "../../lib/types/tree";
 import { useLanguage } from "../providers/LanguageProvider";
@@ -37,6 +37,7 @@ export default function GalleryManager({
 }: Props) {
   const { locale } = useLanguage();
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState<MediaUploadStage | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [showLightbox, setShowLightbox] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +47,12 @@ export default function GalleryManager({
           emptyTitle: "Belum ada arsip.",
           emptyBody: "Tambahkan foto atau media yang menjadi bagian dari cerita keluarga.",
           uploading: "Mengunggah...",
+          uploadStages: {
+            optimizing: "Mengoptimalkan foto...",
+            presigning: "Menyiapkan upload...",
+            uploading: "Mengunggah foto...",
+            done: "Upload selesai",
+          } as Record<MediaUploadStage, string>,
           uploadNeedsTree: "Pohon keluarga harus tersimpan sebelum upload media.",
           uploadFailed: "Gagal mengunggah media",
           addMedia: (count: number, max: number) =>
@@ -61,6 +68,12 @@ export default function GalleryManager({
           emptyTitle: "No archive media yet.",
           emptyBody: "Add photos or media that belong to this family story.",
           uploading: "Uploading...",
+          uploadStages: {
+            optimizing: "Optimizing photo...",
+            presigning: "Preparing upload...",
+            uploading: "Uploading photo...",
+            done: "Upload complete",
+          } as Record<MediaUploadStage, string>,
           uploadNeedsTree: "The family tree must be saved before uploading media.",
           uploadFailed: "Failed to upload media",
           addMedia: (count: number, max: number) =>
@@ -80,6 +93,7 @@ export default function GalleryManager({
     if (!files || files.length === 0) return;
 
     setIsUploading(true);
+    setUploadStage("optimizing");
     const newMedia: MediaItem[] = [];
 
     try {
@@ -97,6 +111,7 @@ export default function GalleryManager({
             nodeId,
             purpose: "gallery",
             file,
+            onStage: setUploadStage,
           });
           newMedia.push({
             ...uploaded,
@@ -115,6 +130,7 @@ export default function GalleryManager({
       console.error("Upload failed:", err);
     } finally {
       setIsUploading(false);
+      setUploadStage(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -239,7 +255,7 @@ export default function GalleryManager({
             {isUploading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                {copy.uploading}
+                {uploadStage ? copy.uploadStages[uploadStage] : copy.uploading}
               </>
             ) : (
               <>

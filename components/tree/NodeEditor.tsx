@@ -27,7 +27,7 @@ import {
   formatFileSize,
   getBase64Size,
 } from "../../lib/utils/imageUtils";
-import { uploadMediaFile } from "../../lib/media/client";
+import { uploadMediaFile, type MediaUploadStage } from "../../lib/media/client";
 import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import {
   normalizeInstagramHandle,
@@ -76,6 +76,7 @@ export default function NodeEditor({
   const [works, setWorks] = useState<WorkItem[]>([]);
   const [imageSize, setImageSize] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState<MediaUploadStage | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,6 +109,12 @@ export default function NodeEditor({
           galleryMedia: "Foto dan media arsip",
           imageProcessFailed: "Gagal memproses gambar",
           imageUploadFailed: "Gagal mengunggah foto",
+          uploadStages: {
+            optimizing: "Mengoptimalkan foto...",
+            presigning: "Menyiapkan upload...",
+            uploading: "Mengunggah foto...",
+            done: "Upload selesai",
+          } as Record<MediaUploadStage, string>,
           saveTreeFirst: "Pohon keluarga harus tersimpan sebelum upload foto.",
           requiredName: "Nama wajib diisi",
           invalidInstagram:
@@ -169,6 +176,12 @@ export default function NodeEditor({
           galleryMedia: "Archive photos and media",
           imageProcessFailed: "Failed to process image",
           imageUploadFailed: "Failed to upload photo",
+          uploadStages: {
+            optimizing: "Optimizing photo...",
+            presigning: "Preparing upload...",
+            uploading: "Uploading photo...",
+            done: "Upload complete",
+          } as Record<MediaUploadStage, string>,
           saveTreeFirst: "The family tree must be saved before uploading photos.",
           requiredName: "Name is required",
           invalidInstagram:
@@ -262,6 +275,7 @@ export default function NodeEditor({
     setMedia([]);
     setWorks([]);
     setImageSize(0);
+    setUploadStage(null);
     setError(null);
   };
 
@@ -272,6 +286,7 @@ export default function NodeEditor({
     if (!file) return;
 
     setIsUploading(true);
+    setUploadStage("optimizing");
     setError(null);
 
     try {
@@ -285,6 +300,7 @@ export default function NodeEditor({
         nodeId: editingNode?.id ?? null,
         purpose: "profile",
         file,
+        onStage: setUploadStage,
       });
       setImageUrl(asset.url);
       setImageStorageKey(asset.storageKey);
@@ -296,6 +312,7 @@ export default function NodeEditor({
       console.error(err);
     } finally {
       setIsUploading(false);
+      setUploadStage(null);
     }
   };
 
@@ -478,6 +495,7 @@ export default function NodeEditor({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
                   className="group relative flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-brand-200 bg-cream-200 text-brand-700 shadow-soft transition hover:border-brand-400"
                 >
                   {displayImageUrl ? (
@@ -498,13 +516,26 @@ export default function NodeEditor({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="mt-3 inline-flex h-10 items-center gap-2 rounded-lg border border-brand-300 bg-cream-100 px-4 text-sm font-black text-brand-800 transition hover:bg-cream-200"
+                    disabled={isUploading}
+                    className="mt-3 inline-flex h-10 items-center gap-2 rounded-lg border border-brand-300 bg-cream-100 px-4 text-sm font-black text-brand-800 transition hover:bg-cream-200 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <ImagePlus className="h-4 w-4" />
-                    {imageUrl ? copy.replacePhoto : copy.addPhoto}
+                    {isUploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ImagePlus className="h-4 w-4" />
+                    )}
+                    {isUploading && uploadStage
+                      ? copy.uploadStages[uploadStage]
+                      : imageUrl
+                      ? copy.replacePhoto
+                      : copy.addPhoto}
                   </button>
                   <p className="mt-3 text-xs leading-5 text-ink-500">
-                    {imageUrl ? formatFileSize(imageSize) : copy.photoHint}
+                    {isUploading && uploadStage
+                      ? copy.uploadStages[uploadStage]
+                      : imageUrl
+                      ? formatFileSize(imageSize)
+                      : copy.photoHint}
                   </p>
                 </div>
                 <input
@@ -764,10 +795,19 @@ export default function NodeEditor({
             </button>
             <button
               type="submit"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand-700 px-4 text-sm font-black text-white shadow-cta transition hover:bg-brand-800"
+              disabled={isUploading}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand-700 px-4 text-sm font-black text-white shadow-cta transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Save className="h-4 w-4" />
-              {editingNode ? copy.save : copy.add}
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {isUploading && uploadStage
+                ? copy.uploadStages[uploadStage]
+                : editingNode
+                ? copy.save
+                : copy.add}
             </button>
           </div>
         </footer>

@@ -59,6 +59,15 @@ const DEFAULT_CONFIG: SyncEngineConfig = {
   healthCheckUrl: "/api/health",
 };
 const MAX_SYNC_BATCH_SIZE = 250;
+export const SYNC_REQUEST_BODY_LIMIT_BYTES = 8 * 1024 * 1024;
+const SYNC_REQUEST_BODY_TARGET_BYTES = Math.floor(
+  SYNC_REQUEST_BODY_LIMIT_BYTES * 0.9
+);
+const textEncoder = new TextEncoder();
+
+type BatchSelection =
+  | { entries: WALEntry[]; body: string; tooLarge: false }
+  | { entries: WALEntry[]; body: string; tooLarge: true; sizeBytes: number };
 
 export function formatPendingCount(count: number): string {
   return count > 99 ? "99+" : `${Math.max(0, count)}`;
@@ -182,7 +191,11 @@ export class SyncEngine {
 
   async flush(options: { allowOfflineAttempt?: boolean } = {}): Promise<void> {
     if (this.flushing || this.paused) return;
-    if (!this.networkDetector.isOnline() && !options.allowOfflineAttempt) {
+    if (
+      !this.networkDetector.isOnline() &&
+      !this.networkDetector.canAttemptRequests() &&
+      !options.allowOfflineAttempt
+    ) {
       await this.refreshStatus(
         "offline",
         this.networkDetector.getLastError()
@@ -393,8 +406,21 @@ export class SyncEngine {
 
   private async flushTree(treeId: string, entries: WALEntry[]): Promise<void> {
     const ordered = entries.sort((a, b) => a.seqNo - b.seqNo);
-    const selected = ordered.slice(0, MAX_SYNC_BATCH_SIZE);
+    const clientVersion = await this.wal.getLastSyncedVersion(treeId);
+    const selection = this.selectBatchEntries(treeId, clientVersion, ordered);
+    const selected = selection.entries;
     const seqNos = selected.map((entry) => entry.seqNo);
+
+    if (selection.tooLarge) {
+      const message =
+        "Perubahan foto terlalu besar untuk disinkronkan. Hapus foto inline lama atau upload ulang lewat penyimpanan media, lalu simpan lagi.";
+      for (const seqNo of seqNos) {
+        await this.wal.markPermanentlyFailed(seqNo, message);
+      }
+      this.updateStatus("error", message);
+      return;
+    }
+
     await this.wal.markSending(seqNos);
 
     const validation = this.validateTree(treeId);
@@ -408,7 +434,7 @@ export class SyncEngine {
     const batch: SyncBatch = {
       batchId: this.createBatchId(selected),
       treeId,
-      clientVersion: await this.wal.getLastSyncedVersion(treeId),
+      clientVersion,
       mutations: selected.map((entry) => ({
         seqNo: entry.seqNo,
         type: entry.type,
@@ -419,7 +445,7 @@ export class SyncEngine {
     };
 
     try {
-      const response = await this.postBatch(batch);
+      const response = await this.postBatch(batch, selection.body);
       // Any HTTP response proves the route is reachable. Distinguish server
       // rejection from an actual transport outage.
       this.networkDetector.reportOnline();
@@ -488,7 +514,7 @@ export class SyncEngine {
         return;
       }
 
-      if (response.status === 400) {
+      if (response.status === 400 || response.status === 413) {
         const message = await readErrorMessage(response);
         for (const seqNo of seqNos) {
           await this.wal.markPermanentlyFailed(seqNo, message);
@@ -529,18 +555,14 @@ export class SyncEngine {
     }
   }
 
-  private async postBatch(batch: SyncBatch): Promise<Response> {
+  private async postBatch(batch: SyncBatch, body: string): Promise<Response> {
     return fetchWithTimeout(
       this.fetchImpl,
       `/api/trees/${encodeURIComponent(batch.treeId)}/sync`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          batchId: batch.batchId,
-          clientVersion: batch.clientVersion,
-          mutations: batch.mutations,
-        }),
+        body,
       },
       this.config.requestTimeoutMs
     );
@@ -563,6 +585,99 @@ export class SyncEngine {
     const last = entries[entries.length - 1];
     if (!first || !last) throw new Error("Cannot sync an empty batch");
     return `wal:${first.id}:${last.id}:${entries.length}`;
+  }
+
+  private createBatch(
+    treeId: string,
+    clientVersion: number,
+    entries: WALEntry[]
+  ): SyncBatch {
+    return {
+      batchId: this.createBatchId(entries),
+      treeId,
+      clientVersion,
+      mutations: entries.map((entry) => ({
+        seqNo: entry.seqNo,
+        type: entry.type,
+        nodeId: entry.nodeId,
+        payload: entry.payload,
+        previousPayload: entry.previousPayload,
+      })),
+    };
+  }
+
+  private stringifyBatchBody(batch: SyncBatch): string {
+    return JSON.stringify({
+      batchId: batch.batchId,
+      clientVersion: batch.clientVersion,
+      mutations: batch.mutations,
+    });
+  }
+
+  private bodySizeBytes(body: string): number {
+    return textEncoder.encode(body).byteLength;
+  }
+
+  private selectBatchEntries(
+    treeId: string,
+    clientVersion: number,
+    ordered: WALEntry[]
+  ): BatchSelection {
+    let selected: WALEntry[] = [];
+    let selectedBody = "";
+
+    for (const entry of ordered.slice(0, MAX_SYNC_BATCH_SIZE)) {
+      const candidate = [...selected, entry];
+      const candidateBody = this.stringifyBatchBody(
+        this.createBatch(treeId, clientVersion, candidate)
+      );
+      const candidateSize = this.bodySizeBytes(candidateBody);
+
+      if (candidateSize > SYNC_REQUEST_BODY_LIMIT_BYTES) {
+        if (selected.length === 0) {
+          return {
+            entries: candidate,
+            body: candidateBody,
+            tooLarge: true,
+            sizeBytes: candidateSize,
+          };
+        }
+        break;
+      }
+
+      if (
+        selected.length > 0 &&
+        candidateSize > SYNC_REQUEST_BODY_TARGET_BYTES
+      ) {
+        break;
+      }
+
+      selected = candidate;
+      selectedBody = candidateBody;
+    }
+
+    if (selected.length === 0) {
+      const fallback = ordered.slice(0, 1);
+      const body = this.stringifyBatchBody(
+        this.createBatch(treeId, clientVersion, fallback)
+      );
+      const sizeBytes = this.bodySizeBytes(body);
+      if (sizeBytes > SYNC_REQUEST_BODY_LIMIT_BYTES) {
+        return {
+          entries: fallback,
+          body,
+          tooLarge: true,
+          sizeBytes,
+        };
+      }
+      return {
+        entries: fallback,
+        body,
+        tooLarge: false,
+      };
+    }
+
+    return { entries: selected, body: selectedBody, tooLarge: false };
   }
 
   private async handleRetryableFailure(

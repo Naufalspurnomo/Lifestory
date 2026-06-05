@@ -1,12 +1,13 @@
 type NetworkCallback = (online: boolean) => void;
 
-const OFFLINE_FAILURE_THRESHOLD = 2;
-const HEALTH_CHECK_TIMEOUT_MS = 10_000;
+const OFFLINE_FAILURE_THRESHOLD = 4;
+const HEALTH_CHECK_TIMEOUT_MS = 5_000;
 
 export class NetworkDetector {
   private online = true;
   private lastError: string | undefined;
   private consecutiveFailures = 0;
+  private browserOffline = false;
   private callbacks = new Set<NetworkCallback>();
   private timer: ReturnType<typeof setInterval> | null = null;
   private checking: Promise<boolean> | null = null;
@@ -28,6 +29,10 @@ export class NetworkDetector {
     return this.online;
   }
 
+  canAttemptRequests(): boolean {
+    return !this.browserOffline;
+  }
+
   getLastError(): string | undefined {
     return this.lastError;
   }
@@ -35,6 +40,7 @@ export class NetworkDetector {
   reportOnline(): void {
     this.lastError = undefined;
     this.consecutiveFailures = 0;
+    this.browserOffline = false;
     this.setOnline(true);
   }
 
@@ -121,6 +127,7 @@ export class NetworkDetector {
   };
 
   private readonly handleOffline = () => {
+    this.browserOffline = true;
     this.reportOffline("Browser reported that the network connection is offline.");
   };
 

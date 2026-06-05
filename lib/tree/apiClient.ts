@@ -2,6 +2,7 @@
 // unit-tested with a mocked fetch without having to boot a server.
 
 import type { FamilyNode, TreeData } from "../types/tree";
+import { fetchWithTimeout } from "../utils/fetchWithTimeout";
 
 export type TreeSummary = {
   id: string;
@@ -84,7 +85,12 @@ async function expectOk(response: Response): Promise<void> {
 export async function listTrees(
   fetchImpl: typeof fetch = fetch
 ): Promise<TreeSummary[]> {
-  const res = await fetchImpl("/api/trees", { cache: "no-store" });
+  const res = await fetchWithTimeout(
+    fetchImpl,
+    "/api/trees",
+    { cache: "no-store" },
+    15_000
+  );
   await expectOk(res);
   const body = (await res.json()) as { trees: TreeSummary[] };
   return body.trees ?? [];
@@ -94,9 +100,14 @@ export async function loadTree(
   id: string,
   fetchImpl: typeof fetch = fetch
 ): Promise<TreeData> {
-  const res = await fetchImpl(`/api/trees/${encodeURIComponent(id)}`, {
-    cache: "no-store",
-  });
+  const res = await fetchWithTimeout(
+    fetchImpl,
+    `/api/trees/${encodeURIComponent(id)}`,
+    {
+      cache: "no-store",
+    },
+    20_000
+  );
   await expectOk(res);
   const body = (await res.json()) as { tree: TreeData };
   return body.tree;
@@ -108,9 +119,11 @@ export async function pullTreeChanges(
   fetchImpl: typeof fetch = fetch
 ): Promise<TreePullResult> {
   const params = new URLSearchParams({ sinceVersion: String(sinceVersion) });
-  const res = await fetchImpl(
+  const res = await fetchWithTimeout(
+    fetchImpl,
     `/api/trees/${encodeURIComponent(id)}/sync?${params}`,
-    { cache: "no-store" }
+    { cache: "no-store" },
+    12_000
   );
   await expectOk(res);
   return (await res.json()) as TreePullResult;
@@ -124,11 +137,16 @@ export async function createTreeApi(
   const options =
     typeof optionsOrFetch === "function" ? {} : optionsOrFetch;
   const request = typeof optionsOrFetch === "function" ? optionsOrFetch : fetchImpl;
-  const res = await request("/api/trees", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, ...options }),
-  });
+  const res = await fetchWithTimeout(
+    request,
+    "/api/trees",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, ...options }),
+    },
+    30_000
+  );
   await expectOk(res);
   const body = (await res.json()) as { tree: TreeData };
   return body.tree;
@@ -140,11 +158,16 @@ export async function saveTreeNodes(
   nodes: FamilyNode[],
   fetchImpl: typeof fetch = fetch
 ): Promise<void> {
-  const res = await fetchImpl(`/api/trees/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ expectedVersion, nodes }),
-  });
+  const res = await fetchWithTimeout(
+    fetchImpl,
+    `/api/trees/${encodeURIComponent(id)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ expectedVersion, nodes }),
+    },
+    30_000
+  );
   await expectOk(res);
 }
 
@@ -152,8 +175,13 @@ export async function deleteTreeApi(
   id: string,
   fetchImpl: typeof fetch = fetch
 ): Promise<void> {
-  const res = await fetchImpl(`/api/trees/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-  });
+  const res = await fetchWithTimeout(
+    fetchImpl,
+    `/api/trees/${encodeURIComponent(id)}`,
+    {
+      method: "DELETE",
+    },
+    15_000
+  );
   await expectOk(res);
 }

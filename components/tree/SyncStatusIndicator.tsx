@@ -16,8 +16,8 @@ type Props = {
 
 const LABELS = {
   saved: "Saved",
-  syncing: "Saving",
-  pending: "Saving",
+  syncing: "Saving now",
+  pending: "Queued",
   offline: "Saved locally",
   error: "Needs attention",
 };
@@ -29,6 +29,10 @@ export default function SyncStatusIndicator({ status, onRetry }: Props) {
     status.errorMessage ??
     (status.status === "offline"
       ? "Changes are safe in this browser and will sync automatically when the connection returns."
+      : status.status === "pending"
+      ? "Changes are saved locally and queued for sync."
+      : status.status === "syncing"
+      ? "Saving changes to the server now."
       : status.warningMessage);
 
   const iconClass = "h-3.5 w-3.5";

@@ -1,4 +1,5 @@
 import type { MediaItem, MediaPurpose } from "../types/tree";
+import { fetchWithTimeout } from "../utils/fetchWithTimeout";
 import { prepareMediaFileForUpload } from "./image-optimizer";
 import { resolveDisplayMediaUrl } from "./public-url";
 
@@ -15,6 +16,8 @@ type UploadResponse = {
   headers: Record<string, string>;
   asset: UploadedMediaAsset;
 };
+
+export type MediaUploadStage = "optimizing" | "presigning" | "uploading" | "done";
 
 function readApiError(payload: unknown, fallback: string): string {
   if (
@@ -33,22 +36,30 @@ export async function uploadMediaFile(input: {
   nodeId?: string | null;
   purpose: MediaPurpose;
   file: File;
+  onStage?: (stage: MediaUploadStage) => void;
 }): Promise<UploadedMediaAsset> {
+  input.onStage?.("optimizing");
   const prepared = await prepareMediaFileForUpload(input.file, input.purpose);
   const file = prepared.file;
 
-  const presignResponse = await fetch("/api/media/presign", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      treeId: input.treeId,
-      nodeId: input.nodeId ?? null,
-      purpose: input.purpose,
-      fileName: file.name,
-      contentType: file.type,
-      sizeBytes: file.size,
-    }),
-  });
+  input.onStage?.("presigning");
+  const presignResponse = await fetchWithTimeout(
+    fetch,
+    "/api/media/presign",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        treeId: input.treeId,
+        nodeId: input.nodeId ?? null,
+        purpose: input.purpose,
+        fileName: file.name,
+        contentType: file.type,
+        sizeBytes: file.size,
+      }),
+    },
+    20_000
+  );
   const presignPayload = await presignResponse.json().catch(() => ({}));
   if (!presignResponse.ok) {
     throw new Error(
@@ -57,15 +68,22 @@ export async function uploadMediaFile(input: {
   }
 
   const upload = presignPayload as UploadResponse;
-  const putResponse = await fetch(upload.uploadUrl, {
-    method: upload.method,
-    headers: upload.headers,
-    body: file,
-  });
+  input.onStage?.("uploading");
+  const putResponse = await fetchWithTimeout(
+    fetch,
+    upload.uploadUrl,
+    {
+      method: upload.method,
+      headers: upload.headers,
+      body: file,
+    },
+    90_000
+  );
   if (!putResponse.ok) {
     throw new Error(`Media upload failed with HTTP ${putResponse.status}`);
   }
 
+  input.onStage?.("done");
   return {
     ...upload.asset,
     url: resolveDisplayMediaUrl(upload.asset.url),
