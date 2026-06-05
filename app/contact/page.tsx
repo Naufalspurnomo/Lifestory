@@ -55,6 +55,8 @@ export default function ContactPage() {
         sent: "Pesan terkirim",
         sendFailed:
           "Pesan belum terkirim. Coba lagi atau hubungi kami lewat email/WhatsApp.",
+        validationFailed:
+          "Lengkapi nama, email yang valid, dan pesan minimal 10 karakter.",
         thanks:
           "Terima kasih. Tim Lifestory akan menghubungi Anda dalam 1x24 jam.",
         infoTitle: "Cara lain menjangkau kami",
@@ -107,6 +109,8 @@ export default function ContactPage() {
         sent: "Message sent",
         sendFailed:
           "Your message was not sent. Please try again or contact us by email/WhatsApp.",
+        validationFailed:
+          "Please enter a valid name, email, and message of at least 10 characters.",
         thanks: "Thanks. The Lifestory team will reply within one working day.",
         infoTitle: "Other ways to reach us",
         infoNote:
@@ -158,7 +162,7 @@ export default function ContactPage() {
       });
 
       if (!response.ok) {
-        setError(copy.sendFailed);
+        setError(response.status === 400 ? copy.validationFailed : copy.sendFailed);
         setStatus("idle");
         return;
       }
@@ -318,6 +322,8 @@ export default function ContactPage() {
                   hint={copy.namePlaceholder}
                   iconLeft={<User2 />}
                   autoComplete="name"
+                  minLength={2}
+                  maxLength={120}
                 />
                 <FloatingInput
                   required
@@ -327,6 +333,7 @@ export default function ContactPage() {
                   hint={copy.emailPlaceholder}
                   iconLeft={<Mail />}
                   autoComplete="email"
+                  maxLength={254}
                 />
               </div>
 
@@ -336,6 +343,8 @@ export default function ContactPage() {
                 label={copy.message}
                 hint={copy.messagePlaceholder}
                 rows={6}
+                minLength={10}
+                maxLength={4000}
               />
 
               <div className="flex flex-wrap items-center gap-4 pt-1">
