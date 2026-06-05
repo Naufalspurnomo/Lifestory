@@ -236,7 +236,7 @@ export function NavBar() {
           )}
 
           {status === "unauthenticated" && (
-            <Link href="/auth/register">
+            <Link href="/auth/login">
               <Button
                 size={isScrolled ? "sm" : "md"}
                 iconRight={<ArrowRight className="h-3.5 w-3.5" />}
@@ -375,7 +375,7 @@ export function NavBar() {
             )}
 
             {status === "unauthenticated" && (
-              <Link href="/auth/register" onClick={() => setMobileOpen(false)}>
+              <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
                 <Button
                   block
                   size="md"

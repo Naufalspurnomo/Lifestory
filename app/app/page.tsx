@@ -20,7 +20,15 @@ import { useTreeState } from "../../lib/hooks/useTreeState";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 import { downloadTreeJson } from "../../lib/sync/ExportManager";
 import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
-import { Layers3, Users, GitBranch, History, ImageIcon, BookOpen } from "lucide-react";
+import {
+  BookOpen,
+  ChevronLeft,
+  GitBranch,
+  History,
+  ImageIcon,
+  Layers3,
+  Users,
+} from "lucide-react";
 
 import type { FamilyNode } from "../../lib/types/tree";
 import type { MediaItem } from "../../lib/types/tree";
@@ -478,46 +486,46 @@ export default function AppHome() {
               background: "linear-gradient(180deg, #fdfbf6 0%, #faf6ed 100%)",
             }}
           >
-            {/* Sisi Kiri: Logo Lifestory & Nama Dinasti */}
+            {/* Sisi Kiri: konteks pohon keluarga */}
             <div className="flex w-full min-w-0 items-center justify-between gap-3 lg:w-auto lg:shrink-0">
-              <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+              <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                 <Link
                   href="/"
-                  className="flex shrink-0 items-center group transition-all"
-                  title="Kembali ke Beranda"
+                  className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#dccfb3] bg-white/80 text-[#82693c] shadow-[0_10px_24px_rgba(59,43,24,0.08)] backdrop-blur-md transition hover:border-[#c5b395] hover:bg-white hover:text-[#3f342d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e6ab2f] focus-visible:ring-offset-2 focus-visible:ring-offset-[#faf6ed]"
+                  title={locale === "id" ? "Kembali ke beranda" : "Back to home"}
+                  aria-label={locale === "id" ? "Kembali ke beranda" : "Back to home"}
                 >
-                  <div className="relative flex items-center justify-center rounded-lg p-1.5 transition-colors hover:bg-[#ece2cc]">
-                    <svg className="mr-1.5 h-4 w-4 text-[#73685f] transition-colors group-hover:text-[#3f342d] sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    <img
-                      src="/logo/lifestory-logo.webp"
-                      alt="Lifestory Logo"
-                      className="h-6 w-auto object-contain drop-shadow-[0_1px_2px_rgba(59,43,24,0.1)] transition-transform group-hover:scale-105"
-                    />
-                  </div>
+                  <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
                 </Link>
-                <div className="hidden h-6 w-px bg-[#dccfb3] sm:block" />
-                {treeSummaries.length > 1 ? (
-                  <select
-                    value={currentTree!.id}
-                    onChange={(event) => {
-                      void selectTree(event.target.value);
-                    }}
-                    className="min-w-0 max-w-[150px] rounded-lg border border-[#dccfb3] bg-[#fdfbf6] px-2 py-1.5 font-playfair text-sm font-bold tracking-wide text-[#3f342d] outline-none sm:max-w-[260px] lg:max-w-xs"
-                    aria-label={locale === "id" ? "Pilih pohon keluarga" : "Select family tree"}
-                  >
-                    {treeSummaries.map((tree) => (
-                      <option key={tree.id} value={tree.id}>
-                        {tree.name} ({tree.nodeCount})
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <h1 className="min-w-0 truncate font-playfair text-base font-bold tracking-wide text-[#3f342d] sm:max-w-[260px] lg:max-w-xs lg:text-lg">
-                    {currentTree!.name}
-                  </h1>
-                )}
+                <div className="min-w-0">
+                  <div className="mb-0.5 hidden items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#82693c] sm:flex">
+                    <span>{locale === "id" ? "Pohon keluarga" : "Family tree"}</span>
+                    <span className="h-1 w-1 rounded-full bg-[#dccfb3]" />
+                    <span className="font-bold tracking-[0.12em] text-[#73685f]">
+                      {stats.members} {locale === "id" ? "anggota" : "members"}
+                    </span>
+                  </div>
+                  {treeSummaries.length > 1 ? (
+                    <select
+                      value={currentTree!.id}
+                      onChange={(event) => {
+                        void selectTree(event.target.value);
+                      }}
+                      className="-ml-2 block min-w-0 max-w-[180px] rounded-lg border border-transparent bg-transparent px-2 py-0 font-playfair text-lg font-bold leading-tight text-[#3f342d] outline-none transition hover:border-[#dccfb3] hover:bg-white/70 focus:border-[#e6ab2f] focus:bg-white sm:max-w-[280px] lg:max-w-[260px] xl:max-w-[320px]"
+                      aria-label={locale === "id" ? "Pilih pohon keluarga" : "Select family tree"}
+                    >
+                      {treeSummaries.map((tree) => (
+                        <option key={tree.id} value={tree.id}>
+                          {tree.name} ({tree.nodeCount})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <h1 className="min-w-0 max-w-[180px] truncate font-playfair text-lg font-bold leading-tight text-[#3f342d] sm:max-w-[280px] lg:max-w-[260px] xl:max-w-[320px]">
+                      {currentTree!.name}
+                    </h1>
+                  )}
+                </div>
               </div>
 
               <div className="flex shrink-0 items-center gap-2 rounded-full border border-[#dccfb3] bg-[#fdfbf6] px-2 py-1.5 lg:hidden">

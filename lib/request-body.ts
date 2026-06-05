@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 export const jsonBodyLimits = {
   tiny: 4 * 1024,
   auth: 8 * 1024,
+  contact: 8 * 1024,
   treeMutation: 8 * 1024 * 1024,
 } as const;
 

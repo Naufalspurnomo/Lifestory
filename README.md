@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://lifestory.co.id">lifestory.co.id</a> · Surabaya, Indonesia
+  <a href="https://lifestory.co.id">lifestory.co.id</a> · Sidoarjo, Indonesia
 </p>
 
 ---
@@ -321,7 +321,7 @@ HTTPS enforcement is delegated to the reverse proxy / CDN layer.
 
 ## License
 
-Private — All rights reserved. © Lifestory Company, Surabaya.
+Private — All rights reserved. © Lifestory Company, Sidoarjo.
 
 ---
 

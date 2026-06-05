@@ -4,7 +4,6 @@ import { Container } from "../ui/Container";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Marquee } from "../ui/Marquee";
 import { Reveal } from "../ui/Reveal";
-import { Stat } from "../ui/Stat";
 
 type Props = {
   copy: {
@@ -12,18 +11,12 @@ type Props = {
     title: string;
     fromForLabel: string;
     fromForPoints: string[];
-    stats: Array<{
-      value: number;
-      suffix?: string;
-      label: string;
-    }>;
   };
 };
 
 /**
  * ValuesMarquee — visual movement section.
  * Top: marquee of "From and For" tags.
- * Bottom: 4-stat strip in cream.
  */
 export function ValuesMarquee({ copy }: Props) {
   return (
@@ -56,20 +49,6 @@ export function ValuesMarquee({ copy }: Props) {
         </Reveal>
       </div>
 
-      <Container>
-        <Reveal delay={0.15}>
-          <div className="mt-14 grid grid-cols-2 gap-x-6 gap-y-10 border-t border-cream-300 pt-10 md:grid-cols-4 md:gap-x-10">
-            {copy.stats.map((s) => (
-              <Stat
-                key={s.label}
-                value={s.value}
-                suffix={s.suffix}
-                label={s.label}
-              />
-            ))}
-          </div>
-        </Reveal>
-      </Container>
     </section>
   );
 }

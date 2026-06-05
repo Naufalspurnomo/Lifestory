@@ -70,6 +70,16 @@ export const resetPasswordSchema = z.object({
   password: strongPasswordSchema,
 });
 
+export const contactInquirySchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
+  email: z.string().trim().max(254).email("Invalid email format"),
+  message: z
+    .string()
+    .trim()
+    .min(10, "Message must be at least 10 characters")
+    .max(4_000, "Message is too long"),
+});
+
 // ====== Family Tree Schemas ======
 
 const nodeIdSchema = z.string().trim().min(1).max(128);

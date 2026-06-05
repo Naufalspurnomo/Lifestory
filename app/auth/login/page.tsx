@@ -81,6 +81,10 @@ function LoginPageContent() {
           processing: "Memproses...",
           signIn: "Masuk Sekarang",
           invalidCredentials: "Email atau password salah.",
+          inactiveAccount:
+            "Akun Anda belum aktif. Silakan tunggu verifikasi admin atau hubungi tim Lifestory.",
+          suspendedAccount:
+            "Akun ini sedang ditangguhkan. Hubungi tim Lifestory untuk bantuan.",
           noAccount: "Belum punya akun?",
           registerNow: "Daftar sekarang",
           sideTitle: "Login cepat, lanjutkan cerita keluarga tanpa jeda.",
@@ -105,6 +109,10 @@ function LoginPageContent() {
           processing: "Processing...",
           signIn: "Sign In Now",
           invalidCredentials: "Incorrect email or password.",
+          inactiveAccount:
+            "Your account is not active yet. Please wait for admin verification or contact Lifestory.",
+          suspendedAccount:
+            "This account is suspended. Please contact Lifestory for help.",
           noAccount: "No account yet?",
           registerNow: "Register now",
           sideTitle: "Quick login, continue your family story without pause.",
@@ -144,6 +152,10 @@ function LoginPageContent() {
             ? "Terlalu banyak percobaan login. Coba lagi dalam 15 menit."
             : "Too many login attempts. Please try again in 15 minutes."
         );
+      } else if (res.error.includes("ACCOUNT_INACTIVE")) {
+        setError(copy.inactiveAccount);
+      } else if (res.error.includes("ACCOUNT_SUSPENDED")) {
+        setError(copy.suspendedAccount);
       } else {
         setError(copy.invalidCredentials);
       }

@@ -14,6 +14,12 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../providers/LanguageProvider";
 import { BrandLogo } from "./BrandLogo";
+import {
+  CONTACT_EMAIL,
+  CONTACT_PHONE_DISPLAY,
+  CONTACT_PHONE_TEL,
+  STUDIO_ADDRESS,
+} from "../../lib/contact-info";
 
 export function Footer() {
   const pathname = usePathname();
@@ -65,9 +71,9 @@ export function Footer() {
         ],
         contactNote:
           "Kunjungan studio dan konsultasi tersedia dengan perjanjian terlebih dahulu.",
-        email: "halo@lifestory.co",
-        phone: "+62 887 7669 990",
-        location: "Jakarta, Indonesia",
+        email: CONTACT_EMAIL,
+        phone: CONTACT_PHONE_DISPLAY,
+        location: STUDIO_ADDRESS,
         bookCta: "Jadwalkan Konsultasi",
         rights: "Hak cipta dilindungi.",
         bottomTagline: "Mengabadikan hari ini. Menginspirasi generasi mendatang.",
@@ -111,9 +117,9 @@ export function Footer() {
           },
         ],
         contactNote: "Studio visits and consultations by appointment.",
-        email: "hello@lifestory.co",
-        phone: "+62 887 7669 990",
-        location: "Jakarta, Indonesia",
+        email: CONTACT_EMAIL,
+        phone: CONTACT_PHONE_DISPLAY,
+        location: STUDIO_ADDRESS,
         bookCta: "Book a Consultation",
         rights: "All rights reserved.",
         bottomTagline: "Preserving today. Inspiring tomorrow.",
@@ -397,13 +403,18 @@ export function Footer() {
                 <span className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-[#dcc9a8] text-[#b8956a]">
                   <Phone className="h-3.5 w-3.5" strokeWidth={1.5} />
                 </span>
-                <span>{copy.phone}</span>
+                <a
+                  href={`tel:${CONTACT_PHONE_TEL}`}
+                  className="transition hover:text-[#3f342d]"
+                >
+                  {copy.phone}
+                </a>
               </li>
               <li className="flex items-center gap-3">
                 <span className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-[#dcc9a8] text-[#b8956a]">
                   <MapPin className="h-3.5 w-3.5" strokeWidth={1.5} />
                 </span>
-                <span>{copy.location}</span>
+                <span className="leading-relaxed">{copy.location}</span>
               </li>
             </ul>
 

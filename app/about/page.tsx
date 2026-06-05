@@ -151,7 +151,7 @@ export default function AboutPage() {
           "Momen handover yang berkesan dan dirayakan.",
         ],
 
-        // Marquee + stats
+        // Marquee
         marqueeEyebrow: "Untuk Siapa",
         marqueeTitle: "Lifestory adalah jembatan antar generasi.",
         marqueePoints: [
@@ -162,13 +162,6 @@ export default function AboutPage() {
           "Dari Cucu untuk Kakeknya",
           "Dari Ibu untuk anaknya",
         ],
-        stats: [
-          { value: 50, suffix: "+", label: "Keluarga dilayani" },
-          { value: 200, suffix: " thn", label: "Cerita diabadikan" },
-          { value: 12000, suffix: "+", label: "Halaman ditulis" },
-          { value: 100, suffix: "%", label: "Kepuasan keluarga" },
-        ],
-
         // Final CTA
         priorityLabel: "Yang Kami Utamakan",
         priorityTitle: "Spesial. Berkualitas. Selalu.",
@@ -301,13 +294,6 @@ export default function AboutPage() {
           "From a Grandchild to their grandparent",
           "From a Mother to her children",
         ],
-        stats: [
-          { value: 50, suffix: "+", label: "Families served" },
-          { value: 200, suffix: " yrs", label: "Stories preserved" },
-          { value: 12000, suffix: "+", label: "Pages written" },
-          { value: 100, suffix: "%", label: "Family approval" },
-        ],
-
         priorityLabel: "What We Prioritize",
         priorityTitle: "Special. High quality. Always.",
         priorityBody:
@@ -585,7 +571,6 @@ export default function AboutPage() {
             title: copy.marqueeTitle,
             fromForLabel: copy.marqueeEyebrow,
             fromForPoints: copy.marqueePoints,
-            stats: copy.stats,
           }}
         />
       </SectionZoom>

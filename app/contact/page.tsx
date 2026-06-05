@@ -19,11 +19,18 @@ import {
   FloatingInput,
   FloatingTextarea,
 } from "../../components/ui/FloatingField";
+import {
+  CONTACT_EMAIL,
+  CONTACT_PHONE_DISPLAY,
+  CONTACT_PHONE_TEL,
+  STUDIO_ADDRESS,
+} from "../../lib/contact-info";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 export default function ContactPage() {
   const { locale } = useLanguage();
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
+  const [error, setError] = useState<string | null>(null);
   const { reduced } = useMotionGuard();
   const isId = locale === "id";
 
@@ -46,6 +53,8 @@ export default function ContactPage() {
         send: "Kirim Pesan",
         sending: "Mengirim...",
         sent: "Pesan terkirim",
+        sendFailed:
+          "Pesan belum terkirim. Coba lagi atau hubungi kami lewat email/WhatsApp.",
         thanks:
           "Terima kasih. Tim Lifestory akan menghubungi Anda dalam 1x24 jam.",
         infoTitle: "Cara lain menjangkau kami",
@@ -55,19 +64,22 @@ export default function ContactPage() {
           {
             icon: Mail,
             label: "Email",
-            value: "halo@lifestory.co",
+            value: CONTACT_EMAIL,
+            href: `mailto:${CONTACT_EMAIL}`,
             note: "Pertanyaan umum dan kerja sama",
           },
           {
             icon: Phone,
             label: "Telepon",
-            value: "+62 887 7669 990",
+            value: CONTACT_PHONE_DISPLAY,
+            href: `tel:${CONTACT_PHONE_TEL}`,
             note: "Senin - Jumat, 09.00 - 17.00 WIB",
           },
           {
             icon: MapPin,
             label: "Studio",
-            value: "Jakarta, Indonesia",
+            value: STUDIO_ADDRESS,
+            href: "#",
             note: "Pertemuan langsung dengan janji",
           },
         ],
@@ -93,6 +105,8 @@ export default function ContactPage() {
         send: "Send message",
         sending: "Sending...",
         sent: "Message sent",
+        sendFailed:
+          "Your message was not sent. Please try again or contact us by email/WhatsApp.",
         thanks: "Thanks. The Lifestory team will reply within one working day.",
         infoTitle: "Other ways to reach us",
         infoNote:
@@ -101,19 +115,22 @@ export default function ContactPage() {
           {
             icon: Mail,
             label: "Email",
-            value: "hello@lifestory.co",
+            value: CONTACT_EMAIL,
+            href: `mailto:${CONTACT_EMAIL}`,
             note: "General inquiries and partnerships",
           },
           {
             icon: Phone,
             label: "Phone",
-            value: "+62 887 7669 990",
+            value: CONTACT_PHONE_DISPLAY,
+            href: `tel:${CONTACT_PHONE_TEL}`,
             note: "Mon - Fri, 09.00 - 17.00 WIB",
           },
           {
             icon: MapPin,
             label: "Studio",
-            value: "Jakarta, Indonesia",
+            value: STUDIO_ADDRESS,
+            href: "#",
             note: "Studio visits by appointment",
           },
         ],
@@ -125,8 +142,33 @@ export default function ContactPage() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus("sending");
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setStatus("sent");
+    setError(null);
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const name = String(formData.get("name") || "").trim();
+    const email = String(formData.get("email") || "").trim();
+    const message = String(formData.get("message") || "").trim();
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, message }),
+      });
+
+      if (!response.ok) {
+        setError(copy.sendFailed);
+        setStatus("idle");
+        return;
+      }
+
+      form.reset();
+      setStatus("sent");
+    } catch {
+      setError(copy.sendFailed);
+      setStatus("idle");
+    }
   }
 
   return (
@@ -164,11 +206,7 @@ export default function ContactPage() {
                 return (
                   <a
                     key={item.label}
-                    href={
-                      item.label === "Email" || item.label === "Email"
-                        ? `mailto:${item.value}`
-                        : "#"
-                    }
+                    href={item.href}
                     className="group flex items-center gap-3 rounded-card border border-cream-300 bg-white p-4 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-soft"
                   >
                     <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-card border border-cream-300 bg-cream-100 text-brand-700">
@@ -329,6 +367,15 @@ export default function ContactPage() {
                     {copy.thanks}
                   </p>
                 )}
+                {error && (
+                  <p
+                    className="inline-flex items-center gap-2 text-sm text-danger"
+                    role="alert"
+                  >
+                    <span className="inline-flex h-2 w-2 rounded-full bg-danger" />
+                    {error}
+                  </p>
+                )}
               </div>
             </form>
           </motion.div>
@@ -370,7 +417,7 @@ export default function ContactPage() {
                         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9b845f]">
                           {item.label}
                         </p>
-                        <p className="mt-0.5 truncate text-sm font-semibold text-[#3f342d]">
+                        <p className="mt-0.5 break-words text-sm font-semibold leading-relaxed text-[#3f342d]">
                           {item.value}
                         </p>
                         <p className="text-xs leading-relaxed text-[#7b6f63]">

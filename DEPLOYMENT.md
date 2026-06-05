@@ -70,6 +70,9 @@ RESEND_API_KEY="..."
 PASSWORD_RESET_FROM_EMAIL="Lifestory <no-reply@lifestory.co.id>"
 ```
 
+The password-reset flow and `/api/contact` both use this Resend configuration.
+The contact form sends inquiries to `lifestory.co.id@gmail.com`.
+
 `NEXTAUTH_URL` must not point to localhost in Vercel Production.
 `HEALTH_DATABASE_CHECK_TOKEN` is required only for the deep database health
 probe. `/api/health` remains public and does not touch Supabase.

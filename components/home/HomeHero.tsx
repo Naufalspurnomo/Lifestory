@@ -116,7 +116,7 @@ export function HomeHero({
   return (
     <section
       ref={ref}
-      className="relative min-h-[100svh] overflow-hidden bg-white md:min-h-0 md:h-auto lg:min-h-[760px]"
+      className="relative min-h-[100svh] overflow-hidden bg-white md:min-h-[720px] lg:h-[100svh] lg:min-h-[760px] lg:max-h-[980px]"
     >
       {/* MOBILE — full-bleed background image */}
       <motion.div
@@ -208,7 +208,7 @@ export function HomeHero({
 
       <motion.div
         style={{ y: heroY }}
-        className="relative mx-auto flex w-full min-w-0 max-w-[1320px] flex-col justify-center px-4 pt-24 pb-16 sm:px-6 md:py-20 lg:h-full lg:min-h-[760px] lg:pt-32 lg:pb-32 xl:pt-36 xl:pb-36"
+        className="relative mx-auto flex w-full min-w-0 max-w-[1320px] flex-col justify-center px-4 pt-24 pb-16 sm:px-6 md:min-h-[720px] md:py-20 lg:h-full lg:min-h-0 lg:pt-32 lg:pb-32 xl:pt-36 xl:pb-36"
       >
         {/* LEFT — Editorial copy. On mobile this becomes a translucent card so the photo behind it stays visible. */}
         <div className="relative z-10 flex min-w-0 w-full max-w-full flex-col justify-center rounded-card-lg border border-white/70 bg-white/80 p-5 shadow-elev backdrop-blur-md sm:p-6 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none md:max-w-[54%] lg:max-w-[46%] xl:max-w-[43%]">

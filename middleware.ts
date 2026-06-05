@@ -112,10 +112,10 @@ export async function middleware(req: NextRequest) {
     typeof token?.status === "string" ? token.status : undefined;
   const isAdmin = token?.role === "admin";
 
-  if (accountStatus === "suspended") {
+  if (accountStatus === "suspended" || accountStatus === "inactive") {
     if (isAdminOnlyApi) {
       return NextResponse.json(
-        { error: "Forbidden - Account is suspended" },
+        { error: "Forbidden - Account is not active" },
         { status: 403 }
       );
     }
@@ -158,6 +158,7 @@ export const config = {
   matcher: [
     "/app/:path*",
     "/dashboard/:path*",
+    "/api/contact/:path*",
     "/api/trees/:path*",
     "/api/users/:path*",
     "/api/invites/:path*",

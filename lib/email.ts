@@ -1,3 +1,5 @@
+import { CONTACT_EMAIL } from "./contact-info";
+
 type PasswordResetEmailInput = {
   to: string;
   resetUrl: string;
@@ -6,6 +8,12 @@ type PasswordResetEmailInput = {
 
 type PasswordChangedEmailInput = {
   to: string;
+};
+
+type ContactInquiryEmailInput = {
+  name: string;
+  email: string;
+  message: string;
 };
 
 type EmailResult =
@@ -34,11 +42,13 @@ async function sendEmail({
   subject,
   html,
   text,
+  replyTo,
 }: {
   to: string;
   subject: string;
   html: string;
   text: string;
+  replyTo?: string;
 }): Promise<EmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.PASSWORD_RESET_FROM_EMAIL;
@@ -67,6 +77,7 @@ async function sendEmail({
         subject,
         html,
         text,
+        ...(replyTo ? { reply_to: replyTo } : {}),
       }),
       signal: controller.signal,
     });
@@ -144,4 +155,43 @@ export async function sendPasswordChangedEmail({
   `;
 
   return sendEmail({ to, subject, html, text });
+}
+
+export async function sendContactInquiryEmail({
+  name,
+  email,
+  message,
+}: ContactInquiryEmailInput): Promise<EmailResult> {
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  const safeMessage = escapeHtml(message).replaceAll("\n", "<br />");
+  const subject = `Lifestory contact inquiry from ${name}`;
+  const text = [
+    "Ada pesan baru dari form kontak Lifestory.",
+    "",
+    `Nama: ${name}`,
+    `Email: ${email}`,
+    "",
+    "Pesan:",
+    message,
+  ].join("\n");
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#40342c">
+      <h1 style="font-size:22px;margin:0 0 16px">Pesan baru dari form kontak Lifestory</h1>
+      <p><strong>Nama:</strong> ${safeName}</p>
+      <p><strong>Email:</strong> ${safeEmail}</p>
+      <p><strong>Pesan:</strong></p>
+      <div style="padding:14px 16px;border:1px solid #ece2cc;border-radius:12px;background:#faf6ed;color:#40342c">
+        ${safeMessage}
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: CONTACT_EMAIL,
+    subject,
+    html,
+    text,
+    replyTo: email,
+  });
 }

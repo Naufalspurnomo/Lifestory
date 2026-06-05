@@ -13,6 +13,7 @@ import { PhilosophyDeaths } from "../components/home/PhilosophyDeaths";
 import { FinalCTA } from "../components/home/FinalCTA";
 import { ScrollScale, SectionZoom } from "../components/ui/ScrollAnimations";
 import { SectionRail } from "../components/ui/SectionRail";
+import { STUDIO_CITY } from "../lib/contact-info";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -46,7 +47,7 @@ export default function HomePage() {
         hero: {
           welcomeBack: "Selamat datang kembali",
           eyebrow: "Lifestory · Studio Biografi",
-          studioCity: "Surabaya",
+          studioCity: STUDIO_CITY,
           featuredLabel: "Featured",
           headlineLine1: "Kisah",
           headlineRotators: ["hidup", "ayah", "ibu", "keluarga", "warisan"],
@@ -207,7 +208,7 @@ export default function HomePage() {
           pressLogos: [
             "Jakarta",
             "Bandung",
-            "Surabaya",
+            STUDIO_CITY,
             "Yogyakarta",
             "Medan",
             "Bali",
@@ -289,7 +290,7 @@ export default function HomePage() {
         hero: {
           welcomeBack: "Welcome back",
           eyebrow: "Lifestory · Biography Studio",
-          studioCity: "Jakarta",
+          studioCity: STUDIO_CITY,
           featuredLabel: "Featured",
           headlineLine1: "Stories of",
           headlineRotators: ["a life", "a father", "a mother", "a family", "a lineage"],
@@ -450,7 +451,7 @@ export default function HomePage() {
           pressLogos: [
             "Jakarta",
             "Bandung",
-            "Surabaya",
+            STUDIO_CITY,
             "Yogyakarta",
             "Medan",
             "Bali",

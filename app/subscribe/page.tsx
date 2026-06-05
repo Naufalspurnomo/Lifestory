@@ -16,9 +16,11 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 import { Button } from "../../components/ui/Button";
+import {
+  CONTACT_PHONE_DISPLAY,
+  CONTACT_WHATSAPP_NUMBER,
+} from "../../lib/contact-info";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
-
-const WHATSAPP_NUMBER = "6281234567890"; // Replace with actual number
 
 export default function SubscribePage() {
   const { data: session } = useSession();
@@ -60,7 +62,7 @@ export default function SubscribePage() {
           },
           {
             name: "GoPay / OVO / Dana",
-            number: "081234567890",
+            number: CONTACT_PHONE_DISPLAY,
             holder: "Lifestory",
             icon: Wallet,
           },
@@ -133,7 +135,7 @@ export default function SubscribePage() {
           },
           {
             name: "GoPay / OVO / Dana",
-            number: "081234567890",
+            number: CONTACT_PHONE_DISPLAY,
             holder: "Lifestory",
             icon: Wallet,
           },
@@ -430,7 +432,7 @@ export default function SubscribePage() {
             </div>
 
             <a
-              href={`https://wa.me/${WHATSAPP_NUMBER}?text=${orderText}`}
+              href={`https://wa.me/${CONTACT_WHATSAPP_NUMBER}?text=${orderText}`}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#22a35a] px-6 py-3 text-sm font-semibold uppercase tracking-[0.1em] text-white shadow-[0_12px_26px_rgba(34,163,90,0.3)] transition hover:-translate-y-0.5 hover:bg-[#1a8b4a] hover:shadow-[0_16px_30px_rgba(34,163,90,0.36)]"

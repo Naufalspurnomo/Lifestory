@@ -70,7 +70,13 @@ export const authOptions: NextAuthOptions = {
           validation.data.password,
           user?.passwordHash ?? DUMMY_PASSWORD_HASH
         );
-        if (!user || !isValid || user.status === "suspended") return null;
+        if (!user || !isValid) return null;
+        if (user.status === "inactive") {
+          throw new Error("ACCOUNT_INACTIVE");
+        }
+        if (user.status === "suspended") {
+          throw new Error("ACCOUNT_SUSPENDED");
+        }
 
         return {
           id: user.id,
