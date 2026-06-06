@@ -14,6 +14,11 @@ import {
 import type { FamilyNode, TreeData } from "../types/tree";
 import { nonEmptyFamilyTreeNodesSchema } from "../validations";
 
+export const TREE_WRITE_TRANSACTION_OPTIONS = {
+  maxWait: 5_000,
+  timeout: 20_000,
+} as const;
+
 export class TreeAccessError extends Error {
   constructor(
     message: string,
@@ -135,6 +140,111 @@ async function writeGraph(
         generationCached: n.generationCached,
       })),
     });
+  }
+
+  if (snapshot.edges.length > 0) {
+    await tx.edge.createMany({
+      data: snapshot.edges.map((e) => ({
+        treeId,
+        fromId: e.fromId,
+        toId: e.toId,
+        kind: e.kind,
+        startYear: e.startYear ?? null,
+        endYear: e.endYear ?? null,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  return snapshot;
+}
+
+function toNodeCreateData(treeId: string, n: DbNode) {
+  return {
+    id: n.id,
+    treeId,
+    label: n.label,
+    sex: n.sex,
+    birthYear: n.birthYear,
+    deathYear: n.deathYear,
+    line: n.line,
+    imageUrl: n.imageUrl,
+    imageStorageKey: n.imageStorageKey,
+    imageMimeType: n.imageMimeType,
+    imageSizeBytes: n.imageSizeBytes,
+    description: n.description,
+    media: n.media as any,
+    works: n.works as any,
+    socialInstagram: n.socialInstagram,
+    socialTiktok: n.socialTiktok,
+    socialLinkedin: n.socialLinkedin,
+    generationCached: n.generationCached,
+  };
+}
+
+function toNodeUpdateData(n: DbNode) {
+  const { id, treeId, ...data } = toNodeCreateData("", n);
+  void id;
+  void treeId;
+  return data;
+}
+
+function dbNodeFingerprint(n: DbNode): string {
+  return JSON.stringify([
+    n.label,
+    n.sex,
+    n.birthYear,
+    n.deathYear,
+    n.line,
+    n.imageUrl,
+    n.imageStorageKey,
+    n.imageMimeType,
+    n.imageSizeBytes,
+    n.description,
+    n.media ?? [],
+    n.works ?? [],
+    n.socialInstagram,
+    n.socialTiktok,
+    n.socialLinkedin,
+    n.generationCached,
+  ]);
+}
+
+async function writeMutatedGraph(
+  tx: Prisma.TransactionClient,
+  treeId: string,
+  currentNodes: DbNode[],
+  nodes: FamilyNode[]
+) {
+  assertTreeGraphValid(nodes);
+  const snapshot = serializeTreeToRows(nodes);
+  const currentById = new Map(currentNodes.map((node) => [node.id, node]));
+  const nextIds = new Set(snapshot.nodes.map((node) => node.id));
+  const deletedIds = currentNodes
+    .filter((node) => !nextIds.has(node.id))
+    .map((node) => node.id);
+
+  await tx.edge.deleteMany({ where: { treeId } });
+
+  if (deletedIds.length > 0) {
+    await tx.node.deleteMany({
+      where: { treeId, id: { in: deletedIds } },
+    });
+  }
+
+  for (const node of snapshot.nodes) {
+    const current = currentById.get(node.id);
+    if (!current) {
+      await tx.node.create({ data: toNodeCreateData(treeId, node) });
+      continue;
+    }
+
+    if (dbNodeFingerprint(current) !== dbNodeFingerprint(node)) {
+      await tx.node.update({
+        where: { id: node.id },
+        data: toNodeUpdateData(node),
+      });
+    }
   }
 
   if (snapshot.edges.length > 0) {
@@ -306,18 +416,21 @@ export async function createTreeForUser(
 
   let tree;
   try {
-    tree = await prisma.$transaction(async (tx) => {
-      const created = await tx.tree.create({
-        data: {
-          ...(requestedId ? { id: requestedId } : {}),
-          name,
-          ownerId: userId,
-        },
-      });
-      const snapshot = await writeGraph(tx, created.id, nodes);
-      await createSnapshot(tx, created.id, created.version, snapshot);
-      return created;
-    });
+    tree = await prisma.$transaction(
+      async (tx) => {
+        const created = await tx.tree.create({
+          data: {
+            ...(requestedId ? { id: requestedId } : {}),
+            name,
+            ownerId: userId,
+          },
+        });
+        const snapshot = await writeGraph(tx, created.id, nodes);
+        await createSnapshot(tx, created.id, created.version, snapshot);
+        return created;
+      },
+      TREE_WRITE_TRANSACTION_OPTIONS
+    );
   } catch (error) {
     if (
       requestedId &&
@@ -348,27 +461,30 @@ export async function replaceTreeNodes(
 ): Promise<{ newVersion: number }> {
   await assertMembership(treeId, userId, true);
 
-  return prisma.$transaction(async (tx) => {
-    const claim = await tx.tree.updateMany({
-      where: { id: treeId, deletedAt: null, version: expectedVersion },
-      data: { version: { increment: 1 }, updatedAt: new Date() },
-    });
-    if (claim.count !== 1) {
-      const current = await tx.tree.findUnique({
-        where: { id: treeId },
-        select: { version: true, deletedAt: true },
+  return prisma.$transaction(
+    async (tx) => {
+      const claim = await tx.tree.updateMany({
+        where: { id: treeId, deletedAt: null, version: expectedVersion },
+        data: { version: { increment: 1 }, updatedAt: new Date() },
       });
-      if (!current || current.deletedAt) {
-        throw new TreeAccessError("Tree not found", 404);
+      if (claim.count !== 1) {
+        const current = await tx.tree.findUnique({
+          where: { id: treeId },
+          select: { version: true, deletedAt: true },
+        });
+        if (!current || current.deletedAt) {
+          throw new TreeAccessError("Tree not found", 404);
+        }
+        throw new VersionConflictError(current.version);
       }
-      throw new VersionConflictError(current.version);
-    }
 
-    const snapshot = await writeGraph(tx, treeId, nodes);
-    const newVersion = expectedVersion + 1;
-    await createSnapshot(tx, treeId, newVersion, snapshot);
-    return { newVersion };
-  });
+      const snapshot = await writeGraph(tx, treeId, nodes);
+      const newVersion = expectedVersion + 1;
+      await createSnapshot(tx, treeId, newVersion, snapshot);
+      return { newVersion };
+    },
+    TREE_WRITE_TRANSACTION_OPTIONS
+  );
 }
 
 export async function deleteTree(treeId: string, userId: string) {
@@ -424,109 +540,114 @@ export async function applyTreeMutations(
 }> {
   await assertMembership(treeId, userId, true);
 
-  return prisma.$transaction(async (tx) => {
-    const existingReceipt = await tx.treeSyncReceipt.findUnique({
-      where: { id: batchId },
-    });
-    if (existingReceipt) {
-      if (existingReceipt.treeId !== treeId) {
-        throw new TreeAccessError("Sync batch ID is already in use");
-      }
-      return {
-        newVersion: existingReceipt.version,
-        acknowledgedSeqNos: existingReceipt.acknowledgedSeqNos as number[],
-        duplicate: true,
-      };
-    }
-
-    // Claim this version before reading and replacing the graph. PostgreSQL
-    // serializes concurrent claims on this row, so only one writer can win.
-    const claim = await tx.tree.updateMany({
-      where: { id: treeId, deletedAt: null, version: clientVersion },
-      data: { version: { increment: 1 }, updatedAt: new Date() },
-    });
-    if (claim.count !== 1) {
-      const receiptAfterClaim = await tx.treeSyncReceipt.findUnique({
+  return prisma.$transaction(
+    async (tx) => {
+      const existingReceipt = await tx.treeSyncReceipt.findUnique({
         where: { id: batchId },
       });
-      if (receiptAfterClaim?.treeId === treeId) {
+      if (existingReceipt) {
+        if (existingReceipt.treeId !== treeId) {
+          throw new TreeAccessError("Sync batch ID is already in use");
+        }
         return {
-          newVersion: receiptAfterClaim.version,
-          acknowledgedSeqNos: receiptAfterClaim.acknowledgedSeqNos as number[],
+          newVersion: existingReceipt.version,
+          acknowledgedSeqNos: existingReceipt.acknowledgedSeqNos as number[],
           duplicate: true,
         };
       }
 
-      const current = await tx.tree.findUnique({
-        where: { id: treeId },
-        select: { version: true, deletedAt: true },
+      // Claim this version before reading and replacing the graph. PostgreSQL
+      // serializes concurrent claims on this row, so only one writer can win.
+      const claim = await tx.tree.updateMany({
+        where: { id: treeId, deletedAt: null, version: clientVersion },
+        data: { version: { increment: 1 }, updatedAt: new Date() },
       });
-      if (!current || current.deletedAt) {
-        throw new TreeAccessError("Tree not found", 404);
+      if (claim.count !== 1) {
+        const receiptAfterClaim = await tx.treeSyncReceipt.findUnique({
+          where: { id: batchId },
+        });
+        if (receiptAfterClaim?.treeId === treeId) {
+          return {
+            newVersion: receiptAfterClaim.version,
+            acknowledgedSeqNos: receiptAfterClaim.acknowledgedSeqNos as number[],
+            duplicate: true,
+          };
+        }
+
+        const current = await tx.tree.findUnique({
+          where: { id: treeId },
+          select: { version: true, deletedAt: true },
+        });
+        if (!current || current.deletedAt) {
+          throw new TreeAccessError("Tree not found", 404);
+        }
+        throw new VersionConflictError(current.version);
       }
-      throw new VersionConflictError(current.version);
-    }
 
-    const [nodes, edges] = await Promise.all([
-      tx.node.findMany({ where: { treeId } }),
-      tx.edge.findMany({ where: { treeId } }),
-    ]);
+      const [nodes, edges] = await Promise.all([
+        tx.node.findMany({ where: { treeId } }),
+        tx.edge.findMany({ where: { treeId } }),
+      ]);
 
-    const currentNodes = deserializeRowsToTree({
-      nodes: nodes.map((n) => ({
-        id: n.id,
-        label: n.label,
-        sex: n.sex,
-        birthYear: n.birthYear,
-        deathYear: n.deathYear,
-        line: n.line,
-        imageUrl: n.imageUrl,
-        imageStorageKey: n.imageStorageKey,
-        imageMimeType: n.imageMimeType,
-        imageSizeBytes: n.imageSizeBytes,
-        description: n.description,
-        media: n.media,
-        works: n.works,
-        socialInstagram: n.socialInstagram,
-        socialTiktok: n.socialTiktok,
-        socialLinkedin: n.socialLinkedin,
-        generationCached: n.generationCached,
-      })),
-      edges: edges.map((e) => ({
-        fromId: e.fromId,
-        toId: e.toId,
-        kind: e.kind as DbEdge["kind"],
-        startYear: e.startYear,
-        endYear: e.endYear,
-      })),
-    });
+      const currentDbNodes: DbNode[] = nodes.map((n) => ({
+          id: n.id,
+          label: n.label,
+          sex: n.sex,
+          birthYear: n.birthYear,
+          deathYear: n.deathYear,
+          line: n.line,
+          imageUrl: n.imageUrl,
+          imageStorageKey: n.imageStorageKey,
+          imageMimeType: n.imageMimeType,
+          imageSizeBytes: n.imageSizeBytes,
+          description: n.description,
+          media: n.media,
+          works: n.works,
+          socialInstagram: n.socialInstagram,
+          socialTiktok: n.socialTiktok,
+          socialLinkedin: n.socialLinkedin,
+          generationCached: n.generationCached,
+        }));
+      const currentNodes = deserializeRowsToTree({
+        nodes: currentDbNodes,
+        edges: edges.map((e) => ({
+          fromId: e.fromId,
+          toId: e.toId,
+          kind: e.kind as DbEdge["kind"],
+          startYear: e.startYear,
+          endYear: e.endYear,
+        })),
+      });
 
-    const ordered = [...mutations].sort((a, b) => a.seqNo - b.seqNo);
-    const snapshot = await writeGraph(
-      tx,
-      treeId,
-      applyNodeMutations(currentNodes, ordered)
-    );
-    const newVersion = clientVersion + 1;
-    const acknowledgedSeqNos = ordered.map((mutation) => mutation.seqNo);
-    await tx.treeSyncReceipt.create({
-      data: {
-        id: batchId,
+      const ordered = [...mutations].sort((a, b) => a.seqNo - b.seqNo);
+      const snapshot = await writeMutatedGraph(
+        tx,
         treeId,
-        clientVersion,
-        version: newVersion,
-        acknowledgedSeqNos,
-        nodeIds: Array.from(new Set(ordered.map((mutation) => mutation.nodeId))),
-      },
-    });
-    await createSnapshot(tx, treeId, newVersion, snapshot);
+        currentDbNodes,
+        applyNodeMutations(currentNodes, ordered)
+      );
+      const newVersion = clientVersion + 1;
+      const acknowledgedSeqNos = ordered.map((mutation) => mutation.seqNo);
+      await tx.treeSyncReceipt.create({
+        data: {
+          id: batchId,
+          treeId,
+          clientVersion,
+          version: newVersion,
+          acknowledgedSeqNos,
+          nodeIds: Array.from(new Set(ordered.map((mutation) => mutation.nodeId))),
+        },
+      });
+      await createSnapshot(tx, treeId, newVersion, snapshot);
 
-    return {
-      newVersion,
-      acknowledgedSeqNos,
-      duplicate: false,
-    };
-  });
+      return {
+        newVersion,
+        acknowledgedSeqNos,
+        duplicate: false,
+      };
+    },
+    TREE_WRITE_TRANSACTION_OPTIONS
+  );
 }
 
 export async function getChangedNodeIdsSince(

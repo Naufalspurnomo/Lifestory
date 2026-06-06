@@ -3,6 +3,7 @@ import { prisma } from "../db";
 import {
   assertTreeGraphValid,
   assertTreeWritable,
+  TREE_WRITE_TRANSACTION_OPTIONS,
   TreeAccessError,
 } from "../tree/repository";
 import {
@@ -88,6 +89,11 @@ function parseSnapshotData(data: unknown): DbTreeSnapshot {
   };
 }
 
+const TREE_SNAPSHOT_TRANSACTION_OPTIONS = {
+  ...TREE_WRITE_TRANSACTION_OPTIONS,
+  isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+} as const;
+
 export class BackupManager {
   async createSnapshot(treeId: string): Promise<TreeSnapshot> {
     const { data, snapshot } = await prisma.$transaction(
@@ -116,7 +122,7 @@ export class BackupManager {
         });
         return { data, snapshot };
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead }
+      TREE_SNAPSHOT_TRANSACTION_OPTIONS
     );
 
     await this.pruneOldSnapshots(treeId, 50);
@@ -170,80 +176,82 @@ export class BackupManager {
     if (snapshot.treeId !== treeId) throw new Error("Snapshot belongs to another tree");
     assertTreeGraphValid(deserializeRowsToTree(snapshot.data));
 
-    await prisma.$transaction(async (tx) => {
-      const claimed = await tx.tree.updateMany({
-        where: { id: treeId, deletedAt: null },
-        data: { version: { increment: 1 }, updatedAt: new Date() },
-      });
-      if (claimed.count !== 1) {
-        throw new TreeAccessError("Tree not found", 404);
-      }
-      const tree = await tx.tree.findUniqueOrThrow({
-        where: { id: treeId },
-        select: { version: true },
-      });
-      const [currentNodes, currentEdges] = await Promise.all([
-        tx.node.findMany({ where: { treeId } }),
-        tx.edge.findMany({ where: { treeId } }),
-      ]);
-
-      const preRestore: DbTreeSnapshot = {
-        nodes: currentNodes.map(mapNode),
-        edges: currentEdges.map(mapEdge),
-      };
-
-      await tx.treeSnapshot.create({
-        data: {
-          treeId,
-          version: tree.version - 1,
-          nodeCount: preRestore.nodes.length,
-          data: preRestore as any,
-        },
-      });
-
-      await tx.edge.deleteMany({ where: { treeId } });
-      await tx.node.deleteMany({ where: { treeId } });
-
-      if (snapshot.data.nodes.length > 0) {
-        await tx.node.createMany({
-          data: snapshot.data.nodes.map((node) => ({
-            id: node.id,
-            treeId,
-            label: node.label,
-            sex: node.sex,
-            birthYear: node.birthYear,
-            deathYear: node.deathYear,
-            line: node.line,
-            imageUrl: node.imageUrl,
-            imageStorageKey: node.imageStorageKey,
-            imageMimeType: node.imageMimeType,
-            imageSizeBytes: node.imageSizeBytes,
-            description: node.description,
-            media: node.media as any,
-            works: node.works as any,
-            socialInstagram: node.socialInstagram,
-            socialTiktok: node.socialTiktok,
-            socialLinkedin: node.socialLinkedin,
-            generationCached: node.generationCached,
-          })),
+    await prisma.$transaction(
+      async (tx) => {
+        const claimed = await tx.tree.updateMany({
+          where: { id: treeId, deletedAt: null },
+          data: { version: { increment: 1 }, updatedAt: new Date() },
         });
-      }
-
-      if (snapshot.data.edges.length > 0) {
-        await tx.edge.createMany({
-          data: snapshot.data.edges.map((edge) => ({
-            treeId,
-            fromId: edge.fromId,
-            toId: edge.toId,
-            kind: edge.kind,
-            startYear: edge.startYear ?? null,
-            endYear: edge.endYear ?? null,
-          })),
-          skipDuplicates: true,
+        if (claimed.count !== 1) {
+          throw new TreeAccessError("Tree not found", 404);
+        }
+        const tree = await tx.tree.findUniqueOrThrow({
+          where: { id: treeId },
+          select: { version: true },
         });
-      }
+        const [currentNodes, currentEdges] = await Promise.all([
+          tx.node.findMany({ where: { treeId } }),
+          tx.edge.findMany({ where: { treeId } }),
+        ]);
 
-    });
+        const preRestore: DbTreeSnapshot = {
+          nodes: currentNodes.map(mapNode),
+          edges: currentEdges.map(mapEdge),
+        };
+
+        await tx.treeSnapshot.create({
+          data: {
+            treeId,
+            version: tree.version - 1,
+            nodeCount: preRestore.nodes.length,
+            data: preRestore as any,
+          },
+        });
+
+        await tx.edge.deleteMany({ where: { treeId } });
+        await tx.node.deleteMany({ where: { treeId } });
+
+        if (snapshot.data.nodes.length > 0) {
+          await tx.node.createMany({
+            data: snapshot.data.nodes.map((node) => ({
+              id: node.id,
+              treeId,
+              label: node.label,
+              sex: node.sex,
+              birthYear: node.birthYear,
+              deathYear: node.deathYear,
+              line: node.line,
+              imageUrl: node.imageUrl,
+              imageStorageKey: node.imageStorageKey,
+              imageMimeType: node.imageMimeType,
+              imageSizeBytes: node.imageSizeBytes,
+              description: node.description,
+              media: node.media as any,
+              works: node.works as any,
+              socialInstagram: node.socialInstagram,
+              socialTiktok: node.socialTiktok,
+              socialLinkedin: node.socialLinkedin,
+              generationCached: node.generationCached,
+            })),
+          });
+        }
+
+        if (snapshot.data.edges.length > 0) {
+          await tx.edge.createMany({
+            data: snapshot.data.edges.map((edge) => ({
+              treeId,
+              fromId: edge.fromId,
+              toId: edge.toId,
+              kind: edge.kind,
+              startYear: edge.startYear ?? null,
+              endYear: edge.endYear ?? null,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      },
+      TREE_WRITE_TRANSACTION_OPTIONS
+    );
 
     await this.pruneOldSnapshots(treeId, 50);
   }

@@ -23,8 +23,40 @@ import { jsonBodyLimits, parseJsonBody } from "../../../../../lib/request-body";
 function isMissingTableError(error: unknown): boolean {
   return (
     error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === "P2021"
+    (error.code === "P2021" || error.code === "P2022")
   );
+}
+
+function isTransientDatabaseError(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientInitializationError ||
+    error instanceof Prisma.PrismaClientRustPanicError ||
+    error instanceof Prisma.PrismaClientUnknownRequestError ||
+    (error instanceof Prisma.PrismaClientKnownRequestError &&
+      ["P1001", "P1002", "P2024", "P2028", "P2034"].includes(error.code))
+  );
+}
+
+function isForeignKeyError(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2003"
+  );
+}
+
+function isSyncVersionUniqueError(error: unknown): boolean {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== "P2002"
+  ) {
+    return false;
+  }
+
+  const target = error.meta?.target;
+  if (Array.isArray(target)) {
+    return target.includes("treeId") && target.includes("version");
+  }
+  return String(target ?? "").includes("TreeSyncReceipt_treeId_version_key");
 }
 
 function handleError(error: unknown) {
@@ -34,9 +66,22 @@ function handleError(error: unknown) {
   if (error instanceof InvalidTreeGraphError) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+  if (isForeignKeyError(error)) {
+    return NextResponse.json(
+      { error: "Invalid tree relationship data" },
+      { status: 400 }
+    );
+  }
   if (isMissingTableError(error)) {
     return NextResponse.json(
-      { error: "tree-tables-not-migrated" },
+      { error: "tree-database-schema-not-ready" },
+      { status: 503 }
+    );
+  }
+  if (isTransientDatabaseError(error)) {
+    console.warn("tree sync temporary database error", error);
+    return NextResponse.json(
+      { error: "tree-sync-temporary-database-error" },
       { status: 503 }
     );
   }
@@ -168,6 +213,20 @@ export async function POST(
           conflictingNodeIds: changes.complete
             ? [...requestedNodeIds].filter((id) => changedNodeIds.has(id))
             : [...requestedNodeIds],
+        },
+        { status: 409 }
+      );
+    }
+    if (isSyncVersionUniqueError(error)) {
+      const current = await getTreeForUser(id, userId);
+      return NextResponse.json(
+        {
+          error: "version-conflict",
+          currentVersion: current.version,
+          serverState: current.nodes,
+          conflictingNodeIds: validation.data.mutations.map(
+            (mutation) => mutation.nodeId
+          ),
         },
         { status: 409 }
       );
