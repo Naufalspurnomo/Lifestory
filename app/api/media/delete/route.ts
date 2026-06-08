@@ -10,6 +10,7 @@ import {
   requireMediaStorageConfig,
   storageKeyBelongsToTree,
 } from "../../../../lib/media/storage";
+import { applyRateLimit, rateLimitConfigs } from "../../../../lib/rate-limit";
 import {
   formatZodErrors,
   mediaDeleteSchema,
@@ -32,6 +33,13 @@ function errorResponse(error: unknown) {
 }
 
 export async function POST(request: Request) {
+  const rateLimitError = await applyRateLimit(
+    request,
+    "media-delete",
+    rateLimitConfigs.api
+  );
+  if (rateLimitError) return rateLimitError;
+
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
 

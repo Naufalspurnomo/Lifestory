@@ -10,6 +10,7 @@ import {
   countNodeGalleryItems,
   formatBytes,
 } from "../../../../lib/media/quota";
+import { applyRateLimit, rateLimitConfigs } from "../../../../lib/rate-limit";
 import {
   createMediaStorageKey,
   createPresignedPutUrl,
@@ -41,6 +42,13 @@ function errorResponse(error: unknown) {
 }
 
 export async function POST(request: Request) {
+  const rateLimitError = await applyRateLimit(
+    request,
+    "media-presign",
+    rateLimitConfigs.api
+  );
+  if (rateLimitError) return rateLimitError;
+
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
 

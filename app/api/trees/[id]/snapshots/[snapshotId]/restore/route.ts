@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "../../../../../../../lib/auth-helpers";
+import {
+  applyRateLimit,
+  rateLimitConfigs,
+} from "../../../../../../../lib/rate-limit";
 import { BackupManager } from "../../../../../../../lib/sync/BackupManager";
 import {
   InvalidTreeGraphError,
@@ -7,9 +11,16 @@ import {
 } from "../../../../../../../lib/tree/repository";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string; snapshotId: string }> }
 ) {
+  const rateLimitError = await applyRateLimit(
+    request,
+    "tree-snapshot-restore",
+    rateLimitConfigs.sensitive
+  );
+  if (rateLimitError) return rateLimitError;
+
   const { id, snapshotId } = await params;
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
