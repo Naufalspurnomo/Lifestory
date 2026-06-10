@@ -72,10 +72,7 @@ export function PromiseGrid({ copy }: Props) {
                     : "bg-white"
                 )}
               >
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-brand-200/30 blur-2xl transition duration-500 group-hover:scale-110"
-                />
+                <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-brand-200/70" />
                 <span
                   className={cn(
                     "relative inline-flex h-12 w-12 items-center justify-center rounded-card border transition-colors duration-500",

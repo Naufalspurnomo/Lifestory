@@ -177,7 +177,7 @@ export default function ContactPage() {
 
   return (
     <div className="bg-cream-100 text-ink-700">
-      {/* Hero — editorial split, NO shared hero image */}
+      {/* Hero â€” editorial split, NO shared hero image */}
       <section className="relative overflow-hidden bg-gradient-to-b from-cream-50 to-cream-100">
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="absolute -left-32 top-12 h-[400px] w-[400px] rounded-full bg-brand-200/30 blur-3xl" />
@@ -230,7 +230,7 @@ export default function ContactPage() {
             </div>
           </motion.div>
 
-          {/* Right — letter mock */}
+          {/* Right â€” letter mock */}
           <motion.div
             initial={{ opacity: 0, y: reduced ? 0 : 28 }}
             animate={{ opacity: 1, y: 0 }}
@@ -250,7 +250,7 @@ export default function ContactPage() {
               <p className="mt-5 font-serif text-2xl leading-snug text-ink-800">
                 {isId
                   ? "Halo, mari kita mulai dengan secangkir kopi."
-                  : "Hello, let’s begin with a cup of coffee."}
+                  : "Hello, letâ€™s begin with a cup of coffee."}
               </p>
               <p className="mt-3 text-sm leading-relaxed text-ink-500">
                 {isId
@@ -268,7 +268,7 @@ export default function ContactPage() {
             </div>
           </motion.div>
 
-          {/* Mobile/tablet fallback — flat letter card */}
+          {/* Mobile/tablet fallback â€” flat letter card */}
           <motion.div
             initial={{ opacity: 0, y: reduced ? 0 : 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -284,11 +284,11 @@ export default function ContactPage() {
             <p className="mt-4 font-serif text-xl leading-snug text-ink-800">
               {isId
                 ? "Mari kita mulai dengan secangkir kopi."
-                : "Let’s begin with a cup of coffee."}
+                : "Letâ€™s begin with a cup of coffee."}
             </p>
             <p className="mt-2 text-sm leading-relaxed text-ink-500">
               {isId
-                ? "Konsultasi 30 menit, tanpa pitch deck — hanya percakapan."
+                ? "Konsultasi 30 menit, tanpa pitch deck â€” hanya percakapan."
                 : "A 30-minute consult, no pitch deck, just a conversation."}
             </p>
           </motion.div>
@@ -399,14 +399,14 @@ export default function ContactPage() {
             <div className="rounded-[28px] border border-[#dfd2be] bg-[linear-gradient(150deg,#fff8ea_0%,#fffdf6_60%,#fff_100%)] p-7 shadow-[0_18px_36px_rgba(59,43,24,0.1)]">
               <div className="mb-5 flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9b845f]">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#82693c]">
                     {copy.infoTitle}
                   </p>
                   <p className="mt-1 max-w-xs text-sm leading-relaxed text-[#6e6258]">
                     {copy.infoNote}
                   </p>
                 </div>
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#ddc7a2] bg-white/80 text-[#b07f2f]">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#dccfb3] bg-white/80 text-[#82693c]">
                   <MessageCircle className="h-5 w-5" />
                 </span>
               </div>
@@ -417,13 +417,13 @@ export default function ContactPage() {
                   return (
                     <div
                       key={item.label}
-                      className="flex items-start gap-3 rounded-2xl border border-[#eee1cb] bg-white/85 p-4 transition hover:border-[#dcc28e] hover:bg-white"
+                      className="flex items-start gap-3 rounded-2xl border border-[#eee1cb] bg-white/85 p-4 transition hover:border-[#c8b187] hover:bg-white"
                     >
-                      <span className="inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl border border-[#ddc7a2] bg-[#fff7e8] text-[#b07f2f]">
+                      <span className="inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl border border-[#dccfb3] bg-[#fdfbf6] text-[#82693c]">
                         <Icon className="h-4 w-4" />
                       </span>
                       <div className="min-w-0">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9b845f]">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#82693c]">
                           {item.label}
                         </p>
                         <p className="mt-0.5 break-words text-sm font-semibold leading-relaxed text-[#3f342d]">
@@ -441,11 +441,11 @@ export default function ContactPage() {
 
             <div className="rounded-[28px] border border-[#dfd2be] bg-white/82 p-6 shadow-[0_14px_28px_rgba(59,43,24,0.08)]">
               <div className="flex items-start gap-3">
-                <span className="inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl border border-[#ddc7a2] bg-[#fff7e8] text-[#b07f2f]">
+                <span className="inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl border border-[#dccfb3] bg-[#fdfbf6] text-[#82693c]">
                   <Clock3 className="h-4 w-4" />
                 </span>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9b845f]">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#82693c]">
                     {copy.responseTitle}
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-[#6e6258]">

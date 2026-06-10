@@ -83,8 +83,8 @@ export default function WelcomeScreen({ userName, onStart }: Props) {
   return (
     <div className="relative flex min-h-[600px] items-center justify-center overflow-hidden p-8">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-20 top-12 h-72 w-72 rounded-full bg-[#f1d99b]/45 blur-3xl" />
-        <div className="absolute -right-20 bottom-10 h-72 w-72 rounded-full bg-[#e6ddc6]/65 blur-3xl" />
+        <div className="absolute -left-20 top-12 h-72 w-72 rounded-full bg-[#dfceb0]/45 blur-3xl" />
+        <div className="absolute -right-20 bottom-10 h-72 w-72 rounded-full bg-[#ece2cc]/65 blur-3xl" />
       </div>
 
       <motion.div
@@ -94,21 +94,21 @@ export default function WelcomeScreen({ userName, onStart }: Props) {
         className="relative z-10 w-full max-w-2xl space-y-8 text-center"
       >
         <div className="space-y-4">
-          <p className="inline-flex items-center gap-2 rounded-full border border-[#dccfb7] bg-white/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b845f] backdrop-blur-sm">
-            <Sparkles className="h-3.5 w-3.5 text-[#c48b24]" />
+          <p className="inline-flex items-center gap-2 rounded-full border border-[#dccfb3] bg-white/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#82693c] backdrop-blur-sm">
+            <Sparkles className="h-3.5 w-3.5 text-[#82693c]" />
             {copy.badge}
           </p>
 
           <div className="relative mx-auto h-32 w-32">
-            <div className="absolute inset-0 animate-pulse rounded-full bg-[#f1d99b]/40" />
-            <div className="absolute inset-3 flex items-center justify-center rounded-full border border-[#ddc7a2] bg-[linear-gradient(150deg,#fff8ea_0%,#f6e5c1_100%)] text-[#b07f2f] shadow-[0_18px_36px_rgba(169,116,21,0.18)]">
+            <div className="absolute inset-0 animate-pulse rounded-full bg-[#dfceb0]/40" />
+            <div className="absolute inset-3 flex items-center justify-center rounded-full border border-[#dccfb3] bg-[linear-gradient(150deg,#fff8ea_0%,#efe4d0_100%)] text-[#82693c] shadow-[0_18px_36px_rgba(130,105,60,0.18)]">
               <TreePine className="h-12 w-12" />
             </div>
           </div>
 
           <h1 className="font-serif text-[clamp(2rem,4vw,3rem)] leading-tight text-[#3f342d]">
             {copy.title},{" "}
-            <span className="bg-gradient-to-r from-[#e6ab2f] to-[#b07f2f] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#82693c] to-[#82693c] bg-clip-text text-transparent">
               {userName}
             </span>
           </h1>
@@ -123,9 +123,9 @@ export default function WelcomeScreen({ userName, onStart }: Props) {
             return (
               <div
                 key={feature.title}
-                className="flex items-start gap-3 rounded-2xl border border-[#dfd2be] bg-white/82 p-4 shadow-[0_8px_18px_rgba(59,43,24,0.06)] backdrop-blur-sm transition hover:border-[#dcc28e] hover:bg-white"
+                className="flex items-start gap-3 rounded-2xl border border-[#dfd2be] bg-white/82 p-4 shadow-[0_8px_18px_rgba(59,43,24,0.06)] backdrop-blur-sm transition hover:border-[#c8b187] hover:bg-white"
               >
-                <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-xl border border-[#ddc7a2] bg-[#fff7e8] text-[#b07f2f]">
+                <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-xl border border-[#dccfb3] bg-[#fdfbf6] text-[#82693c]">
                   <Icon className="h-5 w-5" />
                 </span>
                 <div>
@@ -143,7 +143,7 @@ export default function WelcomeScreen({ userName, onStart }: Props) {
           <button
             type="button"
             onClick={onStart}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-7 py-3.5 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-[0_16px_36px_rgba(169,116,21,0.34)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_40px_rgba(169,116,21,0.42)]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#82693c] to-[#604b2d] px-7 py-3.5 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-[0_16px_36px_rgba(130,105,60,0.34)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_40px_rgba(130,105,60,0.42)]"
           >
             {copy.cta}
             <ArrowRight className="h-4 w-4" />

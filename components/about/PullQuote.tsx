@@ -21,8 +21,8 @@ export function PullQuote({ quote, attribution, eyebrow }: Props) {
   return (
     <section className="relative overflow-hidden bg-cream-50 section-y-md">
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-1/4 h-80 w-80 rounded-full bg-brand-200/25 blur-3xl" />
-        <div className="absolute -right-24 bottom-1/4 h-80 w-80 rounded-full bg-accent-100/30 blur-3xl" />
+        <div className="absolute inset-x-0 top-0 h-px bg-cream-300" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-cream-300" />
       </div>
 
       <Container size="md">

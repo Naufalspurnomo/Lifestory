@@ -64,9 +64,26 @@ describe("NetworkDetector", () => {
       vi.fn(async () => new Response("{}", { status: 503 })) as unknown as typeof fetch
     );
 
-    await expect(detector.check()).resolves.toBe(false);
-    expect(detector.isOnline()).toBe(true);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await expect(detector.check()).resolves.toBe(false);
+      expect(detector.isOnline()).toBe(true);
+    }
     await expect(detector.check()).resolves.toBe(false);
     expect(detector.isOnline()).toBe(false);
+  });
+
+  it("still allows sync attempts after soft health failures", async () => {
+    const detector = new NetworkDetector(
+      "/api/health",
+      30_000,
+      vi.fn(async () => new Response("{}", { status: 503 })) as unknown as typeof fetch
+    );
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await detector.check();
+    }
+
+    expect(detector.isOnline()).toBe(false);
+    expect(detector.canAttemptRequests()).toBe(true);
   });
 });

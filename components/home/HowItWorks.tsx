@@ -1,24 +1,13 @@
 "use client";
 
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
-import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
-import {
-  Camera,
-  Feather,
-  HeartHandshake,
-  type LucideIcon,
-} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Container } from "../ui/Container";
-import { Eyebrow } from "../ui/Eyebrow";
-import { CornerFlourish } from "../ui/Ornament";
-import { cn } from "../../lib/utils";
-import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
+import { Reveal } from "../ui/Reveal";
 
 type Step = {
-  n: string;
-  numeral: string;
-  icon: LucideIcon;
+  number: string;
   title: string;
   body: string;
   image: string;
@@ -34,165 +23,221 @@ type Props = {
   };
 };
 
-const ICONS = [Feather, Camera, HeartHandshake];
-
-/**
- * HowItWorks — editorial alternating step rows.
- *
- * One layout for every device: each step has its own image, image and text
- * alternate sides at lg+ for Z-pattern reading, stacked vertical on mobile.
- *
- * No scroll-bound transitions. No sticky tricks. The visual interest comes
- * from rhythm, big serif numerals, image entrance scale, and ornament accents.
- */
 export function HowItWorks({ copy }: Props) {
-  const steps: Step[] = copy.steps.map((s, i) => ({
-    n: `0${i + 1}`,
-    numeral: String(i + 1).padStart(2, "0"),
-    icon: ICONS[i] ?? Feather,
-    title: s.title,
-    body: s.body,
-    image: s.image || "/image/home-step-" + (i + 1) + ".webp",
-    alt: s.alt || s.title,
+  const reducedMotion = useReducedMotion();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const stepRefs = useRef<Array<HTMLElement | null>>([]);
+
+  const steps: Step[] = copy.steps.map((step, index) => ({
+    number: String(index + 1).padStart(2, "0"),
+    title: step.title,
+    body: step.body,
+    image: step.image || `/image/home-step-${index + 1}.webp`,
+    alt: step.alt || step.title,
   }));
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntry = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (!visibleEntry) return;
+
+        const nextIndex = Number(
+          (visibleEntry.target as HTMLElement).dataset.stepIndex,
+        );
+        if (!Number.isNaN(nextIndex)) setActiveIndex(nextIndex);
+      },
+      {
+        rootMargin: "-28% 0px -42% 0px",
+        threshold: [0.1, 0.35, 0.6, 0.85],
+      },
+    );
+
+    stepRefs.current.forEach((step) => {
+      if (step) observer.observe(step);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const activeStep = steps[activeIndex] || steps[0];
+  if (!activeStep) return null;
+
   return (
-    <section className="relative bg-cream-50 section-y-md">
-      <Container>
-        <div className="mb-16 max-w-3xl md:mb-20">
-          <Eyebrow>{copy.eyebrow}</Eyebrow>
-          <h2 className="mt-4 font-serif text-[clamp(1.85rem,4.6vw,3.6rem)] leading-[1.05] tracking-[-0.02em] text-ink-800">
-            {copy.title}
-          </h2>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink-500 md:text-lg">
+    <section className="relative border-y border-cream-300 bg-cream-50 py-[clamp(5rem,8vw,8rem)]">
+      <Container size="xl">
+        <Reveal className="grid gap-8 pb-16 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.72fr)] lg:items-end lg:gap-20 lg:pb-24">
+          <div>
+            <p className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+              <span className="h-px w-8 bg-brand-500" />
+              {copy.eyebrow}
+            </p>
+            <h2 className="mt-7 max-w-[13ch] font-serif text-[clamp(2.9rem,5.4vw,5.75rem)] font-light leading-[0.98] tracking-normal text-ink-900">
+              {copy.title}
+            </h2>
+          </div>
+          <p className="max-w-xl text-base font-light leading-[1.8] text-ink-600 md:text-lg lg:pb-1">
             {copy.lead}
           </p>
-        </div>
+        </Reveal>
 
-        <div className="space-y-20 md:space-y-24 lg:space-y-32">
-          {steps.map((step, idx) => (
-            <StepRow key={step.n} step={step} index={idx} total={steps.length} />
-          ))}
+        <div className="lg:grid lg:grid-cols-[minmax(0,0.82fr)_minmax(430px,1.18fr)] lg:gap-16 xl:gap-24">
+          <div className="relative lg:pb-[45vh]">
+            {steps.map((step, index) => {
+              const isActive = activeIndex === index;
+
+              return (
+                <article
+                  key={step.number}
+                  ref={(node) => {
+                    stepRefs.current[index] = node;
+                  }}
+                  data-step-index={index}
+                  className="flex min-h-[auto] flex-col justify-center border-t border-cream-300 py-12 first:border-t-brand-400 md:py-16 lg:min-h-[68vh] lg:border-t-0 lg:py-20"
+                >
+                  <div
+                    className={`max-w-xl transition-[opacity,transform] duration-500 ease-smooth ${
+                      isActive
+                        ? "lg:translate-x-0 lg:opacity-100"
+                        : "lg:-translate-x-2 lg:opacity-[0.58]"
+                    } ${reducedMotion ? "lg:transition-none" : ""}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="font-serif text-xl text-brand-700">
+                        {step.number}
+                      </span>
+                      <span
+                        className={`h-px transition-[width,background-color] duration-500 ${
+                          isActive
+                            ? "w-16 bg-brand-500"
+                            : "w-8 bg-cream-400"
+                        }`}
+                      />
+                    </div>
+
+                    <h3 className="mt-7 max-w-[14ch] font-serif text-[clamp(2.25rem,4vw,4.5rem)] font-light leading-[1.02] tracking-normal text-ink-900">
+                      {step.title}
+                    </h3>
+                    <p className="mt-6 max-w-lg text-base font-light leading-[1.8] text-ink-600 md:text-lg">
+                      {step.body}
+                    </p>
+                  </div>
+
+                  <figure className="mx-auto mt-10 w-full max-w-[620px] lg:hidden">
+                    <div className="relative aspect-[4/5] overflow-hidden bg-cream-200 shadow-[0_20px_45px_rgba(63,52,45,0.14)]">
+                      <PosterImage
+                        step={step}
+                        sizes="(max-width: 640px) calc(100vw - 3rem), 620px"
+                      />
+                    </div>
+                  </figure>
+                </article>
+              );
+            })}
+          </div>
+
+          <aside className="relative hidden lg:block">
+            <div className="sticky top-20 flex h-[calc(100svh-6rem)] min-h-[480px] max-h-[760px] flex-col items-end justify-center py-3">
+              <div className="mb-4 flex w-full items-center justify-end gap-4 text-[9px] font-bold uppercase tracking-[0.2em] text-ink-400">
+                <span>{copy.eyebrow}</span>
+                <span className="h-px w-10 bg-brand-400" />
+                <span>{activeStep.number}</span>
+              </div>
+
+              <div
+                className="relative aspect-[4/5] max-w-[610px] overflow-hidden bg-cream-200 shadow-[0_32px_70px_rgba(63,52,45,0.18)]"
+                style={{
+                  width:
+                    "min(100%, calc((100svh - 12rem) * 0.8), 610px)",
+                }}
+              >
+                <AnimatePresence initial={false}>
+                  <motion.figure
+                    key={activeStep.number}
+                    initial={
+                      reducedMotion
+                        ? false
+                        : { opacity: 0, scale: 1.025, y: 18 }
+                    }
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={
+                      reducedMotion
+                        ? { opacity: 0 }
+                        : { opacity: 0, scale: 0.985, y: -12 }
+                    }
+                    transition={{
+                      duration: reducedMotion ? 0 : 0.65,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                    className="absolute inset-0"
+                  >
+                    <PosterImage
+                      step={activeStep}
+                      priority={activeIndex === 0}
+                      sizes="(max-width: 1024px) 1px, 55vw"
+                    />
+                  </motion.figure>
+                </AnimatePresence>
+              </div>
+
+              <div
+                className="mt-5 flex max-w-[610px] gap-2"
+                style={{
+                  width:
+                    "min(100%, calc((100svh - 12rem) * 0.8), 610px)",
+                }}
+              >
+                {steps.map((step, index) => (
+                  <span
+                    key={step.number}
+                    className={`h-px flex-1 transition-colors duration-500 ${
+                      index <= activeIndex ? "bg-brand-600" : "bg-cream-300"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </aside>
         </div>
       </Container>
     </section>
   );
 }
 
-function StepRow({
+function PosterImage({
   step,
-  index,
-  total,
+  sizes,
+  priority = false,
 }: {
   step: Step;
-  index: number;
-  total: number;
+  sizes: string;
+  priority?: boolean;
 }) {
-  const ref = useRef<HTMLElement>(null);
-  const hasEntered = useInView(ref, {
-    once: true,
-    amount: 0.2,
-    margin: "0px 0px -12% 0px",
-  });
-  const { reduced } = useMotionGuard();
-  const Icon = step.icon;
-  const reversed = index % 2 === 1;
-
   return (
-    <motion.article
-      ref={ref}
-      initial={{ opacity: 0, y: reduced ? 0 : 36 }}
-      animate={hasEntered ? { opacity: 1, y: 0 } : { opacity: 0, y: reduced ? 0 : 36 }}
-      transition={{
-        duration: reduced ? 0.01 : 0.8,
-        ease: [0.22, 1, 0.36, 1],
-      }}
-      className={cn(
-        "grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-16",
-        reversed && "lg:[&>*:first-child]:order-2"
-      )}
-    >
-      {/* === Image column === */}
-      <motion.div
-        initial={{ opacity: 0, scale: reduced ? 1 : 0.96 }}
-        animate={
-          hasEntered
-            ? { opacity: 1, scale: 1 }
-            : { opacity: 0, scale: reduced ? 1 : 0.96 }
-        }
-        transition={{ duration: reduced ? 0.01 : 0.9, ease: [0.22, 1, 0.36, 1] }}
-        className="relative"
-      >
-        <div className="relative aspect-[4/5] overflow-hidden rounded-card-lg border border-cream-300 bg-white shadow-elev sm:aspect-[5/6] lg:aspect-[4/5]">
-          <Image
-            src={step.image}
-            alt={step.alt}
-            fill
-            sizes="(max-width: 1024px) 100vw, 50vw"
-            className="object-cover"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-900/40 via-transparent to-transparent"
-          />
-          {/* Big floating numeral overlay */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute -bottom-3 left-2 font-serif text-[clamp(6rem,13vw,10rem)] leading-none text-white/80 mix-blend-overlay drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)] sm:-bottom-5 sm:left-4"
-          >
-            {step.numeral}
-          </span>
-          {/* Phase chip */}
-          <span
-            className={cn(
-              "absolute left-5 top-5 inline-flex items-center gap-2 rounded-pill px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] shadow-soft backdrop-blur-sm transition-colors duration-500",
-              hasEntered
-                ? "bg-brand-gradient text-white shadow-cta"
-                : "bg-white/95 text-brand-700"
-            )}
-          >
-            <Icon className="h-3.5 w-3.5" />
-            Step {step.n}
-          </span>
-        </div>
-      </motion.div>
-
-      {/* === Text column === */}
-      <div className="relative">
-        <CornerFlourish
-          aria-hidden
-          className="pointer-events-none absolute -left-4 -top-4 hidden lg:block"
-        />
-        <p
-          aria-hidden
-          className="font-serif text-7xl leading-none text-brand-200/80 md:text-8xl"
-        >
-          {step.numeral}.
-        </p>
-        <h3 className="mt-2 font-serif text-[clamp(1.85rem,3.4vw,2.6rem)] leading-[1.1] tracking-[-0.02em] text-ink-800">
-          {step.title}
-        </h3>
-        <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-500 md:text-lg">
-          {step.body}
-        </p>
-
-        {/* Step indicator rail */}
-        <div className="mt-7 flex items-center gap-3">
-          {Array.from({ length: total }).map((_, i) => (
-            <span
-              key={i}
-              aria-hidden
-              className={cn(
-                "h-[3px] rounded-full transition-all duration-500 ease-smooth",
-                i === index ? "w-10 bg-brand-gradient" : "w-3 bg-cream-300"
-              )}
-            />
-          ))}
-          <span className="ml-2 text-[11px] font-bold uppercase tracking-[0.18em] text-ink-300">
-            {step.n} / {String(total).padStart(2, "0")}
-          </span>
-        </div>
-      </div>
-    </motion.article>
+    <>
+      <Image
+        aria-hidden
+        src={step.image}
+        alt=""
+        fill
+        sizes={sizes}
+        className="scale-110 object-cover opacity-45 blur-2xl"
+      />
+      <span
+        aria-hidden
+        className="absolute inset-0 bg-cream-100/20"
+      />
+      <Image
+        src={step.image}
+        alt={step.alt}
+        fill
+        priority={priority}
+        sizes={sizes}
+        className="relative object-contain"
+      />
+    </>
   );
 }

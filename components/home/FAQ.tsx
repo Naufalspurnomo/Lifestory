@@ -31,7 +31,7 @@ export function FAQ({ copy }: Props) {
             </h2>
             <span aria-hidden className="mt-7 block h-px w-16 bg-brand-400" />
 
-            <div className="mt-9 rounded-card-lg border border-cream-300 bg-white p-6 shadow-soft">
+            <div className="mt-9 rounded-card-lg border border-cream-300 bg-cream-50 p-6 shadow-soft">
               <span className="inline-flex h-10 w-10 items-center justify-center rounded-card border border-cream-300 bg-cream-100 text-brand-700">
                 <MessageCircle className="h-4 w-4" />
               </span>
@@ -55,7 +55,7 @@ export function FAQ({ copy }: Props) {
           </Reveal>
 
           <Reveal delay={0.1}>
-            <div className="rounded-card-lg border border-cream-300 bg-white p-2 shadow-soft md:p-4">
+            <div className="rounded-card-lg border border-cream-300 bg-cream-50 p-2 shadow-soft md:p-4">
               <Accordion
                 items={copy.items.map((it) => ({ q: it.q, a: it.a }))}
                 className="px-4 md:px-6"

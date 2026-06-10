@@ -56,7 +56,7 @@ export default function SyncStatusIndicator({ status, onRetry }: Props) {
           ? "border-red-300/60 bg-red-950/70 text-red-100"
           : status.status === "saved"
           ? "border-emerald-300/50 bg-emerald-950/55 text-emerald-100"
-          : "border-[#d4af37]/45 bg-black/45 text-[#e8d5b5]"
+          : "border-[#82693c]/45 bg-black/45 text-[#e8d5b5]"
       }`}
       aria-live="polite"
       title={message}

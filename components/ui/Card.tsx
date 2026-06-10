@@ -10,10 +10,10 @@ type CardProps = HTMLAttributes<HTMLDivElement> & {
 };
 
 const variantMap = {
-  soft: "border border-cream-300 bg-white/85 backdrop-blur-sm shadow-soft",
-  elev: "border border-cream-300 bg-white shadow-elev",
+  soft: "border border-cream-300 bg-cream-50/88 backdrop-blur-sm shadow-soft",
+  elev: "border border-cream-300 bg-cream-50 shadow-elev",
   outline: "border border-cream-300 bg-transparent",
-  warm: "border border-cream-300 bg-[linear-gradient(150deg,#fff8ea_0%,#fffdf6_55%,#fff_100%)] shadow-soft",
+  warm: "border border-cream-300 bg-[linear-gradient(150deg,#faf6ed_0%,#fdfbf6_60%,#f5efe1_100%)] shadow-soft",
   dark:
     "border border-ink-900/30 bg-gradient-to-br from-accent-900 via-accent-800 to-brand-800 text-white shadow-deep",
 };

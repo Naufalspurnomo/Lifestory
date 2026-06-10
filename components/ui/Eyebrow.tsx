@@ -18,8 +18,8 @@ export function Eyebrow({
     tone === "white"
       ? "text-white/80 border-white/25 bg-white/10"
       : tone === "ink"
-      ? "text-ink-500 border-cream-300 bg-white/70"
-      : "text-brand-700 border-cream-300 bg-white/80";
+      ? "text-ink-500 border-cream-300 bg-cream-50/75"
+      : "text-brand-700 border-cream-300 bg-cream-50/85";
 
   return (
     <span

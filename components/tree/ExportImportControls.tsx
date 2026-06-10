@@ -102,7 +102,7 @@ export default function ExportImportControls({
           return;
         }
 
-        // No conflicts — import directly
+        // No conflicts â€” import directly
         onImport(data.tree.nodes, "replace");
         setImportState({ step: "success", count: data.tree.nodes.length });
         setTimeout(() => setImportState({ step: "idle" }), 3000);
@@ -160,13 +160,13 @@ export default function ExportImportControls({
       {/* Import feedback overlay */}
       {importState.step !== "idle" && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md overflow-hidden rounded-2xl border border-[#d4af37]/40 bg-[#0f0f14] shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
+          <div className="mx-4 w-full max-w-md overflow-hidden rounded-2xl border border-[#82693c]/40 bg-[#0f0f14] shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
             {/* Validating */}
             {importState.step === "validating" && (
               <div className="flex flex-col items-center gap-4 p-8">
-                <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#d4af37] border-t-transparent" />
+                <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#82693c] border-t-transparent" />
                 <p className="text-sm font-bold text-white">
-                  Validating import file…
+                  Validating import fileâ€¦
                 </p>
               </div>
             )}
@@ -202,7 +202,7 @@ export default function ExportImportControls({
               </div>
             )}
 
-            {/* Duplicate IDs — ask merge or replace */}
+            {/* Duplicate IDs â€” ask merge or replace */}
             {importState.step === "duplicates" && (
               <div className="p-6 space-y-4">
                 <div className="flex items-center gap-3">

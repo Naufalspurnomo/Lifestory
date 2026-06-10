@@ -105,7 +105,7 @@ export default function TimelineView({
                   className={`group relative flex min-w-0 items-start sm:items-center ${flexSideClasses}`}
                 >
                   <div className="absolute left-5 top-8 z-10 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full bg-white shadow-soft transition-transform duration-500 group-hover:scale-125 sm:left-1/2 sm:top-1/2 sm:-translate-y-1/2">
-                    <div className="h-3 w-3 rounded-full bg-brand-500 shadow-[0_0_10px_rgba(204,138,18,0.5)] transition-colors duration-300 group-hover:bg-brand-600" />
+                    <div className="h-3 w-3 rounded-full bg-brand-500 shadow-[0_0_10px_rgba(130,105,60,0.5)] transition-colors duration-300 group-hover:bg-brand-600" />
                   </div>
 
                   <div

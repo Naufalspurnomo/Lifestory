@@ -31,7 +31,7 @@ type Props = {
  */
 export function CursorAmbient({
   size = "h-[440px] w-[440px]",
-  color = "rgba(230,171,47,0.20)",
+  color = "rgba(130,105,60,0.20)",
   blend = "overlay",
   z = 5,
   hideOnTouch = true,

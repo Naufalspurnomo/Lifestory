@@ -35,7 +35,7 @@ export function FeaturedCollections({ copy }: Props) {
           </div>
           <Link
             href="/gallery"
-            className="group/link inline-flex items-center gap-2 self-start rounded-pill border border-cream-300 bg-white px-5 py-2.5 text-sm font-semibold text-ink-700 transition hover:border-brand-300 hover:bg-cream-100 md:self-auto"
+            className="group/link inline-flex items-center gap-2 self-start rounded-pill border border-cream-300 bg-cream-50 px-5 py-2.5 text-sm font-semibold text-ink-700 transition hover:border-brand-300 hover:bg-cream-100 md:self-auto"
           >
             {copy.viewMore}
             <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/link:translate-x-1" />
@@ -48,7 +48,7 @@ export function FeaturedCollections({ copy }: Props) {
               <Link
                 href={`/gallery?item=${book.id}`}
                 aria-label={`Open ${book.title} in gallery`}
-                className="group relative block aspect-[2/3] overflow-hidden rounded-card-lg border border-cream-300 bg-white transition duration-500 ease-smooth hover:-translate-y-1.5 hover:shadow-deep"
+                className="group relative block aspect-[2/3] overflow-hidden rounded-card-lg border border-cream-300 bg-cream-50 transition duration-500 ease-smooth hover:-translate-y-1.5 hover:shadow-deep"
               >
                 <Image
                   src={book.src}

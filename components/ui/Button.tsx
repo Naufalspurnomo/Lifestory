@@ -42,7 +42,7 @@ const variantMap: Record<ButtonVariant, string> = {
   primary:
     "bg-brand-gradient text-white shadow-cta hover:shadow-cta-hover hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]",
   secondary:
-    "border border-cream-300 bg-white/85 text-ink-700 hover:border-brand-300 hover:bg-white hover:shadow-soft active:scale-[0.98]",
+    "border border-cream-300 bg-cream-50/90 text-ink-700 hover:border-brand-300 hover:bg-cream-50 hover:shadow-soft active:scale-[0.98]",
   ghost: "text-ink-600 hover:bg-cream-100 hover:text-ink-800 active:scale-[0.98]",
   outline:
     "border border-ink-700/15 bg-transparent text-ink-700 hover:bg-cream-100 hover:border-ink-700/35 active:scale-[0.98]",
@@ -120,7 +120,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
             width: 20,
             height: 20,
             borderRadius: "50%",
-            backgroundColor: variant === "primary" ? "rgba(255,255,255,0.6)" : "rgba(204,138,18,0.3)",
+            backgroundColor: variant === "primary" ? "rgba(255,255,255,0.6)" : "rgba(130,105,60,0.24)",
             pointerEvents: "none",
             transform: "translate(-50%, -50%)",
           }}

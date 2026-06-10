@@ -33,32 +33,32 @@ module.exports = {
           900: "#1d1610",
         },
 
-        // Brand amber/gold — used for CTA, highlights, eyebrow accents
+        // Logo bronze - used for CTA, highlights, eyebrow accents
         brand: {
-          50: "#fdf8eb",
-          100: "#faedca",
-          200: "#f3d791",
-          300: "#ebbe5a",
-          400: "#e6ab2f", // CTA gradient start
-          500: "#cc8a12", // CTA gradient end / primary
-          600: "#a8741e",
+          50: "#f8f3e8",
+          100: "#efe4d0",
+          200: "#dfceb0",
+          300: "#c8b187",
+          400: "#aa8d5c",
+          500: "#927648",
+          600: "#82693c",
           700: "#82693c", // logo bronze
-          800: "#6a4b33",
-          900: "#4f3724",
+          800: "#604b2d",
+          900: "#3f2f1d",
         },
 
         // Aliases retained for backward compatibility
         gold: {
-          50: "#fdf8eb",
-          100: "#faedca",
-          200: "#f3d791",
-          300: "#ebbe5a",
-          400: "#e6ab2f",
-          500: "#cc8a12",
-          600: "#a8741e",
+          50: "#f8f3e8",
+          100: "#efe4d0",
+          200: "#dfceb0",
+          300: "#c8b187",
+          400: "#aa8d5c",
+          500: "#927648",
+          600: "#82693c",
           700: "#82693c",
-          800: "#6a4b33",
-          900: "#4f3724",
+          800: "#604b2d",
+          900: "#3f2f1d",
         },
 
         warm: {
@@ -71,19 +71,19 @@ module.exports = {
         warmMuted: "#73685f",
         warmBorder: "#ece2cc",
 
-        // Deep teal accent — used for trust/secure pages (auth, dashboard)
+        // Logo accent alias - kept for older components that still reference accent-*
         accent: {
-          DEFAULT: "#1f6f62",
-          50: "#f0faf8",
-          100: "#d0f0eb",
-          200: "#a1e0d7",
-          300: "#6bcabd",
-          400: "#3dafa0",
-          500: "#1f6f62",
-          600: "#1a5c52",
-          700: "#164a42",
-          800: "#123b35",
-          900: "#0e2d29",
+          DEFAULT: "#82693c",
+          50: "#f8f3e8",
+          100: "#efe4d0",
+          200: "#dfceb0",
+          300: "#c8b187",
+          400: "#aa8d5c",
+          500: "#82693c",
+          600: "#6f5633",
+          700: "#604b2d",
+          800: "#4b3a24",
+          900: "#1d1610",
         },
 
         // Status colors
@@ -101,12 +101,12 @@ module.exports = {
         elev: "0 18px 36px rgba(59,43,24,0.12)",
         lift: "0 22px 44px rgba(59,43,24,0.16)",
         deep: "0 28px 60px rgba(17,12,8,0.24)",
-        cta: "0 14px 30px rgba(169,116,21,0.30)",
-        "cta-hover": "0 22px 40px rgba(169,116,21,0.42)",
+        cta: "0 14px 30px rgba(130,105,60,0.28)",
+        "cta-hover": "0 22px 40px rgba(130,105,60,0.38)",
       },
       backgroundImage: {
         "brand-gradient":
-          "linear-gradient(135deg, #e6ab2f 0%, #cc8a12 60%, #a8741e 100%)",
+          "linear-gradient(135deg, #82693c 0%, #604b2d 58%, #3f2f1d 100%)",
         "cream-fade":
           "linear-gradient(180deg, #fdfbf6 0%, #faf6ed 60%, #f5efe1 100%)",
         "grain":

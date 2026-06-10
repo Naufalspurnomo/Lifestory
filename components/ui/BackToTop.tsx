@@ -48,7 +48,7 @@ export function BackToTop({ showAfterScreens = 1.2, className }: Props) {
           onClick={toTop}
           aria-label="Scroll back to top"
           className={cn(
-            "group fixed bottom-6 right-5 z-40 inline-flex h-12 w-12 items-center justify-center rounded-pill border border-cream-300 bg-white/95 text-ink-700 shadow-elev backdrop-blur-md transition-colors hover:bg-cream-50 sm:bottom-8 sm:right-7 sm:h-14 sm:w-14",
+            "group fixed bottom-6 right-5 z-40 inline-flex h-12 w-12 items-center justify-center rounded-pill border border-cream-300 bg-cream-50/95 text-ink-700 shadow-elev backdrop-blur-md transition-colors hover:bg-cream-100 sm:bottom-8 sm:right-7 sm:h-14 sm:w-14",
             className
           )}
         >
@@ -60,8 +60,8 @@ export function BackToTop({ showAfterScreens = 1.2, className }: Props) {
           >
             <defs>
               <linearGradient id="back-to-top-grad" x1="0" y1="0" x2="40" y2="40">
-                <stop offset="0%" stopColor="#e6ab2f" />
-                <stop offset="100%" stopColor="#cc8a12" />
+                <stop offset="0%" stopColor="#82693c" />
+                <stop offset="100%" stopColor="#604b2d" />
               </linearGradient>
             </defs>
             <circle

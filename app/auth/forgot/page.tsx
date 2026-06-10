@@ -90,10 +90,10 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf2e1] via-[#fbf8f2] to-[#f7f5f1] text-[#40342c]">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf6ed] via-[#fdfbf6] to-[#faf6ed] text-[#40342c]">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#f1d99b]/55 blur-3xl" />
-        <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#e6ddc6]/70 blur-3xl" />
+        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#dfceb0]/55 blur-3xl" />
+        <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#ece2cc]/70 blur-3xl" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(164,146,117,0.08)_1px,transparent_0)] [background-size:24px_24px]" />
       </div>
 
@@ -106,7 +106,7 @@ export default function ForgotPasswordPage() {
         >
           <Link
             href="/auth/login"
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dccfb7] bg-white/80 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#6c5a49] backdrop-blur-sm transition hover:border-[#c7b289] hover:bg-white hover:text-[#4c3f34]"
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dccfb3] bg-white/80 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#6c5a49] backdrop-blur-sm transition hover:border-[#c7b289] hover:bg-white hover:text-[#4c3f34]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             {copy.backToLogin}
@@ -114,11 +114,11 @@ export default function ForgotPasswordPage() {
 
           <div className="rounded-[30px] border border-[#dfd2be] bg-white/86 p-7 shadow-[0_24px_60px_rgba(88,74,51,0.18)] backdrop-blur-sm sm:p-9">
             <div className="mb-7 flex items-start gap-4">
-              <span className="inline-flex h-12 w-12 flex-none items-center justify-center rounded-2xl border border-[#ddc7a2] bg-[linear-gradient(150deg,#fff7e3_0%,#f6e5c1_100%)] text-[#b07f2f] shadow-sm">
+              <span className="inline-flex h-12 w-12 flex-none items-center justify-center rounded-2xl border border-[#dccfb3] bg-[linear-gradient(150deg,#fdfbf6_0%,#efe4d0_100%)] text-[#82693c] shadow-sm">
                 <KeyRound className="h-5 w-5" />
               </span>
               <div className="space-y-2">
-                <p className="inline-flex items-center gap-2 rounded-full border border-[#dccfb7] bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#9b845f]">
+                <p className="inline-flex items-center gap-2 rounded-full border border-[#dccfb3] bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#82693c]">
                   <Sparkles className="h-3 w-3" />
                   {copy.badge}
                 </p>
@@ -187,7 +187,7 @@ export default function ForgotPasswordPage() {
                 )}
 
                 <p className="rounded-xl border border-[#eee1cb] bg-[#fffcf7] p-3 text-xs leading-relaxed text-[#7b6f63]">
-                  <span className="font-semibold text-[#9b845f]">
+                  <span className="font-semibold text-[#82693c]">
                     {copy.tipTitle}.
                   </span>{" "}
                   {copy.tipBody}

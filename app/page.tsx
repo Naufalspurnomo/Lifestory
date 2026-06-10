@@ -11,8 +11,6 @@ import { Testimonials } from "../components/home/Testimonials";
 import { FAQ } from "../components/home/FAQ";
 import { PhilosophyDeaths } from "../components/home/PhilosophyDeaths";
 import { FinalCTA } from "../components/home/FinalCTA";
-import { ScrollScale, SectionZoom } from "../components/ui/ScrollAnimations";
-import { SectionRail } from "../components/ui/SectionRail";
 import { STUDIO_CITY } from "../lib/contact-info";
 
 export default function HomePage() {
@@ -53,19 +51,19 @@ export default function HomePage() {
           headlineRotators: ["hidup", "ayah", "ibu", "keluarga", "warisan"],
           headlineLine2: "yang berharga",
           headlineAccent: "diabadikan",
-          headlineLine3: "untuk generasi selanjutnya.",
+          headlineLine3: "lintas generasi.",
           subheading:
-            "Jangan biarkan kisah hidupmu menghilang ditelan waktu. Setiap memori, setiap suara, setiap momen berharga layak diabadikan — sebelum terlambat.",
+            "Jangan biarkan kisah keluarga hilang bersama waktu. Setiap memori, suara, dan momen berharga layak dijaga sebelum terlambat.",
           primaryCta: !isLoggedIn
-            ? "Lihat Keluarga Mu!"
+            ? "Lihat Keluargamu!"
             : isAdmin
             ? "Buka Dashboard"
             : isSubscribed
-            ? "Lihat Keluarga Mu!"
+            ? "Lihat Keluargamu!"
             : "Aktifkan Paket",
           secondaryCta: !isLoggedIn ? "Galeri Lifestory" : "Galeri Lifestory",
-          badge1: "Server yang aman",
-          badge2: "Pohon keluarga terintegrasi",
+          badge1: "Server aman",
+          badge2: "Silsilah digital",
           badge3: "Cetak ulang kapan saja",
           badge4: "Tonton ulang kapan saja",
           scrollHint: "Gulir",
@@ -121,23 +119,23 @@ export default function HomePage() {
         howItWorks: {
           eyebrow: "Cara Kami Bekerja",
           title: "Tiga langkah sederhana menuju warisan abadi.",
-          lead: "Dari pertemuan pertama hingga momen penyerahan — semuanya kami rancang agar bermakna.",
+          lead: "Dari pertemuan pertama hingga momen penyerahan, setiap langkah kami rancang agar bermakna.",
           steps: [
             {
               title: "Terkoneksi & merangkai narasi visual.",
-              body: "Kami bertemu, mendengarkan, dan bersama-sama menyusun cerita keluarga Anda menjadi narasi visual yang utuh — dari foto lama hingga rekaman suara.",
+              body: "Kami bertemu, mendengarkan, dan bersama-sama menyusun cerita keluarga Anda menjadi narasi visual yang utuh, dari foto lama hingga rekaman suara.",
               image: "/image/home-step-1.webp",
               alt: "Terkoneksi bersama dan merangkai narasi visual",
             },
             {
               title: "Upacara kecil penyerahan.",
-              body: "Hasil akhir diserahkan dalam momen intim bersama keluarga — sebuah perayaan kecil yang menandai warisan resmi telah lahir.",
+              body: "Hasil akhir diserahkan dalam momen intim bersama keluarga, sebagai perayaan kecil yang menandai warisan resmi telah lahir.",
               image: "/image/home-step-2.webp",
               alt: "Upacara kecil penyerahan karya",
             },
             {
               title: "Update pohon keluarga secara bebas.",
-              body: "Setelah selesai, Anda bebas memperbarui pohon silsilah digital kapan saja — tambah anggota baru, perbarui cerita, tanpa biaya tambahan.",
+              body: "Setelah selesai, Anda bebas memperbarui pohon silsilah digital kapan saja. Tambah anggota baru, perbarui cerita, tanpa biaya tambahan.",
               image: "/image/home-step-3.webp",
               alt: "Update pohon keluarga secara mandiri",
             },
@@ -146,7 +144,7 @@ export default function HomePage() {
         deliverables: {
           eyebrow: "Apa yang Anda terima",
           title: "Enam karya warisan untuk keluarga Anda.",
-          lead: "Setiap keluarga menerima paket lengkap yang saling melengkapi — cerita yang bisa dibaca, ditonton, dirayakan, dan diteruskan lintas generasi.",
+          lead: "Setiap keluarga menerima paket lengkap yang saling melengkapi: cerita yang bisa dibaca, ditonton, dirayakan, dan diteruskan lintas generasi.",
           items: [
             {
               title: "Buku biografi & album foto premium",
@@ -154,11 +152,11 @@ export default function HomePage() {
             },
             {
               title: "Sesi foto keluarga bersama Lifestory",
-              body: "Pemotretan profesional yang mengabadikan potret keluarga Anda hari ini — momen autentik yang kelak menjadi harta karun visual generasi berikutnya.",
+              body: "Pemotretan profesional yang mengabadikan potret keluarga Anda hari ini, menjadi momen autentik yang kelak menjadi harta karun visual generasi berikutnya.",
             },
             {
               title: "Video dokumenter sinematik",
-              body: "Film pendek berkualitas sinema yang menghidupkan kembali suara, ekspresi, dan emosi — sebuah warisan bergerak yang tak bisa ditangkap oleh tulisan saja.",
+              body: "Film pendek berkualitas sinema yang menghidupkan kembali suara, ekspresi, dan emosi sebagai warisan bergerak yang tak bisa ditangkap oleh tulisan saja.",
             },
             {
               title: "Pohon keluarga digital interaktif",
@@ -166,18 +164,18 @@ export default function HomePage() {
             },
             {
               title: "Makan malam perayaan keluarga",
-              body: "Momen intim bersama orang-orang tercinta — merayakan kisah yang telah diabadikan sambil menikmati hidangan istimewa dan menyaksikan hasil karya untuk pertama kalinya.",
+              body: "Momen intim bersama orang-orang tercinta untuk merayakan kisah yang telah diabadikan sambil menikmati hidangan istimewa dan menyaksikan hasil karya untuk pertama kalinya.",
             },
             {
               title: "Karya seni kustom eksklusif",
-              body: "Ilustrasi, lukisan, atau karya seni pilihan yang terinspirasi dari kisah keluarga Anda — sebuah sentuhan artistik unik yang menjadikan paket warisan benar-benar personal.",
+              body: "Ilustrasi, lukisan, atau karya seni pilihan yang terinspirasi dari kisah keluarga Anda, memberi sentuhan artistik unik yang menjadikan paket warisan benar-benar personal.",
             },
           ],
         },
         featured: {
           eyebrow: "Galeri biografi",
           title: "Beberapa kisah yang sudah kami abadikan.",
-          lead: "Setiap sampul mewakili pendekatan berbeda — dari memoar personal hingga tribute lintas generasi. Klik untuk melihat detail dan baca naskahnya.",
+          lead: "Setiap sampul mewakili pendekatan berbeda, dari memoar personal hingga tribute lintas generasi. Klik untuk melihat detail dan baca naskahnya.",
           viewMore: "Lihat detail",
         },
         testimonials: {
@@ -298,7 +296,7 @@ export default function HomePage() {
           headlineAccent: "preserved",
           headlineLine3: "for generations.",
           subheading:
-            "Don't let your story fade into silence. Every memory, every voice, every precious moment deserves to be preserved — before it's too late.",
+            "Don't let your family's story fade with time. Every memory, voice, and precious moment deserves to be preserved before it's too late.",
           primaryCta: !isLoggedIn
             ? "See Your Family!"
             : isAdmin
@@ -308,7 +306,7 @@ export default function HomePage() {
             : "Activate Plan",
           secondaryCta: !isLoggedIn ? "Lifestory Gallery" : "Lifestory Gallery",
           badge1: "Secure servers",
-          badge2: "Integrated family tree",
+          badge2: "Digital family tree",
           badge3: "Reprint anytime",
           badge4: "Rewatch anytime",
           scrollHint: "Scroll",
@@ -364,23 +362,23 @@ export default function HomePage() {
         howItWorks: {
           eyebrow: "How we work",
           title: "Three simple steps toward a lasting legacy.",
-          lead: "From our first meeting to the handover moment — every step is designed to be meaningful.",
+          lead: "From our first meeting to the handover moment, every step is designed to be meaningful.",
           steps: [
             {
               title: "Connect & craft the visual narrative.",
-              body: "We meet, listen, and together shape your family story into a complete visual narrative — from old photographs to voice recordings.",
+              body: "We meet, listen, and together shape your family story into a complete visual narrative, from old photographs to voice recordings.",
               image: "/image/home-step-1.webp",
               alt: "Connecting together and crafting the visual narrative",
             },
             {
               title: "A small handover ceremony.",
-              body: "The finished work is presented in an intimate family moment — a small celebration marking the official birth of your legacy.",
+              body: "The finished work is presented in an intimate family moment, a small celebration marking the official birth of your legacy.",
               image: "/image/home-step-2.webp",
               alt: "Small ceremony handing over the work",
             },
             {
               title: "Update your family tree freely.",
-              body: "Once complete, you can update your digital family tree anytime — add new members, refresh stories, at no extra cost.",
+              body: "Once complete, you can update your digital family tree anytime. Add new members, refresh stories, at no extra cost.",
               image: "/image/home-step-3.webp",
               alt: "Freely updating the family tree",
             },
@@ -389,7 +387,7 @@ export default function HomePage() {
         deliverables: {
           eyebrow: "What you receive",
           title: "Six legacy pieces crafted for your family.",
-          lead: "Each family receives a complete package that works together — a story you can read, watch, celebrate, and pass down across generations.",
+          lead: "Each family receives a complete package that works together: a story you can read, watch, celebrate, and pass down across generations.",
           items: [
             {
               title: "Biography book & premium photo album",
@@ -397,11 +395,11 @@ export default function HomePage() {
             },
             {
               title: "Family portrait session with Lifestory",
-              body: "A professional photoshoot capturing your family as you are today — authentic moments that become the next generation's visual treasure.",
+              body: "A professional photoshoot capturing your family as you are today, preserving authentic moments that become the next generation's visual treasure.",
             },
             {
               title: "Cinematic documentary film",
-              body: "A cinema-grade short film that brings back voices, expressions, and emotions — a living legacy that words alone cannot capture.",
+              body: "A cinema-grade short film that brings back voices, expressions, and emotions as a living legacy that words alone cannot capture.",
             },
             {
               title: "Interactive digital family tree",
@@ -409,18 +407,18 @@ export default function HomePage() {
             },
             {
               title: "Family celebration dinner",
-              body: "An intimate moment with your loved ones — celebrating the story that has been preserved over a special meal while witnessing the finished work for the first time.",
+              body: "An intimate moment with your loved ones to celebrate the preserved story over a special meal while witnessing the finished work for the first time.",
             },
             {
               title: "Exclusive custom artwork",
-              body: "Illustrations, paintings, or bespoke art pieces inspired by your family's story — a unique artistic touch that makes your legacy package truly personal.",
+              body: "Illustrations, paintings, or bespoke art pieces inspired by your family's story, adding a unique artistic touch that makes your legacy package truly personal.",
             },
           ],
         },
         featured: {
           eyebrow: "Biography gallery",
           title: "A few of the stories we have preserved.",
-          lead: "Each cover represents a different approach — from personal memoirs to multi-generation tributes. Tap to view details and read the manuscript.",
+          lead: "Each cover represents a different approach, from personal memoirs to multi-generation tributes. Tap to view details and read the manuscript.",
           viewMore: "View detail",
         },
         testimonials: {
@@ -532,33 +530,6 @@ export default function HomePage() {
 
   return (
     <>
-      <SectionRail
-        sections={
-          isId
-            ? [
-                { id: "hero", label: "Beranda" },
-                { id: "showcase", label: "Karya" },
-                { id: "process", label: "Proses" },
-                { id: "deliverables", label: "Paket" },
-                { id: "gallery", label: "Galeri" },
-                { id: "voices", label: "Testimoni" },
-                { id: "philosophy", label: "Filosofi" },
-                { id: "faq", label: "FAQ" },
-                { id: "begin", label: "Mulai" },
-              ]
-            : [
-                { id: "hero", label: "Home" },
-                { id: "showcase", label: "Work" },
-                { id: "process", label: "Process" },
-                { id: "deliverables", label: "Package" },
-                { id: "gallery", label: "Gallery" },
-                { id: "voices", label: "Voices" },
-                { id: "philosophy", label: "Philosophy" },
-                { id: "faq", label: "FAQ" },
-                { id: "begin", label: "Begin" },
-              ]
-        }
-      />
       <div id="hero">
         <HomeHero
           status={status}
@@ -573,41 +544,29 @@ export default function HomePage() {
         <StatsStrip copy={copy.stats} />
       </div>
       <div id="process">
-        <SectionZoom>
-          <HowItWorks copy={copy.howItWorks} />
-        </SectionZoom>
+        <HowItWorks copy={copy.howItWorks} />
       </div>
       <div id="deliverables">
-        <ScrollScale from={0.95} to={1}>
-          <Deliverables copy={copy.deliverables} />
-        </ScrollScale>
+        <Deliverables copy={copy.deliverables} />
       </div>
       <div id="gallery">
-        <SectionZoom from={0.96}>
-          <FeaturedCollections copy={copy.featured} />
-        </SectionZoom>
+        <FeaturedCollections copy={copy.featured} />
       </div>
       <div id="voices">
-        <ScrollScale from={0.94} to={1}>
-          <Testimonials copy={copy.testimonials} />
-        </ScrollScale>
+        <Testimonials copy={copy.testimonials} />
       </div>
       <div id="philosophy">
         <PhilosophyDeaths copy={copy.philosophy} />
       </div>
       <div id="faq">
-        <SectionZoom>
-          <FAQ copy={copy.faq} />
-        </SectionZoom>
+        <FAQ copy={copy.faq} />
       </div>
       <div id="begin">
-        <ScrollScale from={0.93} to={1}>
-          <FinalCTA
-            copy={copy.finalCta}
-            primaryHref={primaryCtaHref}
-            secondaryHref="/subscribe"
-          />
-        </ScrollScale>
+        <FinalCTA
+          copy={copy.finalCta}
+          primaryHref={primaryCtaHref}
+          secondaryHref="/subscribe"
+        />
       </div>
     </>
   );

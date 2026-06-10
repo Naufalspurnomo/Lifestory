@@ -52,7 +52,7 @@ export default function SessionExpirationPrompt({
     return (
       <div className="fixed bottom-4 right-4 z-[90] flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-950/80 px-4 py-2 text-xs font-bold text-amber-200 shadow-lg backdrop-blur-md">
         <ShieldAlert className="h-3.5 w-3.5" />
-        <span>Session expired · Changes saved locally</span>
+        <span>Session expired Â· Changes saved locally</span>
         <button
           onClick={() => setDismissed(false)}
           className="ml-2 rounded-full border border-amber-400/30 px-2 py-0.5 text-[10px] font-black uppercase hover:bg-amber-400/10 transition-colors"
@@ -88,7 +88,7 @@ export default function SessionExpirationPrompt({
         {/* Body */}
         <div className="px-5 py-4 space-y-3">
           <p className="text-xs leading-relaxed text-[#c7b289]">
-            Your session has expired. Don&apos;t worry — your{" "}
+            Your session has expired. Don&apos;t worry â€” your{" "}
             {pendingCount > 0 && (
               <span className="font-bold text-amber-300">
                 {pendingCount} unsaved change{pendingCount !== 1 ? "s" : ""}
@@ -99,7 +99,7 @@ export default function SessionExpirationPrompt({
           </p>
 
           <p className="text-[10px] text-[#7b6f63]">
-            You can continue editing — nothing will be lost.
+            You can continue editing â€” nothing will be lost.
           </p>
 
           {failCount >= 3 && (
@@ -118,10 +118,10 @@ export default function SessionExpirationPrompt({
             className={`flex-1 rounded-full py-2.5 text-xs font-black uppercase tracking-wide transition-all ${
               isLoading
                 ? "bg-white/10 text-white/40 cursor-wait"
-                : "bg-gradient-to-r from-[#d4af37] to-[#aa8323] text-black shadow-[0_0_10px_rgba(212,175,55,0.3)] hover:scale-[1.02] active:scale-[0.98]"
+                : "bg-gradient-to-r from-[#82693c] to-[#604b2d] text-black shadow-[0_0_10px_rgba(130,105,60,0.3)] hover:scale-[1.02] active:scale-[0.98]"
             }`}
           >
-            {isLoading ? "Logging in…" : "Log In Again"}
+            {isLoading ? "Logging inâ€¦" : "Log In Again"}
           </button>
           <button
             onClick={handleDismiss}

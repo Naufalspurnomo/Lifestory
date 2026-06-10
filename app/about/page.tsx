@@ -13,7 +13,6 @@ import { useLanguage } from "../../components/providers/LanguageProvider";
 import { Button } from "../../components/ui/Button";
 import { RibbonBadge } from "../../components/ui/Ornament";
 import { Container } from "../../components/ui/Container";
-import { ScrollScale, SectionZoom, ParallaxLayer } from "../../components/ui/ScrollAnimations";
 import { Eyebrow } from "../../components/ui/Eyebrow";
 import { ChapterRow } from "../../components/about/ChapterRow";
 import { PullQuote } from "../../components/about/PullQuote";
@@ -37,7 +36,7 @@ export default function AboutPage() {
         heritage: "Sejarah",
         heroTitle: "Kisah hidup tidak berhenti di satu generasi.",
         heroBody:
-          "Lifestory Company merangkai kenangan, percakapan, dan dokumen keluarga menjadi karya warisan — supaya identitas dan jejak hidup tetap dikenal generasi berikutnya.",
+          "Lifestory Company merangkai kenangan, percakapan, dan dokumen keluarga menjadi karya warisan agar identitas dan jejak hidup tetap dikenal generasi berikutnya.",
         heroHighlights: [
           "Arsip memori keluarga",
           "Narasi biografi berlapis emosi",
@@ -56,35 +55,35 @@ export default function AboutPage() {
         chaptersEyebrow: "Cara Kami Bekerja",
         chaptersTitle: "Tiga babak. Satu warisan.",
         chaptersLead:
-          "Setiap proyek dijalankan sebagai pertunjukan editorial — terstruktur, tidak terburu, dan menjaga emosi keluarga sebagai pusatnya.",
+          "Setiap proyek dijalankan sebagai pertunjukan editorial yang terstruktur, tidak terburu, dan menjaga emosi keluarga sebagai pusatnya.",
         chapters: [
           {
-            phase: "Babak — Mendengar",
+            phase: "Babak Mendengar",
             title: "Sebelum kalimat pertama ditulis.",
-            body: "Kami memulai dengan sesi wawancara hangat di rumah keluarga Anda. Tidak ada daftar pertanyaan kaku — hanya percakapan yang membiarkan ingatan lama muncul kembali secara alami.",
+            body: "Kami memulai dengan sesi wawancara hangat di rumah keluarga Anda. Tidak ada daftar pertanyaan kaku, hanya percakapan yang membiarkan ingatan lama muncul kembali secara alami.",
             note: "Cerita yang baik selalu dimulai dari telinga, bukan dari pena.",
             icon: Feather,
             image: "/image/about-mendengar.webp",
           },
           {
-            phase: "Babak — Merangkai",
+            phase: "Babak Merangkai",
             title: "Memori menjadi narasi sinematik.",
             body: "Tim penulis dan art director menyusun alur, memilih foto, dan merancang halaman demi halaman. Kami merestorasi foto lama, mengoreksi tanggal, dan mengkonfirmasi setiap fakta dengan keluarga.",
-            note: "Detail kecil — bau dapur, lagu favorit, panggilan keluarga — itu yang membuat halaman terasa hidup.",
+            note: "Detail kecil seperti bau dapur, lagu favorit, dan panggilan keluarga membuat halaman terasa hidup.",
             icon: BookOpenText,
             image: "/image/about-merangkai.webp",
           },
           {
-            phase: "Babak — Mewariskan",
+            phase: "Babak Mewariskan",
             title: "Diserahkan dengan upacara kecil.",
-            body: "Buku, video, dan poster silsilah dipresentasikan langsung di hadapan keluarga, dalam kemasan kelas heirloom. Momen ini sengaja kami rayakan — karena warisan layak diperlakukan seperti permata.",
+            body: "Buku, video, dan poster silsilah dipresentasikan langsung di hadapan keluarga, dalam kemasan kelas heirloom. Momen ini sengaja kami rayakan karena warisan layak diperlakukan seperti permata.",
             note: "Kami merilis hanya saat keluarga benar-benar bangga atas hasilnya.",
             icon: HeartHandshake,
             image: "/image/about-waris.webp",
           },
         ],
 
-        // Why Now — dark section
+        // Why Now dark section
         whyNowEyebrow: "Kenapa Sekarang",
         whyNowTitle: "Tiga alasan kami tidak menunggu.",
         whyNowItems: [
@@ -101,7 +100,7 @@ export default function AboutPage() {
           {
             number: "03",
             title: "Pelajaran hidup yang tidak dicatat akan dipelajari ulang oleh keturunan dengan harga mahal.",
-            body: "Pengalaman keluarga adalah modal pendidikan paling murah — asal sempat ditulis ulang dengan rapi.",
+            body: "Pengalaman keluarga adalah modal pendidikan paling murah jika sempat ditulis ulang dengan rapi.",
           },
         ],
 
@@ -109,15 +108,15 @@ export default function AboutPage() {
         promisesEyebrow: "Yang Kami Janjikan",
         promisesTitle: "Lima janji yang membentuk semua keputusan kami.",
         promisesLead:
-          "Setiap detail proses — dari pemilihan kertas hingga jadwal handover — dijaga oleh lima prinsip ini.",
+          "Setiap detail proses, dari pemilihan kertas hingga jadwal handover, dijaga oleh lima prinsip ini.",
         promiseItems: [
           {
             title: "Cerita lebih utuh, bukan sekedar lengkap.",
-            body: "Kami merangkai konteks, emosi, dan latar belakang — bukan cuma daftar peristiwa kronologis.",
+            body: "Kami merangkai konteks, emosi, dan latar belakang, bukan cuma daftar peristiwa kronologis.",
           },
           {
             title: "Warisan yang lebih dari harta.",
-            body: "Yang kami wariskan adalah cara berpikir, prinsip, dan rasa hangat keluarga — bukan benda mati.",
+            body: "Yang kami wariskan adalah cara berpikir, prinsip, dan rasa hangat keluarga, bukan benda mati.",
           },
           {
             title: "Arsip yang rapi, bisa dilanjutkan.",
@@ -125,7 +124,7 @@ export default function AboutPage() {
           },
           {
             title: "Hubungan keluarga yang lebih dekat.",
-            body: "Sesi wawancara sering menjadi reuni emosional — itu bonus yang kami sengaja jaga.",
+            body: "Sesi wawancara sering menjadi reuni emosional. Bonus itu sengaja kami jaga.",
           },
           {
             title: "Inspirasi melampaui keluarga.",
@@ -166,7 +165,7 @@ export default function AboutPage() {
         priorityLabel: "Yang Kami Utamakan",
         priorityTitle: "Spesial. Berkualitas. Selalu.",
         priorityBody:
-          "Kami membentuk citra brand yang kuat dengan pekerjaan yang kuat — bukan sebaliknya. Kalau Anda merasa keluarga Anda layak diabadikan, mari kita bicara.",
+          "Kami membentuk citra brand yang kuat dengan pekerjaan yang kuat, bukan sebaliknya. Kalau Anda merasa keluarga Anda layak diabadikan, mari kita bicara.",
         consultCta: "Konsultasi paket",
         exploreCta: "Lihat ruang kerja",
       }
@@ -175,7 +174,7 @@ export default function AboutPage() {
         heritage: "Heritage",
         heroTitle: "A life story should not stop at one generation.",
         heroBody:
-          "Lifestory Company weaves family memories, conversations, and documents into heirloom works — so identity and life traces remain known to the next generation.",
+          "Lifestory Company weaves family memories, conversations, and documents into heirloom works so identity and life traces remain known to the next generation.",
         heroHighlights: [
           "Family memory archive",
           "Emotion-led biography narrative",
@@ -192,28 +191,28 @@ export default function AboutPage() {
         chaptersEyebrow: "How We Work",
         chaptersTitle: "Three acts. One legacy.",
         chaptersLead:
-          "Every project is run like an editorial production — structured, never rushed, with the family's emotion at the center.",
+          "Every project is run like an editorial production: structured, never rushed, with the family's emotion at the center.",
         chapters: [
           {
-            phase: "Act — Listening",
+            phase: "Act Listening",
             title: "Before the first sentence is written.",
-            body: "We begin with warm interview sessions at your family's home. No rigid question list — only conversations that let dormant memories return naturally.",
+            body: "We begin with warm interview sessions at your family's home. No rigid question list, only conversations that let dormant memories return naturally.",
             note: "Good stories begin in the ear, not the pen.",
             icon: Feather,
             image: "/image/about-mendengar.webp",
           },
           {
-            phase: "Act — Shaping",
+            phase: "Act Shaping",
             title: "Memories become cinematic narrative.",
             body: "Our writers and art director sequence the story, choose photographs, and design pages. We restore old photos, correct dates, and confirm every fact with the family.",
-            note: "Small details — kitchen aromas, favorite songs, family nicknames — that's what brings pages to life.",
+            note: "Small details like kitchen aromas, favorite songs, and family nicknames are what bring pages to life.",
             icon: BookOpenText,
             image: "/image/about-merangkai.webp",
           },
           {
-            phase: "Act — Handover",
+            phase: "Act Handover",
             title: "Delivered with a small ceremony.",
-            body: "The book, film, and lineage poster are presented to the family in heirloom-grade packaging. We celebrate this moment intentionally — because legacy deserves to be treated like a jewel.",
+            body: "The book, film, and lineage poster are presented to the family in heirloom-grade packaging. We celebrate this moment intentionally because legacy deserves to be treated like a jewel.",
             note: "We only release when the family is genuinely proud of the result.",
             icon: HeartHandshake,
             image: "/image/about-waris.webp",
@@ -236,22 +235,22 @@ export default function AboutPage() {
           {
             number: "03",
             title: "Life lessons left unrecorded will be re-learned the expensive way.",
-            body: "Family experience is the cheapest education capital — if it's written down properly in time.",
+            body: "Family experience is the cheapest education capital if it is written down properly in time.",
           },
         ],
 
         promisesEyebrow: "Our Promises",
         promisesTitle: "Five promises that shape every decision.",
         promisesLead:
-          "Every process detail — from paper choice to handover schedule — is guarded by these five principles.",
+          "Every process detail, from paper choice to handover schedule, is guarded by these five principles.",
         promiseItems: [
           {
             title: "Stories that feel whole, not merely complete.",
-            body: "We weave context, emotion, and background — not just chronological lists of events.",
+            body: "We weave context, emotion, and background, not just chronological lists of events.",
           },
           {
             title: "A legacy beyond wealth.",
-            body: "What we pass on is mindset, principle, and family warmth — not inert objects.",
+            body: "What we pass on is mindset, principle, and family warmth, not inert objects.",
           },
           {
             title: "Archives that are clean and continuable.",
@@ -259,7 +258,7 @@ export default function AboutPage() {
           },
           {
             title: "Tighter family bonds.",
-            body: "Interview sessions often become emotional reunions — a bonus we deliberately preserve.",
+            body: "Interview sessions often become emotional reunions. We deliberately preserve that bonus.",
           },
           {
             title: "Inspiration beyond the family.",
@@ -297,7 +296,7 @@ export default function AboutPage() {
         priorityLabel: "What We Prioritize",
         priorityTitle: "Special. High quality. Always.",
         priorityBody:
-          "We build a strong brand image through strong work — not the other way around. If you feel your family deserves to be preserved, let's talk.",
+          "We build a strong brand image through strong work, not the other way around. If you feel your family deserves to be preserved, let's talk.",
         consultCta: "Consult packages",
         exploreCta: "View workspace",
       };
@@ -309,15 +308,7 @@ export default function AboutPage() {
     <div className="bg-cream-100 text-ink-700">
       {/* ============= HERO ============= */}
       <section className="relative overflow-hidden bg-gradient-to-b from-cream-50 via-cream-100 to-cream-200">
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <ParallaxLayer offset={30} className="absolute -left-40 top-32 h-[420px] w-[420px]">
-            <div className="h-full w-full rounded-full bg-brand-200/30 blur-3xl" />
-          </ParallaxLayer>
-          <ParallaxLayer offset={-20} className="absolute -right-32 -top-10 h-[360px] w-[360px]">
-            <div className="h-full w-full rounded-full bg-accent-100/35 blur-3xl" />
-          </ParallaxLayer>
-          <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-40" />
-        </div>
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-grain bg-[length:24px_24px] opacity-25" />
 
         {/* Timeline strip */}
         <div className="relative border-b border-cream-300/60">
@@ -388,14 +379,13 @@ export default function AboutPage() {
               </div>
             </motion.div>
 
-            {/* RIGHT — Visual cluster with heritage stamp */}
+            {/* RIGHT - Heritage photo cluster */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: reduced ? 0.01 : 0.8, delay: reduced ? 0 : 0.2 }}
               className="relative hidden h-[520px] lg:flex lg:items-center lg:justify-center"
             >
-              {/* Heritage stamp background */}
               <div className="absolute inset-0 flex items-center justify-center opacity-20">
                 <svg
                   aria-hidden
@@ -410,7 +400,6 @@ export default function AboutPage() {
                 </svg>
               </div>
 
-              {/* Polaroid cluster */}
               <div className="relative flex items-center justify-center">
                 {[
                   {
@@ -438,13 +427,13 @@ export default function AboutPage() {
                       delay: reduced ? 0 : 0.5 + i * 0.12,
                       ease: [0.22, 1, 0.36, 1],
                     }}
-                    className={`relative flex-none overflow-hidden rounded-[12px] border border-cream-400 bg-white p-2 shadow-deep ${p.className}`}
+                    className={`relative flex-none overflow-hidden rounded-[12px] border border-cream-400 bg-cream-50 p-2 shadow-deep ${p.className}`}
                   >
                     <div className="relative h-full w-full overflow-hidden rounded-[6px]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={p.src} alt="" className="h-full w-full object-cover" />
                     </div>
-                    <figcaption className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-pill bg-white/95 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-soft">
+                    <figcaption className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-pill bg-cream-50/95 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-soft">
                       {p.tag}
                     </figcaption>
                   </motion.figure>
@@ -452,7 +441,7 @@ export default function AboutPage() {
               </div>
             </motion.div>
 
-            {/* Mobile/tablet — horizontal photo strip */}
+            {/* Mobile/tablet horizontal photo strip */}
             <div
               aria-hidden
               className="relative flex items-end justify-center gap-3 lg:hidden"
@@ -468,13 +457,13 @@ export default function AboutPage() {
                 return (
                   <figure
                     key={src}
-                    className={`relative flex-shrink-0 overflow-hidden rounded-[10px] border border-cream-400 bg-white p-1.5 shadow-elev ${sizes[i]} ${rotations[i]}`}
+                    className={`relative flex-shrink-0 overflow-hidden rounded-[10px] border border-cream-400 bg-cream-50 p-1.5 shadow-elev ${sizes[i]} ${rotations[i]}`}
                   >
                     <div className="relative h-full w-full overflow-hidden rounded-[6px]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={src} alt="" className="h-full w-full object-cover" />
                     </div>
-                    <figcaption className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-pill bg-white/95 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-soft">
+                    <figcaption className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-pill bg-cream-50/95 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-soft">
                       {tags[i]}
                     </figcaption>
                   </figure>
@@ -492,92 +481,81 @@ export default function AboutPage() {
         attribution={copy.manifestoBy}
       />
 
-      {/* ============= 3 CHAPTERS — alternating editorial rows ============= */}
-      <SectionZoom>
-        <section className="relative bg-cream-100 section-y-md">
-          <Container>
-            <div className="mb-16 max-w-3xl md:mb-20">
-              <Eyebrow>{copy.chaptersEyebrow}</Eyebrow>
-              <h2 className="mt-4 font-serif text-[clamp(1.85rem,4.6vw,3.6rem)] leading-[1.05] tracking-[-0.02em] text-ink-800">
-                {copy.chaptersTitle}
-              </h2>
-              <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink-500 md:text-lg">
-                {copy.chaptersLead}
-              </p>
-            </div>
+      {/* ============= 3 CHAPTERS alternating editorial rows ============= */}
+      <section className="relative bg-cream-100 section-y-md">
+        <Container>
+          <div className="mb-16 max-w-3xl md:mb-20">
+            <Eyebrow>{copy.chaptersEyebrow}</Eyebrow>
+            <h2 className="mt-4 font-serif text-[clamp(1.85rem,4.6vw,3.6rem)] leading-[1.05] tracking-[-0.02em] text-ink-800">
+              {copy.chaptersTitle}
+            </h2>
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink-500 md:text-lg">
+              {copy.chaptersLead}
+            </p>
+          </div>
 
-            <div className="space-y-20 md:space-y-28 lg:space-y-32">
-              {copy.chapters.map((chapter, idx) => (
-                <ChapterRow
-                  key={chapter.title}
-                  index={idx}
-                  phase={chapter.phase}
-                  title={chapter.title}
-                  body={chapter.body}
-                  note={chapter.note}
-                  image={chapter.image}
-                  imageAlt={chapter.title}
-                  icon={chapter.icon}
-                  reversed={idx % 2 === 1}
-                />
-              ))}
-            </div>
-          </Container>
-        </section>
-      </SectionZoom>
+          <div className="space-y-20 md:space-y-28 lg:space-y-32">
+            {copy.chapters.map((chapter, idx) => (
+              <ChapterRow
+                key={chapter.title}
+                index={idx}
+                phase={chapter.phase}
+                title={chapter.title}
+                body={chapter.body}
+                note={chapter.note}
+                image={chapter.image}
+                imageAlt={chapter.title}
+                icon={chapter.icon}
+                reversed={idx % 2 === 1}
+              />
+            ))}
+          </div>
+        </Container>
+      </section>
 
-      {/* ============= WHY NOW — dark interlude ============= */}
-      <ScrollScale from={0.94} to={1}>
-        <WhyNowDark
-          copy={{
-            eyebrow: copy.whyNowEyebrow,
-            title: copy.whyNowTitle,
-            items: copy.whyNowItems,
-          }}
-        />
-      </ScrollScale>
+      {/* ============= WHY NOW dark interlude ============= */}
+      <WhyNowDark
+        copy={{
+          eyebrow: copy.whyNowEyebrow,
+          title: copy.whyNowTitle,
+          items: copy.whyNowItems,
+        }}
+      />
 
-      {/* ============= PROMISES — icon grid replaces bullet wall ============= */}
-      <SectionZoom from={0.96}>
-        <PromiseGrid
-          copy={{
-            eyebrow: copy.promisesEyebrow,
-            title: copy.promisesTitle,
-            lead: copy.promisesLead,
-            items: copy.promiseItems,
-          }}
-        />
-      </SectionZoom>
+      {/* ============= PROMISES icon grid replaces bullet wall ============= */}
+      <PromiseGrid
+        copy={{
+          eyebrow: copy.promisesEyebrow,
+          title: copy.promisesTitle,
+          lead: copy.promisesLead,
+          items: copy.promiseItems,
+        }}
+      />
 
       {/* ============= VISION vs MISSION split ============= */}
-      <ScrollScale from={0.93} to={1}>
-        <VisionMissionSplit
-          copy={{
-            visionLabel: copy.visionLabel,
-            visionTitle: copy.visionTitle,
-            visionPoints: copy.visionPoints,
-            missionLabel: copy.missionLabel,
-            missionTitle: copy.missionTitle,
-            missionPoints: copy.missionPoints,
-          }}
-        />
-      </ScrollScale>
+      <VisionMissionSplit
+        copy={{
+          visionLabel: copy.visionLabel,
+          visionTitle: copy.visionTitle,
+          visionPoints: copy.visionPoints,
+          missionLabel: copy.missionLabel,
+          missionTitle: copy.missionTitle,
+          missionPoints: copy.missionPoints,
+        }}
+      />
 
       {/* ============= VALUES MARQUEE + STATS ============= */}
-      <SectionZoom>
-        <ValuesMarquee
-          copy={{
-            eyebrow: copy.marqueeEyebrow,
-            title: copy.marqueeTitle,
-            fromForLabel: copy.marqueeEyebrow,
-            fromForPoints: copy.marqueePoints,
-          }}
-        />
-      </SectionZoom>
+      <ValuesMarquee
+        copy={{
+          eyebrow: copy.marqueeEyebrow,
+          title: copy.marqueeTitle,
+          fromForLabel: copy.marqueeEyebrow,
+          fromForPoints: copy.marqueePoints,
+        }}
+      />
 
       {/* ============= FINAL CTA ============= */}
-      <ScrollScale from={0.93} to={1}>
-        <section className="relative bg-cream-50 section-y-md">
+      <section className="relative bg-cream-50 section-y-md">
         <Container size="md">
           <motion.div
             initial={{ opacity: 0, y: reduced ? 0 : 24 }}
@@ -587,8 +565,6 @@ export default function AboutPage() {
             className="relative overflow-hidden rounded-[36px] border border-ink-800/30 bg-gradient-to-br from-ink-900 via-ink-800 to-brand-800 px-8 py-14 text-center text-white shadow-deep md:px-16 md:py-20"
           >
             <div aria-hidden className="pointer-events-none absolute inset-0">
-              <div className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-brand-400/20 blur-3xl" />
-              <div className="absolute -right-20 -bottom-20 h-72 w-72 rounded-full bg-accent-500/20 blur-3xl" />
               <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-25" />
             </div>
 
@@ -628,7 +604,6 @@ export default function AboutPage() {
           </motion.div>
         </Container>
       </section>
-      </ScrollScale>
     </div>
   );
 }

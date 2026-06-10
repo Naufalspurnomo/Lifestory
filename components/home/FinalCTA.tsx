@@ -35,8 +35,6 @@ export function FinalCTA({ copy, primaryHref, secondaryHref }: Props) {
           className="relative overflow-hidden rounded-[36px] border border-ink-800/30 bg-gradient-to-br from-ink-900 via-ink-800 to-brand-800 px-8 py-14 text-white shadow-deep md:px-12 md:py-16 lg:px-16 lg:py-20"
         >
           <div aria-hidden className="pointer-events-none absolute inset-0">
-            <div className="absolute -left-20 -top-20 h-80 w-80 rounded-full bg-brand-400/20 blur-3xl" />
-            <div className="absolute -right-20 -bottom-20 h-80 w-80 rounded-full bg-accent-500/20 blur-3xl" />
             <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-20" />
             <Monogram
               className="absolute right-8 top-8 text-white/30"

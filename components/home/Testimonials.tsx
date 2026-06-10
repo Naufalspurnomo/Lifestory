@@ -1,11 +1,8 @@
 "use client";
 
-import { Quote } from "lucide-react";
 import { Container } from "../ui/Container";
-import { Eyebrow } from "../ui/Eyebrow";
 import { Reveal } from "../ui/Reveal";
 import { Marquee } from "../ui/Marquee";
-import { CornerFlourish } from "../ui/Ornament";
 
 type Testimonial = {
   quote: string;
@@ -24,56 +21,87 @@ type Props = {
   };
 };
 
+const paperTones = ["#fdfbf6", "#faf6ed", "#f5efe1"];
+
 export function Testimonials({ copy }: Props) {
   return (
-    <section className="relative bg-cream-50 section-y-md">
-      <Container>
-        <Reveal className="mb-14 max-w-3xl">
-          <Eyebrow>{copy.eyebrow}</Eyebrow>
-          <h2 className="mt-4 font-serif text-[clamp(2rem,4.4vw,3.4rem)] leading-[1.05] tracking-[-0.02em] text-ink-800">
-            {copy.title}
-          </h2>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink-500 md:text-lg">
-            {copy.lead}
-          </p>
-        </Reveal>
-
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {copy.items.map((t, i) => (
-            <Reveal key={i} delay={i * 0.08}>
-              <figure className="group relative h-full overflow-hidden rounded-card-lg border border-cream-300 bg-white p-7 shadow-soft transition duration-500 ease-smooth hover:-translate-y-1 hover:shadow-elev">
-                <CornerFlourish className="pointer-events-none absolute left-0 top-0" />
-                <CornerFlourish className="pointer-events-none absolute bottom-0 right-0 rotate-180" />
-                <Quote
-                  className="absolute right-6 top-6 h-9 w-9 text-brand-200"
-                  aria-hidden
-                />
-                <blockquote className="relative font-serif text-lg leading-relaxed text-ink-700 md:text-xl">
-                  “{t.quote}”
-                </blockquote>
-                <figcaption className="relative mt-6 flex items-center gap-3 border-t border-cream-300 pt-4">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-pill bg-cream-200 text-sm font-bold text-brand-700">
-                    {t.author.charAt(0).toUpperCase()}
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-ink-800">{t.author}</p>
-                    <p className="text-xs text-ink-500">{t.role}</p>
-                  </div>
-                </figcaption>
-              </figure>
+    <section className="relative overflow-visible border-y border-cream-300 bg-cream-100 py-[clamp(5rem,8vw,8rem)]">
+      <Container size="xl">
+        <div className="relative flex flex-col items-start gap-12 lg:flex-row lg:gap-24">
+          <div className="z-10 w-full shrink-0 lg:sticky lg:top-32 lg:w-[31%]">
+            <Reveal>
+              <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+                <span className="h-px w-10 bg-brand-500" />
+                {copy.eyebrow}
+              </div>
+              <h2 className="mt-7 max-w-[11ch] font-serif text-[clamp(2.25rem,3.8vw,3.65rem)] font-light leading-[1.07] tracking-normal text-ink-900">
+                {copy.title}
+              </h2>
+              <p className="mt-6 max-w-sm text-base font-light leading-[1.75] text-ink-600 md:text-lg">
+                {copy.lead}
+              </p>
             </Reveal>
-          ))}
+          </div>
+
+          <div
+            className="isolate flex w-full flex-col gap-6 overflow-visible lg:w-[69%] lg:gap-0 lg:pb-24"
+            style={{ perspective: "1800px", transformStyle: "preserve-3d" }}
+          >
+            {copy.items.map((testimonial, index) => (
+              <article
+                key={testimonial.author}
+                className="overflow-visible lg:sticky"
+                style={{
+                  top: `calc(5.5rem + ${index * 1.15}rem)`,
+                  zIndex: 20 + index,
+                  transformStyle: "preserve-3d",
+                }}
+              >
+                <div
+                  className={`relative min-h-[400px] w-full border border-brand-200/80 px-7 py-8 text-ink-900 shadow-[0_22px_48px_rgba(63,52,45,0.14)] sm:px-10 sm:py-10 md:min-h-[450px] md:px-14 md:py-12 ${
+                    index < copy.items.length - 1 ? "lg:mb-[24vh]" : ""
+                  }`}
+                  style={{
+                    backgroundColor: paperTones[index % paperTones.length],
+                    transform: `translate3d(${index * 4}px, ${index * 3}px, ${-index * 40}px) rotateX(${index * -1.05}deg) rotateZ(${index % 2 === 0 ? -0.14 : 0.14}deg) scale(${1 - index * 0.02})`,
+                    transformOrigin: "top center",
+                    transformStyle: "preserve-3d",
+                  }}
+                >
+                  <div className="flex h-full min-h-[320px] flex-col justify-between border-t border-ink-900/70 pt-8 md:min-h-[350px] md:pt-10">
+                    <blockquote className="max-w-[23ch] font-serif text-[1.65rem] font-light leading-[1.28] tracking-normal text-ink-900 sm:text-[1.9rem] md:text-[2.25rem]">
+                      {testimonial.quote}
+                    </blockquote>
+
+                    <footer className="mt-12 flex items-end justify-between gap-6 border-t border-ink-900/15 pt-5">
+                      <div>
+                        <p className="text-sm font-semibold text-ink-900">
+                          {testimonial.author}
+                        </p>
+                        <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700">
+                          {testimonial.role}
+                        </p>
+                      </div>
+                      <span className="font-serif text-sm italic text-ink-400">
+                        Lifestory
+                      </span>
+                    </footer>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
 
-        <Reveal delay={0.2} className="mt-16">
-          <p className="mb-5 text-center text-[11px] font-bold uppercase tracking-[0.22em] text-ink-300">
+        <Reveal delay={0.2} className="mt-16 border-t border-cream-300 pt-10 md:mt-24 md:pt-12">
+          <p className="mb-7 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-ink-500">
             {copy.pressLabel}
           </p>
           <Marquee className="[mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
-            {copy.pressLogos.map((logo, i) => (
+            {copy.pressLogos.map((logo, index) => (
               <span
-                key={i}
-                className="font-serif text-2xl italic text-ink-300 md:text-3xl"
+                key={`${logo}-${index}`}
+                className="px-8 font-serif text-xl italic tracking-normal text-ink-500 md:text-2xl"
               >
                 {logo}
               </span>

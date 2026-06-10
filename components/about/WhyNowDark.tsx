@@ -21,7 +21,7 @@ type Props = {
 };
 
 /**
- * WhyNowDark — dark section with big numerals.
+ * WhyNowDark â€” dark section with big numerals.
  * Designed as a "tonal break" between cream sections (Von Restorff isolation effect).
  */
 export function WhyNowDark({ copy }: Props) {
@@ -29,8 +29,8 @@ export function WhyNowDark({ copy }: Props) {
   return (
     <section className="relative overflow-hidden bg-ink-900 text-cream-50 section-y-md">
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-32 top-1/3 h-96 w-96 rounded-full bg-brand-500/15 blur-3xl" />
-        <div className="absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-accent-500/15 blur-3xl" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/35 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-brand-300/25 to-transparent" />
         <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-25" />
       </div>
 
@@ -65,7 +65,7 @@ export function WhyNowDark({ copy }: Props) {
                 </span>
                 <span
                   aria-hidden
-                  className="absolute left-0 top-0 font-serif text-[clamp(4rem,9vw,7rem)] leading-none text-white/0 [text-shadow:0_0_30px_rgba(228,171,47,0.5)]"
+                  className="absolute left-0 top-0 font-serif text-[clamp(4rem,9vw,7rem)] leading-none text-white/0 [text-shadow:0_0_30px_rgba(130,105,60,0.5)]"
                 >
                   {item.number}
                 </span>

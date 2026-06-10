@@ -12,7 +12,7 @@ type BadgeProps = {
 const toneMap = {
   brand: "border-brand-200 bg-brand-50 text-brand-700",
   success: "border-[#cfe3d2] bg-[#f1faef] text-success",
-  warning: "border-[#e9d4a3] bg-[#fff7e3] text-warning",
+  warning: "border-[#e9d4a3] bg-[#fdfbf6] text-warning",
   danger: "border-[#e7c9c9] bg-[#fff4f4] text-danger",
   neutral: "border-cream-300 bg-white/80 text-ink-500",
   accent: "border-accent-200 bg-accent-50 text-accent-700",

@@ -2,7 +2,6 @@
 
 import { Container } from "../ui/Container";
 import { Eyebrow } from "../ui/Eyebrow";
-import { Marquee } from "../ui/Marquee";
 import { Reveal } from "../ui/Reveal";
 
 type Props = {
@@ -15,8 +14,7 @@ type Props = {
 };
 
 /**
- * ValuesMarquee — visual movement section.
- * Top: marquee of "From and For" tags.
+ * ValuesMarquee - static editorial tag grid.
  */
 export function ValuesMarquee({ copy }: Props) {
   return (
@@ -28,27 +26,21 @@ export function ValuesMarquee({ copy }: Props) {
             {copy.title}
           </h2>
         </Reveal>
-      </Container>
 
-      {/* Marquee FULL-WIDTH */}
-      <div className="relative">
         <Reveal>
-          <Marquee className="[mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+          <div className="grid gap-x-6 gap-y-4 border-y border-cream-300 py-8 sm:grid-cols-2 lg:grid-cols-3">
             {copy.fromForPoints.map((pt, i) => (
-              <span
+              <p
                 key={i}
-                className="inline-flex items-center gap-3 font-serif text-2xl italic text-ink-300 md:text-3xl lg:text-4xl"
+                className="flex items-center justify-between gap-4 font-serif text-[1.35rem] leading-tight text-ink-700 md:text-[1.65rem]"
               >
-                {pt}
-                <span aria-hidden className="text-brand-400">
-                  ✦
-                </span>
-              </span>
+                <span>{pt}</span>
+                <span aria-hidden className="h-px min-w-8 flex-1 bg-brand-300/45" />
+              </p>
             ))}
-          </Marquee>
+          </div>
         </Reveal>
-      </div>
-
+      </Container>
     </section>
   );
 }

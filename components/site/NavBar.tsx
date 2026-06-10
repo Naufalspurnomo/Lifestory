@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
   Crown,
@@ -11,7 +12,6 @@ import {
   Menu,
   Sparkles,
   TreePine,
-  UserCircle2,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -187,7 +187,7 @@ export function NavBar() {
           <BrandLogo variant={isScrolled ? "navbar-compact" : "navbar"} />
           {isHome && (
             <span
-              className="absolute left-0 top-full mt-[-2px] block whitespace-nowrap font-sans text-[9.5px] font-medium uppercase text-[#a89274] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="absolute left-0 top-full mt-[-2px] block whitespace-nowrap font-sans text-[9.5px] font-medium uppercase text-brand-700/75 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
               style={{
                 letterSpacing: "1.8px",
                 opacity: isScrolled ? 0 : 1,
@@ -202,7 +202,7 @@ export function NavBar() {
 
         <nav
           className={`hidden items-center transition-all duration-300 lg:flex ${
-            isScrolled ? "gap-5" : "gap-7"
+            isScrolled ? "gap-8" : "gap-12"
           }`}
         >
           {navLinks.map((link) => {
@@ -211,16 +211,15 @@ export function NavBar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`group relative pb-1.5 font-semibold tracking-[0.02em] transition ${
-                  isScrolled ? "text-[14px]" : "text-[15px]"
-                } ${
-                  active ? "text-brand-500" : "text-ink-500 hover:text-ink-800"
+                className={`group relative pb-2 text-[14px] font-serif tracking-[0.03em] transition-all duration-300 ${
+                  active ? "text-ink-900 italic font-medium" : "text-ink-500 hover:text-ink-900"
                 }`}
               >
                 {link.label}
+                {/* Minimalist active dot indicator */}
                 <span
-                  className={`absolute bottom-0 left-0 h-[2px] bg-brand-gradient transition-all duration-300 ${
-                    active ? "w-full" : "w-0 group-hover:w-full"
+                  className={`absolute -bottom-1 left-1/2 h-[3px] w-[3px] -translate-x-1/2 rounded-full bg-brand-400 transition-all duration-300 ${
+                    active ? "opacity-100 scale-100" : "opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100"
                   }`}
                 />
               </Link>
@@ -228,20 +227,20 @@ export function NavBar() {
           })}
         </nav>
 
-        <div className="hidden items-center gap-2 lg:flex">
-          <LanguageToggle />
+        <div className="hidden items-center gap-4 lg:flex">
 
           {status === "loading" && (
-            <div className="h-10 w-44 animate-pulse rounded-full border border-[#e4d7c1] bg-white/80" />
+            <div className="h-10 w-44 animate-pulse rounded-full border border-cream-300 bg-cream-50/80" />
           )}
 
           {status === "unauthenticated" && (
             <Link href="/auth/login">
               <Button
+                variant="outline"
                 size={isScrolled ? "sm" : "md"}
                 iconRight={<ArrowRight className="h-3.5 w-3.5" />}
                 animateRightIcon
-                className="uppercase tracking-[0.14em]"
+                className="uppercase tracking-[0.15em] rounded-none !border-brand-700 !text-brand-700 hover:!bg-brand-700 hover:!text-cream-50 transition-colors duration-500 px-6 font-medium text-[10px]"
               >
                 {copy.startStory}
               </Button>
@@ -253,186 +252,192 @@ export function NavBar() {
               <button
                 type="button"
                 onClick={() => setAccountOpen((prev) => !prev)}
-                className="inline-flex items-center gap-2 rounded-full border border-[#dfcfb4] bg-white/88 px-2.5 py-1.5 shadow-sm transition hover:bg-white"
+                className="group flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition-all duration-300 hover:bg-cream-200/40"
               >
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#efe3cc] text-sm font-bold text-[#6a5033]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-[13px] font-bold text-brand-800 shadow-sm border border-brand-200/50">
                   {userInitial}
-                </span>
-                <span className="hidden max-w-[120px] truncate text-sm font-semibold text-[#4c3f34] xl:inline">
+                </div>
+                <span className="hidden max-w-[120px] truncate text-[13px] font-semibold tracking-[0.02em] text-ink-800 xl:inline">
                   {displayName}
                 </span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${
-                    isAdmin
-                      ? "bg-[#efe3ff] text-[#744ab2]"
-                      : isSubscribed
-                      ? "bg-[#e6f4ec] text-[#2f7d55]"
-                      : "bg-[#f6ead6] text-[#8d6426]"
-                  }`}
-                >
-                  {isAdmin
-                    ? copy.accountAdmin
-                    : isSubscribed
-                    ? copy.accountMember
-                    : copy.accountPending}
-                </span>
-                <ChevronDown className="h-4 w-4 text-[#7d6f62]" />
+                <ChevronDown className={`h-3.5 w-3.5 text-ink-400 transition-transform duration-300 ${accountOpen ? "rotate-180" : ""}`} />
               </button>
 
-              {accountOpen && (
-                <>
-                  <button
-                    aria-label={copy.closeAccountMenu}
-                    className="fixed inset-0 z-10 cursor-default"
-                    onClick={() => setAccountOpen(false)}
-                  />
-                  <div className="absolute right-0 top-[calc(100%+10px)] z-20 w-[310px] overflow-hidden rounded-2xl border border-[#dccdb5] bg-[#fffdf9] shadow-[0_22px_44px_rgba(46,34,20,0.2)]">
-                    <div className="border-b border-[#e7ddcd] bg-[#f9f4ea] p-4">
-                      <div className="flex items-start gap-3">
-                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#efe3cc] text-base font-bold text-[#6a5033]">
-                          {userInitial}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-[#4c3f34]">
-                            {displayName}
-                          </p>
-                          <p className="truncate text-xs text-[#7f7062]">
-                            {displayEmail}
-                          </p>
+              <AnimatePresence>
+                {accountOpen && (
+                  <>
+                    <button
+                      aria-label={copy.closeAccountMenu}
+                      className="fixed inset-0 z-10 cursor-default"
+                      onClick={() => setAccountOpen(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                      className="absolute right-0 top-[calc(100%+16px)] z-20 w-[280px] overflow-hidden rounded-3xl border border-cream-200/60 bg-cream-50/95 shadow-deep backdrop-blur-xl"
+                    >
+                      <div className="border-b border-cream-200/40 p-5">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-brand-50 text-base font-bold text-brand-700 shadow-[inset_0_0_0_1px_rgba(130,105,60,0.1)]">
+                            {userInitial}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-[15px] font-semibold tracking-tight text-ink-900">{displayName}</p>
+                            <p className="truncate text-[12px] text-ink-400">{displayEmail}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="p-2">
-                      {accountLinks.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[#5a4d42] transition hover:bg-[#f5eee2] hover:text-[#3f342d]"
-                          >
-                            <Icon className="h-4 w-4 text-[#a27f4a]" />
-                            {item.label}
-                          </Link>
-                        );
-                      })}
+                      <div className="p-2">
+                        {accountLinks.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              className="group flex items-center gap-3 rounded-[14px] px-3.5 py-2.5 text-[13px] font-medium text-ink-500 transition-all hover:bg-cream-100/80 hover:text-ink-900"
+                            >
+                              <Icon className="h-4 w-4 text-ink-400 transition-colors group-hover:text-brand-600" />
+                              {item.label}
+                            </Link>
+                          );
+                        })}
 
-                      <button
-                        type="button"
-                        onClick={handleSignOut}
-                        className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[#b34a4a] transition hover:bg-[#fff1f1]"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        {copy.signOut}
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
+                        <div className="my-1.5 mx-3 h-px bg-cream-200/40" />
+
+                        <button
+                          type="button"
+                          onClick={handleSignOut}
+                          className="group flex w-full items-center gap-3 rounded-[14px] px-3.5 py-2.5 text-[13px] font-medium text-ink-500 transition-all hover:bg-red-50/60 hover:text-[#b34a4a]"
+                        >
+                          <LogOut className="h-4 w-4 text-ink-400 transition-colors group-hover:text-[#b34a4a]" />
+                          {copy.signOut}
+                        </button>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
             </div>
           )}
+          <LanguageToggle className="ml-2" />
         </div>
 
         <button
           onClick={() => setMobileOpen((prev) => !prev)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#dfd8cc] text-[#5f5247] lg:hidden"
+          className="relative z-[60] -mr-2 inline-flex h-10 w-10 items-center justify-center rounded-full text-ink-800 transition hover:bg-cream-200/50 lg:hidden"
           aria-label={copy.toggleMenu}
         >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 
-      {mobileOpen && (
-        <div className="border-t border-[#ece6dd] bg-white px-6 py-4 lg:hidden">
-          <div className="mb-4">
-            <LanguageToggle />
-          </div>
-
-          <nav className="flex flex-col gap-2.5">
-            {navLinks.map((link) => {
-              const active = isActive(pathname, link.href);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className={`rounded-md px-3 py-2 text-base ${
-                    active
-                      ? "bg-[#f8f0e0] text-[#d7991e]"
-                      : "text-[#665a51] hover:bg-[#f6f3ee]"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="mt-4 border-t border-[#efe7da] pt-4">
-            {status === "loading" && (
-              <div className="h-10 w-full animate-pulse rounded-xl border border-[#e4d7c1] bg-white/80" />
-            )}
-
-            {status === "unauthenticated" && (
-              <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
-                <Button
-                  block
-                  size="md"
-                  iconRight={<ArrowRight className="h-3.5 w-3.5" />}
-                  animateRightIcon
-                  className="uppercase tracking-[0.14em]"
-                >
-                  {copy.startStory}
-                </Button>
-              </Link>
-            )}
-
-            {isLoggedIn && (
-              <div className="space-y-3">
-                <div className="rounded-xl border border-[#e4d7c1] bg-[#f9f4ea] p-3">
-                  <p className="text-sm font-semibold text-[#4c3f34]">{displayName}</p>
-                  <p className="truncate text-xs text-[#7f7062]">{displayEmail}</p>
-                  <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a27f4a]">
-                    <UserCircle2 className="h-3.5 w-3.5" />
-                    {isAdmin
-                      ? copy.adminAccount
-                      : isSubscribed
-                      ? copy.memberAccount
-                      : copy.pendingMember}
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  {accountLinks.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileOpen(false)}
-                        className="flex items-center gap-2 rounded-lg border border-[#e7dcc8] bg-white px-3 py-2 text-sm font-medium text-[#5a4d42]"
-                      >
-                        <Icon className="h-4 w-4 text-[#a27f4a]" />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-
-                  <button
-                    type="button"
-                    onClick={handleSignOut}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#f2d1d1] bg-[#fff4f4] px-3 py-2 text-sm font-semibold text-[#b34a4a]"
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-0 z-50 flex flex-col bg-cream-50 px-6 pt-28 pb-10 lg:hidden overflow-y-auto"
+          >
+            <nav className="flex flex-col gap-6">
+              {navLinks.map((link, i) => {
+                const active = isActive(pathname, link.href);
+                return (
+                  <motion.div
+                    key={link.href}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 + i * 0.05, duration: 0.4 }}
                   >
-                    <LogOut className="h-4 w-4" />
-                    {copy.signOut}
-                  </button>
-                </div>
+                    <Link
+                      href={link.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={`block font-serif text-[2.5rem] leading-tight font-medium tracking-tight transition-colors ${
+                        active
+                          ? "text-brand-700 italic"
+                          : "text-ink-800 hover:text-ink-500"
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </nav>
+
+            <div className="mt-auto pt-12">
+              {status === "loading" && (
+                <div className="h-12 w-full animate-pulse rounded-full border border-cream-300 bg-cream-100/80" />
+              )}
+
+              {status === "unauthenticated" && (
+                <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
+                  <Button
+                    variant="outline"
+                    block
+                    size="lg"
+                    iconRight={<ArrowRight className="h-4 w-4" />}
+                    animateRightIcon
+                    className="w-full uppercase tracking-[0.15em] rounded-none py-6 font-medium text-[12px] font-sans !border-brand-700 !text-brand-700 hover:!bg-brand-700 hover:!text-cream-50"
+                  >
+                    {copy.startStory}
+                  </Button>
+                </Link>
+              )}
+
+              {isLoggedIn && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.4 }}
+                  className="mt-4 flex flex-col gap-8 border-t border-brand-200/30 pt-8"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-brand-50 text-base font-bold text-brand-700 shadow-[inset_0_0_0_1px_rgba(130,105,60,0.2)]">
+                      {userInitial}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[15px] font-semibold tracking-tight text-ink-900">{displayName}</p>
+                      <p className="truncate text-[12px] text-ink-400">{displayEmail}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-5">
+                    {accountLinks.map((item) => {
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileOpen(false)}
+                          className="flex items-center gap-4 text-[12px] font-bold uppercase tracking-[0.15em] text-ink-600 transition hover:text-ink-900"
+                        >
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="flex w-full items-center gap-4 text-[12px] font-bold uppercase tracking-[0.15em] text-[#b34a4a] transition hover:text-red-700"
+                    >
+                      {copy.signOut}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              <div className="mt-12 flex justify-start">
+                <LanguageToggle />
               </div>
-            )}
-          </div>
-        </div>
-      )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

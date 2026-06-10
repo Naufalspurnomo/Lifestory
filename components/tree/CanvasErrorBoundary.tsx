@@ -63,7 +63,7 @@ export default class CanvasErrorBoundary extends Component<Props, State> {
           </p>
           <button
             onClick={this.handleReset}
-            className="rounded-xl border border-[#dcc28e] bg-white px-6 py-2.5 text-sm font-semibold text-[#7b5a26] transition hover:bg-[#fffaf0]"
+            className="rounded-xl border border-[#c8b187] bg-white px-6 py-2.5 text-sm font-semibold text-[#7b5a26] transition hover:bg-[#fffaf0]"
           >
             Try Again
           </button>

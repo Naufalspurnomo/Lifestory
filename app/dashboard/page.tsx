@@ -157,10 +157,10 @@ export default function DashboardPage() {
 
   if (!isAdmin) {
     return (
-      <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf2e1] via-[#fbf8f2] to-[#f7f5f1] text-[#40342c]">
+      <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf6ed] via-[#fdfbf6] to-[#faf6ed] text-[#40342c]">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#f1d99b]/55 blur-3xl" />
-          <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#e6ddc6]/70 blur-3xl" />
+          <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#dfceb0]/55 blur-3xl" />
+          <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#ece2cc]/70 blur-3xl" />
         </div>
         <section className="relative mx-auto flex min-h-screen max-w-2xl items-center px-6 py-16">
           <div className="w-full rounded-[28px] border border-[#dfd2be] bg-white/86 p-10 text-center shadow-[0_22px_60px_rgba(88,74,51,0.18)] backdrop-blur-sm">
@@ -228,7 +228,7 @@ export default function DashboardPage() {
 
   const statusBadgeStyles: Record<UserStatus, string> = {
     active: "border-[#cfe3d2] bg-[#f1faef] text-[#3a6e44]",
-    inactive: "border-[#e9d4a3] bg-[#fff7e3] text-[#9d6e1c]",
+    inactive: "border-[#e9d4a3] bg-[#fdfbf6] text-[#9d6e1c]",
     suspended: "border-[#e7c9c9] bg-[#fff4f4] text-[#b34a4a]",
   };
 
@@ -270,7 +270,7 @@ export default function DashboardPage() {
       value: stats.inactive,
       icon: Crown,
       accent:
-        "border-[#e9d4a3] bg-[linear-gradient(150deg,#fff7e3_0%,#fffdf6_100%)] text-[#9d6e1c]",
+        "border-[#e9d4a3] bg-[linear-gradient(150deg,#fdfbf6_0%,#fffdf6_100%)] text-[#9d6e1c]",
     },
     {
       key: "suspended",
@@ -283,10 +283,10 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf2e1] via-[#fbf8f2] to-[#f7f5f1] text-[#40342c]">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf6ed] via-[#fdfbf6] to-[#faf6ed] text-[#40342c]">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#f1d99b]/40 blur-3xl" />
-        <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#e6ddc6]/55 blur-3xl" />
+        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#dfceb0]/40 blur-3xl" />
+        <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#ece2cc]/55 blur-3xl" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(164,146,117,0.05)_1px,transparent_0)] [background-size:24px_24px]" />
       </div>
 
@@ -297,8 +297,8 @@ export default function DashboardPage() {
           transition={{ duration: reduce ? 0.01 : 0.5, ease: "easeOut" }}
           className="space-y-3"
         >
-          <p className="inline-flex items-center gap-2 rounded-full border border-[#dccfb7] bg-white/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b845f] backdrop-blur-sm">
-            <Sparkles className="h-3.5 w-3.5 text-[#c48b24]" />
+          <p className="inline-flex items-center gap-2 rounded-full border border-[#dccfb3] bg-white/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#82693c] backdrop-blur-sm">
+            <Sparkles className="h-3.5 w-3.5 text-[#82693c]" />
             {copy.headerLabel}
           </p>
           <h1 className="font-serif text-[clamp(2rem,4.4vw,3.4rem)] leading-tight text-[#3f342d]">
@@ -342,7 +342,7 @@ export default function DashboardPage() {
                 onClick={() => setFilter(status)}
                 className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition ${
                   filter === status
-                    ? "bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] text-white shadow-[0_8px_18px_rgba(169,116,21,0.3)]"
+                    ? "bg-gradient-to-r from-[#82693c] to-[#604b2d] text-white shadow-[0_8px_18px_rgba(130,105,60,0.3)]"
                     : "border border-[#e2d4be] bg-white text-[#6c5a49] hover:border-[#c7b289] hover:bg-[#fffaf0]"
                 }`}
               >
@@ -356,7 +356,7 @@ export default function DashboardPage() {
               placeholder={copy.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-[#e2d4be] bg-white px-4 py-2.5 pl-10 text-sm text-[#3f342d] placeholder:text-[#a99e8f] outline-none transition focus:border-[#c48b24] focus:ring-2 focus:ring-[#f6e5c1]"
+              className="w-full rounded-xl border border-[#e2d4be] bg-white px-4 py-2.5 pl-10 text-sm text-[#3f342d] placeholder:text-[#a99e8f] outline-none transition focus:border-[#82693c] focus:ring-2 focus:ring-[#efe4d0]"
             />
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a99e8f]" />
           </div>
@@ -365,7 +365,7 @@ export default function DashboardPage() {
         <div className="overflow-hidden rounded-3xl border border-[#dfd2be] bg-white/86 shadow-[0_18px_36px_rgba(59,43,24,0.08)] backdrop-blur-sm">
           {loading ? (
             <div className="p-12 text-center text-[#7b6f63]">
-              <div className="inline-block h-7 w-7 animate-spin rounded-full border-2 border-[#c48b24] border-t-transparent" />
+              <div className="inline-block h-7 w-7 animate-spin rounded-full border-2 border-[#82693c] border-t-transparent" />
               <p className="mt-3 text-sm">{copy.loadingText}</p>
             </div>
           ) : (
@@ -373,16 +373,16 @@ export default function DashboardPage() {
               <table className="w-full text-left">
                 <thead className="border-b border-[#ece2cc] bg-[#faf5ea]">
                   <tr>
-                    <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9b845f]">
+                    <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#82693c]">
                       {copy.thUser}
                     </th>
-                    <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9b845f]">
+                    <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#82693c]">
                       {copy.thRole}
                     </th>
-                    <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9b845f]">
+                    <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#82693c]">
                       {copy.thStatus}
                     </th>
-                    <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9b845f]">
+                    <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#82693c]">
                       {copy.thAction}
                     </th>
                   </tr>
@@ -412,7 +412,7 @@ export default function DashboardPage() {
                               <p className="font-semibold text-[#3f342d]">{u.name}</p>
                               <p className="text-sm text-[#7b6f63]">{u.email}</p>
                               {u.phone && (
-                                <p className="text-xs text-[#9b845f]">{u.phone}</p>
+                                <p className="text-xs text-[#82693c]">{u.phone}</p>
                               )}
                             </div>
                           </div>
@@ -461,7 +461,7 @@ export default function DashboardPage() {
                                     onClick={() =>
                                       updateUserStatus(u.id, "inactive")
                                     }
-                                    className="inline-flex items-center gap-1 rounded-full border border-[#e9d4a3] bg-[#fff7e3] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9d6e1c] transition hover:bg-[#fbecc4]"
+                                    className="inline-flex items-center gap-1 rounded-full border border-[#e9d4a3] bg-[#fdfbf6] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9d6e1c] transition hover:bg-[#fbecc4]"
                                   >
                                     {copy.deactivate}
                                   </button>
@@ -504,11 +504,11 @@ export default function DashboardPage() {
 
         <div className="rounded-3xl border border-[#dfd2be] bg-[linear-gradient(150deg,#fff8ea_0%,#fffdf6_60%,#fff_100%)] p-7 shadow-[0_14px_28px_rgba(59,43,24,0.08)]">
           <div className="flex items-start gap-3">
-            <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-xl border border-[#ddc7a2] bg-white text-[#b07f2f]">
+            <span className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-xl border border-[#dccfb3] bg-white text-[#82693c]">
               <Info className="h-5 w-5" />
             </span>
             <div className="space-y-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9b845f]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#82693c]">
                 {copy.howItWorks}
               </p>
               <ul className="space-y-2 text-sm text-[#5a4d42]">

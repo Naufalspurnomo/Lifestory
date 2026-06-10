@@ -41,7 +41,7 @@ export function Accordion({
               </span>
               <span
                 className={cn(
-                  "inline-flex h-9 w-9 flex-none items-center justify-center rounded-pill border border-cream-300 bg-white text-brand-700 transition-transform duration-300",
+                  "inline-flex h-9 w-9 flex-none items-center justify-center rounded-pill border border-cream-300 bg-cream-50 text-brand-700 transition-transform duration-300",
                   open && "rotate-45 bg-brand-gradient text-white border-transparent shadow-cta"
                 )}
               >

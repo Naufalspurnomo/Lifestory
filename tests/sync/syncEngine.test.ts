@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { SyncEngine } from "../../lib/sync/SyncEngine";
+import {
+  SyncEngine,
+  SYNC_REQUEST_BODY_LIMIT_BYTES,
+} from "../../lib/sync/SyncEngine";
 import { NetworkDetector } from "../../lib/sync/NetworkDetector";
 import { LocalStorageWriteAheadLog } from "../../lib/sync/WriteAheadLog";
 import type { FamilyNode, Mutation } from "../../lib/sync/types";
@@ -58,6 +61,12 @@ class StuckOfflineNetworkDetector extends NetworkDetector {
   }
 
   override async check(): Promise<boolean> {
+    return false;
+  }
+}
+
+class BrowserOfflineNetworkDetector extends StuckOfflineNetworkDetector {
+  override canAttemptRequests(): boolean {
     return false;
   }
 }
@@ -161,6 +170,63 @@ describe("SyncEngine reliability boundaries", () => {
     engine.destroy();
   });
 
+  it("does not retry oversized sync requests rejected by the API", async () => {
+    const wal = new LocalStorageWriteAheadLog({
+      storage: new TestStorage(),
+    });
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ error: "Request body too large" }, 413)
+    );
+    const engine = new SyncEngine({
+      wal,
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      networkDetector: new AlwaysOnlineNetworkDetector(),
+      config: { debounceMs: 60_000 },
+    });
+
+    await engine.enqueueMany("tree-1", mutations(1));
+    await engine.forceSync();
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(await wal.getCount()).toBe(1);
+    expect(await wal.getPermanentlyFailedCount()).toBe(1);
+    expect(engine.getStatus().status).toBe("error");
+    expect(engine.getStatus().errorMessage).toBe("Request body too large");
+    engine.destroy();
+  });
+
+  it("fails a single locally oversized image payload before posting it", async () => {
+    const wal = new LocalStorageWriteAheadLog({
+      storage: new TestStorage(),
+    });
+    const fetchMock = vi.fn();
+    const hugeNode = {
+      ...person("node-1"),
+      content: {
+        description: "x".repeat(SYNC_REQUEST_BODY_LIMIT_BYTES + 1024),
+        media: [],
+      },
+    };
+    const engine = new SyncEngine({
+      wal,
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      networkDetector: new AlwaysOnlineNetworkDetector(),
+      config: { debounceMs: 60_000 },
+    });
+
+    await engine.enqueueMany("tree-1", [
+      { type: "update", nodeId: hugeNode.id, payload: hugeNode },
+    ]);
+    await engine.forceSync();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await wal.getCount()).toBe(1);
+    expect(await wal.getPermanentlyFailedCount()).toBe(1);
+    expect(engine.getStatus().status).toBe("error");
+    expect(engine.getStatus().errorMessage).toContain("terlalu besar");
+    engine.destroy();
+  });
+
   it("rechecks connectivity when a manual sync is requested while offline", async () => {
     const wal = new LocalStorageWriteAheadLog({
       storage: new TestStorage(),
@@ -221,7 +287,7 @@ describe("SyncEngine reliability boundaries", () => {
     engine.destroy();
   });
 
-  it("retries queued edits automatically while health probing reports offline", async () => {
+  it("attempts queued edits while health probing reports a soft offline state", async () => {
     vi.useFakeTimers();
     try {
       const wal = new LocalStorageWriteAheadLog({
@@ -241,6 +307,40 @@ describe("SyncEngine reliability boundaries", () => {
         wal,
         fetchImpl: fetchMock as unknown as typeof fetch,
         networkDetector: new StuckOfflineNetworkDetector(),
+        config: { debounceMs: 10, offlineRetryDelayMs: 20 },
+      });
+
+      await engine.enqueueMany("tree-1", mutations(1));
+      await vi.advanceTimersByTimeAsync(10);
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(await wal.getCount()).toBe(0);
+      expect(engine.getStatus().status).toBe("saved");
+      engine.destroy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("waits for the offline retry when the browser is hard offline", async () => {
+    vi.useFakeTimers();
+    try {
+      const wal = new LocalStorageWriteAheadLog({
+        storage: new TestStorage(),
+      });
+      const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body));
+        return jsonResponse({
+          success: true,
+          newVersion: 2,
+          acknowledgedSeqNos: body.mutations.map(
+            (mutation: { seqNo: number }) => mutation.seqNo
+          ),
+        });
+      });
+      const engine = new SyncEngine({
+        wal,
+        fetchImpl: fetchMock as unknown as typeof fetch,
+        networkDetector: new BrowserOfflineNetworkDetector(),
         config: { debounceMs: 10, offlineRetryDelayMs: 20 },
       });
 

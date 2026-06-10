@@ -59,13 +59,13 @@ export function WordRotator({
   return (
     <span
       className={cn(
-        "relative inline-block overflow-hidden align-baseline pr-[0.05em]",
+        "relative inline-block overflow-hidden align-baseline pr-[0.2em]",
         outerClassName
       )}
       aria-live="polite"
     >
       {/* invisible reservation */}
-      <span aria-hidden className="invisible whitespace-nowrap">
+      <span aria-hidden className={cn("invisible whitespace-nowrap", className)}>
         {longest}
       </span>
       <AnimatePresence mode="popLayout" initial={false}>

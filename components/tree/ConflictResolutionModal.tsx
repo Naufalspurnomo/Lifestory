@@ -33,17 +33,17 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 function formatValue(value: unknown): string {
-  if (value === null || value === undefined) return "—";
-  if (typeof value === "string") return value || "—";
+  if (value === null || value === undefined) return "â€”";
+  if (typeof value === "string") return value || "â€”";
   if (typeof value === "number") return String(value);
   if (Array.isArray(value)) {
-    if (value.length === 0) return "—";
+    if (value.length === 0) return "â€”";
     return value.join(", ");
   }
   if (typeof value === "object") {
     const desc = (value as Record<string, unknown>).description;
-    if (typeof desc === "string") return desc.slice(0, 80) + (desc.length > 80 ? "…" : "");
-    return JSON.stringify(value).slice(0, 80) + "…";
+    if (typeof desc === "string") return desc.slice(0, 80) + (desc.length > 80 ? "â€¦" : "");
+    return JSON.stringify(value).slice(0, 80) + "â€¦";
   }
   return String(value);
 }
@@ -138,9 +138,9 @@ export default function ConflictResolutionModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="relative mx-4 flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border-2 border-[#d4af37]/60 bg-[#0f0f14] shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
+      <div className="relative mx-4 flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border-2 border-[#82693c]/60 bg-[#0f0f14] shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#d4af37]/30 bg-black/40 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-[#82693c]/30 bg-black/40 px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/20">
               <AlertTriangle className="h-5 w-5 text-amber-400" />
@@ -188,8 +188,8 @@ export default function ConflictResolutionModal({
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
           {Object.entries(grouped).map(([nodeId, nodeConflicts]) => (
             <div key={nodeId} className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#d4af37]">
-                Node: {nodeId.slice(0, 8)}…
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#82693c]">
+                Node: {nodeId.slice(0, 8)}â€¦
               </h3>
               {nodeConflicts.map((conflict) => {
                 const key = conflictKey(conflict);
@@ -268,7 +268,7 @@ export default function ConflictResolutionModal({
               disabled={!allResolved}
               className={`rounded-full px-5 py-2 text-xs font-black uppercase tracking-wide transition-all ${
                 allResolved
-                  ? "bg-gradient-to-r from-[#d4af37] to-[#aa8323] text-black shadow-[0_0_12px_rgba(212,175,55,0.4)] hover:scale-105"
+                  ? "bg-gradient-to-r from-[#82693c] to-[#604b2d] text-black shadow-[0_0_12px_rgba(130,105,60,0.4)] hover:scale-105"
                   : "bg-white/10 text-white/30 cursor-not-allowed"
               }`}
             >

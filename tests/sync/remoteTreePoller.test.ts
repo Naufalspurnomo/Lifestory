@@ -148,6 +148,65 @@ describe("RemoteTreePoller", () => {
     expect(fetchRemoteChanges).toHaveBeenCalledOnce();
   });
 
+  it("uses the idle interval when no collaborator changes are found", async () => {
+    vi.useFakeTimers();
+    const fetchRemoteChanges = vi.fn(async (): Promise<TreePullResult> => ({
+      changed: false,
+      currentVersion: 1,
+    }));
+    const poller = new RemoteTreePoller({
+      getActiveTreeId: () => "tree-1",
+      getLastSyncedVersion: async () => 1,
+      getLocalRevision: () => 0,
+      hasUnresolvedChanges: async () => false,
+      fetchRemoteChanges,
+      applyRemoteTree: vi.fn(),
+      activeIntervalMs: 10,
+      idleIntervalMs: 50,
+    });
+
+    poller.start();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchRemoteChanges).toHaveBeenCalledOnce();
+
+    await vi.advanceTimersByTimeAsync(49);
+    expect(fetchRemoteChanges).toHaveBeenCalledOnce();
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fetchRemoteChanges).toHaveBeenCalledTimes(2);
+    poller.stop();
+  });
+
+  it("polls briefly at the active interval after a remote change", async () => {
+    vi.useFakeTimers();
+    const fetchRemoteChanges = vi.fn(async (): Promise<TreePullResult> => ({
+      changed: true,
+      currentVersion: 2,
+      tree: tree(2),
+      changedNodeIds: ["node-2"],
+      complete: true,
+    }));
+    const poller = new RemoteTreePoller({
+      getActiveTreeId: () => "tree-1",
+      getLastSyncedVersion: async () => 1,
+      getLocalRevision: () => 0,
+      hasUnresolvedChanges: async () => false,
+      fetchRemoteChanges,
+      applyRemoteTree: vi.fn(),
+      activeIntervalMs: 10,
+      idleIntervalMs: 50,
+      activeWindowMs: 100,
+    });
+
+    poller.start();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchRemoteChanges).toHaveBeenCalledOnce();
+
+    await vi.advanceTimersByTimeAsync(10);
+    expect(fetchRemoteChanges).toHaveBeenCalledTimes(2);
+    poller.stop();
+  });
+
   it("does not apply an in-flight response after teardown", async () => {
     let resolvePull: ((result: TreePullResult) => void) | undefined;
     const applyRemoteTree = vi.fn();

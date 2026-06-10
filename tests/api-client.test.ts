@@ -94,7 +94,10 @@ describe("apiClient - happy paths", () => {
     const trees = await listTrees(fetchMock as unknown as typeof fetch);
     expect(trees).toHaveLength(1);
     expect(trees[0].id).toBe("t1");
-    expect(fetchMock).toHaveBeenCalledWith("/api/trees", { cache: "no-store" });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/trees",
+      expect.objectContaining({ cache: "no-store" })
+    );
   });
 
   it("loadTree targets the right URL", async () => {
@@ -131,7 +134,7 @@ describe("apiClient - happy paths", () => {
     expect(result).toEqual({ changed: false, currentVersion: 7 });
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/trees/tree%20id/sync?sinceVersion=7",
-      { cache: "no-store" }
+      expect.objectContaining({ cache: "no-store" })
     );
   });
 

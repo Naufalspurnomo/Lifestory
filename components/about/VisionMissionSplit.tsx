@@ -36,7 +36,6 @@ export function VisionMissionSplit({ copy }: Props) {
             className="relative overflow-hidden rounded-card-lg border border-ink-900/40 bg-gradient-to-br from-ink-900 via-ink-800 to-brand-900 p-8 text-white shadow-deep md:p-10 lg:p-12"
           >
             <div aria-hidden className="pointer-events-none absolute inset-0">
-              <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-brand-400/25 blur-3xl" />
               <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-25" />
             </div>
 
@@ -75,10 +74,6 @@ export function VisionMissionSplit({ copy }: Props) {
             }}
             className="relative overflow-hidden rounded-card-lg border border-cream-300 bg-[linear-gradient(140deg,#fff8ea_0%,#fffdf6_55%,#ffffff_100%)] p-8 shadow-elev md:p-10 lg:p-12"
           >
-            <div aria-hidden className="pointer-events-none absolute inset-0">
-              <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-brand-200/40 blur-3xl" />
-            </div>
-
             <div className="relative">
               <Eyebrow icon={<Flame className="h-3 w-3" />}>
                 {copy.missionLabel}

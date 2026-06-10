@@ -238,10 +238,10 @@ export default function SubscribePage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf2e1] via-[#fbf8f2] to-[#f7f5f1] text-[#40342c]">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf6ed] via-[#fdfbf6] to-[#faf6ed] text-[#40342c]">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#f1d99b]/45 blur-3xl" />
-        <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#e6ddc6]/65 blur-3xl" />
+        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#dfceb0]/45 blur-3xl" />
+        <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#ece2cc]/65 blur-3xl" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(164,146,117,0.06)_1px,transparent_0)] [background-size:24px_24px]" />
       </div>
 
@@ -252,8 +252,8 @@ export default function SubscribePage() {
           transition={{ duration: reduced ? 0.01 : 0.55, ease: "easeOut" }}
           className="space-y-4 text-center"
         >
-          <p className="inline-flex items-center gap-2 rounded-full border border-[#dccfb7] bg-white/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b845f]">
-            <Sparkles className="h-3.5 w-3.5 text-[#c48b24]" />
+          <p className="inline-flex items-center gap-2 rounded-full border border-[#dccfb3] bg-white/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#82693c]">
+            <Sparkles className="h-3.5 w-3.5 text-[#82693c]" />
             {copy.sectionLabel}
           </p>
           <h1 className="font-serif text-[clamp(2.2rem,5.4vw,4.4rem)] leading-[1] tracking-[-0.02em] text-[#3f342d]">
@@ -266,7 +266,7 @@ export default function SubscribePage() {
             {copy.highlights.map((item) => (
               <span
                 key={item}
-                className="rounded-full border border-[#dccfb7] bg-white/75 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#7b6f63] backdrop-blur-sm"
+                className="rounded-full border border-[#dccfb3] bg-white/75 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#7b6f63] backdrop-blur-sm"
               >
                 {item}
               </span>
@@ -291,14 +291,14 @@ export default function SubscribePage() {
             <div className="relative">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9b845f]">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#82693c]">
                     {plan.tag}
                   </p>
                   <h2 className="mt-1 font-serif text-3xl text-[#3f342d]">
                     {plan.name}
                   </h2>
                 </div>
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#ddc7a2] bg-white/85 text-[#b07f2f]">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#dccfb3] bg-white/85 text-[#82693c]">
                   <TreePine className="h-5 w-5" />
                 </span>
               </div>
@@ -320,7 +320,7 @@ export default function SubscribePage() {
                     key={feature}
                     className="flex items-start gap-2.5 rounded-xl border border-[#eee1cb] bg-white/85 p-3 text-sm text-[#5a4d42]"
                   >
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-[#c48b24]" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-[#82693c]" />
                     <span>{feature}</span>
                   </li>
                 ))}
@@ -338,7 +338,7 @@ export default function SubscribePage() {
           transition={{ duration: reduced ? 0.01 : 0.55, ease: "easeOut" }}
           className="mb-8 max-w-2xl"
         >
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9b845f]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#82693c]">
             {copy.paymentTitle}
           </p>
           <h2 className="mt-2 font-serif text-[clamp(1.8rem,3.6vw,2.6rem)] leading-tight text-[#3f342d]">
@@ -356,11 +356,11 @@ export default function SubscribePage() {
           >
             <div className="flex flex-wrap items-start gap-4">
               <div className="flex flex-1 items-start gap-4 min-w-[260px]">
-                <span className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-[#ddc7a2] bg-[#fff7e8] text-[#b07f2f] font-serif text-lg font-semibold">
+                <span className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-[#dccfb3] bg-[#fdfbf6] text-[#82693c] font-serif text-lg font-semibold">
                   01
                 </span>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9b845f]">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#82693c]">
                     {copy.stepLabel(1)}
                   </p>
                   <h3 className="mt-1 font-serif text-xl text-[#3f342d]">
@@ -371,7 +371,7 @@ export default function SubscribePage() {
                   </p>
                 </div>
               </div>
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#ddc7a2] bg-white text-[#b07f2f]">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#dccfb3] bg-white text-[#82693c]">
                 <CreditCard className="h-4 w-4" />
               </span>
             </div>
@@ -382,10 +382,10 @@ export default function SubscribePage() {
                 return (
                   <div
                     key={method.name}
-                    className="rounded-2xl border border-[#eee1cb] bg-[#fffcf7] p-4 transition hover:border-[#dcc28e] hover:bg-white"
+                    className="rounded-2xl border border-[#eee1cb] bg-[#fffcf7] p-4 transition hover:border-[#c8b187] hover:bg-white"
                   >
                     <div className="mb-2 flex items-center gap-2">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-white text-[#b07f2f]">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-white text-[#82693c]">
                         <Icon className="h-4 w-4" />
                       </span>
                       <p className="font-semibold text-[#3f342d]">{method.name}</p>
@@ -411,11 +411,11 @@ export default function SubscribePage() {
           >
             <div className="flex flex-wrap items-start gap-4">
               <div className="flex flex-1 items-start gap-4 min-w-[260px]">
-                <span className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-[#ddc7a2] bg-[#fff7e8] text-[#b07f2f] font-serif text-lg font-semibold">
+                <span className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-[#dccfb3] bg-[#fdfbf6] text-[#82693c] font-serif text-lg font-semibold">
                   02
                 </span>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9b845f]">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#82693c]">
                     {copy.stepLabel(2)}
                   </p>
                   <h3 className="mt-1 font-serif text-xl text-[#3f342d]">
@@ -426,7 +426,7 @@ export default function SubscribePage() {
                   </p>
                 </div>
               </div>
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#ddc7a2] bg-white text-[#b07f2f]">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#dccfb3] bg-white text-[#82693c]">
                 <MessageCircle className="h-4 w-4" />
               </span>
             </div>
@@ -453,11 +453,11 @@ export default function SubscribePage() {
           >
             <div className="flex flex-wrap items-start gap-4">
               <div className="flex flex-1 items-start gap-4 min-w-[260px]">
-                <span className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-[#ddc7a2] bg-[#fff7e8] text-[#b07f2f] font-serif text-lg font-semibold">
+                <span className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-[#dccfb3] bg-[#fdfbf6] text-[#82693c] font-serif text-lg font-semibold">
                   03
                 </span>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9b845f]">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#82693c]">
                     {copy.stepLabel(3)}
                   </p>
                   <h3 className="mt-1 font-serif text-xl text-[#3f342d]">
@@ -481,7 +481,7 @@ export default function SubscribePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: reduced ? 0.01 : 0.5, delay: reduced ? 0 : 0.15 }}
-            className="mx-auto mt-8 max-w-xl rounded-2xl border border-[#e9d4a3] bg-[linear-gradient(150deg,#fff7e3_0%,#fffdf6_100%)] p-5 text-center shadow-[0_14px_28px_rgba(149,110,33,0.14)]"
+            className="mx-auto mt-8 max-w-xl rounded-2xl border border-[#e9d4a3] bg-[linear-gradient(150deg,#fdfbf6_0%,#fffdf6_100%)] p-5 text-center shadow-[0_14px_28px_rgba(149,110,33,0.14)]"
           >
             <p className="text-sm text-[#7e570f]">
               <Link

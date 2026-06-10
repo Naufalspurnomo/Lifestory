@@ -218,7 +218,7 @@ export default function AppHome() {
     [getNode, deleteNode, showNotification, copy]
   );
 
-  // P3: Keyboard shortcuts — Ctrl+Z (undo), Ctrl+Y / Ctrl+Shift+Z (redo),
+  // P3: Keyboard shortcuts â€” Ctrl+Z (undo), Ctrl+Y / Ctrl+Shift+Z (redo),
   // Escape (deselect), Delete (delete selected node)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -438,29 +438,29 @@ export default function AppHome() {
     if (years.length > 0) stats.earliestRecord = Math.min(...years);
   }
 
-  // ── Loading state: session or tree data still hydrating ──────────────────
+  // â”€â”€ Loading state: session or tree data still hydrating â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const isSessionLoading = status === "loading";
   const isTreeLoading = syncStatus === "loading";
   const showLoading = isSessionLoading || (isTreeLoading && !currentTree && !hasCreatedTree);
 
   if (showLoading) {
     return (
-      <div className="relative flex min-h-[70vh] items-center justify-center overflow-hidden bg-[#f7f5f1]">
+      <div className="relative flex min-h-[70vh] items-center justify-center overflow-hidden bg-[#faf6ed]">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#f1d99b]/45 blur-3xl" />
-          <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#e6ddc6]/65 blur-3xl" />
+          <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#dfceb0]/45 blur-3xl" />
+          <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#ece2cc]/65 blur-3xl" />
         </div>
         <div className="relative flex flex-col items-center gap-5 text-center">
           <div className="relative h-16 w-16">
-            <div className="absolute inset-0 animate-ping rounded-full bg-[#e6ab2f]/30" />
-            <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[#ddc7a2] bg-[linear-gradient(150deg,#fff8ea_0%,#f6e5c1_100%)] shadow-[0_14px_30px_rgba(169,116,21,0.2)]">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#b07f2f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="absolute inset-0 animate-ping rounded-full bg-[#82693c]/30" />
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[#dccfb3] bg-[linear-gradient(150deg,#fff8ea_0%,#efe4d0_100%)] shadow-[0_14px_30px_rgba(130,105,60,0.2)]">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#82693c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22v-8" /><path d="M12 14c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" /><path d="M12 14c4.42 0 8 3.58 8 8h-16c0-4.42 3.58-8 8-8z" />
               </svg>
             </div>
           </div>
           <p className="font-serif text-2xl text-[#3f342d]">
-            {locale === "id" ? "Memuat pohon keluarga…" : "Loading family tree…"}
+            {locale === "id" ? "Memuat pohon keluargaâ€¦" : "Loading family treeâ€¦"}
           </p>
           <p className="text-sm text-[#7b6f63]">
             {locale === "id" ? "Menyiapkan ruang arsip Anda" : "Preparing your archive space"}
@@ -471,7 +471,7 @@ export default function AppHome() {
   }
 
   return (
-    <div className={showTree ? "h-[100dvh] w-screen overflow-hidden bg-[#2c1e16] flex flex-col relative text-[#3f342d]" : "min-h-screen bg-[#f7f5f1] pb-32"}>
+    <div className={showTree ? "h-[100dvh] w-screen overflow-hidden bg-[#2c1e16] flex flex-col relative text-[#3f342d]" : "min-h-screen bg-[#faf6ed] pb-32"}>
       {/* Vignette removed for a cleaner look */}
       {!showTree && !hasCreatedTree && (
         <WelcomeScreen userName={userName} onStart={handleStartTree} />
@@ -491,7 +491,7 @@ export default function AppHome() {
               <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                 <Link
                   href="/"
-                  className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#dccfb3] bg-white/80 text-[#82693c] shadow-[0_10px_24px_rgba(59,43,24,0.08)] backdrop-blur-md transition hover:border-[#c5b395] hover:bg-white hover:text-[#3f342d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e6ab2f] focus-visible:ring-offset-2 focus-visible:ring-offset-[#faf6ed]"
+                  className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#dccfb3] bg-white/80 text-[#82693c] shadow-[0_10px_24px_rgba(59,43,24,0.08)] backdrop-blur-md transition hover:border-[#c5b395] hover:bg-white hover:text-[#3f342d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#82693c] focus-visible:ring-offset-2 focus-visible:ring-offset-[#faf6ed]"
                   title={locale === "id" ? "Kembali ke beranda" : "Back to home"}
                   aria-label={locale === "id" ? "Kembali ke beranda" : "Back to home"}
                 >
@@ -511,7 +511,7 @@ export default function AppHome() {
                       onChange={(event) => {
                         void selectTree(event.target.value);
                       }}
-                      className="-ml-2 block min-w-0 max-w-[180px] rounded-lg border border-transparent bg-transparent px-2 py-0 font-playfair text-lg font-bold leading-tight text-[#3f342d] outline-none transition hover:border-[#dccfb3] hover:bg-white/70 focus:border-[#e6ab2f] focus:bg-white sm:max-w-[280px] lg:max-w-[260px] xl:max-w-[320px]"
+                      className="-ml-2 block min-w-0 max-w-[180px] rounded-lg border border-transparent bg-transparent px-2 py-0 font-playfair text-lg font-bold leading-tight text-[#3f342d] outline-none transition hover:border-[#dccfb3] hover:bg-white/70 focus:border-[#82693c] focus:bg-white sm:max-w-[280px] lg:max-w-[260px] xl:max-w-[320px]"
                       aria-label={locale === "id" ? "Pilih pohon keluarga" : "Select family tree"}
                     >
                       {treeSummaries.map((tree) => (
@@ -529,7 +529,7 @@ export default function AppHome() {
               </div>
 
               <div className="flex shrink-0 items-center gap-2 rounded-full border border-[#dccfb3] bg-[#fdfbf6] px-2 py-1.5 lg:hidden">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#dccfb3] bg-gradient-to-br from-[#e6ab2f] to-[#82693c] text-sm font-bold text-white shadow-sm">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#dccfb3] bg-gradient-to-br from-[#82693c] to-[#82693c] text-sm font-bold text-white shadow-sm">
                   {userName.charAt(0).toUpperCase()}
                 </span>
                 <div className="hidden text-left leading-none sm:block">
@@ -656,7 +656,7 @@ export default function AppHome() {
               
               {/* User Profile */}
               <div className="flex items-center gap-2 border border-[#dccfb3] bg-[#fdfbf6] px-2 py-1.5 rounded-full">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#e6ab2f] to-[#82693c] border border-[#dccfb3] shadow-sm text-sm font-bold text-white">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#82693c] to-[#82693c] border border-[#dccfb3] shadow-sm text-sm font-bold text-white">
                   {userName.charAt(0).toUpperCase()}
                 </span>
                 <div className="text-left hidden sm:block leading-none">
@@ -766,7 +766,7 @@ export default function AppHome() {
                 onClick={() => setIsTomeOpen(false)}
                 className="rounded-full hover:bg-[#ece2cc] p-2 text-[#73685f] font-sans font-bold transition-colors"
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -833,7 +833,7 @@ export default function AppHome() {
                 onClick={() => setIsVaultOpen(false)}
                 className="rounded-full hover:bg-[#ece2cc] p-2 text-[#73685f] font-sans font-bold transition-colors"
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -885,7 +885,7 @@ export default function AppHome() {
             </div>
           </div>
 
-          {/* Compact stats pill — top right below header */}
+          {/* Compact stats pill â€” top right below header */}
           <div className="fixed top-20 right-6 z-30 pointer-events-none hidden lg:block">
             <div className="rounded-xl border border-[#dccfb3] bg-white/70 px-4 py-2 shadow-sm backdrop-blur-md text-[#5a4d42] text-xs flex items-center gap-3 whitespace-nowrap">
               <div className="flex items-center gap-1.5" title={copy.statMembers}>
@@ -893,19 +893,19 @@ export default function AppHome() {
                 <span className="font-bold">{stats.members}</span>
                 <span className="text-[#9c8e7e]">{locale === "id" ? "anggota" : "members"}</span>
               </div>
-              <span className="text-[#dccfb3]">·</span>
+              <span className="text-[#dccfb3]">Â·</span>
               <div className="flex items-center gap-1.5" title={copy.statGenerations}>
                 <Layers3 className="h-3.5 w-3.5 text-[#82693c]" />
                 <span className="font-bold">{stats.generations}</span>
                 <span className="text-[#9c8e7e]">{locale === "id" ? "generasi" : "gen"}</span>
               </div>
-              <span className="text-[#dccfb3]">·</span>
+              <span className="text-[#dccfb3]">Â·</span>
               <div className="flex items-center gap-1.5" title={copy.statLines}>
                 <GitBranch className="h-3.5 w-3.5 text-[#82693c]" />
                 <span className="font-bold">{stats.lines}</span>
                 <span className="text-[#9c8e7e]">{locale === "id" ? "cabang" : "branches"}</span>
               </div>
-              <span className="text-[#dccfb3]">·</span>
+              <span className="text-[#dccfb3]">Â·</span>
               <div className="flex items-center gap-1.5" title={copy.statEarliest}>
                 <History className="h-3.5 w-3.5 text-[#82693c]" />
                 <span className="font-bold">{stats.earliestRecord}</span>

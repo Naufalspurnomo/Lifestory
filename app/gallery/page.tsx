@@ -425,7 +425,7 @@ function GalleryPageContent() {
                     <button
                       type="button"
                       onClick={() => setIsFocusedReaderOpen(true)}
-                      className="inline-flex items-center gap-2 rounded-full border border-[#c6a269] bg-[#fff7e8] px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#6f4a21] transition hover:bg-white"
+                      className="inline-flex items-center gap-2 rounded-full border border-[#c6a269] bg-[#fdfbf6] px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#6f4a21] transition hover:bg-white"
                       aria-label={copy.ariaOpenFocusedReader}
                     >
                       <Maximize2 className="h-3.5 w-3.5" />
@@ -601,7 +601,7 @@ function GalleryPageContent() {
     ) : null;
 
   return (
-    <div className="bg-[#f7f5f1] text-[#40342c]">
+    <div className="bg-[#faf6ed] text-[#40342c]">
       <section className="mx-auto max-w-[1320px] px-6 py-16 md:py-20">
         <div className="mb-10 flex flex-col gap-5 md:mb-12 md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl space-y-3">
@@ -618,7 +618,7 @@ function GalleryPageContent() {
 
           <Link
             href="/"
-            className="inline-flex items-center gap-2 self-start rounded-full border border-[#dccfb7] bg-white/80 px-5 py-2 text-sm font-semibold text-[#6c5a49] transition hover:border-[#c7b289] hover:bg-white hover:text-[#4c3f34] md:self-auto"
+            className="inline-flex items-center gap-2 self-start rounded-full border border-[#dccfb3] bg-white/80 px-5 py-2 text-sm font-semibold text-[#6c5a49] transition hover:border-[#c7b289] hover:bg-white hover:text-[#4c3f34] md:self-auto"
           >
             {copy.backHome}
             <span aria-hidden>&rarr;</span>
@@ -692,7 +692,7 @@ function GalleryPageContent() {
 
 function GalleryPageSkeleton() {
   return (
-    <div className="bg-[#f7f5f1] text-[#40342c]">
+    <div className="bg-[#faf6ed] text-[#40342c]">
       <section className="mx-auto max-w-[1320px] px-6 py-16 md:py-20">
         <div className="mb-10 space-y-4">
           <div className="h-3 w-20 animate-pulse rounded-full bg-[#e9e0cf]" />

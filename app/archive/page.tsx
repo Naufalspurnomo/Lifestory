@@ -126,14 +126,14 @@ export default function ArchivePage() {
 
   if (!currentTree) {
     return (
-      <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf2e1] via-[#fbf8f2] to-[#f7f5f1] text-[#40342c]">
+      <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf6ed] via-[#fdfbf6] to-[#faf6ed] text-[#40342c]">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#f1d99b]/55 blur-3xl" />
-          <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#e6ddc6]/70 blur-3xl" />
+          <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#dfceb0]/55 blur-3xl" />
+          <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#ece2cc]/70 blur-3xl" />
         </div>
         <section className="relative mx-auto flex min-h-screen max-w-2xl items-center px-6 py-16">
           <div className="w-full rounded-[28px] border border-[#dfd2be] bg-white/86 p-10 text-center shadow-[0_22px_60px_rgba(88,74,51,0.18)] backdrop-blur-sm">
-            <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[#ddc7a2] bg-[#fff7e8] text-[#b07f2f]">
+            <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[#dccfb3] bg-[#fdfbf6] text-[#82693c]">
               <Camera className="h-5 w-5" />
             </div>
             <h1 className="font-serif text-3xl text-[#3f342d]">
@@ -142,7 +142,7 @@ export default function ArchivePage() {
             <p className="mt-3 text-[#73685f]">{copy.noTreeBody}</p>
             <Link
               href="/app"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#e6ab2f] to-[#cc8a12] px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-[0_14px_30px_rgba(169,116,21,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(169,116,21,0.4)]"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#82693c] to-[#604b2d] px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-[0_14px_30px_rgba(130,105,60,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(130,105,60,0.4)]"
             >
               {copy.openTree}
             </Link>
@@ -181,18 +181,18 @@ export default function ArchivePage() {
   ];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf2e1] via-[#fbf8f2] to-[#f7f5f1] text-[#40342c]">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf6ed] via-[#fdfbf6] to-[#faf6ed] text-[#40342c]">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#f1d99b]/40 blur-3xl" />
-        <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#e6ddc6]/55 blur-3xl" />
+        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#dfceb0]/40 blur-3xl" />
+        <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#ece2cc]/55 blur-3xl" />
       </div>
 
       <header className="sticky top-[0] z-10 border-b border-[#e4dccf] bg-[rgba(255,253,249,0.92)] backdrop-blur-md">
         <div className="mx-auto max-w-6xl px-6 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
-              <p className="inline-flex items-center gap-2 rounded-full border border-[#dccfb7] bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#9b845f]">
-                <Sparkles className="h-3 w-3 text-[#c48b24]" />
+              <p className="inline-flex items-center gap-2 rounded-full border border-[#dccfb3] bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#82693c]">
+                <Sparkles className="h-3 w-3 text-[#82693c]" />
                 {copy.badge}
               </p>
               <h1 className="font-serif text-2xl text-[#3f342d] md:text-3xl">
@@ -225,18 +225,18 @@ export default function ArchivePage() {
                 onClick={() => setFilter(card.key)}
                 className={`group rounded-2xl border p-4 text-left transition md:p-5 ${
                   active
-                    ? "border-[#dcc28e] bg-[linear-gradient(150deg,#fff8ea_0%,#fffdf6_100%)] shadow-[0_14px_30px_rgba(169,116,21,0.18)]"
-                    : "border-[#e2d4be] bg-white/78 hover:border-[#dcc28e] hover:bg-white"
+                    ? "border-[#c8b187] bg-[linear-gradient(150deg,#fff8ea_0%,#fffdf6_100%)] shadow-[0_14px_30px_rgba(130,105,60,0.18)]"
+                    : "border-[#e2d4be] bg-white/78 hover:border-[#c8b187] hover:bg-white"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b845f]">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#82693c]">
                     {card.label}
                   </p>
                   <span
                     className={`inline-flex h-8 w-8 items-center justify-center rounded-xl border transition ${
                       active
-                        ? "border-[#dcc28e] bg-white text-[#b07f2f]"
+                        ? "border-[#c8b187] bg-white text-[#82693c]"
                         : "border-[#e2d4be] bg-[#fffcf7] text-[#a99066]"
                     }`}
                   >
@@ -253,7 +253,7 @@ export default function ArchivePage() {
 
         {filteredMedia.length === 0 && (
           <div className="rounded-3xl border border-[#dfd2be] bg-white/82 p-12 text-center shadow-[0_14px_28px_rgba(59,43,24,0.06)] backdrop-blur-sm">
-            <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[#ddc7a2] bg-[#fff7e8] text-[#b07f2f]">
+            <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[#dccfb3] bg-[#fdfbf6] text-[#82693c]">
               <Camera className="h-5 w-5" />
             </div>
             <h2 className="font-serif text-2xl text-[#3f342d]">
@@ -275,7 +275,7 @@ export default function ArchivePage() {
                 key={`${item.ownerId}-${index}`}
                 type="button"
                 onClick={() => setSelectedMedia(item)}
-                className="group relative aspect-square overflow-hidden rounded-2xl border border-[#dfd2be] bg-[#fffcf7] shadow-[0_10px_22px_rgba(59,43,24,0.08)] transition hover:-translate-y-0.5 hover:border-[#dcc28e] hover:shadow-[0_18px_30px_rgba(59,43,24,0.16)]"
+                className="group relative aspect-square overflow-hidden rounded-2xl border border-[#dfd2be] bg-[#fffcf7] shadow-[0_10px_22px_rgba(59,43,24,0.08)] transition hover:-translate-y-0.5 hover:border-[#c8b187] hover:shadow-[0_18px_30px_rgba(59,43,24,0.16)]"
               >
                 {item.type === "image" ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
@@ -353,7 +353,7 @@ export default function ArchivePage() {
                 />
               )}
               <div className="border-t border-[#deceb6] bg-[#f7f1e6] p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b845f]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#82693c]">
                   {selectedMedia.type === "video" ? copy.videos : copy.photos}
                 </p>
                 <p className="mt-1 font-serif text-xl text-[#3f342d]">

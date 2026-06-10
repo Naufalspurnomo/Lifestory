@@ -98,20 +98,7 @@ export function PhilosophyDeaths({ copy }: Props) {
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/30 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-brand-300/20 to-transparent" />
-        <motion.div
-          className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-300/10 blur-3xl"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={
-            isInView || reduced
-              ? { opacity: reduced ? 0.24 : [0.18, 0.32, 0.18], scale: 1 }
-              : {}
-          }
-          transition={{
-            duration: reduced ? 0.6 : 4.8,
-            repeat: reduced ? 0 : Infinity,
-            ease: "easeInOut",
-          }}
-        />
+        <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-15" />
       </div>
 
       <Container size="lg" className="relative">

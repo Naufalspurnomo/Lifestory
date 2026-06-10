@@ -99,7 +99,7 @@ export function SectionRail({ sections, className }: Props) {
             className
           )}
         >
-          <ul className="pointer-events-auto flex flex-col items-center gap-3.5 rounded-pill border border-cream-300 bg-white/85 px-2 py-3.5 shadow-soft backdrop-blur-md">
+          <ul className="pointer-events-auto flex flex-col items-center gap-3.5 rounded-pill border border-cream-300 bg-cream-50/88 px-2 py-3.5 shadow-soft backdrop-blur-md">
             {sections.map((section) => {
               const isActive = section.id === active;
               const isHovered = section.id === hovered;
@@ -121,7 +121,7 @@ export function SectionRail({ sections, className }: Props) {
                       className={cn(
                         "block rounded-full transition-all duration-300 ease-smooth",
                         isActive
-                          ? "h-2.5 w-2.5 bg-brand-gradient shadow-[0_0_0_3px_rgba(230,171,47,0.18)]"
+                          ? "h-2.5 w-2.5 bg-brand-gradient shadow-[0_0_0_3px_rgba(130,105,60,0.18)]"
                           : "h-1.5 w-1.5 bg-cream-400 group-hover:bg-brand-400"
                       )}
                     />
@@ -134,7 +134,7 @@ export function SectionRail({ sections, className }: Props) {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 6 }}
                         transition={{ duration: 0.2 }}
-                        className="pointer-events-none absolute right-full mr-3 whitespace-nowrap rounded-pill border border-cream-300 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-ink-700 shadow-soft"
+                        className="pointer-events-none absolute right-full mr-3 whitespace-nowrap rounded-pill border border-cream-300 bg-cream-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-ink-700 shadow-soft"
                       >
                         {section.label}
                       </motion.span>

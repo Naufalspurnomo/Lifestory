@@ -35,52 +35,52 @@ const IMAGES = [
 ];
 
 const ACCENTS = [
-  // Item 0 — Book & Photo (warm amber)
+  // Item 0 - Book & Photo
   {
     bgFrom: "from-brand-200/55",
     bgVia: "via-cream-50",
     bgTo: "to-cream-100",
-    glow: "rgba(228,171,47,0.45)",
+    glow: "rgba(130,105,60,0.28)",
     label: "Heirloom",
   },
-  // Item 1 — Family portrait (soft teal)
+  // Item 1 - Family portrait
   {
-    bgFrom: "from-accent-100/60",
+    bgFrom: "from-brand-100/70",
     bgVia: "via-cream-50",
     bgTo: "to-cream-100",
-    glow: "rgba(31,111,98,0.30)",
+    glow: "rgba(146,118,72,0.24)",
     label: "Portrait",
   },
-  // Item 2 — Video (deep ink)
+  // Item 2 - Video
   {
     bgFrom: "from-ink-700/30",
     bgVia: "via-cream-50",
     bgTo: "to-cream-100",
-    glow: "rgba(31,22,16,0.45)",
+    glow: "rgba(29,22,16,0.32)",
     label: "Cinematic",
   },
-  // Item 3 — Tree (golden bronze)
+  // Item 3 - Tree
   {
-    bgFrom: "from-brand-300/55",
+    bgFrom: "from-brand-200/65",
     bgVia: "via-cream-50",
     bgTo: "to-cream-200",
-    glow: "rgba(168,116,30,0.42)",
+    glow: "rgba(130,105,60,0.32)",
     label: "Lineage",
   },
-  // Item 4 — Celebration dinner (warm rose)
+  // Item 4 - Celebration dinner
   {
     bgFrom: "from-brand-100/50",
     bgVia: "via-cream-50",
     bgTo: "to-cream-100",
-    glow: "rgba(196,120,50,0.38)",
+    glow: "rgba(96,75,45,0.24)",
     label: "Celebrate",
   },
-  // Item 5 — Custom artwork (rich plum)
+  // Item 5 - Custom artwork
   {
-    bgFrom: "from-brand-300/40",
+    bgFrom: "from-brand-200/45",
     bgVia: "via-cream-100",
     bgTo: "to-cream-200",
-    glow: "rgba(140,80,60,0.35)",
+    glow: "rgba(63,47,29,0.22)",
     label: "Artisan",
   },
 ];
@@ -151,18 +151,8 @@ export function Deliverables({ copy }: Props) {
     >
       {/* Ambient color blob that morphs per active */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <AnimatePresence>
-          <motion.div
-            key={`amb-${active}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reduced ? 0.01 : 1.2 }}
-            className="absolute -left-32 top-1/4 h-[520px] w-[520px] rounded-full blur-[120px]"
-            style={{ background: accent.glow }}
-          />
-        </AnimatePresence>
-        <div className="absolute -right-32 bottom-0 h-[440px] w-[440px] rounded-full bg-cream-300/40 blur-3xl" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/35 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cream-400/70 to-transparent" />
         <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-30" />
       </div>
 
@@ -456,7 +446,7 @@ function DeliverableRow({
               "inline-flex h-11 w-11 flex-none items-center justify-center rounded-pill border transition-all duration-500",
               isActive
                 ? "border-transparent bg-brand-gradient text-white shadow-cta scale-100"
-                : "border-cream-300 bg-white text-brand-700 group-hover:-translate-y-0.5 group-hover:border-brand-300 group-hover:shadow-soft"
+                : "border-cream-300 bg-cream-50 text-brand-700 group-hover:-translate-y-0.5 group-hover:border-brand-300 group-hover:shadow-soft"
             )}
           >
             <Icon className="h-4 w-4" />
@@ -483,12 +473,12 @@ function ProgressRing({
   const dashoffset = circumference * (1 - progress);
 
   return (
-    <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-pill border border-cream-300 bg-white/95 shadow-soft backdrop-blur-sm">
+    <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-pill border border-cream-300 bg-cream-50/95 shadow-soft backdrop-blur-sm">
       <svg className="absolute inset-0 -rotate-90" viewBox="0 0 36 36" aria-hidden>
         <defs>
           <linearGradient id="ring-grad" x1="0" y1="0" x2="36" y2="36">
-            <stop offset="0%" stopColor="#e6ab2f" />
-            <stop offset="100%" stopColor="#cc8a12" />
+            <stop offset="0%" stopColor="#82693c" />
+            <stop offset="100%" stopColor="#604b2d" />
           </linearGradient>
         </defs>
         <circle

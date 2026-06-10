@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="id">
       <body
-        className={`${inter.variable} ${playfair.variable} min-h-screen bg-[#faf8f5] text-slate-900 antialiased font-sans`}
+        className={`${inter.variable} ${playfair.variable} min-h-screen bg-cream-100 text-ink-900 antialiased font-sans`}
       >
         <LanguageProvider>
           <AuthProvider>

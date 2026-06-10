@@ -171,7 +171,7 @@ function LoginPageContent() {
   if (sessionStatus === "authenticated") return <AuthenticatedState />;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-warm-50 via-[#fbf8f2] to-white">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-warm-50 via-[#fdfbf6] to-white">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-gold-200/50 blur-3xl" />
         <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-accent-100/70 blur-3xl" />

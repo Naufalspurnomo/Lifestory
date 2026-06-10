@@ -37,7 +37,7 @@ const GEN_COLORS: Record<number, { border: string; labelId: string; labelEn: str
   [-2]: { border: "#805ad5", labelId: "Buyut", labelEn: "Great-grandparent" }, // Amethyst
   [-1]: { border: "#2f855a", labelId: "Kakek/Nenek", labelEn: "Grandparent" }, // Emerald
   [0]: { border: "#3182ce", labelId: "Orang Tua", labelEn: "Parent" }, // Sapphire
-  [1]: { border: "#d4af37", labelId: "Anda", labelEn: "You" }, // Gold Crown
+  [1]: { border: "#82693c", labelId: "Anda", labelEn: "You" }, // Gold Crown
   [2]: { border: "#b08e51", labelId: "Anak", labelEn: "Child" }, // Bronze
   [3]: { border: "#e53e3e", labelId: "Cucu", labelEn: "Grandchild" }, // Ruby
   [4]: { border: "#d53f8c", labelId: "Cicit", labelEn: "Great-grandchild" }, // Rose Quartz
@@ -55,7 +55,7 @@ const FIT_PADDING = 96;
 const MINIMAP_DESKTOP = { width: 188, height: 118 };
 const MINIMAP_MOBILE = { width: 148, height: 94 };
 
-// LRU image cache — evicts oldest entries when exceeding MAX_IMAGE_CACHE_SIZE
+// LRU image cache â€” evicts oldest entries when exceeding MAX_IMAGE_CACHE_SIZE
 const MAX_IMAGE_CACHE_SIZE = 200;
 const imageCache = new Map<string, HTMLImageElement>();
 function imageCacheSet(key: string, img: HTMLImageElement) {
@@ -157,7 +157,7 @@ function traceNodeShape(
 function drawCrown(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
   ctx.save();
   traceRoundedRect(ctx, x - 12, y - r - 5, 24, 8, 4);
-  ctx.fillStyle = "#d4af37";
+  ctx.fillStyle = "#82693c";
   ctx.fill();
   ctx.restore();
 }
@@ -217,7 +217,7 @@ export default function FamilyTreeCanvas({
     transform: Transform;
   } | null>(null);
   const initializedRef = useRef(false);
-  // C4: Guard to prevent infinite focus → re-render → focus loop
+  // C4: Guard to prevent infinite focus â†’ re-render â†’ focus loop
   const focusedForRef = useRef<string | null>(null);
   // Track last pointer type for adaptive click threshold
   const lastPointerTypeRef = useRef<string>("mouse");
@@ -461,7 +461,7 @@ export default function FamilyTreeCanvas({
       focusedForRef.current = null;
       return;
     }
-    // Already focused for this selection — skip
+    // Already focused for this selection â€” skip
     if (focusedForRef.current === selectedId) return;
 
     const node = nodes.find((item) => item.id === selectedId);
@@ -577,7 +577,7 @@ export default function FamilyTreeCanvas({
       const isAdoption = edge.type === "adoption";
       
       if (renderMode === "detail") {
-        // Clean single-line connection — warm brown tones
+        // Clean single-line connection â€” warm brown tones
         ctx.save();
         ctx.strokeStyle = isSpouse ? "#b08e51" : isAdoption ? "#6b8f71" : "#8c7655";
         ctx.lineWidth = (isSpouse ? 2.5 : 2.0) / Math.max(transform.k, 0.25);
@@ -625,7 +625,7 @@ export default function FamilyTreeCanvas({
       const displayGen = (node.generation ?? 0) - ownerGen + baseGen;
       const genColor = GEN_COLORS[displayGen]?.border || "#be123c";
       const active = isSelected || isHovered;
-      const accentColor = node.line === "self" ? "#d4af37" : genColor;
+      const accentColor = node.line === "self" ? "#82693c" : genColor;
       const metrics = getNodeCardMetrics(renderMode, transform.k, active);
       const cardW = renderMode === "overview" ? ((active ? 11 : 7.2) / transform.k) : metrics.width;
       const cardH = renderMode === "overview" ? ((active ? 11 : 7.2) / transform.k) : metrics.height;
@@ -683,7 +683,7 @@ export default function FamilyTreeCanvas({
       ctx.strokeStyle = active ? accentColor : "rgba(113,88,51,0.5)";
       ctx.lineWidth = (active ? 2.4 : 1.1) / Math.max(transform.k, 0.35);
       if (renderMode === "overview") {
-        ctx.strokeStyle = active ? "#d4af37" : genColor;
+        ctx.strokeStyle = active ? "#82693c" : genColor;
       }
       ctx.stroke();
       ctx.restore();
@@ -692,7 +692,7 @@ export default function FamilyTreeCanvas({
         if (active) {
           ctx.save();
           traceNodeShape(ctx, x, y, cardW + 6, cardH + 6, cardR + 3);
-          ctx.strokeStyle = "rgba(212,175,55,0.4)";
+          ctx.strokeStyle = "rgba(130,105,60,0.4)";
           ctx.lineWidth = 3 / Math.max(transform.k, 0.45);
           ctx.stroke();
           ctx.restore();
@@ -796,7 +796,7 @@ export default function FamilyTreeCanvas({
           ctx.fillStyle = "#7a6749";
           const desc = [
             node.year && (node.deathYear ? `${node.year} - ${node.deathYear}` : `${node.year}`),
-            node.content?.description ? "📖" : ""
+            node.content?.description ? "ðŸ“–" : ""
           ].filter(Boolean).join("  ");
           if (desc) {
              ctx.fillText(truncateLabel(ctx, desc, maxTextW), x, labelY + 18);
@@ -1025,7 +1025,7 @@ export default function FamilyTreeCanvas({
     setIsDragging(false);
     if (canvasRef.current) canvasRef.current.style.cursor = "grab";
 
-    // S4: Adaptive threshold — 12px for touch, 6px for mouse
+    // S4: Adaptive threshold â€” 12px for touch, 6px for mouse
     const clickThreshold = lastPointerTypeRef.current === "touch" ? 12 : 6;
     if (wasDragging && dragDistanceRef.current < clickThreshold) {
       const node = findNodeAt(event.clientX, event.clientY);
@@ -1167,7 +1167,7 @@ export default function FamilyTreeCanvas({
               className="absolute rounded-lg border border-[#dccfb3] bg-white/70 backdrop-blur-md px-3 py-1.5 text-[10px] font-bold text-[#5c4314] shadow-sm"
               style={{ top: clamp(top - 12, 84, wrapperSize.height - 42) }}
             >
-              {label} · {marker.count}
+              {label} Â· {marker.count}
             </div>
           );
         })}

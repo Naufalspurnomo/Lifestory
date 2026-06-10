@@ -13,7 +13,7 @@
 
   /* Surface */
   --surface-page: #faf6ed;
-  --surface-elev: #ffffff;
+  --surface-elev: #fdfbf6;
   --surface-quiet: #f5efe1;
 
   /* Ink */
@@ -26,9 +26,9 @@
   --ink-100: #e9e0d0;
 
   /* Brand */
-  --brand-400: #e6ab2f;
-  --brand-500: #cc8a12;
-  --brand-600: #a8741e;
+  --brand-400: #aa8d5c;
+  --brand-500: #927648;
+  --brand-600: #82693c;
   --brand-700: #82693c;
 
   /* Border */
@@ -112,7 +112,7 @@ h3 {
    Selection
    ============================================================ */
 ::selection {
-  background: rgba(228, 171, 47, 0.4);
+  background: rgba(130, 105, 60, 0.28);
   color: var(--ink-800);
 }
 
@@ -146,7 +146,7 @@ h3 {
   outline: none;
   box-shadow:
     0 0 0 2px var(--surface-elev),
-    0 0 0 4px var(--brand-400);
+    0 0 0 4px var(--brand-500);
 }
 
 /* ============================================================
