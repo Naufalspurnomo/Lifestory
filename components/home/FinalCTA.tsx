@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "../ui/Button";
-import { Eyebrow } from "../ui/Eyebrow";
 import { Container } from "../ui/Container";
-import { Monogram } from "../ui/Ornament";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Props = {
@@ -25,53 +23,51 @@ export function FinalCTA({ copy, primaryHref, secondaryHref }: Props) {
   const { reduced } = useMotionGuard();
 
   return (
-    <section className="relative bg-cream-50 section-y-md">
+    <section className="relative border-t border-cream-300 bg-cream-50 py-16 md:py-20 lg:py-24">
       <Container>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: reduced ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden rounded-[36px] border border-ink-800/30 bg-gradient-to-br from-ink-900 via-ink-800 to-brand-800 px-8 py-14 text-white shadow-deep md:px-12 md:py-16 lg:px-16 lg:py-20"
+          className="relative overflow-hidden rounded-[28px] border border-cream-300 bg-cream-100 px-6 py-10 shadow-[0_18px_42px_rgba(59,43,24,0.08)] sm:px-8 md:px-10 md:py-12 lg:px-12 lg:py-14"
         >
-          <div aria-hidden className="pointer-events-none absolute inset-0">
-            <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-20" />
-            <Monogram
-              className="absolute right-8 top-8 text-white/30"
-              size="lg"
-            />
-          </div>
-
-          <div className="relative grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-center">
-            <div>
-              <Eyebrow tone="white" icon={<Sparkles className="h-3 w-3" />}>
+          <span
+            aria-hidden
+            className="absolute left-6 top-0 h-[3px] w-24 bg-brand-700 sm:left-8 md:left-10 lg:left-12"
+          />
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div className="max-w-3xl">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-brand-700">
                 {copy.eyebrow}
-              </Eyebrow>
-              <h2 className="mt-5 font-serif text-[clamp(1.85rem,4.6vw,3.6rem)] leading-[1.04] tracking-[-0.02em]">
+              </p>
+              <h2 className="mt-4 font-serif text-[clamp(2rem,4.4vw,4rem)] font-light leading-[1.02] tracking-[-0.02em] text-ink-900">
                 {copy.title}
               </h2>
-              <p className="mt-5 max-w-xl text-base leading-relaxed text-white/75 md:text-lg">
+              <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink-600 md:text-lg">
                 {copy.lead}
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 lg:items-end">
-              <Link href={primaryHref} className="w-full lg:w-auto">
+            <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+              <Link href={primaryHref} className="w-full sm:w-auto">
                 <Button
                   size="lg"
+                  variant="dark"
                   block
                   iconRight={<ArrowRight className="h-4 w-4" />}
                   animateRightIcon
+                  className="shadow-none hover:shadow-soft"
                 >
                   {copy.primaryCta}
                 </Button>
               </Link>
-              <Link href={secondaryHref} className="w-full lg:w-auto">
+              <Link href={secondaryHref} className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  variant="ghost"
+                  variant="outline"
                   block
-                  className="text-white/80 hover:bg-white/10 hover:text-white"
+                  className="border-cream-400 bg-cream-50 text-ink-700 hover:border-brand-400 hover:bg-cream-100"
                 >
                   {copy.secondaryCta}
                 </Button>

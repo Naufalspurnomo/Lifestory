@@ -1,8 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Compass, Flame } from "lucide-react";
-import { Eyebrow } from "../ui/Eyebrow";
+import { motion, useInView } from "framer-motion";
+import { useRef } from "react";
 import { Container } from "../ui/Container";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
@@ -17,43 +16,51 @@ type Props = {
   };
 };
 
+const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
 /**
- * VisionMissionSplit — two facing cards. Vision dark, Mission light.
- * Inspired by editorial split-spreads. Uses big serif headers, minimal body.
+ * VisionMissionSplit — two facing panels. Vision dark, Mission light.
+ * Sharp-edge editorial style matching Home's design language.
  */
 export function VisionMissionSplit({ copy }: Props) {
   const { reduced } = useMotionGuard();
-  return (
-    <section className="relative bg-cream-50 section-y-md">
-      <Container>
-        <div className="grid gap-5 lg:grid-cols-2 lg:gap-7">
-          {/* VISION — Dark */}
-          <motion.article
-            initial={{ opacity: 0, x: reduced ? 0 : -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: reduced ? 0.01 : 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="relative overflow-hidden rounded-card-lg border border-ink-900/40 bg-gradient-to-br from-ink-900 via-ink-800 to-brand-900 p-8 text-white shadow-deep md:p-10 lg:p-12"
-          >
-            <div aria-hidden className="pointer-events-none absolute inset-0">
-              <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-25" />
-            </div>
+  const ref = useRef<HTMLElement>(null);
+  const isInView = useInView(ref, { once: true, amount: 0.2 });
 
+  return (
+    <section
+      ref={ref}
+      className="relative bg-cream-50 py-[clamp(5rem,8vw,7.5rem)]"
+    >
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-15" />
+      </div>
+
+      <Container className="relative">
+        <div className="grid gap-5 lg:grid-cols-2 lg:gap-0">
+          {/* VISION — Dark panel */}
+          <motion.article
+            initial={{ opacity: 0, x: reduced ? 0 : -16 }}
+            animate={isInView || reduced ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.75, ease: EASE }}
+            className="relative border border-ink-900 bg-ink-900 p-8 text-white md:p-10 lg:p-12 xl:p-14"
+          >
             <div className="relative">
-              <Eyebrow tone="white" icon={<Compass className="h-3 w-3" />}>
+              <p className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-300/70">
+                <span className="h-px w-6 bg-brand-400/40" />
                 {copy.visionLabel}
-              </Eyebrow>
-              <h3 className="mt-5 font-serif text-[clamp(1.85rem,3.4vw,2.6rem)] leading-[1.1] tracking-[-0.02em]">
+              </p>
+              <h3 className="mt-6 max-w-md font-serif text-[clamp(1.75rem,3.2vw,2.5rem)] font-light leading-[1.1] tracking-normal">
                 {copy.visionTitle}
               </h3>
-              <ul className="mt-7 space-y-3.5">
+              <ul className="mt-8 space-y-4">
                 {copy.visionPoints.map((pt, i) => (
                   <li
                     key={pt}
-                    className="flex items-start gap-3 text-sm leading-relaxed text-white/80 md:text-base"
+                    className="flex items-start gap-4 text-[15px] font-light leading-[1.65] text-white/70"
                   >
-                    <span className="mt-1 inline-flex h-5 w-5 flex-none items-center justify-center rounded-full border border-brand-400/50 bg-brand-400/15 text-[10px] font-bold text-brand-300">
-                      {i + 1}
+                    <span className="mt-0.5 font-serif text-sm text-brand-400/60">
+                      {String(i + 1).padStart(2, "0")}
                     </span>
                     <span>{pt}</span>
                   </li>
@@ -62,33 +69,33 @@ export function VisionMissionSplit({ copy }: Props) {
             </div>
           </motion.article>
 
-          {/* MISSION — Light */}
+          {/* MISSION — Light panel */}
           <motion.article
-            initial={{ opacity: 0, x: reduced ? 0 : 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
+            initial={{ opacity: 0, x: reduced ? 0 : 16 }}
+            animate={isInView || reduced ? { opacity: 1, x: 0 } : {}}
             transition={{
-              duration: reduced ? 0.01 : 0.8,
+              duration: 0.75,
               delay: reduced ? 0 : 0.1,
-              ease: [0.22, 1, 0.36, 1],
+              ease: EASE,
             }}
-            className="relative overflow-hidden rounded-card-lg border border-cream-300 bg-[linear-gradient(140deg,#fff8ea_0%,#fffdf6_55%,#ffffff_100%)] p-8 shadow-elev md:p-10 lg:p-12"
+            className="relative border border-cream-300 bg-cream-50 p-8 md:p-10 lg:p-12 xl:p-14"
           >
             <div className="relative">
-              <Eyebrow icon={<Flame className="h-3 w-3" />}>
+              <p className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+                <span className="h-px w-6 bg-brand-500" />
                 {copy.missionLabel}
-              </Eyebrow>
-              <h3 className="mt-5 font-serif text-[clamp(1.85rem,3.4vw,2.6rem)] leading-[1.1] tracking-[-0.02em] text-ink-800">
+              </p>
+              <h3 className="mt-6 max-w-md font-serif text-[clamp(1.75rem,3.2vw,2.5rem)] font-light leading-[1.1] tracking-normal text-ink-800">
                 {copy.missionTitle}
               </h3>
-              <ul className="mt-7 space-y-3.5">
+              <ul className="mt-8 space-y-4">
                 {copy.missionPoints.map((pt, i) => (
                   <li
                     key={pt}
-                    className="flex items-start gap-3 text-sm leading-relaxed text-ink-600 md:text-base"
+                    className="flex items-start gap-4 text-[15px] font-light leading-[1.65] text-ink-600"
                   >
-                    <span className="mt-1 inline-flex h-5 w-5 flex-none items-center justify-center rounded-full border border-brand-300 bg-brand-50 text-[10px] font-bold text-brand-700">
-                      {i + 1}
+                    <span className="mt-0.5 font-serif text-sm text-brand-700/50">
+                      {String(i + 1).padStart(2, "0")}
                     </span>
                     <span>{pt}</span>
                   </li>

@@ -23,6 +23,14 @@ type Props = {
 
 const paperTones = ["#fdfbf6", "#faf6ed", "#f5efe1"];
 
+function getStackGapClass(index: number, total: number) {
+  if (index >= total - 1) return "";
+
+  return index === total - 2
+    ? "mb-[8vh] sm:mb-[9vh] lg:mb-[8vh] xl:mb-[9vh]"
+    : "mb-[12vh] sm:mb-[13vh] lg:mb-[12vh] xl:mb-[13vh]";
+}
+
 export function Testimonials({ copy }: Props) {
   return (
     <section className="relative overflow-visible border-y border-cream-300 bg-cream-100 py-[clamp(5rem,8vw,8rem)]">
@@ -44,23 +52,24 @@ export function Testimonials({ copy }: Props) {
           </div>
 
           <div
-            className="isolate flex w-full flex-col gap-6 overflow-visible lg:w-[69%] lg:gap-0 lg:pb-24"
+            className="isolate flex w-full flex-col gap-0 overflow-visible pb-16 sm:pb-20 lg:w-[69%] lg:pb-20"
             style={{ perspective: "1800px", transformStyle: "preserve-3d" }}
           >
             {copy.items.map((testimonial, index) => (
               <article
                 key={testimonial.author}
-                className="overflow-visible lg:sticky"
+                className="sticky overflow-visible"
                 style={{
-                  top: `calc(5.5rem + ${index * 1.15}rem)`,
+                  top: `calc(5.25rem + ${index * 0.85}rem)`,
                   zIndex: 20 + index,
                   transformStyle: "preserve-3d",
                 }}
               >
                 <div
-                  className={`relative min-h-[400px] w-full border border-brand-200/80 px-7 py-8 text-ink-900 shadow-[0_22px_48px_rgba(63,52,45,0.14)] sm:px-10 sm:py-10 md:min-h-[450px] md:px-14 md:py-12 ${
-                    index < copy.items.length - 1 ? "lg:mb-[24vh]" : ""
-                  }`}
+                  className={`relative min-h-[360px] w-full border border-brand-200/80 px-6 py-7 text-ink-900 shadow-[0_22px_48px_rgba(63,52,45,0.14)] sm:min-h-[390px] sm:px-10 sm:py-10 md:min-h-[450px] md:px-14 md:py-12 ${getStackGapClass(
+                    index,
+                    copy.items.length
+                  )}`}
                   style={{
                     backgroundColor: paperTones[index % paperTones.length],
                     transform: `translate3d(${index * 4}px, ${index * 3}px, ${-index * 40}px) rotateX(${index * -1.05}deg) rotateZ(${index % 2 === 0 ? -0.14 : 0.14}deg) scale(${1 - index * 0.02})`,
@@ -68,8 +77,8 @@ export function Testimonials({ copy }: Props) {
                     transformStyle: "preserve-3d",
                   }}
                 >
-                  <div className="flex h-full min-h-[320px] flex-col justify-between border-t border-ink-900/70 pt-8 md:min-h-[350px] md:pt-10">
-                    <blockquote className="max-w-[23ch] font-serif text-[1.65rem] font-light leading-[1.28] tracking-normal text-ink-900 sm:text-[1.9rem] md:text-[2.25rem]">
+                  <div className="flex h-full min-h-[295px] flex-col justify-between border-t border-ink-900/70 pt-7 sm:min-h-[315px] sm:pt-8 md:min-h-[350px] md:pt-10">
+                    <blockquote className="max-w-[23ch] font-serif text-[1.45rem] font-light leading-[1.28] tracking-normal text-ink-900 sm:text-[1.8rem] md:text-[2.25rem]">
                       {testimonial.quote}
                     </blockquote>
 

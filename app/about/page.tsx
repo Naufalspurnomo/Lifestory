@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -7,13 +7,11 @@ import {
   BookOpenText,
   Feather,
   HeartHandshake,
-  Sparkles,
 } from "lucide-react";
+import { MagneticButton } from "../../components/ui/MagneticButton";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 import { Button } from "../../components/ui/Button";
-import { RibbonBadge } from "../../components/ui/Ornament";
 import { Container } from "../../components/ui/Container";
-import { Eyebrow } from "../../components/ui/Eyebrow";
 import { ChapterRow } from "../../components/about/ChapterRow";
 import { PullQuote } from "../../components/about/PullQuote";
 import { WhyNowDark } from "../../components/about/WhyNowDark";
@@ -32,18 +30,19 @@ export default function AboutPage() {
   // ============================================================
   const copy = isId
     ? {
-        aboutLabel: "Tentang Lifestory Co.",
+        aboutLabel: "Studio biografi keluarga",
         heritage: "Sejarah",
-        heroTitle: "Kisah hidup tidak berhenti di satu generasi.",
+        heroKicker: "Cerita yang bisa dibuka lagi, bukan sekadar dikenang.",
+        heroTitle: "Kami menulis keluarga seperti ia benar-benar hidup.",
         heroBody:
-          "Lifestory Company merangkai kenangan, percakapan, dan dokumen keluarga menjadi karya warisan agar identitas dan jejak hidup tetap dikenal generasi berikutnya.",
+          "Dari percakapan di meja makan, album yang mulai pudar, sampai nama yang jarang disebut, kami susun menjadi buku, film pendek, dan arsip keluarga yang layak diwariskan.",
         heroHighlights: [
-          "Arsip memori keluarga",
-          "Narasi biografi berlapis emosi",
-          "Warisan visual lintas generasi",
+          "Wawancara mendalam",
+          "Penulisan dan kurasi foto",
+          "Buku, film, dan silsilah digital",
         ],
-        heroPrimary: "Konsultasi paket",
-        heroSecondary: "Lihat ruang kerja",
+        heroPrimary: "Bicarakan keluarga Anda",
+        heroSecondary: "Lihat proses kerja",
 
         // Manifesto pull quote
         manifestoEyebrow: "Manifesto Studio",
@@ -84,51 +83,51 @@ export default function AboutPage() {
         ],
 
         // Why Now dark section
-        whyNowEyebrow: "Kenapa Sekarang",
-        whyNowTitle: "Tiga alasan kami tidak menunggu.",
+        whyNowEyebrow: "Kenapa sekarang",
+        whyNowTitle: "Yang hilang duluan bukan fotonya, tapi konteksnya.",
         whyNowItems: [
           {
             number: "01",
-            title: "Hidup terlalu berharga untuk diingat sekedar lewat foto.",
-            body: "Tanpa cerita yang menyertai, foto hanya jadi gambar. Kami menyelamatkan suara, gestur, dan filosofi hidup di baliknya.",
+            title: "Suara hilang lebih cepat dari gambar.",
+            body: "Foto bisa bertahan puluhan tahun. Cara seseorang tertawa, menasihati, atau memanggil anaknya sering hilang lebih dulu.",
           },
           {
             number: "02",
-            title: "Banyak cucu tidak mengenal kakek-nenek mereka secara utuh.",
-            body: "Generasi penghubung sering kehilangan kosa kata untuk bercerita. Kami menjadi penerjemahnya.",
+            title: "Album keluarga jarang menjelaskan siapa mereka.",
+            body: "Nama, tempat, dan tahun memang penting. Tetapi generasi berikutnya juga perlu tahu pilihan hidup, kebiasaan, dan nilai yang membentuk keluarga.",
           },
           {
             number: "03",
-            title: "Pelajaran hidup yang tidak dicatat akan dipelajari ulang oleh keturunan dengan harga mahal.",
-            body: "Pengalaman keluarga adalah modal pendidikan paling murah jika sempat ditulis ulang dengan rapi.",
+            title: "Cerita besar biasanya terlambat ditanyakan.",
+            body: "Banyak keluarga baru ingin merekam setelah narasumber utama lelah, sakit, atau sudah tidak bisa bercerita panjang.",
           },
         ],
 
         // Promises (replacement for Purpose+Benefit list-walls)
-        promisesEyebrow: "Yang Kami Janjikan",
-        promisesTitle: "Lima janji yang membentuk semua keputusan kami.",
+        promisesEyebrow: "Standar kerja",
+        promisesTitle: "Yang kami jaga saat keluarga menyerahkan cerita.",
         promisesLead:
-          "Setiap detail proses, dari pemilihan kertas hingga jadwal handover, dijaga oleh lima prinsip ini.",
+          "Bukan janji manis. Ini pagar kerja agar hasilnya tidak terasa seperti template, dan keluarga tetap merasa aman sepanjang proses.",
         promiseItems: [
           {
-            title: "Cerita lebih utuh, bukan sekedar lengkap.",
-            body: "Kami merangkai konteks, emosi, dan latar belakang, bukan cuma daftar peristiwa kronologis.",
+            title: "Kami mulai dari orangnya, bukan paketnya.",
+            body: "Setiap keluarga punya ritme, bahasa, dan batas cerita sendiri. Paket hanya alat, bukan arah utama.",
           },
           {
-            title: "Warisan yang lebih dari harta.",
-            body: "Yang kami wariskan adalah cara berpikir, prinsip, dan rasa hangat keluarga, bukan benda mati.",
+            title: "Fakta diperiksa sebelum ditulis indah.",
+            body: "Tanggal, nama, foto, dan urutan peristiwa dikonfirmasi agar narasi tetap hangat tanpa mengorbankan akurasi.",
           },
           {
-            title: "Arsip yang rapi, bisa dilanjutkan.",
-            body: "Format dirancang agar generasi berikutnya bisa menambahkan bab mereka sendiri.",
+            title: "Keluarga boleh mengoreksi sampai terasa benar.",
+            body: "Draft tidak dianggap selesai hanya karena sudah rapi. Kami cari nada yang terasa tepat bagi keluarga.",
           },
           {
-            title: "Hubungan keluarga yang lebih dekat.",
-            body: "Sesi wawancara sering menjadi reuni emosional. Bonus itu sengaja kami jaga.",
+            title: "Foto lama diperlakukan sebagai arsip.",
+            body: "Kami tidak menaruh foto sebagai hiasan. Setiap gambar dipilih karena membantu pembaca mengenal orangnya.",
           },
           {
-            title: "Inspirasi melampaui keluarga.",
-            body: "Banyak buku Lifestory akhirnya dibaca oleh tetangga, kolega, bahkan orang asing yang merasa terhubung.",
+            title: "Hasil akhir harus layak dibuka ulang.",
+            body: "Buku, video, dan arsip digital harus tetap enak dilihat hari ini, lalu tetap pantas ditunjukkan bertahun-tahun lagi.",
           },
         ],
 
@@ -151,37 +150,38 @@ export default function AboutPage() {
         ],
 
         // Marquee
-        marqueeEyebrow: "Untuk Siapa",
-        marqueeTitle: "Lifestory adalah jembatan antar generasi.",
+        marqueeEyebrow: "Untuk siapa",
+        marqueeTitle: "Untuk keluarga yang ingin berhenti menunda cerita penting.",
         marqueePoints: [
-          "Dari Ayah untuk anaknya",
-          "Dari Anak untuk ayahnya",
-          "Dari Saudara untuk saudaranya",
-          "Dari Generasi ini untuk Generasi nanti",
-          "Dari Cucu untuk Kakeknya",
-          "Dari Ibu untuk anaknya",
+          "Anak yang ingin merekam kisah orang tua sebelum terlambat",
+          "Orang tua yang ingin meninggalkan buku untuk anak cucu",
+          "Keluarga besar yang ingin menyatukan foto, nama, dan silsilah",
+          "Saudara yang ingin memberi hadiah bermakna, bukan barang sekali pakai",
+          "Perusahaan keluarga yang ingin menjaga kisah pendiri",
+          "Pasangan yang ingin mengarsipkan perjalanan rumah tangga",
         ],
         // Final CTA
-        priorityLabel: "Yang Kami Utamakan",
-        priorityTitle: "Spesial. Berkualitas. Selalu.",
+        priorityLabel: "Mulai dari satu percakapan",
+        priorityTitle: "Bawa satu nama. Kami bantu susun sisanya.",
         priorityBody:
-          "Kami membentuk citra brand yang kuat dengan pekerjaan yang kuat, bukan sebaliknya. Kalau Anda merasa keluarga Anda layak diabadikan, mari kita bicara.",
-        consultCta: "Konsultasi paket",
-        exploreCta: "Lihat ruang kerja",
+          "Anda tidak perlu datang dengan arsip lengkap. Cukup ceritakan siapa yang ingin diabadikan, lalu kami bantu menentukan format yang paling masuk akal.",
+        consultCta: "Bicarakan keluarga Anda",
+        exploreCta: "Lihat proses kerja",
       }
     : {
-        aboutLabel: "About Lifestory Co.",
+        aboutLabel: "Family biography studio",
         heritage: "Heritage",
-        heroTitle: "A life story should not stop at one generation.",
+        heroKicker: "Stories to open again, not just remember.",
+        heroTitle: "We write families as they truly lived.",
         heroBody:
-          "Lifestory Company weaves family memories, conversations, and documents into heirloom works so identity and life traces remain known to the next generation.",
+          "From dining-table conversations, fading albums, and names rarely mentioned, we shape books, short films, and family archives made to be passed on.",
         heroHighlights: [
-          "Family memory archive",
-          "Emotion-led biography narrative",
-          "Cross-generation visual legacy",
+          "In-depth interviews",
+          "Writing and photo curation",
+          "Books, films, and digital lineage",
         ],
-        heroPrimary: "Consult packages",
-        heroSecondary: "View workspace",
+        heroPrimary: "Discuss your family",
+        heroSecondary: "See our process",
 
         manifestoEyebrow: "Studio Manifesto",
         manifestoQuote:
@@ -220,49 +220,49 @@ export default function AboutPage() {
         ],
 
         whyNowEyebrow: "Why Now",
-        whyNowTitle: "Three reasons we don't wait.",
+        whyNowTitle: "What disappears first is not the photo, but the context.",
         whyNowItems: [
           {
             number: "01",
-            title: "Life is too valuable to be remembered through photos alone.",
-            body: "Without context, photos remain images. We rescue the voice, gesture, and life philosophy behind them.",
+            title: "Voices fade faster than images.",
+            body: "A photo can survive for decades. The way someone laughed, advised, or called their children often disappears first.",
           },
           {
             number: "02",
-            title: "Many grandchildren do not know their grandparents fully.",
-            body: "The connecting generation often loses the vocabulary to tell. We become the translator.",
+            title: "Family albums rarely explain who people were.",
+            body: "Names, places, and years matter. The next generation also needs the choices, habits, and values that shaped the family.",
           },
           {
             number: "03",
-            title: "Life lessons left unrecorded will be re-learned the expensive way.",
-            body: "Family experience is the cheapest education capital if it is written down properly in time.",
+            title: "The important questions are often asked too late.",
+            body: "Many families only begin recording when the main storyteller is tired, ill, or no longer able to speak at length.",
           },
         ],
 
-        promisesEyebrow: "Our Promises",
-        promisesTitle: "Five promises that shape every decision.",
+        promisesEyebrow: "Working standard",
+        promisesTitle: "What we protect when a family trusts us with its story.",
         promisesLead:
-          "Every process detail, from paper choice to handover schedule, is guarded by these five principles.",
+          "Not soft promises. These are working rules that keep the result from feeling templated and keep the family safe throughout the process.",
         promiseItems: [
           {
-            title: "Stories that feel whole, not merely complete.",
-            body: "We weave context, emotion, and background, not just chronological lists of events.",
+            title: "We start with the person, not the package.",
+            body: "Every family has its own rhythm, language, and boundaries. The package is only a tool, not the direction.",
           },
           {
-            title: "A legacy beyond wealth.",
-            body: "What we pass on is mindset, principle, and family warmth, not inert objects.",
+            title: "Facts are checked before they are written beautifully.",
+            body: "Dates, names, photos, and sequences are confirmed so the narrative stays warm without sacrificing accuracy.",
           },
           {
-            title: "Archives that are clean and continuable.",
-            body: "Format is designed so the next generation can append their own chapters.",
+            title: "The family can revise until the tone feels right.",
+            body: "A draft is not done just because it looks tidy. We look for the voice that feels true to the family.",
           },
           {
-            title: "Tighter family bonds.",
-            body: "Interview sessions often become emotional reunions. We deliberately preserve that bonus.",
+            title: "Old photographs are treated as archives.",
+            body: "Images are not decoration. Each one is chosen because it helps the reader know the person better.",
           },
           {
-            title: "Inspiration beyond the family.",
-            body: "Many Lifestory books end up read by neighbors, colleagues, even strangers who feel connected.",
+            title: "The final work must deserve to be reopened.",
+            body: "Books, films, and digital archives should look right today and still feel worthy years from now.",
           },
         ],
 
@@ -284,21 +284,21 @@ export default function AboutPage() {
         ],
 
         marqueeEyebrow: "Who It's For",
-        marqueeTitle: "Lifestory is a bridge between generations.",
+        marqueeTitle: "For families ready to stop postponing the important story.",
         marqueePoints: [
-          "From a Father to his children",
-          "From a Child to their father",
-          "From a Sibling to their sibling",
-          "From this Generation to the next",
-          "From a Grandchild to their grandparent",
-          "From a Mother to her children",
+          "Children who want to record their parents before it is too late",
+          "Parents who want to leave a book for their children and grandchildren",
+          "Large families uniting photos, names, and lineage",
+          "Siblings looking for a meaningful gift, not a disposable object",
+          "Family businesses preserving the founder's story",
+          "Couples archiving the journey of their household",
         ],
-        priorityLabel: "What We Prioritize",
-        priorityTitle: "Special. High quality. Always.",
+        priorityLabel: "Start with one conversation",
+        priorityTitle: "Bring one name. We will help shape the rest.",
         priorityBody:
-          "We build a strong brand image through strong work, not the other way around. If you feel your family deserves to be preserved, let's talk.",
-        consultCta: "Consult packages",
-        exploreCta: "View workspace",
+          "You do not need a complete archive before talking to us. Tell us who you want preserved, and we will help choose the format that makes sense.",
+        consultCta: "Discuss your family",
+        exploreCta: "See our process",
       };
 
   // ============================================================
@@ -307,72 +307,64 @@ export default function AboutPage() {
   return (
     <div className="bg-cream-100 text-ink-700">
       {/* ============= HERO ============= */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-cream-50 via-cream-100 to-cream-200">
+      <section className="relative overflow-hidden border-b border-cream-300 bg-cream-50">
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-grain bg-[length:24px_24px] opacity-25" />
 
-        {/* Timeline strip */}
-        <div className="relative border-b border-cream-300/60">
-          <div className="mx-auto flex max-w-[1320px] items-center gap-4 overflow-x-auto px-6 py-3">
-            <RibbonBadge className="hidden flex-none sm:inline-flex">
-              {copy.heritage}
-            </RibbonBadge>
-            <div className="flex min-w-0 flex-1 items-center gap-4 overflow-hidden text-[10px] font-bold uppercase tracking-[0.32em] text-ink-300">
-              <span>1899</span>
-              <span aria-hidden className="h-px flex-1 bg-cream-300" />
-              <span className="hidden sm:inline">1965</span>
-              <span aria-hidden className="hidden h-px flex-1 bg-cream-300 sm:inline-block" />
-              <span className="hidden md:inline">1992</span>
-              <span aria-hidden className="hidden h-px flex-1 bg-brand-400 md:inline-block" />
-              <span className="text-brand-700">{new Date().getFullYear()}</span>
-              <span aria-hidden className="h-px w-12 bg-cream-300" />
-              <span>{new Date().getFullYear() + 50}</span>
-            </div>
-          </div>
-        </div>
-
         <Container size="xl">
-          <div className="grid grid-cols-1 gap-10 pb-20 pt-14 md:pt-20 lg:grid-cols-[1fr_0.8fr] lg:gap-16 lg:pb-24 lg:pt-20">
+          <div className="grid grid-cols-1 gap-10 pb-20 pt-16 md:pt-20 lg:grid-cols-[1fr_0.8fr] lg:gap-16 lg:pb-24 lg:pt-20">
             <motion.div
               initial={{ opacity: 0, y: reduced ? 0 : 28 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: reduced ? 0.01 : 0.8, ease: [0.22, 1, 0.36, 1] }}
             >
-              <Eyebrow icon={<Sparkles className="h-3 w-3" />}>{copy.aboutLabel}</Eyebrow>
-              <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.22em] text-brand-600">
-                {isId ? "Abadikan Warisanmu" : "Preserve Your Legacy"}
+              <p className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+                <span aria-hidden className="h-px w-8 bg-brand-500" />
+                {copy.aboutLabel}
               </p>
-              <h1 className="mt-3 font-serif font-medium text-[clamp(2.5rem,7vw,5.4rem)] leading-[0.96] tracking-[-0.025em] text-ink-800">
+              <p className="mt-6 max-w-md text-sm font-light uppercase tracking-[0.18em] text-ink-500">
+                {copy.heroKicker}
+              </p>
+              <h1 className="mt-5 max-w-4xl font-serif font-light text-[clamp(2.65rem,7vw,5.45rem)] leading-[0.98] tracking-normal text-ink-900">
                 {copy.heroTitle}
               </h1>
-              <p className="mt-7 max-w-xl text-base leading-relaxed text-ink-500 md:text-lg">
+              <p className="mt-7 max-w-xl text-base font-light leading-[1.75] text-ink-600 md:text-lg">
                 {copy.heroBody}
               </p>
 
-              <div className="mt-8 flex flex-wrap gap-2">
-                {copy.heroHighlights.map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-pill border border-cream-300 bg-white/75 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-500"
-                  >
-                    {item}
+              <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-cream-300 pt-5">
+                {copy.heroHighlights.map((item, index) => (
+                  <span key={item} className="flex items-center gap-4">
+                    {index > 0 && <span aria-hidden className="h-4 w-px bg-ink-300/50" />}
+                    <span className="text-[9px] font-bold italic uppercase tracking-[0.2em] text-ink-500">
+                      {item}
+                    </span>
                   </span>
                 ))}
               </div>
 
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="mt-9 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
                 <Link href="/contact" className="w-full sm:w-auto">
+                  <MagneticButton strength={0.2} distance={100} className="w-full sm:w-auto">
+                    <Button
+                      variant="dark"
+                      size="lg"
+                      block
+                      iconRight={<ArrowRight className="h-4 w-4" />}
+                      animateRightIcon
+                      className="group relative overflow-hidden sm:w-auto !bg-brand-700 text-cream-50 hover:!bg-brand-800 transition-all duration-500 border-none px-10 py-6 rounded-none shadow-none"
+                    >
+                      <span className="relative z-10 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap">{copy.heroPrimary}</span>
+                    </Button>
+                  </MagneticButton>
+                </Link>
+                <Link href="#process" className="w-full sm:w-auto">
                   <Button
+                    variant="outline"
                     size="lg"
                     block
-                    iconRight={<ArrowRight className="h-4 w-4" />}
-                    animateRightIcon
-                    className="sm:w-auto"
+                    iconLeft={<BookOpenText className="h-4 w-4 text-brand-700 group-hover:text-cream-50 transition-colors" />}
+                    className="group sm:w-auto !border-brand-700 bg-transparent hover:!bg-brand-700 !text-brand-700 hover:!text-cream-50 shadow-none px-10 py-6 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap rounded-none transition-colors duration-500"
                   >
-                    {copy.heroPrimary}
-                  </Button>
-                </Link>
-                <Link href="/app" className="w-full sm:w-auto">
-                  <Button size="lg" variant="secondary" block className="sm:w-auto">
                     {copy.heroSecondary}
                   </Button>
                 </Link>
@@ -482,14 +474,17 @@ export default function AboutPage() {
       />
 
       {/* ============= 3 CHAPTERS alternating editorial rows ============= */}
-      <section className="relative bg-cream-100 section-y-md">
+      <section id="process" className="relative bg-cream-100 section-y-md">
         <Container>
           <div className="mb-16 max-w-3xl md:mb-20">
-            <Eyebrow>{copy.chaptersEyebrow}</Eyebrow>
-            <h2 className="mt-4 font-serif text-[clamp(1.85rem,4.6vw,3.6rem)] leading-[1.05] tracking-[-0.02em] text-ink-800">
+            <p className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+              <span className="h-px w-8 bg-brand-500" />
+              {copy.chaptersEyebrow}
+            </p>
+            <h2 className="mt-6 font-serif text-[clamp(2.25rem,4.8vw,3.75rem)] font-light leading-[1.02] tracking-normal text-ink-900">
               {copy.chaptersTitle}
             </h2>
-            <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink-500 md:text-lg">
+            <p className="mt-5 max-w-2xl text-base font-light leading-[1.75] text-ink-600 md:text-lg">
               {copy.chaptersLead}
             </p>
           </div>
@@ -555,46 +550,54 @@ export default function AboutPage() {
       />
 
       {/* ============= FINAL CTA ============= */}
-      <section className="relative bg-cream-50 section-y-md">
+      <section className="relative bg-cream-100 py-[clamp(5rem,8vw,7.5rem)]">
         <Container size="md">
           <motion.div
             initial={{ opacity: 0, y: reduced ? 0 : 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: reduced ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="relative overflow-hidden rounded-[36px] border border-ink-800/30 bg-gradient-to-br from-ink-900 via-ink-800 to-brand-800 px-8 py-14 text-center text-white shadow-deep md:px-16 md:py-20"
+            className="relative border border-cream-300 bg-cream-50 px-8 py-14 text-center md:px-16 md:py-20"
           >
-            <div aria-hidden className="pointer-events-none absolute inset-0">
-              <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-25" />
-            </div>
+            <span
+              aria-hidden
+              className="absolute left-1/2 top-0 h-[3px] w-24 -translate-x-1/2 bg-brand-700"
+            />
 
             <div className="relative">
-              <Eyebrow tone="white">{copy.priorityLabel}</Eyebrow>
-              <h2 className="mt-5 font-serif text-[clamp(2rem,4.6vw,3.6rem)] leading-[1.04] tracking-[-0.02em]">
+              <p className="flex items-center justify-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+                <span className="h-px w-8 bg-brand-500" />
+                {copy.priorityLabel}
+                <span className="h-px w-8 bg-brand-500" />
+              </p>
+              <h2 className="mt-6 font-serif text-[clamp(2rem,4.6vw,3.5rem)] font-light leading-[1.04] tracking-normal text-ink-900">
                 {copy.priorityTitle}
               </h2>
-              <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-white/75 md:text-lg">
+              <p className="mx-auto mt-5 max-w-xl text-base font-light leading-[1.75] text-ink-600 md:text-lg">
                 {copy.priorityBody}
               </p>
 
-              <div className="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="mt-10 flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:flex-wrap sm:items-center">
                 <Link href="/contact" className="w-full sm:w-auto">
-                  <Button
-                    size="lg"
-                    block
-                    iconRight={<ArrowRight className="h-4 w-4" />}
-                    animateRightIcon
-                    className="sm:w-auto"
-                  >
-                    {copy.consultCta}
-                  </Button>
+                  <MagneticButton strength={0.2} distance={100} className="w-full sm:w-auto">
+                    <Button
+                      variant="dark"
+                      size="lg"
+                      block
+                      iconRight={<ArrowRight className="h-4 w-4" />}
+                      animateRightIcon
+                      className="group relative overflow-hidden sm:w-auto !bg-brand-700 text-cream-50 hover:!bg-brand-800 transition-all duration-500 border-none px-10 py-6 rounded-none shadow-none"
+                    >
+                      <span className="relative z-10 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap">{copy.consultCta}</span>
+                    </Button>
+                  </MagneticButton>
                 </Link>
-                <Link href="/app" className="w-full sm:w-auto">
+                <Link href="#process" className="w-full sm:w-auto">
                   <Button
+                    variant="outline"
                     size="lg"
-                    variant="ghost"
                     block
-                    className="text-white/85 hover:bg-white/10 hover:text-white sm:w-auto"
+                    className="group sm:w-auto !border-brand-700 bg-transparent hover:!bg-brand-700 !text-brand-700 hover:!text-cream-50 shadow-none px-10 py-6 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap rounded-none transition-colors duration-500"
                   >
                     {copy.exploreCta}
                   </Button>

@@ -24,13 +24,11 @@ export function Footer() {
   const isId = locale === "id";
   const copy = isId
     ? {
-        studio: "Studio biografi keluarga",
-        headline: "Kisah keluarga tidak seharusnya berakhir di satu generasi.",
+        studio: "Lifestory.co",
         description:
-          "Kami membantu keluarga mendengarkan, menyusun, dan menjaga cerita hidup agar tetap bermakna untuk generasi berikutnya.",
+          "Studio biografi keluarga untuk wawancara, arsip foto, buku, video, dan pohon keluarga digital.",
         consultation: "Mulai percakapan",
-        explore: "Jelajah",
-        services: "Layanan",
+        explore: "Navigasi",
         contact: "Kontak",
         links: [
           { href: "/", label: "Beranda" },
@@ -39,23 +37,15 @@ export function Footer() {
           { href: "/about", label: "Tentang Kami" },
           { href: "/contact", label: "Hubungi Kami" },
         ],
-        serviceItems: [
-          "Buku biografi keluarga",
-          "Wawancara kisah hidup",
-          "Dokumenter keluarga",
-          "Pohon keluarga digital",
-        ],
         rights: "Hak cipta dilindungi.",
-        closing: "Mengabadikan hari ini untuk generasi mendatang.",
+        closing: "Mengabadikan cerita keluarga dengan rapi.",
       }
     : {
-        studio: "Family biography studio",
-        headline: "A family story should not end with one generation.",
+        studio: "Lifestory.co",
         description:
-          "We help families listen, shape, and preserve life stories so they remain meaningful for generations to come.",
+          "A family biography studio for interviews, photo archives, books, videos, and digital family trees.",
         consultation: "Start a conversation",
         explore: "Explore",
-        services: "Services",
         contact: "Contact",
         links: [
           { href: "/", label: "Home" },
@@ -64,52 +54,38 @@ export function Footer() {
           { href: "/about", label: "About Us" },
           { href: "/contact", label: "Get in Touch" },
         ],
-        serviceItems: [
-          "Family biography books",
-          "Life story interviews",
-          "Family documentaries",
-          "Digital family trees",
-        ],
         rights: "All rights reserved.",
-        closing: "Preserving today for generations to come.",
+        closing: "Preserving family stories with care.",
       };
 
   return (
-    <footer className="border-t border-brand-700 bg-brand-900 text-cream-50">
-      <div className="mx-auto max-w-[1320px] px-6 pb-7 pt-16 md:pt-20 lg:pt-24">
-        <div className="grid gap-12 pb-16 lg:grid-cols-[1.45fr_0.55fr] lg:items-end lg:gap-20 lg:pb-20">
-          <div>
+    <footer className="border-t border-cream-300 bg-cream-50 text-ink-700">
+      <div className="mx-auto max-w-[1320px] px-6 py-10 md:py-12">
+        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.7fr_1fr] lg:gap-16">
+          <div className="max-w-md">
             <BrandLogo variant="footer" />
-            <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-300">
+            <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
               {copy.studio}
             </p>
-            <h2 className="mt-7 max-w-[880px] font-serif text-[clamp(2.65rem,5.5vw,5.75rem)] font-light leading-[0.98] tracking-normal text-cream-50">
-              {copy.headline}
-            </h2>
-          </div>
-
-          <div className="max-w-sm lg:justify-self-end">
-            <p className="text-sm font-light leading-[1.8] text-brand-100/80 md:text-base">
+            <p className="mt-4 text-sm leading-[1.75] text-ink-600">
               {copy.description}
             </p>
             <Link
               href="/contact"
-              className="group mt-8 inline-flex items-center gap-4 border-b border-brand-300 pb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-200 transition-colors hover:border-cream-50 hover:text-cream-50"
+              className="group mt-6 inline-flex items-center gap-3 border-b border-brand-400 pb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700 transition-colors hover:border-ink-900 hover:text-ink-900"
             >
               {copy.consultation}
               <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
           </div>
-        </div>
 
-        <div className="grid gap-12 border-t border-brand-700/70 py-12 sm:grid-cols-2 lg:grid-cols-[0.7fr_1fr_1.35fr] lg:gap-20 lg:py-14">
           <FooterGroup title={copy.explore}>
             <ul className="space-y-3">
               {copy.links.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-brand-100/80 transition-colors hover:text-cream-50"
+                    className="text-sm text-ink-600 transition-colors hover:text-ink-900"
                   >
                     {link.label}
                   </Link>
@@ -118,44 +94,34 @@ export function Footer() {
             </ul>
           </FooterGroup>
 
-          <FooterGroup title={copy.services}>
-            <ul className="space-y-3">
-              {copy.serviceItems.map((item) => (
-                <li key={item} className="text-sm text-brand-100/80">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </FooterGroup>
-
-          <FooterGroup title={copy.contact} className="sm:col-span-2 lg:col-span-1">
+          <FooterGroup title={copy.contact}>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1">
               <div className="space-y-3">
                 <a
                   href={`mailto:${CONTACT_EMAIL}`}
-                  className="block text-sm text-brand-100/80 transition-colors hover:text-cream-50"
+                  className="block text-sm text-ink-600 transition-colors hover:text-ink-900"
                 >
                   {CONTACT_EMAIL}
                 </a>
                 <a
                   href={`tel:${CONTACT_PHONE_TEL}`}
-                  className="block text-sm text-brand-100/80 transition-colors hover:text-cream-50"
+                  className="block text-sm text-ink-600 transition-colors hover:text-ink-900"
                 >
                   {CONTACT_PHONE_DISPLAY}
                 </a>
               </div>
-              <address className="max-w-md text-sm not-italic leading-[1.75] text-brand-100/80">
+              <address className="max-w-md text-sm not-italic leading-[1.75] text-ink-600">
                 {STUDIO_ADDRESS}
               </address>
             </div>
           </FooterGroup>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-brand-700/70 pt-6 text-[11px] text-brand-200/70 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-10 flex flex-col gap-3 border-t border-cream-300 pt-6 text-[11px] text-ink-500 sm:flex-row sm:items-center sm:justify-between">
           <p>
             &copy; {new Date().getFullYear()} Lifestory.co. {copy.rights}
           </p>
-          <p className="font-serif text-sm italic text-brand-300">
+          <p className="text-sm text-ink-500">
             {copy.closing}
           </p>
         </div>
@@ -175,7 +141,7 @@ function FooterGroup({
 }) {
   return (
     <div className={className}>
-      <h3 className="mb-6 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-300">
+      <h3 className="mb-5 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
         {title}
       </h3>
       {children}
