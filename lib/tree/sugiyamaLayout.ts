@@ -128,11 +128,48 @@ function ensureUnion(
   return unionId;
 }
 
-function getParentIds(node: FamilyNode, persons: Map<string, PersonNode>) {
-  return uniq([
+function getParentIds(
+  node: FamilyNode,
+  persons: Map<string, PersonNode>,
+  rawNodesById?: Map<string, FamilyNode>
+) {
+  const parentIds = uniq([
     ...(Array.isArray(node.parentIds) ? node.parentIds : []),
     ...(node.parentId ? [node.parentId] : []),
   ]).filter((id) => persons.has(id));
+
+  if (parentIds.length !== 1 || !rawNodesById) return parentIds;
+
+  const parent = rawNodesById.get(parentIds[0]);
+  if (!parent) return parentIds;
+
+  const reciprocalPartners = uniq(parent.partners || [])
+    .filter((partnerId) => persons.has(partnerId))
+    .map((partnerId) => rawNodesById.get(partnerId))
+    .filter((partner): partner is FamilyNode => Boolean(partner))
+    .filter((partner) => (partner.partners || []).includes(parent.id));
+
+  if (reciprocalPartners.length !== 1) return parentIds;
+
+  const coParent = reciprocalPartners[0];
+  const parentChildren = new Set(parent.childrenIds || []);
+  const coParentChildren = new Set(coParent.childrenIds || []);
+
+  if (coParent.parentIds?.includes(node.id) || coParent.parentId === node.id) {
+    return parentIds;
+  }
+
+  if (node.childrenIds?.includes(coParent.id)) {
+    return parentIds;
+  }
+
+  // Visual fallback for legacy trees: if one parent owns the child but has a
+  // single clear partner, draw descendants from the couple midpoint.
+  if (parentChildren.has(node.id) || coParentChildren.has(node.id)) {
+    return uniq([...parentIds, coParent.id]);
+  }
+
+  return parentIds;
 }
 
 function getAdoptiveParentIds(
@@ -145,6 +182,7 @@ function getAdoptiveParentIds(
 }
 
 function buildInternalGraph(nodes: FamilyNode[]): InternalGraph {
+  const rawNodesById = new Map(nodes.map((node) => [node.id, node]));
   const g: InternalGraph = {
     persons: new Map<string, PersonNode>(),
     unions: new Map<string, UnionNode>(),
@@ -180,7 +218,7 @@ function buildInternalGraph(nodes: FamilyNode[]): InternalGraph {
   }
 
   for (const node of nodes) {
-    const parentIds = getParentIds(node, g.persons);
+    const parentIds = getParentIds(node, g.persons, rawNodesById);
     const unionId = ensureUnion(g, parentIds, "relationship");
     if (!unionId) continue;
 
@@ -207,7 +245,7 @@ function buildInternalGraph(nodes: FamilyNode[]): InternalGraph {
 
       const originalChild = nodes.find((node) => node.id === childId);
       const parentIds = originalChild
-        ? getParentIds(originalChild, g.persons)
+        ? getParentIds(originalChild, g.persons, rawNodesById)
         : [];
       const unionId = ensureUnion(
         g,
