@@ -82,6 +82,45 @@ function truncateLabel(ctx: CanvasRenderingContext2D, label: string, maxWidth: n
   return `${next.trim()}...`;
 }
 
+function wrapLabel(
+  ctx: CanvasRenderingContext2D,
+  label: string,
+  maxWidth: number,
+  maxLines = 2
+) {
+  const words = label.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [""];
+
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (ctx.measureText(candidate).width <= maxWidth) {
+      current = candidate;
+      continue;
+    }
+
+    if (current) lines.push(current);
+    current = word;
+
+    if (lines.length === maxLines) break;
+  }
+
+  if (lines.length < maxLines && current) lines.push(current);
+
+  const consumed = lines.join(" ").split(/\s+/).filter(Boolean).length;
+  if (consumed < words.length && lines.length > 0) {
+    lines[lines.length - 1] = truncateLabel(
+      ctx,
+      `${lines[lines.length - 1]} ${words.slice(consumed).join(" ")}`,
+      maxWidth
+    );
+  }
+
+  return lines.slice(0, maxLines);
+}
+
 function getNodeCardMetrics(
   renderMode: RenderMode,
   scale: number,
@@ -579,8 +618,12 @@ export default function FamilyTreeCanvas({
       if (renderMode === "detail") {
         // Clean single-line connection â€” warm brown tones
         ctx.save();
-        ctx.strokeStyle = isSpouse ? "#b08e51" : isAdoption ? "#6b8f71" : "#8c7655";
-        ctx.lineWidth = (isSpouse ? 2.5 : 2.0) / Math.max(transform.k, 0.25);
+        ctx.strokeStyle = isSpouse
+          ? "rgba(176,142,81,0.68)"
+          : isAdoption
+          ? "rgba(107,143,113,0.52)"
+          : "rgba(140,118,85,0.58)";
+        ctx.lineWidth = (isSpouse ? 2.2 : 1.8) / Math.max(transform.k, 0.25);
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         ctx.setLineDash(isAdoption ? [8 / transform.k, 8 / transform.k] : []);
@@ -594,8 +637,8 @@ export default function FamilyTreeCanvas({
       } else {
         // Compact/Overview Mode: Single line for performance
         ctx.beginPath();
-        ctx.strokeStyle = isSpouse ? "rgba(176,142,81,0.6)" : isAdoption ? "rgba(107,143,113,0.4)" : "rgba(140,118,85,0.45)";
-        ctx.lineWidth = (isSpouse ? 2.2 : 1.5) / Math.max(transform.k, 0.18);
+        ctx.strokeStyle = isSpouse ? "rgba(176,142,81,0.5)" : isAdoption ? "rgba(107,143,113,0.36)" : "rgba(140,118,85,0.36)";
+        ctx.lineWidth = (isSpouse ? 2.0 : 1.35) / Math.max(transform.k, 0.18);
         ctx.setLineDash(isAdoption ? [8 / transform.k, 8 / transform.k] : []);
         ctx.moveTo(edge.path[0].x, edge.path[0].y);
         for (let index = 1; index < edge.path.length; index++) {
@@ -789,8 +832,10 @@ export default function FamilyTreeCanvas({
           ctx.font = '700 14px "Playfair Display", serif';
           ctx.fillStyle = "#3a2a18";
           ctx.textBaseline = "top";
-          const label = truncateLabel(ctx, node.label, maxTextW);
-          ctx.fillText(label, x, labelY);
+          const labelLines = wrapLabel(ctx, node.label, maxTextW, 2);
+          labelLines.forEach((line, index) => {
+            ctx.fillText(line, x, labelY + index * 15);
+          });
 
           ctx.font = '600 10px Inter, system-ui, sans-serif';
           ctx.fillStyle = "#7a6749";
@@ -799,14 +844,20 @@ export default function FamilyTreeCanvas({
             node.content?.description ? "ðŸ“–" : ""
           ].filter(Boolean).join("  ");
           if (desc) {
-             ctx.fillText(truncateLabel(ctx, desc, maxTextW), x, labelY + 18);
+             ctx.fillText(
+               truncateLabel(ctx, desc, maxTextW),
+               x,
+               labelY + labelLines.length * 15 + 3
+             );
           }
         } else {
           ctx.font = '700 13px "Playfair Display", serif';
           ctx.fillStyle = "#3a2a18";
           ctx.textBaseline = "top";
-          const label = truncateLabel(ctx, node.label, maxTextW);
-          ctx.fillText(label, x, labelY);
+          const labelLines = wrapLabel(ctx, node.label, maxTextW, 2);
+          labelLines.forEach((line, index) => {
+            ctx.fillText(line, x, labelY + index * 14);
+          });
         }
         ctx.restore();
 
@@ -1089,7 +1140,8 @@ export default function FamilyTreeCanvas({
       ref={wrapperRef}
       className="relative h-full w-full select-none overflow-hidden bg-[#2c1e16]"
       style={{
-        backgroundImage: "url('/image/background-canvas.webp')",
+        backgroundImage:
+          "linear-gradient(rgba(250,246,237,0.14), rgba(250,246,237,0.08)), url('/image/background-canvas.webp')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",

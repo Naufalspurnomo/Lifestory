@@ -136,11 +136,36 @@ function singleParentBranch(): Fixture {
   return { name: "single-parent-branch", nodes };
 }
 
+function neighboringDescendantBranches(): Fixture {
+  const nodes = [
+    person("sugiarto", "Sugiarto Santoso"),
+    person("phoa", "Phoa Mei Ching"),
+    person("milhan", "Milhan"),
+    person("hisson", "Hisson"),
+    person("liem", "Liem Wu Ying"),
+    person("soedibyo", "Soedibyo"),
+    person("janestoca", "Janestoca"),
+    person("yusefresser", "Yusefresser"),
+    person("sovi", "Sovi Sophia"),
+  ];
+
+  child(nodes, ["sugiarto"], "phoa");
+  child(nodes, ["phoa"], "milhan");
+  child(nodes, ["phoa"], "hisson");
+  child(nodes, ["liem"], "soedibyo");
+  child(nodes, ["soedibyo"], "janestoca");
+  child(nodes, ["soedibyo"], "yusefresser");
+  child(nodes, ["soedibyo"], "sovi");
+
+  return { name: "neighboring-descendant-branches", nodes };
+}
+
 const fixtures: Fixture[] = [
   nuclearWithManyChildren(),
   fourGenerations(),
   remarriageAndHalfSiblings(),
   singleParentBranch(),
+  neighboringDescendantBranches(),
 ];
 
 let failed = false;

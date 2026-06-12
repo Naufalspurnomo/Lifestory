@@ -16,11 +16,11 @@ const {
 } = LAYOUT;
 
 const PARTNER_CENTER_GAP = NODE_SIZE + PARTNER_GAP;
-// Horizontal gap between adjacent row-blocks. Keep it larger than the min
-// spacing threshold used by validation (~96 px) so the packer never produces
-// genuinely touching nodes, but tight enough that wide dynasties don't blow
-// out the canvas.
-const ROW_BLOCK_GAP = Math.round(NODE_SPACING_X * 0.6);
+const DESCENDANT_CENTER_GAP = NODE_SIZE + Math.round(NODE_SPACING_X * 0.45);
+// Adjacent row-blocks represent family branches, not just individual cards.
+// Keep this wide enough that connector buses from different subtrees do not
+// visually collide when each side has children of its own.
+const ROW_BLOCK_GAP = Math.round(NODE_SPACING_X * 1.05);
 const MAX_LAYER_ITERATIONS = 250;
 const MAX_LAYOUT_ITERATIONS = 40;
 const CONVERGENCE_EPSILON = 0.5; // px — stop when no block moves more than this in a pass
@@ -469,6 +469,69 @@ function sortBlockPersonIds(g: InternalGraph, ids: string[]) {
   });
 }
 
+function getChildIdsForPersons(g: InternalGraph, personIds: string[]) {
+  const children: string[] = [];
+  const seenUnions = new Set<string>();
+
+  for (const personId of personIds) {
+    const person = g.persons.get(personId);
+    if (!person) continue;
+
+    for (const unionId of person.unionIds) {
+      if (seenUnions.has(unionId)) continue;
+      seenUnions.add(unionId);
+
+      const union = g.unions.get(unionId);
+      if (!union) continue;
+      children.push(...union.childrenIds);
+    }
+  }
+
+  return uniq(children).filter((id) => g.persons.has(id));
+}
+
+function countDescendantLeaves(
+  g: InternalGraph,
+  personId: string,
+  visiting = new Set<string>()
+): number {
+  if (visiting.has(personId)) return 1;
+
+  const person = g.persons.get(personId);
+  if (!person) return 1;
+
+  visiting.add(personId);
+  const children = getChildIdsForPersons(g, [personId]);
+  const total =
+    children.length > 0
+      ? children.reduce(
+          (sum, childId) => sum + countDescendantLeaves(g, childId, visiting),
+          0
+        )
+      : 1;
+  visiting.delete(personId);
+
+  return Math.max(1, total);
+}
+
+function calculateSubtreeAwareWidth(
+  g: InternalGraph,
+  personIds: string[],
+  partnerWidth: number
+): number {
+  const childIds = getChildIdsForPersons(g, personIds);
+  if (childIds.length === 0) return partnerWidth;
+
+  const leafCount = childIds.reduce(
+    (sum, childId) => sum + countDescendantLeaves(g, childId),
+    0
+  );
+  const descendantWidth =
+    NODE_SIZE + Math.max(0, leafCount - 1) * DESCENDANT_CENTER_GAP;
+
+  return Math.max(partnerWidth, descendantWidth);
+}
+
 function makeRowBlocks(g: InternalGraph, layer: number): RowBlock[] {
   const ids = getPersonIdsByLayer(g, layer);
   const dsu = createDisjointSet(ids);
@@ -494,7 +557,9 @@ function makeRowBlocks(g: InternalGraph, layer: number): RowBlock[] {
 
   return Array.from(groups.values()).map((groupIds) => {
     const personIds = sortBlockPersonIds(g, groupIds);
-    const width = NODE_SIZE + Math.max(0, personIds.length - 1) * PARTNER_CENTER_GAP;
+    const partnerWidth =
+      NODE_SIZE + Math.max(0, personIds.length - 1) * PARTNER_CENTER_GAP;
+    const width = calculateSubtreeAwareWidth(g, personIds, partnerWidth);
     const xs = personIds.map((id) => g.persons.get(id)!.x);
     const center = average(xs) ?? 0;
     const order = Math.min(...personIds.map((id) => g.persons.get(id)!.order));
