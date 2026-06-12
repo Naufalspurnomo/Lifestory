@@ -25,6 +25,7 @@ export function Footer() {
   const copy = isId
     ? {
         studio: "Lifestory.co",
+        tagline: "Preserve Your Legacy",
         description:
           "Studio biografi keluarga untuk wawancara, arsip foto, buku, video, dan pohon keluarga digital.",
         consultation: "Mulai percakapan",
@@ -42,6 +43,7 @@ export function Footer() {
       }
     : {
         studio: "Lifestory.co",
+        tagline: "Preserve Your Legacy",
         description:
           "A family biography studio for interviews, photo archives, books, videos, and digital family trees.",
         consultation: "Start a conversation",
@@ -64,7 +66,10 @@ export function Footer() {
         <div className="grid gap-10 lg:grid-cols-[1.2fr_0.7fr_1fr] lg:gap-16">
           <div className="max-w-md">
             <BrandLogo variant="footer" />
-            <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+            <p className="mt-3 font-serif text-lg italic leading-none text-ink-900">
+              {copy.tagline}
+            </p>
+            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
               {copy.studio}
             </p>
             <p className="mt-4 text-sm leading-[1.75] text-ink-600">

@@ -11,7 +11,6 @@ import { MagneticButton } from "../ui/MagneticButton";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Props = {
-  status: "loading" | "authenticated" | "unauthenticated";
   isLoggedIn: boolean;
   firstName: string;
   isId: boolean;
@@ -36,7 +35,7 @@ type Props = {
   secondaryCtaHref: string;
 };
 
-export function HomeHero({ status, isLoggedIn, firstName, isId, copy, primaryCtaHref, secondaryCtaHref }: Props) {
+export function HomeHero({ isLoggedIn, firstName, isId, copy, primaryCtaHref, secondaryCtaHref }: Props) {
   const ref = useRef<HTMLElement>(null);
   const { shouldReduceScrollMotion } = useMotionGuard();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
@@ -158,44 +157,33 @@ export function HomeHero({ status, isLoggedIn, firstName, isId, copy, primaryCta
             {copy.subheading}
           </motion.p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.6, ease: "easeOut" }}
-            className="mt-8 flex flex-col gap-4 sm:flex-row md:mt-9 lg:mt-8"
-          >
-            {status === "loading" ? (
-               <div className="h-14 w-full sm:w-48 animate-pulse rounded-none bg-ink-100" />
-            ) : (
-              <>
-                <Link href={primaryCtaHref} className="w-full sm:w-auto">
-                  <MagneticButton strength={0.2} distance={100} className="w-full sm:w-auto">
-                    <Button
-                      variant="dark"
-                      size="lg"
-                      block
-                      iconRight={<ArrowRight className="h-4 w-4" />}
-                      animateRightIcon
-                      className="group relative overflow-hidden sm:w-auto !bg-brand-700 text-cream-50 hover:!bg-brand-800 transition-all duration-500 border-none px-10 py-6 rounded-none shadow-none"
-                    >
-                      <span className="relative z-10 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap">{copy.primaryCta}</span>
-                    </Button>
-                  </MagneticButton>
-                </Link>
-                <Link href={secondaryCtaHref} className="w-full sm:w-auto">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    block
-                    iconLeft={<BookOpenText className="h-4 w-4 text-brand-700 group-hover:text-cream-50 transition-colors" />}
-                    className="group sm:w-auto !border-brand-700 bg-transparent hover:!bg-brand-700 !text-brand-700 hover:!text-cream-50 shadow-none px-10 py-6 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap rounded-none transition-colors duration-500"
-                  >
-                    {copy.secondaryCta}
-                  </Button>
-                </Link>
-              </>
-            )}
-          </motion.div>
+          <div className="mt-8 flex flex-col gap-4 sm:flex-row md:mt-9 lg:mt-8">
+            <Link href={primaryCtaHref} className="w-full sm:w-auto">
+              <MagneticButton strength={0.2} distance={100} className="w-full sm:w-auto">
+                <Button
+                  variant="dark"
+                  size="lg"
+                  block
+                  iconRight={<ArrowRight className="h-4 w-4" />}
+                  animateRightIcon
+                  className="group relative overflow-hidden sm:w-auto !bg-brand-700 text-cream-50 hover:!bg-brand-800 transition-all duration-500 border-none px-10 py-6 rounded-none shadow-none"
+                >
+                  <span className="relative z-10 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap">{copy.primaryCta}</span>
+                </Button>
+              </MagneticButton>
+            </Link>
+            <Link href={secondaryCtaHref} className="w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="lg"
+                block
+                iconLeft={<BookOpenText className="h-4 w-4 text-brand-700 group-hover:text-cream-50 transition-colors" />}
+                className="group sm:w-auto !border-brand-700 bg-transparent hover:!bg-brand-700 !text-brand-700 hover:!text-cream-50 shadow-none px-10 py-6 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap rounded-none transition-colors duration-500"
+              >
+                {copy.secondaryCta}
+              </Button>
+            </Link>
+          </div>
 
           {/* Trust badges */}
           <motion.div
@@ -220,10 +208,7 @@ export function HomeHero({ status, isLoggedIn, firstName, isId, copy, primaryCta
       </div>
 
       {/* Scroll hint */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1.5, delay: 2.5 }}
+      <div
         className="absolute bottom-0 left-6 md:left-12 lg:left-16 hidden md:flex flex-col items-center gap-4 z-20 pb-8"
       >
         <div className="relative" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
@@ -232,23 +217,19 @@ export function HomeHero({ status, isLoggedIn, firstName, isId, copy, primaryCta
             {copy.scrollHint}
           </span>
           {/* Animated Highlight Sweep */}
-          <motion.span 
-            className="absolute top-0 left-0 text-[9px] font-bold tracking-[0.25em] text-brand-700 uppercase"
-            animate={{ clipPath: ["inset(100% 0 0 0)", "inset(0% 0 0 0)", "inset(0 0 100% 0)"] }}
-            transition={{ duration: 3, repeat: Infinity, ease: [0.65, 0, 0.35, 1], times: [0, 0.5, 1] }}
+          <span
+            className="hero-scroll-highlight absolute top-0 left-0 text-[9px] font-bold tracking-[0.25em] text-brand-700 uppercase"
           >
             {copy.scrollHint}
-          </motion.span>
+          </span>
         </div>
         
         <div className="h-16 w-px bg-ink-200/40 relative overflow-hidden">
-          <motion.div 
-            animate={{ y: ["-100%", "200%"] }}
-            transition={{ duration: 3, repeat: Infinity, ease: [0.65, 0, 0.35, 1] }}
-            className="absolute inset-0 w-full h-full bg-brand-700"
+          <div
+            className="hero-scroll-line absolute inset-0 w-full h-full bg-brand-700"
           />
         </div>
-      </motion.div>
+      </div>
 
     </section>
   );

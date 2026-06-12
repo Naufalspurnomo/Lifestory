@@ -544,7 +544,6 @@ export default function HomePage() {
     <>
       <div id="hero">
         <HomeHero
-          status={status}
           isLoggedIn={isLoggedIn}
           firstName={firstName}
           isId={isId}
