@@ -162,6 +162,37 @@ function traceRoundedRect(
   ctx.roundRect(x, y, width, height, radius);
 }
 
+function traceEdgePath(ctx: CanvasRenderingContext2D, path: { x: number; y: number }[]) {
+  if (path.length === 0) return;
+  ctx.beginPath();
+  ctx.moveTo(path[0].x, path[0].y);
+  for (let index = 1; index < path.length; index++) {
+    ctx.lineTo(path[index].x, path[index].y);
+  }
+}
+
+function drawConnectorJoint(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  scale: number,
+  color: string
+) {
+  const safeScale = Math.max(scale, 0.45);
+  const radius = 3.2 / safeScale;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, radius + 1.5 / safeScale, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,248,232,0.82)";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawImageCover(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
@@ -614,16 +645,38 @@ export default function FamilyTreeCanvas({
       ctx.save();
       const isSpouse = edge.type === "spouse";
       const isAdoption = edge.type === "adoption";
+      const isParentConnector =
+        edge.type === "union-child" || edge.type === "parent-union";
+
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.setLineDash(isAdoption ? [8 / transform.k, 8 / transform.k] : []);
+      traceEdgePath(ctx, edge.path);
+      ctx.strokeStyle =
+        renderMode === "detail"
+          ? "rgba(255,248,232,0.72)"
+          : "rgba(255,248,232,0.48)";
+      ctx.lineWidth =
+        (renderMode === "detail"
+          ? isSpouse
+            ? 5.4
+            : isParentConnector
+            ? 5.0
+            : 4.2
+          : isSpouse
+          ? 3.7
+          : 3.2) / Math.max(transform.k, renderMode === "detail" ? 0.25 : 0.18);
+      ctx.stroke();
       
       if (renderMode === "detail") {
         // Clean single-line connection â€” warm brown tones
         ctx.save();
         ctx.strokeStyle = isSpouse
-          ? "rgba(176,142,81,0.68)"
+          ? "rgba(118,88,39,0.9)"
           : isAdoption
-          ? "rgba(107,143,113,0.52)"
-          : "rgba(140,118,85,0.58)";
-        ctx.lineWidth = (isSpouse ? 2.2 : 1.8) / Math.max(transform.k, 0.25);
+          ? "rgba(63,116,78,0.78)"
+          : "rgba(94,72,39,0.88)";
+        ctx.lineWidth = (isSpouse ? 2.8 : isParentConnector ? 2.6 : 2.2) / Math.max(transform.k, 0.25);
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         ctx.setLineDash(isAdoption ? [8 / transform.k, 8 / transform.k] : []);
@@ -633,12 +686,28 @@ export default function FamilyTreeCanvas({
           ctx.lineTo(edge.path[index].x, edge.path[index].y);
         }
         ctx.stroke();
+        ctx.setLineDash([]);
+        traceEdgePath(ctx, edge.path);
+        ctx.strokeStyle = isAdoption
+          ? "rgba(242,255,244,0.62)"
+          : "rgba(255,248,232,0.7)";
+        ctx.lineWidth = 0.8 / Math.max(transform.k, 0.25);
+        ctx.globalAlpha = isParentConnector ? 0.9 : 0.75;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        if (isParentConnector && edge.path.length >= 3) {
+          const joint = edge.path[1];
+          drawConnectorJoint(ctx, joint.x, joint.y, transform.k, isSpouse
+            ? "rgba(118,88,39,0.9)"
+            : "rgba(94,72,39,0.88)");
+        }
         ctx.restore();
       } else {
         // Compact/Overview Mode: Single line for performance
         ctx.beginPath();
-        ctx.strokeStyle = isSpouse ? "rgba(176,142,81,0.5)" : isAdoption ? "rgba(107,143,113,0.36)" : "rgba(140,118,85,0.36)";
-        ctx.lineWidth = (isSpouse ? 2.0 : 1.35) / Math.max(transform.k, 0.18);
+        ctx.strokeStyle = isSpouse ? "rgba(118,88,39,0.72)" : isAdoption ? "rgba(63,116,78,0.55)" : "rgba(94,72,39,0.68)";
+        ctx.lineWidth = (isSpouse ? 1.9 : 1.65) / Math.max(transform.k, 0.18);
         ctx.setLineDash(isAdoption ? [8 / transform.k, 8 / transform.k] : []);
         ctx.moveTo(edge.path[0].x, edge.path[0].y);
         for (let index = 1; index < edge.path.length; index++) {
