@@ -180,7 +180,7 @@ export function NavBar() {
     >
       <div
         className={`mx-auto flex max-w-[1320px] items-center justify-between px-4 transition-all duration-300 sm:px-6 ${
-          isScrolled ? "h-[64px]" : "h-[78px]"
+          isScrolled ? "h-[56px] lg:h-[64px]" : "h-[78px]"
         }`}
       >
         <div className="relative">

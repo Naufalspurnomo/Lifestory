@@ -22,7 +22,7 @@ type Props = {
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export function WhyNowDark({ copy }: Props) {
-  const { reduced } = useMotionGuard();
+  const { reduced, isCoarsePointer } = useMotionGuard();
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.25 });
 
@@ -42,9 +42,9 @@ export function WhyNowDark({ copy }: Props) {
         {/* Header — asymmetric editorial layout */}
         <div className="grid gap-6 pb-14 md:pb-16 lg:grid-cols-[0.48fr_1fr] lg:items-end lg:gap-20">
           <motion.p
-            initial={{ opacity: 0, y: reduced ? 0 : 12 }}
+            initial={{ opacity: 0, y: reduced ? 0 : isCoarsePointer ? 7 : 12 }}
             animate={isInView || reduced ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, ease: EASE }}
+            transition={{ duration: reduced ? 0.01 : isCoarsePointer ? 0.42 : 0.6, ease: EASE }}
             className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.22em] text-brand-300/80"
           >
             <span className="h-px w-8 bg-brand-400/50" />
@@ -52,9 +52,9 @@ export function WhyNowDark({ copy }: Props) {
           </motion.p>
 
           <motion.h2
-            initial={{ opacity: 0, y: reduced ? 0 : 20 }}
+            initial={{ opacity: 0, y: reduced ? 0 : isCoarsePointer ? 10 : 20 }}
             animate={isInView || reduced ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.75, delay: reduced ? 0 : 0.1, ease: EASE }}
+            transition={{ duration: reduced ? 0.01 : isCoarsePointer ? 0.48 : 0.75, delay: reduced ? 0 : isCoarsePointer ? 0.04 : 0.1, ease: EASE }}
             className="max-w-3xl font-serif text-[clamp(2rem,4.8vw,3.75rem)] font-light leading-[1.05] tracking-normal text-cream-50"
           >
             {copy.title}
@@ -66,11 +66,11 @@ export function WhyNowDark({ copy }: Props) {
           {copy.items.map((item, idx) => (
             <motion.article
               key={item.title}
-              initial={{ opacity: 0, y: reduced ? 0 : 18 }}
+              initial={{ opacity: 0, y: reduced ? 0 : isCoarsePointer ? 8 : 18 }}
               animate={isInView || reduced ? { opacity: 1, y: 0 } : {}}
               transition={{
-                duration: 0.65,
-                delay: reduced ? 0 : 0.2 + idx * 0.12,
+                duration: reduced ? 0.01 : isCoarsePointer ? 0.42 : 0.65,
+                delay: reduced ? 0 : isCoarsePointer ? 0.06 + idx * 0.04 : 0.2 + idx * 0.12,
                 ease: EASE,
               }}
               className="grid gap-4 border-b border-white/10 py-10 md:grid-cols-[5rem_1fr_1fr] md:gap-8 md:py-12 lg:grid-cols-[6rem_0.85fr_1fr] lg:py-14"

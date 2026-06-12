@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { cn } from "../../lib/utils";
+import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type MarqueeProps = {
   children: ReactNode;
@@ -20,6 +21,8 @@ export function Marquee({
   pauseOnHover = true,
   reverse,
 }: MarqueeProps) {
+  const { isCoarsePointer } = useMotionGuard();
+
   return (
     <div
       className={cn(
@@ -29,7 +32,8 @@ export function Marquee({
     >
       <div
         className={cn(
-          "flex shrink-0 items-center gap-12 pr-12 animate-marquee",
+          "flex shrink-0 items-center gap-12 pr-12",
+          !isCoarsePointer && "animate-marquee",
           pauseOnHover && "group-hover:[animation-play-state:paused]",
           reverse && "[animation-direction:reverse]"
         )}
@@ -39,7 +43,8 @@ export function Marquee({
       </div>
       <div
         className={cn(
-          "flex shrink-0 items-center gap-12 pr-12 animate-marquee",
+          "flex shrink-0 items-center gap-12 pr-12",
+          !isCoarsePointer && "animate-marquee",
           pauseOnHover && "group-hover:[animation-play-state:paused]",
           reverse && "[animation-direction:reverse]"
         )}

@@ -21,9 +21,16 @@ const dimensionMap: Record<Variant, { height: number; className: string }> = {
   hero: { height: 64, className: "h-16" },
 };
 
+const sourceMap: Record<Variant, string> = {
+  navbar: "/logo/lifestory-logo.png",
+  "navbar-compact": "/logo/lifestory-logo.png",
+  footer: "/logo/lifestory-logo.webp",
+  hero: "/logo/lifestory-logo.webp",
+};
+
 /**
- * BrandLogo — Lifestory.co official logo image.
- * Uses the official logo asset in WebP format for crisp rendering at all sizes.
+ * BrandLogo - Lifestory.co official logo image.
+ * Uses the PNG asset in the navbar for sharper rendering and WebP elsewhere.
  */
 export function BrandLogo({
   variant = "navbar",
@@ -36,15 +43,15 @@ export function BrandLogo({
   const content = (
     <motion.span
       className={cn("group inline-flex items-center", className)}
-      whileHover={reduce ? {} : { scale: 1.02 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={reduce ? {} : { scale: 1.01 }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
     >
       <Image
-        src="/logo/lifestory-logo.webp"
-        alt="Lifestory.co — Biography Studio"
+        src={sourceMap[variant]}
+        alt="Lifestory.co - Biography Studio"
         width={3243}
         height={975}
-        className={cn("w-auto object-contain", dims.className)}
+        className={cn("w-auto object-contain antialiased", dims.className)}
         priority={variant === "navbar" || variant === "navbar-compact"}
         unoptimized={false}
       />
@@ -55,8 +62,8 @@ export function BrandLogo({
   return (
     <Link
       href="/"
-      aria-label="Lifestory.co — Biography Studio"
-      className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-4 focus-visible:ring-offset-cream-100 rounded-pill"
+      aria-label="Lifestory.co - Biography Studio"
+      className="rounded-pill focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-4 focus-visible:ring-offset-cream-100"
     >
       {content}
     </Link>

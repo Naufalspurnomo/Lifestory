@@ -69,8 +69,14 @@ export default function HomePage() {
           scrollHint: "Gulir",
         },
         stats: {
-          eyebrow: "Karya Kami",
-          title: "Setiap keluarga, satu cerita unik yang diabadikan.",
+          eyebrow: "Arsip Pilihan",
+          title: "Kisah yang kini bisa diwariskan.",
+          previousLabel: "Kisah sebelumnya",
+          nextLabel: "Kisah berikutnya",
+          photoLabel: "Arsip keluarga",
+          videoLabel: "Film keluarga",
+          interactionHint:
+            "Arahkan atau pilih judul untuk menjelajahi setiap arsip keluarga.",
           items: [
             {
               src: "/cover-gallery/cover-1.webp",
@@ -312,8 +318,14 @@ export default function HomePage() {
           scrollHint: "Scroll",
         },
         stats: {
-          eyebrow: "Our Work",
-          title: "Every family, one unique story preserved.",
+          eyebrow: "Selected Archives",
+          title: "Stories made tangible.",
+          previousLabel: "Previous story",
+          nextLabel: "Next story",
+          photoLabel: "Family archive",
+          videoLabel: "Family film",
+          interactionHint:
+            "Hover or select a title to explore each family archive.",
           items: [
             {
               src: "/cover-gallery/cover-1.webp",
@@ -535,6 +547,7 @@ export default function HomePage() {
           status={status}
           isLoggedIn={isLoggedIn}
           firstName={firstName}
+          isId={isId}
           copy={copy.hero}
           primaryCtaHref={primaryCtaHref}
           secondaryCtaHref={secondaryCtaHref}

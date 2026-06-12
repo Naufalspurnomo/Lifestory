@@ -24,7 +24,7 @@ export function FAQ({ copy }: Props) {
     <section className="relative bg-cream-100 section-y-md">
       <Container>
         <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
-          <Reveal>
+          <Reveal variant="left">
             <Eyebrow>{copy.eyebrow}</Eyebrow>
             <h2 className="mt-4 font-serif text-[clamp(2rem,4.4vw,3.4rem)] leading-[1.05] tracking-[-0.02em] text-ink-800">
               {copy.title}
@@ -54,7 +54,7 @@ export function FAQ({ copy }: Props) {
             </div>
           </Reveal>
 
-          <Reveal delay={0.1}>
+          <Reveal delay={0.08} variant="right">
             <div className="rounded-card-lg border border-cream-300 bg-cream-50 p-2 shadow-soft md:p-4">
               <Accordion
                 items={copy.items.map((it) => ({ q: it.q, a: it.a }))}

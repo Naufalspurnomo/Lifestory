@@ -126,14 +126,16 @@ export function HowItWorks({ copy }: Props) {
                     </p>
                   </div>
 
-                  <figure className="mx-auto mt-10 w-full max-w-[620px] lg:hidden">
-                    <div className="relative aspect-[4/5] overflow-hidden bg-cream-200 shadow-[0_20px_45px_rgba(63,52,45,0.14)]">
-                      <PosterImage
-                        step={step}
-                        sizes="(max-width: 640px) calc(100vw - 3rem), 620px"
-                      />
-                    </div>
-                  </figure>
+                  <Reveal variant="image" duration={0.65} className="lg:hidden">
+                    <figure className="mx-auto mt-10 w-full max-w-[620px]">
+                      <div className="relative aspect-[4/5] overflow-hidden bg-cream-200 shadow-[0_20px_45px_rgba(63,52,45,0.14)]">
+                        <PosterImage
+                          step={step}
+                          sizes="(max-width: 640px) calc(100vw - 3rem), 620px"
+                        />
+                      </div>
+                    </figure>
+                  </Reveal>
                 </article>
               );
             })}
@@ -224,7 +226,7 @@ function PosterImage({
         alt=""
         fill
         sizes={sizes}
-        className="scale-110 object-cover opacity-45 blur-2xl"
+        className="hidden scale-110 object-cover opacity-45 blur-2xl sm:block"
       />
       <span
         aria-hidden

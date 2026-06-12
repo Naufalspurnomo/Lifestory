@@ -22,7 +22,7 @@ type Props = {
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export function PromiseGrid({ copy }: Props) {
-  const { reduced } = useMotionGuard();
+  const { reduced, isCoarsePointer } = useMotionGuard();
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.15 });
 
@@ -38,9 +38,9 @@ export function PromiseGrid({ copy }: Props) {
       <Container size="xl" className="relative">
         {/* Header — asymmetric split like Home HowItWorks */}
         <motion.div
-          initial={{ opacity: 0, y: reduced ? 0 : 24 }}
+          initial={{ opacity: 0, y: reduced ? 0 : isCoarsePointer ? 10 : 24 }}
           animate={isInView || reduced ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.7, ease: EASE }}
+          transition={{ duration: reduced ? 0.01 : isCoarsePointer ? 0.46 : 0.7, ease: EASE }}
           className="grid gap-6 pb-14 md:pb-16 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.65fr)] lg:items-end lg:gap-20"
         >
           <div>
@@ -62,11 +62,11 @@ export function PromiseGrid({ copy }: Props) {
           {copy.items.map((item, idx) => (
             <motion.article
               key={item.title}
-              initial={{ opacity: 0, y: reduced ? 0 : 16 }}
+              initial={{ opacity: 0, y: reduced ? 0 : isCoarsePointer ? 7 : 16 }}
               animate={isInView || reduced ? { opacity: 1, y: 0 } : {}}
               transition={{
-                duration: 0.55,
-                delay: reduced ? 0 : 0.15 + idx * 0.08,
+                duration: reduced ? 0.01 : isCoarsePointer ? 0.4 : 0.55,
+                delay: reduced ? 0 : isCoarsePointer ? 0.04 + idx * 0.035 : 0.15 + idx * 0.08,
                 ease: EASE,
               }}
               className="group relative grid gap-4 border-b border-cream-300 py-8 transition-colors duration-300 md:grid-cols-[5rem_0.85fr_1fr] md:gap-8 md:py-10 lg:grid-cols-[6rem_0.9fr_1fr] lg:py-12"

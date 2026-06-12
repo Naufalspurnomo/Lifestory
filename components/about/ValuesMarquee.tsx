@@ -17,7 +17,7 @@ type Props = {
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export function ValuesMarquee({ copy }: Props) {
-  const { reduced } = useMotionGuard();
+  const { reduced, isCoarsePointer } = useMotionGuard();
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.15 });
 
@@ -34,9 +34,9 @@ export function ValuesMarquee({ copy }: Props) {
         <div className="grid gap-12 lg:grid-cols-[0.42fr_1fr] lg:gap-20">
           {/* Left — Sticky heading */}
           <motion.div
-            initial={{ opacity: 0, y: reduced ? 0 : 20 }}
+            initial={{ opacity: 0, y: reduced ? 0 : isCoarsePointer ? 9 : 20 }}
             animate={isInView || reduced ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.7, ease: EASE }}
+            transition={{ duration: reduced ? 0.01 : isCoarsePointer ? 0.45 : 0.7, ease: EASE }}
             className="lg:sticky lg:top-28 lg:self-start"
           >
             <p className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
@@ -53,11 +53,11 @@ export function ValuesMarquee({ copy }: Props) {
             {copy.fromForPoints.map((point, index) => (
               <motion.article
                 key={point}
-                initial={{ opacity: 0, y: reduced ? 0 : 14 }}
+                initial={{ opacity: 0, y: reduced ? 0 : isCoarsePointer ? 7 : 14 }}
                 animate={isInView || reduced ? { opacity: 1, y: 0 } : {}}
                 transition={{
-                  duration: 0.55,
-                  delay: reduced ? 0 : 0.15 + index * 0.08,
+                  duration: reduced ? 0.01 : isCoarsePointer ? 0.38 : 0.55,
+                  delay: reduced ? 0 : isCoarsePointer ? 0.04 + index * 0.035 : 0.15 + index * 0.08,
                   ease: EASE,
                 }}
                 className="group grid grid-cols-[3.5rem_1fr] items-baseline gap-4 border-b border-cream-300 py-7 transition-colors duration-300 md:grid-cols-[4.5rem_1fr] md:py-9"

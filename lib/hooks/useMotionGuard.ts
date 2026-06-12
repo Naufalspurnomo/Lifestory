@@ -15,7 +15,7 @@ export function useCoarsePointer() {
     const media = window.matchMedia("(hover: none), (pointer: coarse)");
 
     function update() {
-      setIsCoarsePointer(media.matches || navigator.maxTouchPoints > 0);
+      setIsCoarsePointer(media.matches);
     }
 
     update();

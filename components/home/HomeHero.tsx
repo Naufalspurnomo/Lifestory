@@ -14,6 +14,7 @@ type Props = {
   status: "loading" | "authenticated" | "unauthenticated";
   isLoggedIn: boolean;
   firstName: string;
+  isId: boolean;
   copy: {
     welcomeBack: string;
     headlineLine1: string;
@@ -35,13 +36,13 @@ type Props = {
   secondaryCtaHref: string;
 };
 
-export function HomeHero({ status, isLoggedIn, firstName, copy, primaryCtaHref, secondaryCtaHref }: Props) {
+export function HomeHero({ status, isLoggedIn, firstName, isId, copy, primaryCtaHref, secondaryCtaHref }: Props) {
   const ref = useRef<HTMLElement>(null);
   const { shouldReduceScrollMotion } = useMotionGuard();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
 
   // Subtle parallax for the portrait image
-  const imageY = useTransform(scrollYProgress, [0, 1], [0, shouldReduceScrollMotion ? 0 : 80]);
+  const imageY = useTransform(scrollYProgress, [0, 1], [0, shouldReduceScrollMotion ? 0 : 36]);
 
   return (
     <section
@@ -108,13 +109,21 @@ export function HomeHero({ status, isLoggedIn, firstName, copy, primaryCtaHref, 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full font-serif font-light leading-[1.04] tracking-normal text-ink-900 text-[2.25rem] sm:text-[3rem] md:text-[3.25rem] lg:text-[3.45rem] xl:text-[3.95rem] 2xl:text-[4.25rem]"
+            className={`w-full font-serif font-light leading-[1.04] tracking-normal text-ink-900 ${
+              isId
+                ? "text-[2.25rem] sm:text-[3rem] md:text-[3.25rem] lg:text-[3.45rem] xl:text-[3.95rem] 2xl:text-[4.25rem]"
+                : "text-[2.1rem] sm:text-[2.75rem] md:text-[3rem] lg:text-[3.2rem] xl:text-[3.65rem] 2xl:text-[3.95rem]"
+            }`}
           >
             <span className="block mb-2 md:mb-3">
               {copy.headlineLine1}{" "}
               <WordRotator
                 words={copy.headlineRotators}
-                className="font-serif italic text-brand-700 font-light text-[2.5rem] sm:text-[3.4rem] md:text-[3.75rem] lg:text-[3.9rem] xl:text-[4.35rem] 2xl:text-[4.6rem]"
+                className={`font-serif italic text-brand-700 font-light ${
+                  isId
+                    ? "text-[2.5rem] sm:text-[3.4rem] md:text-[3.75rem] lg:text-[3.9rem] xl:text-[4.35rem] 2xl:text-[4.6rem]"
+                    : "text-[2.3rem] sm:text-[3.05rem] md:text-[3.35rem] lg:text-[3.55rem] xl:text-[4rem] 2xl:text-[4.25rem]"
+                }`}
                 interval={3000}
                 startDelay={800}
                 outerClassName="inline-block align-bottom"

@@ -44,7 +44,7 @@ export function FeaturedCollections({ copy }: Props) {
 
         <div className="grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-7">
           {galleryItems.map((book, index) => (
-            <Reveal key={book.id} delay={index * 0.08}>
+            <Reveal key={book.id} delay={index * 0.07} variant="image" duration={0.75}>
               <Link
                 href={`/gallery?item=${book.id}`}
                 aria-label={`Open ${book.title} in gallery`}
@@ -55,7 +55,7 @@ export function FeaturedCollections({ copy }: Props) {
                   alt={book.alt}
                   fill
                   sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
-                  className="object-cover transition duration-700 ease-smooth group-hover:scale-[1.05]"
+                  className="object-cover transition duration-700 ease-smooth lg:group-hover:scale-[1.05]"
                   priority={index < 2}
                 />
                 <div

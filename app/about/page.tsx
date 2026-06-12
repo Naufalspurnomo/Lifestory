@@ -12,18 +12,19 @@ import { MagneticButton } from "../../components/ui/MagneticButton";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 import { Button } from "../../components/ui/Button";
 import { Container } from "../../components/ui/Container";
-import { ChapterRow } from "../../components/about/ChapterRow";
+import { ProcessActs } from "../../components/about/ProcessActs";
 import { PullQuote } from "../../components/about/PullQuote";
 import { WhyNowDark } from "../../components/about/WhyNowDark";
 import { PromiseGrid } from "../../components/about/PromiseGrid";
 import { VisionMissionSplit } from "../../components/about/VisionMissionSplit";
 import { ValuesMarquee } from "../../components/about/ValuesMarquee";
+import { AboutHeroLead } from "../../components/about/AboutHeroLead";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 export default function AboutPage() {
   const { locale } = useLanguage();
   const isId = locale === "id";
-  const { reduced } = useMotionGuard();
+  const { reduced, shouldReduceScrollMotion, isCoarsePointer } = useMotionGuard();
 
   // ============================================================
   //  COPY
@@ -55,6 +56,9 @@ export default function AboutPage() {
         chaptersTitle: "Tiga babak. Satu warisan.",
         chaptersLead:
           "Setiap proyek dijalankan sebagai pertunjukan editorial yang terstruktur, tidak terburu, dan menjaga emosi keluarga sebagai pusatnya.",
+        chaptersPrevious: "Sebelumnya",
+        chaptersNext: "Berikutnya",
+        chaptersHint: "Geser / pilih",
         chapters: [
           {
             phase: "Babak Mendengar",
@@ -167,6 +171,22 @@ export default function AboutPage() {
           "Anda tidak perlu datang dengan arsip lengkap. Cukup ceritakan siapa yang ingin diabadikan, lalu kami bantu menentukan format yang paling masuk akal.",
         consultCta: "Bicarakan keluarga Anda",
         exploreCta: "Lihat proses kerja",
+
+        // Hero features
+        heroFeatures: [
+          "Ditulis dengan pendekatan mendalam",
+          "Dibangun dari cerita keluarga Anda",
+          "Menjadi warisan untuk generasi berikutnya",
+        ],
+        // Hero handwritten note
+        heroNote: "Setiap keluarga punya cerita. Kami bantu merawatnya.",
+        // Stats
+        stats: [
+          { number: "100+", label: "Buku keluarga telah diterbitkan" },
+          { number: "80+", label: "Film keluarga diproduksi" },
+          { number: "50+", label: "Keluarga dari berbagai daerah di Indonesia" },
+          { number: "100%", label: "Dikerjakan dengan empati & kerahasiaan" },
+        ],
       }
     : {
         aboutLabel: "Family biography studio",
@@ -183,6 +203,22 @@ export default function AboutPage() {
         heroPrimary: "Discuss your family",
         heroSecondary: "See our process",
 
+        // Hero features
+        heroFeatures: [
+          "Written with deep approach",
+          "Built from your family stories",
+          "Becomes a legacy for future generations",
+        ],
+        // Hero handwritten note
+        heroNote: "Every family has a story. We help preserve it.",
+        // Stats
+        stats: [
+          { number: "100+", label: "Family books published" },
+          { number: "80+", label: "Family films produced" },
+          { number: "50+", label: "Families from across Indonesia" },
+          { number: "100%", label: "Done with empathy & confidentiality" },
+        ],
+
         manifestoEyebrow: "Studio Manifesto",
         manifestoQuote:
           "Life happens once. Stories that remain unwritten will disappear with the person who carries them.",
@@ -192,6 +228,9 @@ export default function AboutPage() {
         chaptersTitle: "Three acts. One legacy.",
         chaptersLead:
           "Every project is run like an editorial production: structured, never rushed, with the family's emotion at the center.",
+        chaptersPrevious: "Previous",
+        chaptersNext: "Next",
+        chaptersHint: "Swipe / select",
         chapters: [
           {
             phase: "Act Listening",
@@ -301,44 +340,81 @@ export default function AboutPage() {
         exploreCta: "See our process",
       };
 
+  const featureIcons = [
+    <svg key="f1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
+    <svg key="f2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+    <svg key="f3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>,
+  ];
+
+  const photoTags = ["1985", "1992", isId ? "Sekarang" : "Today"];
+
   // ============================================================
   //  RENDER
   // ============================================================
   return (
     <div className="bg-cream-100 text-ink-700">
       {/* ============= HERO ============= */}
-      <section className="relative overflow-hidden border-b border-cream-300 bg-cream-50">
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-grain bg-[length:24px_24px] opacity-25" />
+      <section className="relative overflow-hidden bg-[#f8f5ee]">
+        <AboutHeroLead
+          isId={isId}
+          reduced={reduced}
+          lightMotion={shouldReduceScrollMotion}
+          copy={{
+            aboutLabel: copy.aboutLabel,
+            heroBody: copy.heroBody,
+            heroFeatures: copy.heroFeatures,
+            heroPrimary: copy.heroPrimary,
+            heroSecondary: copy.heroSecondary,
+            heroNote: copy.heroNote,
+          }}
+        />
+
+        <div className="hidden" aria-hidden>
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-20" />
+          <div className="absolute -right-[10%] -top-[15%] h-[70%] w-[50%] rounded-full bg-[radial-gradient(ellipse,rgba(236,226,204,0.6),transparent_70%)]" />
+          <div className="absolute -left-[5%] bottom-[10%] h-[40%] w-[30%] rounded-full bg-[radial-gradient(ellipse,rgba(236,226,204,0.35),transparent_70%)]" />
+        </div>
 
         <Container size="xl">
-          <div className="grid grid-cols-1 gap-10 pb-20 pt-16 md:pt-20 lg:grid-cols-[1fr_0.8fr] lg:gap-16 lg:pb-24 lg:pt-20">
+          <div className="relative grid grid-cols-1 gap-8 pb-0 pt-14 md:pt-18 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:pt-20 xl:gap-16">
             <motion.div
               initial={{ opacity: 0, y: reduced ? 0 : 28 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: reduced ? 0.01 : 0.8, ease: [0.22, 1, 0.36, 1] }}
+              className="relative z-10 pb-10 lg:pb-16"
             >
-              <p className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
-                <span aria-hidden className="h-px w-8 bg-brand-500" />
+              <p className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+                <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-500">
+                  <path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 1 8-1 3.5-3.1 5-5 6.5" />
+                  <path d="M11 20A7 7 0 0 0 12.2 6.9C6.5 4.9 5 3.5 3 2 2 4 1 6.5 2 10c1 3.5 3.1 5 5 6.5" />
+                  <path d="M11 20V10" />
+                </svg>
                 {copy.aboutLabel}
               </p>
-              <p className="mt-6 max-w-md text-sm font-light uppercase tracking-[0.18em] text-ink-500">
-                {copy.heroKicker}
-              </p>
-              <h1 className="mt-5 max-w-4xl font-serif font-light text-[clamp(2.65rem,7vw,5.45rem)] leading-[0.98] tracking-normal text-ink-900">
-                {copy.heroTitle}
+
+              <h1 className="mt-7 max-w-[14ch] font-serif font-bold text-[clamp(2.65rem,6.5vw,4.8rem)] leading-[1.02] tracking-[-0.01em] text-ink-900">
+                {isId ? (
+                  <>Kami menulis keluarga seperti ia <em className="font-serif italic font-light">benar-benar</em> hidup.</>
+                ) : (
+                  <>We write families as they <em className="font-serif italic font-light">truly</em> lived.</>
+                )}
               </h1>
-              <p className="mt-7 max-w-xl text-base font-light leading-[1.75] text-ink-600 md:text-lg">
+
+              <p className="mt-6 max-w-lg text-[0.95rem] font-light leading-[1.8] text-ink-600 md:text-base">
                 {copy.heroBody}
               </p>
 
-              <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-cream-300 pt-5">
-                {copy.heroHighlights.map((item, index) => (
-                  <span key={item} className="flex items-center gap-4">
-                    {index > 0 && <span aria-hidden className="h-4 w-px bg-ink-300/50" />}
-                    <span className="text-[9px] font-bold italic uppercase tracking-[0.2em] text-ink-500">
-                      {item}
+              <div className="mt-8 flex flex-wrap items-start gap-x-8 gap-y-4 border-t border-cream-300 pt-6">
+                {copy.heroFeatures.map((feature, index) => (
+                  <div key={feature} className="flex items-start gap-2.5 max-w-[160px]">
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-cream-400 text-brand-700">
+                      {featureIcons[index]}
                     </span>
-                  </span>
+                    <span className="text-[11px] font-medium leading-[1.5] text-ink-700">
+                      {feature}
+                    </span>
+                  </div>
                 ))}
               </div>
 
@@ -371,73 +447,108 @@ export default function AboutPage() {
               </div>
             </motion.div>
 
-            {/* RIGHT - Heritage photo cluster */}
+            {/* ===== RIGHT — PHOTO COLLAGE ===== */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: reduced ? 0.01 : 0.8, delay: reduced ? 0 : 0.2 }}
-              className="relative hidden h-[520px] lg:flex lg:items-center lg:justify-center"
+              transition={{ duration: reduced ? 0.01 : 1, delay: reduced ? 0 : 0.2 }}
+              className="relative hidden min-h-[520px] lg:block"
             >
-              <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                <svg
-                  aria-hidden
-                  width="280"
-                  height="280"
-                  viewBox="0 0 80 80"
-                  fill="none"
-                  className="text-brand-700"
-                >
-                  <circle cx="40" cy="40" r="38" stroke="currentColor" strokeOpacity="0.3" strokeWidth="1" strokeDasharray="4 2" />
-                  <circle cx="40" cy="40" r="32" stroke="currentColor" strokeOpacity="0.5" strokeWidth="1.5" />
+              {/* Decorative botanical element — top-right */}
+              <div aria-hidden className="pointer-events-none absolute -right-6 -top-8 z-0 h-[200px] w-[160px] opacity-[0.18]">
+                <svg viewBox="0 0 160 200" fill="none" className="h-full w-full text-brand-500">
+                  <path d="M80 200 C80 140 30 100 10 60 C30 80 60 70 80 30 C100 70 130 80 150 60 C130 100 80 140 80 200Z" fill="currentColor" opacity="0.3" />
+                  <path d="M80 200 C80 150 50 120 30 80 C50 95 70 85 80 50 C90 85 110 95 130 80 C110 120 80 150 80 200Z" fill="currentColor" opacity="0.2" />
                 </svg>
               </div>
 
-              <div className="relative flex items-center justify-center">
-                {[
-                  {
-                    src: "/image/about-hero-1.webp",
-                    className: "-rotate-6 z-10 h-[270px] w-[185px] -mr-8 self-start mt-12",
-                    tag: "1965",
-                  },
-                  {
-                    src: "/image/about-hero-2.webp",
-                    className: "rotate-2 z-30 h-[320px] w-[220px]",
-                    tag: "1992",
-                  },
-                  {
-                    src: "/image/about-hero-3.webp",
-                    className: "rotate-6 z-20 h-[250px] w-[175px] -ml-8 self-end mb-12",
-                    tag: isId ? "Sekarang" : "Today",
-                  },
-                ].map((p, i) => (
-                  <motion.figure
-                    key={p.src}
-                    initial={{ opacity: 0, y: reduced ? 0 : 40 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: reduced ? 0.01 : 0.9,
-                      delay: reduced ? 0 : 0.5 + i * 0.12,
-                      ease: [0.22, 1, 0.36, 1],
-                    }}
-                    className={`relative flex-none overflow-hidden rounded-[12px] border border-cream-400 bg-cream-50 p-2 shadow-deep ${p.className}`}
-                  >
-                    <div className="relative h-full w-full overflow-hidden rounded-[6px]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.src} alt="" className="h-full w-full object-cover" />
-                    </div>
-                    <figcaption className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-pill bg-cream-50/95 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-soft">
-                      {p.tag}
-                    </figcaption>
-                  </motion.figure>
-                ))}
+              {/* Photo 1 — left, tilted left */}
+              <motion.figure
+                initial={{ opacity: 0, y: reduced ? 0 : 40, rotate: -8 }}
+                animate={{ opacity: 1, y: 0, rotate: -8 }}
+                transition={{ duration: reduced ? 0.01 : 0.9, delay: reduced ? 0 : 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute left-0 top-[12%] z-10 w-[42%] max-w-[220px]"
+              >
+                <div className="overflow-hidden rounded-[3px] border border-cream-300 bg-cream-100 p-[6px] shadow-deep">
+                  {/* Year label — top */}
+                  <div className="mb-1 flex justify-center">
+                    <span className="text-[10px] font-bold tracking-[0.15em] text-ink-500">{photoTags[0]}</span>
+                  </div>
+                  <div className="relative aspect-[3/4] overflow-hidden rounded-[2px]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/image/about-hero-1.webp" alt="" className="h-full w-full object-cover" />
+                  </div>
+                </div>
+              </motion.figure>
+
+              {/* Photo 2 — center, slight right tilt */}
+              <motion.figure
+                initial={{ opacity: 0, y: reduced ? 0 : 40, rotate: 3 }}
+                animate={{ opacity: 1, y: 0, rotate: 3 }}
+                transition={{ duration: reduced ? 0.01 : 0.9, delay: reduced ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute left-[25%] top-[2%] z-20 w-[48%] max-w-[250px]"
+              >
+                <div className="overflow-hidden rounded-[3px] border border-cream-300 bg-cream-100 p-[6px] shadow-deep">
+                  <div className="mb-1 flex justify-center">
+                    <span className="text-[10px] font-bold tracking-[0.15em] text-ink-500">{photoTags[1]}</span>
+                  </div>
+                  <div className="relative aspect-[4/5] overflow-hidden rounded-[2px]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/image/about-hero-2.webp" alt="" className="h-full w-full object-cover" />
+                  </div>
+                </div>
+                {/* Paper clip decorative element */}
+                <div aria-hidden className="absolute -right-3 -top-4 z-30 text-brand-400/50">
+                  <svg width="24" height="48" viewBox="0 0 24 48" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M12 2 C6 2 2 6 2 12 L2 36 C2 42 6 46 12 46 C18 46 22 42 22 36 L22 14 C22 8 18 4 12 4" />
+                  </svg>
+                </div>
+              </motion.figure>
+
+              {/* Photo 3 — right, tilted right */}
+              <motion.figure
+                initial={{ opacity: 0, y: reduced ? 0 : 40, rotate: 6 }}
+                animate={{ opacity: 1, y: 0, rotate: 6 }}
+                transition={{ duration: reduced ? 0.01 : 0.9, delay: reduced ? 0 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute right-0 top-[18%] z-30 w-[44%] max-w-[230px]"
+              >
+                <div className="overflow-hidden rounded-[3px] border border-cream-300 bg-cream-100 p-[6px] shadow-deep">
+                  <div className="mb-1 flex justify-center">
+                    <span className="rounded-sm bg-brand-700/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-brand-700">{photoTags[2]}</span>
+                  </div>
+                  <div className="relative aspect-[3/4] overflow-hidden rounded-[2px]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/image/about-hero-3.webp" alt="" className="h-full w-full object-cover" />
+                  </div>
+                </div>
+              </motion.figure>
+
+              {/* Handwritten note card */}
+              <motion.div
+                initial={{ opacity: 0, rotate: 4, y: reduced ? 0 : 20 }}
+                animate={{ opacity: 1, rotate: 4, y: 0 }}
+                transition={{ duration: reduced ? 0.01 : 0.8, delay: reduced ? 0 : 0.9, ease: [0.22, 1, 0.36, 1] }}
+                aria-hidden
+                className="absolute bottom-[8%] right-[2%] z-40 max-w-[180px] rounded-[2px] bg-cream-200 px-5 py-4 shadow-soft"
+              >
+                <p className="font-serif text-[0.85rem] italic leading-[1.5] text-ink-700">
+                  {copy.heroNote}
+                </p>
+              </motion.div>
+
+              {/* Decorative botanical — bottom-right */}
+              <div aria-hidden className="pointer-events-none absolute -bottom-4 -right-4 z-0 h-[120px] w-[80px] opacity-[0.12]">
+                <svg viewBox="0 0 80 120" fill="none" className="h-full w-full text-brand-500">
+                  <ellipse cx="40" cy="30" rx="15" ry="28" fill="currentColor" opacity="0.25" transform="rotate(-15 40 30)" />
+                  <ellipse cx="55" cy="50" rx="12" ry="24" fill="currentColor" opacity="0.2" transform="rotate(10 55 50)" />
+                  <ellipse cx="30" cy="55" rx="10" ry="22" fill="currentColor" opacity="0.2" transform="rotate(-25 30 55)" />
+                  <line x1="40" y1="60" x2="40" y2="120" stroke="currentColor" strokeWidth="1.5" opacity="0.3" />
+                </svg>
               </div>
             </motion.div>
 
-            {/* Mobile/tablet horizontal photo strip */}
-            <div
-              aria-hidden
-              className="relative flex items-end justify-center gap-3 lg:hidden"
-            >
+            {/* Mobile photo strip */}
+            <div aria-hidden className="relative flex items-end justify-center gap-3 pb-8 lg:hidden">
               {[
                 "/image/about-hero-1.webp",
                 "/image/about-hero-2.webp",
@@ -445,25 +556,66 @@ export default function AboutPage() {
               ].map((src, i) => {
                 const sizes = ["h-40 w-28 sm:h-44 sm:w-32", "h-48 w-32 sm:h-56 sm:w-36", "h-40 w-28 sm:h-48 sm:w-32"];
                 const rotations = ["-rotate-3", "rotate-1", "rotate-3"];
-                const tags = ["1965", "1992", isId ? "Sekarang" : "Today"];
                 return (
                   <figure
                     key={src}
-                    className={`relative flex-shrink-0 overflow-hidden rounded-[10px] border border-cream-400 bg-cream-50 p-1.5 shadow-elev ${sizes[i]} ${rotations[i]}`}
+                    className={`relative flex-shrink-0 overflow-hidden rounded-[3px] border border-cream-300 bg-cream-100 p-1.5 shadow-elev ${sizes[i]} ${rotations[i]}`}
                   >
-                    <div className="relative h-full w-full overflow-hidden rounded-[6px]">
+                    <div className="mb-0.5 text-center">
+                      <span className="text-[8px] font-bold tracking-[0.12em] text-ink-500">{photoTags[i]}</span>
+                    </div>
+                    <div className="relative h-[calc(100%-16px)] w-full overflow-hidden rounded-[2px]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={src} alt="" className="h-full w-full object-cover" />
                     </div>
-                    <figcaption className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-pill bg-cream-50/95 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-brand-700 shadow-soft">
-                      {tags[i]}
-                    </figcaption>
                   </figure>
                 );
               })}
             </div>
           </div>
         </Container>
+        </div>
+
+        {/* ===== COMPACT EDITORIAL STATS ===== */}
+        <div className="relative z-20 px-6 pb-10 pt-2 md:pb-12 lg:pb-14">
+          <div className="mx-auto max-w-5xl border-y border-cream-300/80">
+            <motion.div
+              initial={{ opacity: 0, y: reduced ? 0 : 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: reduced ? 0.01 : 0.65, ease: [0.22, 1, 0.36, 1] }}
+              className="grid grid-cols-2 md:grid-cols-4"
+            >
+              {copy.stats.map((stat, index) => (
+                <motion.div
+                  key={stat.number}
+                  initial={{ opacity: 0, y: reduced ? 0 : isCoarsePointer ? 8 : 14 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  transition={{
+                    duration: reduced ? 0.01 : isCoarsePointer ? 0.4 : 0.55,
+                    delay: reduced ? 0 : index * (isCoarsePointer ? 0.035 : 0.07),
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  className={`flex min-h-[108px] items-center gap-3 px-4 py-5 text-left sm:px-6 ${
+                    index % 2 === 1 ? "border-l border-cream-300/70" : ""
+                  } ${
+                    index >= 2 ? "border-t border-cream-300/70 md:border-t-0" : ""
+                  } ${
+                    index > 0 ? "md:border-l md:border-cream-300/70" : ""
+                  }`}
+                >
+                  <p className="shrink-0 font-serif text-[1.75rem] font-light leading-none text-ink-900 lg:text-[2rem]">
+                    {stat.number}
+                  </p>
+                  <p className="max-w-[13ch] text-[10px] font-medium leading-[1.55] text-ink-500 sm:text-[11px]">
+                    {stat.label}
+                  </p>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </div>
       </section>
 
       {/* ============= MANIFESTO PULL QUOTE ============= */}
@@ -473,40 +625,17 @@ export default function AboutPage() {
         attribution={copy.manifestoBy}
       />
 
-      {/* ============= 3 CHAPTERS alternating editorial rows ============= */}
-      <section id="process" className="relative bg-cream-100 section-y-md">
-        <Container>
-          <div className="mb-16 max-w-3xl md:mb-20">
-            <p className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
-              <span className="h-px w-8 bg-brand-500" />
-              {copy.chaptersEyebrow}
-            </p>
-            <h2 className="mt-6 font-serif text-[clamp(2.25rem,4.8vw,3.75rem)] font-light leading-[1.02] tracking-normal text-ink-900">
-              {copy.chaptersTitle}
-            </h2>
-            <p className="mt-5 max-w-2xl text-base font-light leading-[1.75] text-ink-600 md:text-lg">
-              {copy.chaptersLead}
-            </p>
-          </div>
-
-          <div className="space-y-20 md:space-y-28 lg:space-y-32">
-            {copy.chapters.map((chapter, idx) => (
-              <ChapterRow
-                key={chapter.title}
-                index={idx}
-                phase={chapter.phase}
-                title={chapter.title}
-                body={chapter.body}
-                note={chapter.note}
-                image={chapter.image}
-                imageAlt={chapter.title}
-                icon={chapter.icon}
-                reversed={idx % 2 === 1}
-              />
-            ))}
-          </div>
-        </Container>
-      </section>
+      <ProcessActs
+        copy={{
+          eyebrow: copy.chaptersEyebrow,
+          title: copy.chaptersTitle,
+          lead: copy.chaptersLead,
+          chapters: copy.chapters,
+          previousLabel: copy.chaptersPrevious,
+          nextLabel: copy.chaptersNext,
+          interactionHint: copy.chaptersHint,
+        }}
+      />
 
       {/* ============= WHY NOW dark interlude ============= */}
       <WhyNowDark
