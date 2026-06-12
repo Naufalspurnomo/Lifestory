@@ -71,6 +71,7 @@ function mapEdge(row: {
   kind: string;
   startYear: number | null;
   endYear: number | null;
+  metadata?: unknown;
 }): DbEdge {
   return {
     fromId: row.fromId,
@@ -78,6 +79,7 @@ function mapEdge(row: {
     kind: row.kind as DbEdge["kind"],
     startYear: row.startYear,
     endYear: row.endYear,
+    metadata: (row.metadata as Record<string, unknown>) ?? {},
   };
 }
 
@@ -245,6 +247,7 @@ export class BackupManager {
               kind: edge.kind,
               startYear: edge.startYear ?? null,
               endYear: edge.endYear ?? null,
+              metadata: (edge.metadata ?? {}) as any,
             })),
             skipDuplicates: true,
           });

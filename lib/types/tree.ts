@@ -28,6 +28,68 @@ export type NodeContent = {
   linkedin?: string;
 };
 
+export type RelationConfidence = "confirmed" | "estimated" | "unknown" | "disputed";
+
+export type EvidenceSource =
+  | "family_story"
+  | "document"
+  | "photo"
+  | "user_input"
+  | "import"
+  | "unknown";
+
+export type FamilyEvidence = {
+  id: string;
+  source: EvidenceSource;
+  confidence?: RelationConfidence;
+  title?: string;
+  note?: string;
+  url?: string;
+  createdAt?: string;
+};
+
+export type FamilyUnionStatus =
+  | "married"
+  | "divorced"
+  | "unknown"
+  | "informal"
+  | "single_parent"
+  | "adoptive_unit";
+
+export type ParentChildRelationType =
+  | "biological"
+  | "adoptive"
+  | "step"
+  | "foster"
+  | "guardian"
+  | "unknown";
+
+export type FamilyUnion = {
+  id: string;
+  partnerIds: string[];
+  status: FamilyUnionStatus;
+  startYear?: number | null;
+  endYear?: number | null;
+  evidenceIds?: string[];
+};
+
+export type ParentChildLink = {
+  id: string;
+  parentUnitId: string;
+  childId: string;
+  relationType: ParentChildRelationType;
+  confidence?: RelationConfidence;
+  evidenceIds?: string[];
+};
+
+export type FamilyGraph = {
+  schemaVersion: 1;
+  persons: FamilyNode[];
+  unions: FamilyUnion[];
+  parentChildLinks: ParentChildLink[];
+  evidence: FamilyEvidence[];
+};
+
 // Core Entity: Person (Internal Graph)
 export type Person = {
   id: string;
@@ -84,6 +146,7 @@ export type TreeData = {
   ownerId: string;
   version?: number;
   nodes: FamilyNode[];
+  graph?: FamilyGraph;
   createdAt: string;
   updatedAt: string;
 };

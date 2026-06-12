@@ -13,6 +13,7 @@ import {
   calculateGeneration,
   calculateHierarchicalLayout,
 } from "../tree/layoutEngine";
+import { rebuildFamilyNodeCaches } from "../tree/familyGraph";
 import { loadTrees, saveTrees, checkStorageQuota } from "../utils/storageUtils";
 import {
   createTreeApi,
@@ -235,8 +236,11 @@ export function sanitizeGraph(nodes: FamilyNode[]): FamilyNode[] {
     node.partners = uniq(node.partners || []);
   }
 
+  const rebuilt = rebuildFamilyNodeCaches(Array.from(map.values()));
+  const rebuiltById = new Map(rebuilt.map((node) => [node.id, node]));
+
   // return preserving original order
-  return nodes.map((n) => map.get(n.id)!).filter(Boolean);
+  return nodes.map((n) => rebuiltById.get(n.id)!).filter(Boolean);
 }
 
 function linkPartners(

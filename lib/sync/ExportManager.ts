@@ -4,6 +4,7 @@ import type {
   ImportValidation,
   TreeData,
 } from "./types";
+import { buildFamilyGraph } from "../tree/familyGraph";
 
 const MAX_EXPORT_BYTES = 50 * 1024 * 1024;
 
@@ -42,6 +43,7 @@ export function createExportData(tree: TreeData): ExportData {
       id: tree.id,
       name: tree.name,
       nodes: tree.nodes,
+      graph: buildFamilyGraph(tree.nodes),
       metadata: {
         ownerId: tree.ownerId,
         createdAt: tree.createdAt,

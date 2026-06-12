@@ -14,6 +14,12 @@
 //   ex-partner        : historical partnership; preserved for later divorce UI
 
 import type { FamilyNode, NodeContent, MediaItem, WorkItem } from "../types/tree";
+import {
+  buildFamilyGraph,
+  parentChildLinkMetadata,
+  relationTypeToEdgeKind,
+  unionMetadata,
+} from "./familyGraph";
 
 export type DbNode = {
   id: string;
@@ -45,6 +51,7 @@ export type DbEdge = {
     | "ex-partner";
   startYear?: number | null;
   endYear?: number | null;
+  metadata?: Record<string, unknown>;
 };
 
 export type DbTreeSnapshot = {
@@ -104,30 +111,52 @@ export function serializeTreeToRows(nodes: FamilyNode[]): DbTreeSnapshot {
     generationCached: n.generation ?? 0,
   }));
 
-  const seenPartner = new Set<string>();
+  const seenEdges = new Set<string>();
   const edges: DbEdge[] = [];
+  const graph = buildFamilyGraph(nodes);
+  const unionById = new Map(graph.unions.map((union) => [union.id, union]));
 
-  for (const n of nodes) {
-    const bioParents = uniq([
-      ...(n.parentIds || []),
-      ...(n.parentId ? [n.parentId] : []),
-    ]);
-    for (const parentId of bioParents) {
-      edges.push({ fromId: parentId, toId: n.id, kind: "biological-parent" });
+  for (const union of graph.unions) {
+    const isStoredPartnerUnit =
+      union.partnerIds.length >= 2 &&
+      ["married", "informal", "divorced"].includes(union.status);
+    if (!isStoredPartnerUnit) continue;
+
+    for (let left = 0; left < union.partnerIds.length - 1; left++) {
+      for (let right = left + 1; right < union.partnerIds.length; right++) {
+        const [a, b] = partnerKey(
+          union.partnerIds[left],
+          union.partnerIds[right]
+        );
+        const key = `${a}::${b}`;
+        if (seenEdges.has(key)) continue;
+        seenEdges.add(key);
+        edges.push({
+          fromId: a,
+          toId: b,
+          kind: union.status === "divorced" ? "ex-partner" : "partner",
+          startYear: union.startYear ?? null,
+          endYear: union.endYear ?? null,
+          metadata: unionMetadata(union),
+        });
+      }
     }
+  }
 
-    for (const adoptiveId of uniq(n.adoptiveParentIds || [])) {
-      // Don't duplicate if already biological.
-      if (bioParents.includes(adoptiveId)) continue;
-      edges.push({ fromId: adoptiveId, toId: n.id, kind: "adoptive-parent" });
-    }
+  for (const link of graph.parentChildLinks) {
+    const union = unionById.get(link.parentUnitId);
+    if (!union) continue;
 
-    for (const partnerId of uniq(n.partners || [])) {
-      const [a, b] = partnerKey(n.id, partnerId);
-      const key = `${a}::${b}`;
-      if (seenPartner.has(key)) continue;
-      seenPartner.add(key);
-      edges.push({ fromId: a, toId: b, kind: "partner" });
+    for (const parentId of union.partnerIds) {
+      const key = `${parentId}::${link.childId}::${link.relationType}`;
+      if (seenEdges.has(key)) continue;
+      seenEdges.add(key);
+      edges.push({
+        fromId: parentId,
+        toId: link.childId,
+        kind: relationTypeToEdgeKind(link.relationType),
+        metadata: parentChildLinkMetadata(link),
+      });
     }
   }
 

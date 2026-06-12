@@ -1,4 +1,4 @@
-import type { FamilyNode, TreeData } from "../types/tree";
+import type { FamilyGraph, FamilyNode, TreeData } from "../types/tree";
 
 export type { FamilyNode, TreeData };
 
@@ -138,6 +138,7 @@ export type ExportData = {
     id: string;
     name: string;
     nodes: FamilyNode[];
+    graph?: FamilyGraph;
     metadata?: Record<string, unknown>;
     mediaReferences?: string[];
   };

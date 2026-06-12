@@ -151,6 +151,7 @@ async function writeGraph(
         kind: e.kind,
         startYear: e.startYear ?? null,
         endYear: e.endYear ?? null,
+        metadata: (e.metadata ?? {}) as any,
       })),
       skipDuplicates: true,
     });
@@ -256,6 +257,7 @@ async function writeMutatedGraph(
         kind: e.kind,
         startYear: e.startYear ?? null,
         endYear: e.endYear ?? null,
+        metadata: (e.metadata ?? {}) as any,
       })),
       skipDuplicates: true,
     });
@@ -344,6 +346,7 @@ export async function getTreeForUser(
     kind: e.kind as DbEdge["kind"],
     startYear: e.startYear,
     endYear: e.endYear,
+    metadata: (e.metadata as Record<string, unknown>) ?? {},
   }));
 
   const familyNodes = deserializeRowsToTree({
@@ -616,6 +619,7 @@ export async function applyTreeMutations(
           kind: e.kind as DbEdge["kind"],
           startYear: e.startYear,
           endYear: e.endYear,
+          metadata: (e.metadata as Record<string, unknown>) ?? {},
         })),
       });
 
