@@ -100,6 +100,18 @@ function sharesParent(a: FamilyNode, b: FamilyNode): boolean {
   return (b.parentIds || []).some((pid) => aParents.has(pid));
 }
 
+function getSingleReciprocalPartner(
+  node: FamilyNode,
+  map: Map<string, FamilyNode>
+): FamilyNode | null {
+  const partners = uniq(node.partners || [])
+    .map((id) => map.get(id))
+    .filter((partner): partner is FamilyNode => Boolean(partner))
+    .filter((partner) => (partner.partners || []).includes(node.id));
+
+  return partners.length === 1 ? partners[0] : null;
+}
+
 function normalizeNode(n: any): FamilyNode {
   const partners = uniq(Array.isArray(n.partners) ? n.partners : []);
   const childrenIds = uniq(Array.isArray(n.childrenIds) ? n.childrenIds : []);
@@ -136,7 +148,7 @@ function normalizeNode(n: any): FamilyNode {
   };
 }
 
-function sanitizeGraph(nodes: FamilyNode[]): FamilyNode[] {
+export function sanitizeGraph(nodes: FamilyNode[]): FamilyNode[] {
   // normalize first
   const map = new Map<string, FamilyNode>();
   for (const n of nodes) map.set(n.id, normalizeNode(n));
@@ -183,8 +195,28 @@ function sanitizeGraph(nodes: FamilyNode[]): FamilyNode[] {
     }
   }
 
-  // Final sync to keep arrays and legacy fields consistent. Co-parents must
-  // stay explicit; a current partner is not automatically a child's parent.
+  // Legacy repair: older quick-add flows stored children under one selected
+  // parent even when that parent already had exactly one reciprocal partner.
+  // Treat that unambiguous couple as the child's parent unit so existing trees
+  // render from the couple midpoint instead of one card.
+  for (const child of map.values()) {
+    const parentIds = uniq(child.parentIds || []);
+    if (parentIds.length !== 1) continue;
+
+    const parent = map.get(parentIds[0]);
+    if (!parent) continue;
+
+    const partner = getSingleReciprocalPartner(parent, map);
+    if (!partner) continue;
+    if (sharesParent(parent, partner)) continue;
+    if ((partner.parentIds || []).includes(child.id)) continue;
+    if ((child.childrenIds || []).includes(partner.id)) continue;
+
+    child.parentIds = uniq([...parentIds, partner.id]);
+    partner.childrenIds = uniq([...(partner.childrenIds || []), child.id]);
+  }
+
+  // Final sync to keep arrays and legacy fields consistent.
   for (const child of map.values()) {
     child.parentIds = uniq(child.parentIds || []);
     for (const pid of child.parentIds) {

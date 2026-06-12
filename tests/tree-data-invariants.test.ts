@@ -3,6 +3,7 @@ import type { FamilyNode } from "../lib/types/tree";
 import { treeNodesPayloadSchema } from "../lib/validations";
 import { applyNodeMutations } from "../lib/sync/applyMutations";
 import { roundTripTree } from "../lib/tree/persistence";
+import { sanitizeGraph } from "../lib/hooks/useTreeState";
 import {
   derivePublicBaseUrlFromEndpoint,
   resolveDisplayMediaUrl,
@@ -124,6 +125,31 @@ describe("tree persistence projection", () => {
     expect(byId.get("child")?.adoptiveParentIds).toEqual(["adoptive"]);
     expect(byId.get("child")?.partners).toEqual(["spouse"]);
     expect(byId.get("spouse")?.partners).toEqual(["child"]);
+  });
+});
+
+describe("legacy relationship repair", () => {
+  it("promotes single-parent children to the unambiguous couple parent unit", () => {
+    const father = familyNode("riduan", {
+      label: "Riduan Santoso",
+      partners: ["suwahi"],
+    });
+    const mother = familyNode("suwahi", {
+      label: "Suwahi",
+      partners: ["riduan"],
+      childrenIds: ["sugiarto"],
+    });
+    const child = familyNode("sugiarto", {
+      label: "Sugiarto Santoso",
+      parentId: "suwahi",
+      parentIds: ["suwahi"],
+    });
+
+    const result = sanitizeGraph([father, mother, child]);
+    const byId = new Map(result.map((node) => [node.id, node]));
+
+    expect(byId.get("sugiarto")?.parentIds).toEqual(["suwahi", "riduan"]);
+    expect(byId.get("riduan")?.childrenIds).toEqual(["sugiarto"]);
   });
 });
 
