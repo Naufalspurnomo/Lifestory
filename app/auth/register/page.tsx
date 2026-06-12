@@ -18,6 +18,7 @@ import { useLanguage } from "../../../components/providers/LanguageProvider";
 import { Button } from "../../../components/ui/Button";
 import { FloatingInput } from "../../../components/ui/FloatingField";
 import { Mail, Lock, User2, Phone } from "lucide-react";
+import { getRegistrationErrorMessage } from "../../../lib/registration-errors";
 
 function LoadingState() {
   const { locale } = useLanguage();
@@ -137,7 +138,6 @@ export default function RegisterPage() {
           passwordTitle: "Minimal 8 karakter dengan huruf besar, huruf kecil, dan angka",
           processing: "Memproses...",
           register: "Daftar Sekarang",
-          registerFailed: "Gagal mendaftarkan akun.",
           networkError: "Terjadi kesalahan jaringan. Coba lagi.",
           haveAccount: "Sudah punya akun?",
           signIn: "Masuk di sini",
@@ -168,7 +168,6 @@ export default function RegisterPage() {
             "At least 8 characters with uppercase, lowercase, and number",
           processing: "Processing...",
           register: "Register Now",
-          registerFailed: "Failed to register account.",
           networkError: "Network error. Please try again.",
           haveAccount: "Already have an account?",
           signIn: "Sign in here",
@@ -214,7 +213,8 @@ export default function RegisterPage() {
       });
 
       if (!response.ok) {
-        setError(copy.registerFailed);
+        const payload = await response.json().catch(() => null);
+        setError(getRegistrationErrorMessage(response.status, payload, locale));
         setStatus("idle");
         return;
       }
