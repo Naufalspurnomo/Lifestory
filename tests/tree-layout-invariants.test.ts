@@ -42,6 +42,35 @@ function getPosition(nodes: FamilyNode[], id: string) {
 }
 
 describe("family tree layout spacing", () => {
+  it("routes children from the couple midpoint when both parents are linked", () => {
+    const nodes = [
+      familyNode("father", "Riduan Santoso", {
+        partners: ["mother"],
+        childrenIds: ["child"],
+      }),
+      familyNode("mother", "Suwahi", {
+        partners: ["father"],
+        childrenIds: ["child"],
+      }),
+      familyNode("child", "Sugiarto Santoso", {
+        parentId: "mother",
+        parentIds: ["mother", "father"],
+      }),
+    ];
+
+    const layout = calculateHierarchicalLayout(nodes);
+    const father = getPosition(layout.nodes, "father");
+    const mother = getPosition(layout.nodes, "mother");
+    const coupleMidpoint = (father.x + mother.x) / 2;
+    const childEdge = layout.edges.find(
+      (edge) => edge.type === "union-child" && edge.target === "child"
+    );
+
+    expect(childEdge).toBeDefined();
+    expect(childEdge?.path[0].x).toBeCloseTo(coupleMidpoint, 5);
+    expect(childEdge?.path[0].x).not.toBeCloseTo(mother.x, 5);
+  });
+
   it("reserves horizontal room for neighboring branches with descendants", () => {
     const nodes = [
       familyNode("sugiarto", "Sugiarto Santoso"),

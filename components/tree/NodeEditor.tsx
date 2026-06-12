@@ -65,6 +65,7 @@ export default function NodeEditor({
   const [year, setYear] = useState<string>("");
   const [deathYear, setDeathYear] = useState<string>("");
   const [coParentId, setCoParentId] = useState<string>("");
+  const [coParentTouched, setCoParentTouched] = useState(false);
   const [description, setDescription] = useState("");
   const [instagram, setInstagram] = useState("");
   const [tiktok, setTiktok] = useState("");
@@ -251,20 +252,35 @@ export default function NodeEditor({
   useEffect(() => {
     if (!isOpen || editingNode || addType !== "child") {
       setCoParentId("");
+      setCoParentTouched(false);
       return;
     }
 
     const stillValid = coParentOptions.some((option) => option.id === coParentId);
-    if (!stillValid) {
+    if (coParentId && !stillValid) {
       setCoParentId("");
+      setCoParentTouched(false);
+      return;
     }
-  }, [addType, coParentId, coParentOptions, editingNode, isOpen]);
+
+    if (!coParentTouched && !coParentId && coParentOptions.length > 0) {
+      setCoParentId(coParentOptions[0].id);
+    }
+  }, [
+    addType,
+    coParentId,
+    coParentOptions,
+    coParentTouched,
+    editingNode,
+    isOpen,
+  ]);
 
   const resetForm = () => {
     setLabel("");
     setYear("");
     setDeathYear("");
     setCoParentId("");
+    setCoParentTouched(false);
     setDescription("");
     setInstagram("");
     setTiktok("");
@@ -602,7 +618,10 @@ export default function NodeEditor({
                   <span className="text-sm font-bold text-ink-700">{copy.coParent}</span>
                   <select
                     value={coParentId}
-                    onChange={(event) => setCoParentId(event.target.value)}
+                    onChange={(event) => {
+                      setCoParentTouched(true);
+                      setCoParentId(event.target.value);
+                    }}
                     className={inputClass}
                   >
                     <option value="">{copy.coParentNone}</option>
