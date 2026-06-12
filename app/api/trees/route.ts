@@ -14,6 +14,7 @@ import {
   validateBody,
 } from "../../../lib/validations";
 import { jsonBodyLimits, parseJsonBody } from "../../../lib/request-body";
+import { applyRateLimit, rateLimitConfigs } from "../../../lib/rate-limit";
 
 // Missing persistence tables are an outage, not an empty archive. Returning
 // 503 keeps browser caches intact while deployment is repaired.
@@ -48,6 +49,13 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const rateLimitError = await applyRateLimit(
+    request,
+    "tree-create",
+    rateLimitConfigs.sensitive
+  );
+  if (rateLimitError) return rateLimitError;
+
   const authResult = await requireActiveSubscriber();
   if (!authResult.success) return authResult.response;
   const userId = authResult.session.user.id;

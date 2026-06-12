@@ -21,6 +21,7 @@ import {
   validateBody,
 } from "../../../../lib/validations";
 import { jsonBodyLimits, parseJsonBody } from "../../../../lib/request-body";
+import { applyRateLimit, rateLimitConfigs } from "../../../../lib/rate-limit";
 
 function isMissingTableError(error: unknown): boolean {
   return (
@@ -73,6 +74,13 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimitError = await applyRateLimit(
+    request,
+    "tree-replace",
+    rateLimitConfigs.sensitive
+  );
+  if (rateLimitError) return rateLimitError;
+
   const { id } = await params;
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
@@ -109,9 +117,16 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimitError = await applyRateLimit(
+    request,
+    "tree-delete",
+    rateLimitConfigs.sensitive
+  );
+  if (rateLimitError) return rateLimitError;
+
   const { id } = await params;
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;

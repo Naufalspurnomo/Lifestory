@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --ext .js,.mjs,.jsx,.ts,.tsx",
     "layout:test": "tsx scripts/verify-family-layout.ts",
     "optimize:images": "node scripts/convert-images-to-webp.mjs",
     "test": "vitest run",

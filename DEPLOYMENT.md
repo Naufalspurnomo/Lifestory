@@ -92,6 +92,9 @@ migrations that are already applied.
 `npm run db:audit` must also pass. It rejects active trees without snapshots,
 empty active trees, missing recovery columns, disabled RLS, and any schema that
 allows deleting a user account to cascade-delete its owned family archive.
+When `DIRECT_URL` is set, the audit script uses it for database inspection so
+local and CI release checks can use the same session/direct connection as
+Prisma migration commands instead of the runtime transaction pooler.
 
 ## Archive recovery
 
@@ -151,6 +154,8 @@ Supabase, exercises entitlement, incremental sync, invite isolation, and
 session revocation, then deletes the temporary tree and users in a `finally`
 block. It does not send an email. Inbox delivery still needs the manual
 forgot-password check above.
+When `DIRECT_URL` is set, the smoke script uses it for synthetic setup and
+cleanup while the browser-facing checks still hit the deployed domain.
 
 ## Known limitations
 

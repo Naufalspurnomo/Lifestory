@@ -11,6 +11,13 @@ if (process.env.ALLOW_PASSWORD_RESET_SMOKE !== "1" || !baseUrl) {
   );
 }
 
+if (
+  process.env.PASSWORD_RESET_SMOKE_USE_DIRECT_URL !== "0" &&
+  process.env.DIRECT_URL
+) {
+  process.env.DATABASE_URL = process.env.DIRECT_URL;
+}
+
 const prisma = new PrismaClient();
 const runId = `${Date.now()}-${randomUUID()}`;
 const userId = `password-reset-smoke-${runId}`;

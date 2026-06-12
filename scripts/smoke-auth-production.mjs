@@ -11,6 +11,10 @@ if (process.env.ALLOW_AUTH_SMOKE !== "1" || !baseUrl) {
   );
 }
 
+if (process.env.AUTH_SMOKE_USE_DIRECT_URL !== "0" && process.env.DIRECT_URL) {
+  process.env.DATABASE_URL = process.env.DIRECT_URL;
+}
+
 const prisma = new PrismaClient();
 const runId = `${Date.now()}-${randomUUID()}`;
 const password = "SmokePass123";
@@ -46,7 +50,10 @@ function serializeCookies(jar) {
   return [...jar.entries()].map(([key, value]) => `${key}=${value}`).join("; ");
 }
 
-async function createUser(email, subscriptionActive = false) {
+async function createUser(
+  email,
+  { status = "active", subscriptionActive = false } = {}
+) {
   await prisma.user.create({
     data: {
       name: "Auth Smoke",
@@ -54,13 +61,13 @@ async function createUser(email, subscriptionActive = false) {
       phone: "081234567890",
       passwordHash: await hash(password, 10),
       role: "user",
-      status: subscriptionActive ? "active" : "inactive",
+      status,
       subscriptionActive,
     },
   });
 }
 
-async function login(email) {
+async function submitLogin(email) {
   const jar = new Map();
   const csrfResponse = await fetch(`${baseUrl}/api/auth/csrf`);
   assertStatus(csrfResponse, 200, "csrf");
@@ -84,8 +91,18 @@ async function login(email) {
       }),
     }
   );
-  assertStatus(callbackResponse, 200, "login");
   mergeResponseCookies(jar, callbackResponse);
+  return { callbackResponse, jar };
+}
+
+async function getLoginStatus(email) {
+  const { callbackResponse } = await submitLogin(email);
+  return callbackResponse.status;
+}
+
+async function login(email) {
+  const { callbackResponse, jar } = await submitLogin(email);
+  assertStatus(callbackResponse, 200, "login");
 
   if (![...jar.keys()].some((key) => key.endsWith("session-token"))) {
     throw new Error("login: session cookie was not issued");
@@ -203,15 +220,21 @@ async function acceptInvite(jar, token) {
 }
 
 try {
-  await createUser(emails.purchaser);
-  const inactivePurchaserJar = await login(emails.purchaser);
-  const inactiveTreeListStatus = await getTreeListStatus(inactivePurchaserJar);
-  if (inactiveTreeListStatus !== 200) {
+  await createUser(emails.purchaser, { status: "inactive" });
+  const inactiveLoginStatus = await getLoginStatus(emails.purchaser);
+  if (inactiveLoginStatus !== 401) {
     throw new Error(
-      `inactive tree list: expected HTTP 200, got ${inactiveTreeListStatus}`
+      `inactive login: expected HTTP 401, got ${inactiveLoginStatus}`
     );
   }
-  await createTree(inactivePurchaserJar, 403);
+  const unauthTreeListStatus = await fetch(`${baseUrl}/api/trees`).then(
+    (response) => response.status
+  );
+  if (unauthTreeListStatus !== 401) {
+    throw new Error(
+      `unauthenticated tree list: expected HTTP 401, got ${unauthTreeListStatus}`
+    );
+  }
 
   await prisma.user.update({
     where: { email: emails.purchaser },
@@ -262,8 +285,8 @@ try {
   }
 
   smokeResult = {
-    inactiveTreeListStatus,
-    inactiveTreeCreateStatus: 403,
+    inactiveLoginStatus,
+    unauthTreeListStatus,
     activeTreeListStatus,
     syncMutationStatus,
     publicInviteStatus,

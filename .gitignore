@@ -10,6 +10,7 @@ coverage
 .next
 out
 build
+tsconfig.tsbuildinfo
 
 # Environment files (NEVER commit these!)
 .env

@@ -36,7 +36,7 @@ Lifestory is a full-stack web application that helps families preserve their her
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 14 (App Router) |
+| Framework | Next.js 15 (App Router) |
 | Language | TypeScript 5.3 |
 | Styling | Tailwind CSS 3.4 + custom design system |
 | Database | PostgreSQL (Supabase-compatible) |
@@ -44,7 +44,7 @@ Lifestory is a full-stack web application that helps families preserve their her
 | Auth | NextAuth 4.24 (credentials) |
 | Animation | Framer Motion 12 |
 | Validation | Zod + react-hook-form |
-| Testing | Vitest + fast-check (property-based) |
+| Testing | Vitest invariant tests; fast-check available for property tests |
 | Email | Resend API |
 | Image Processing | Sharp |
 
@@ -91,8 +91,7 @@ lifestory/
 ├── prisma/
 │   ├── schema.prisma       # Database schema
 │   └── seed.ts             # Seed script
-└── tests/
-    └── sync/               # Property-based & unit tests
+└── tests/                  # Backend, security, and data invariants
 ```
 
 ### Data Model
@@ -282,18 +281,18 @@ The tree editor uses a dark theme with leather textures and gold accents for an 
 # Run all tests
 npm test
 
-# Property-based tests cover:
-# - WAL ordering, capacity, acknowledgment
-# - Exponential backoff bounds
-# - Sync status state machine
-# - Version vector monotonicity
-# - Conflict detection & auto-merge
-# - Integrity validation
-# - Export/import round-trip
-# - Snapshot retention
+# Current invariant tests cover:
+# - Tree mutation API rate-limit guards
+# - Request body limits and deep health-check auth
+# - Unsafe media URL and broken relationship rejection
+# - Sync mutation reference cleanup and set-like merge behavior
+# - Tree persistence relationship round-trips
+# - Supabase media display URL normalization
 ```
 
-Tests use [fast-check](https://github.com/dubzzz/fast-check) for property-based testing, ensuring correctness properties hold across thousands of randomized inputs.
+The test suite is intentionally focused on backend and data-loss risks. Add
+property-based cases with [fast-check](https://github.com/dubzzz/fast-check)
+when a pure logic surface has enough state space to justify randomized checks.
 
 ---
 

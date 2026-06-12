@@ -19,6 +19,7 @@ import {
 } from "../../../../../lib/validations";
 import type { FamilyNode } from "../../../../../lib/types/tree";
 import { jsonBodyLimits, parseJsonBody } from "../../../../../lib/request-body";
+import { applyRateLimit, rateLimitConfigs } from "../../../../../lib/rate-limit";
 
 function isMissingTableError(error: unknown): boolean {
   return (
@@ -142,6 +143,13 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimitError = await applyRateLimit(
+    request,
+    "tree-sync",
+    rateLimitConfigs.treeSync
+  );
+  if (rateLimitError) return rateLimitError;
+
   const { id } = await params;
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;

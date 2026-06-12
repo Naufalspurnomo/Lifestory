@@ -22,6 +22,7 @@ export const rateLimitConfigs = {
   contact: { windowMs: 15 * 60 * 1000, maxRequests: 5 },
   admin: { windowMs: 60 * 1000, maxRequests: 100 },
   api: { windowMs: 60 * 1000, maxRequests: 60 },
+  treeSync: { windowMs: 60 * 1000, maxRequests: 180 },
   sensitive: { windowMs: 60 * 1000, maxRequests: 10 },
 };
 
