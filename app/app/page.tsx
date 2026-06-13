@@ -550,8 +550,8 @@ export default function AppHome() {
               <div className="min-w-0 flex-1">
                 <SearchBar nodes={currentTree!.nodes} onSelect={setSelectedId} />
               </div>
-              <div className="flex shrink-0 items-center justify-between gap-2">
-                <div className="inline-flex flex-1 items-center gap-1 rounded-full border border-[#dccfb3] bg-[#f5efe1] p-1 sm:flex-none">
+              <div className="flex w-full items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#dccfb3] bg-[#f5efe1] p-1">
                   <button
                     onClick={() => setViewMode("tree")}
                     className={`h-8 flex-1 rounded-full px-3 text-[11px] font-bold uppercase transition-all sm:flex-none ${
