@@ -16,6 +16,7 @@ import {
   type RadialRelation,
   type RadialViewMode,
 } from "../../lib/tree/radialView";
+import { resolveTreeFocusContext } from "../../lib/tree/focusView";
 import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import { useLanguage } from "../providers/LanguageProvider";
 
@@ -73,6 +74,7 @@ const MINIMAP_DESKTOP = { width: 188, height: 118 };
 const MINIMAP_MOBILE = { width: 148, height: 94 };
 const CANVAS_TOOLBAR_SAFE_TOP_DESKTOP = 86;
 const CANVAS_TOOLBAR_SAFE_TOP_MOBILE = 112;
+const CANVAS_TOOLBAR_SAFE_TOP_MOBILE_RADIAL = 160;
 const FAN_INNER_RADIUS = 82;
 const FAN_RING_WIDTH = 82;
 const FAN_RING_GAP = 4;
@@ -159,10 +161,11 @@ function getNodeCardMetrics(
   }
 
   if (renderMode === "compact") {
+    const safeScale = Math.max(scale, 0.48);
     return {
-      width: NODE_COMPACT_WIDTH,
-      height: NODE_COMPACT_HEIGHT,
-      radius: 7,
+      width: Math.max(NODE_COMPACT_WIDTH, 76 / safeScale),
+      height: Math.max(NODE_COMPACT_HEIGHT, 54 / safeScale),
+      radius: Math.max(7, 8 / safeScale),
     };
   }
 
@@ -335,8 +338,8 @@ function getQuickAddButtons(
 function getRenderMode(scale: number, densityMode: DensityMode): RenderMode {
   if (densityMode === "map") return "overview";
   if (densityMode === "detail") return "detail";
-  if (scale < 0.22) return "overview";
-  if (scale < 0.62) return "compact";
+  if (scale < 0.48) return "overview";
+  if (scale < 0.82) return "compact";
   return "detail";
 }
 
@@ -763,6 +766,9 @@ export default function FamilyTreeCanvas({
       locale === "id"
         ? {
             fit: "Lihat semua",
+            center: "Pusatkan",
+            layout: "Layout",
+            display: "Tampilan",
             zoomIn: "Perbesar",
             zoomOut: "Perkecil",
             view: "Arah pohon",
@@ -788,6 +794,9 @@ export default function FamilyTreeCanvas({
           }
         : {
             fit: "Fit all",
+            center: "Center",
+            layout: "Layout",
+            display: "View",
             zoomIn: "Zoom in",
             zoomOut: "Zoom out",
             view: "Tree view",
@@ -820,6 +829,9 @@ export default function FamilyTreeCanvas({
     useState<TreeProjectionMode>("portrait");
   const [radialMode, setRadialMode] = useState<RadialViewMode>("ancestors");
   const [densityMode, setDensityMode] = useState<DensityMode>("auto");
+  const [highlightedGeneration, setHighlightedGeneration] = useState<number | null>(
+    null
+  );
   const [isDragging, setIsDragging] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [imagesLoaded, setImagesLoaded] = useState(0);
@@ -838,12 +850,51 @@ export default function FamilyTreeCanvas({
     [nodes]
   );
   const ownerGen = owner?.generation ?? 0;
+  const interactionFocusId =
+    treeProjectionMode === "fan" ? null : hoveredId || selectedId;
+  const focusContext = useMemo(
+    () =>
+      interactionFocusId
+        ? resolveTreeFocusContext(layout.nodes, interactionFocusId, graph)
+        : null,
+    [graph, interactionFocusId, layout.nodes]
+  );
+  const generationFocusContext = useMemo(() => {
+    if (highlightedGeneration === null || treeProjectionMode !== "portrait") {
+      return null;
+    }
+    const nodeIds = new Set(
+      nodes
+        .filter((node) => node.generation === highlightedGeneration)
+        .map((node) => node.id)
+    );
+    const unionIds = new Set(
+      (projectedLayout.unions || [])
+        .filter((union) =>
+          [...union.partnerIds, ...union.childrenIds].some((id) => nodeIds.has(id))
+        )
+        .map((union) => union.id)
+    );
+    return {
+      nodeIds,
+      unionIds,
+      entityIds: new Set([...nodeIds, ...unionIds]),
+    };
+  }, [
+    highlightedGeneration,
+    nodes,
+    projectedLayout.unions,
+    treeProjectionMode,
+  ]);
+  const visualFocusContext = focusContext || generationFocusContext;
   const renderMode = getRenderMode(transform.k, densityMode);
   const minimapSize =
     wrapperSize.width < 480 ? MINIMAP_MOBILE : MINIMAP_DESKTOP;
   const toolbarSafeTop =
     wrapperSize.width < 640
-      ? CANVAS_TOOLBAR_SAFE_TOP_MOBILE
+      ? treeProjectionMode === "fan"
+        ? CANVAS_TOOLBAR_SAFE_TOP_MOBILE_RADIAL
+        : CANVAS_TOOLBAR_SAFE_TOP_MOBILE
       : CANVAS_TOOLBAR_SAFE_TOP_DESKTOP;
   const showGenerationMarkers = treeProjectionMode === "portrait";
 
@@ -1189,36 +1240,52 @@ export default function FamilyTreeCanvas({
       const isAdoption = edge.type === "adoption";
       const isParentConnector =
         edge.type === "union-child" || edge.type === "parent-union";
+      const isFocusEdge =
+        !visualFocusContext ||
+        (visualFocusContext.entityIds.has(edge.source) &&
+          visualFocusContext.entityIds.has(edge.target));
+      const isHighlightedEdge = Boolean(visualFocusContext && isFocusEdge);
+      const edgeAlpha = visualFocusContext ? (isFocusEdge ? 1 : 0.13) : 1;
+      ctx.globalAlpha = edgeAlpha;
 
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.setLineDash(isAdoption ? [8 / transform.k, 8 / transform.k] : []);
       traceEdgePath(ctx, edge.path);
       ctx.strokeStyle =
-        renderMode === "detail"
+        isHighlightedEdge
+          ? "rgba(255,252,242,0.94)"
+          : renderMode === "detail"
           ? "rgba(255,248,232,0.72)"
           : "rgba(255,248,232,0.48)";
       ctx.lineWidth =
         (renderMode === "detail"
           ? isSpouse
-            ? 5.4
+            ? isHighlightedEdge ? 7 : 5.4
             : isParentConnector
-            ? 5.0
-            : 4.2
+            ? isHighlightedEdge ? 6.6 : 5.0
+            : isHighlightedEdge ? 5.8 : 4.2
           : isSpouse
-          ? 3.7
-          : 3.2) / Math.max(transform.k, renderMode === "detail" ? 0.25 : 0.18);
+          ? isHighlightedEdge ? 5.2 : 3.7
+          : isHighlightedEdge ? 4.7 : 3.2) /
+        Math.max(transform.k, renderMode === "detail" ? 0.25 : 0.18);
       ctx.stroke();
       
       if (renderMode === "detail") {
         // Clean single-line connection with warm brown tones.
         ctx.save();
         ctx.strokeStyle = isSpouse
-          ? "rgba(118,88,39,0.9)"
+          ? isHighlightedEdge ? "rgba(104,73,28,1)" : "rgba(118,88,39,0.9)"
           : isAdoption
-          ? "rgba(63,116,78,0.78)"
-          : "rgba(94,72,39,0.88)";
-        ctx.lineWidth = (isSpouse ? 2.8 : isParentConnector ? 2.6 : 2.2) / Math.max(transform.k, 0.25);
+          ? isHighlightedEdge ? "rgba(45,105,68,1)" : "rgba(63,116,78,0.78)"
+          : isHighlightedEdge ? "rgba(91,62,25,1)" : "rgba(94,72,39,0.88)";
+        ctx.lineWidth =
+          (isSpouse
+            ? isHighlightedEdge ? 3.6 : 2.8
+            : isParentConnector
+            ? isHighlightedEdge ? 3.4 : 2.6
+            : isHighlightedEdge ? 3.1 : 2.2) /
+          Math.max(transform.k, 0.25);
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         ctx.setLineDash(isAdoption ? [8 / transform.k, 8 / transform.k] : []);
@@ -1234,9 +1301,9 @@ export default function FamilyTreeCanvas({
           ? "rgba(242,255,244,0.62)"
           : "rgba(255,248,232,0.7)";
         ctx.lineWidth = 0.8 / Math.max(transform.k, 0.25);
-        ctx.globalAlpha = isParentConnector ? 0.9 : 0.75;
+        ctx.globalAlpha = edgeAlpha * (isParentConnector ? 0.9 : 0.75);
         ctx.stroke();
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = edgeAlpha;
 
         if (isParentConnector && edge.path.length >= 3) {
           const joint = edge.path[1];
@@ -1248,8 +1315,16 @@ export default function FamilyTreeCanvas({
       } else {
         // Compact/Overview Mode: Single line for performance
         ctx.beginPath();
-        ctx.strokeStyle = isSpouse ? "rgba(118,88,39,0.72)" : isAdoption ? "rgba(63,116,78,0.55)" : "rgba(94,72,39,0.68)";
-        ctx.lineWidth = (isSpouse ? 1.9 : 1.65) / Math.max(transform.k, 0.18);
+        ctx.strokeStyle = isSpouse
+          ? isHighlightedEdge ? "rgba(104,73,28,1)" : "rgba(118,88,39,0.72)"
+          : isAdoption
+          ? isHighlightedEdge ? "rgba(45,105,68,1)" : "rgba(63,116,78,0.55)"
+          : isHighlightedEdge ? "rgba(91,62,25,1)" : "rgba(94,72,39,0.68)";
+        ctx.lineWidth =
+          (isSpouse
+            ? isHighlightedEdge ? 2.8 : 1.9
+            : isHighlightedEdge ? 2.5 : 1.65) /
+          Math.max(transform.k, 0.18);
         ctx.setLineDash(isAdoption ? [8 / transform.k, 8 / transform.k] : []);
         ctx.moveTo(edge.path[0].x, edge.path[0].y);
         for (let index = 1; index < edge.path.length; index++) {
@@ -1274,6 +1349,10 @@ export default function FamilyTreeCanvas({
         continue;
       }
 
+      const isRelevantNode =
+        !visualFocusContext || visualFocusContext.nodeIds.has(node.id);
+      ctx.save();
+      ctx.globalAlpha = visualFocusContext ? (isRelevantNode ? 1 : 0.2) : 1;
       const isSelected = node.id === selectedId;
       const isHovered = node.id === hoveredId;
       const displayGen = (node.generation ?? 0) - ownerGen + baseGen;
@@ -1359,7 +1438,10 @@ export default function FamilyTreeCanvas({
       }
 
       if (renderMode !== "overview") {
-        const avatarSize = renderMode === "compact" ? 34 : 46;
+        const avatarSize =
+          renderMode === "compact"
+            ? Math.max(34, 26 / Math.max(transform.k, 0.48))
+            : 46;
         const avatarRadius = avatarSize / 2;
         const avatarX = x;
         const avatarY = y - cardH / 2 + (renderMode === "compact" ? 12 : 16);
@@ -1469,12 +1551,16 @@ export default function FamilyTreeCanvas({
             ctx.fillText(metaText, x, metaY + 0.5);
           }
         } else {
-          ctx.font = '700 13px "Playfair Display", serif';
+          const compactFontSize = Math.max(
+            13,
+            9 / Math.max(transform.k, 0.48)
+          );
+          ctx.font = `700 ${compactFontSize}px "Playfair Display", serif`;
           ctx.fillStyle = "#3a2a18";
           ctx.textBaseline = "top";
           const labelLines = wrapLabel(ctx, node.label, maxTextW, 2);
           labelLines.forEach((line, index) => {
-            ctx.fillText(line, x, labelY + index * 14);
+            ctx.fillText(line, x, labelY + index * (compactFontSize + 1));
           });
         }
         ctx.restore();
@@ -1518,6 +1604,7 @@ export default function FamilyTreeCanvas({
           ctx.fillText(button.icon, button.x, button.y);
         }
       }
+      ctx.restore();
     }
 
     ctx.restore();
@@ -1534,6 +1621,7 @@ export default function FamilyTreeCanvas({
     selectedId,
     transform,
     treeProjectionMode,
+    visualFocusContext,
     visibleWorld,
   ]);
 
@@ -1558,6 +1646,28 @@ export default function FamilyTreeCanvas({
       });
     },
     []
+  );
+
+  const selectDensityMode = useCallback(
+    (mode: DensityMode) => {
+      setDensityMode(mode);
+      if (mode !== "detail" || transform.k >= 0.82) return;
+      const targetId = selectedId || owner?.id;
+      if (targetId) {
+        focusNode(targetId, 0.88);
+        return;
+      }
+      zoomAt(wrapperSize.width / 2, wrapperSize.height / 2, 0.88);
+    },
+    [
+      focusNode,
+      owner?.id,
+      selectedId,
+      transform.k,
+      wrapperSize.height,
+      wrapperSize.width,
+      zoomAt,
+    ]
   );
 
   // C3: Register wheel handler as non-passive so preventDefault() actually
@@ -1770,7 +1880,7 @@ export default function FamilyTreeCanvas({
       className="relative h-full w-full select-none overflow-hidden bg-[#2c1e16]"
       style={{
         backgroundImage:
-          "linear-gradient(rgba(250,246,237,0.26), rgba(250,246,237,0.18)), url('/image/background-canvas.webp')",
+          "linear-gradient(rgba(250,246,237,0.54), rgba(250,246,237,0.46)), url('/image/background-canvas.webp')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -1807,6 +1917,18 @@ export default function FamilyTreeCanvas({
             <Maximize2 className="h-4 w-4 text-[#82693c]" />
             <span className="hidden sm:inline">{copy.fit}</span>
           </button>
+          <button
+            className="inline-flex h-9 items-center gap-2 border-l border-[#dccfb3]/70 px-3 text-xs font-bold text-[#5c4314] transition hover:bg-white hover:shadow-sm"
+            onClick={() => {
+              const targetId = selectedId || owner?.id;
+              if (targetId) focusNode(targetId, 0.88);
+            }}
+            title={copy.center}
+            type="button"
+          >
+            <Crosshair className="h-4 w-4 text-[#82693c]" />
+            <span className="hidden sm:inline">{copy.center}</span>
+          </button>
         </div>
 
         {treeProjectionMode === "fan" && (
@@ -1829,6 +1951,9 @@ export default function FamilyTreeCanvas({
         )}
 
         <div className="flex overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md">
+          <span className="hidden items-center px-2 text-[9px] font-black uppercase tracking-[0.14em] text-[#82693c]/75 xl:inline-flex">
+            {copy.layout}
+          </span>
           {(["portrait", "landscape", "fan"] as const).map((mode) => (
             <button
               key={mode}
@@ -1859,7 +1984,10 @@ export default function FamilyTreeCanvas({
           ))}
         </div>
 
-        <div className="hidden overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md md:flex">
+        <div className="flex overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md">
+          <span className="hidden items-center px-2 text-[9px] font-black uppercase tracking-[0.14em] text-[#82693c]/75 xl:inline-flex">
+            {copy.display}
+          </span>
           {(["auto", "map", "detail"] as const).map((mode) => (
             <button
               key={mode}
@@ -1868,7 +1996,7 @@ export default function FamilyTreeCanvas({
                   ? "bg-[#82693c] text-white shadow-md"
                   : "text-[#5c4314] hover:bg-white hover:shadow-sm"
               }`}
-              onClick={() => setDensityMode(mode)}
+              onClick={() => selectDensityMode(mode)}
               title={copy.density}
               type="button"
             >
@@ -1879,7 +2007,9 @@ export default function FamilyTreeCanvas({
               ) : (
                 <Layers3 className="h-3.5 w-3.5" />
               )}
-              {mode === "auto" ? copy.auto : mode === "map" ? copy.map : copy.detail}
+              <span className="hidden sm:inline">
+                {mode === "auto" ? copy.auto : mode === "map" ? copy.map : copy.detail}
+              </span>
             </button>
           ))}
         </div>
@@ -1893,14 +2023,26 @@ export default function FamilyTreeCanvas({
           const label =
             GEN_COLORS[displayGen]?.[locale === "id" ? "labelId" : "labelEn"] ||
             `${locale === "id" ? "Generasi" : "Generation"} ${displayGen}`;
+          const isHighlighted = highlightedGeneration === marker.generation;
           return (
-            <div
+            <button
               key={marker.generation}
-              className="absolute rounded-lg border border-[#dccfb3] bg-white/70 backdrop-blur-md px-3 py-1.5 text-[10px] font-bold text-[#5c4314] shadow-sm"
+              className={`pointer-events-auto absolute rounded-lg border px-3 py-1.5 text-left text-[10px] font-bold shadow-sm backdrop-blur-md transition ${
+                isHighlighted
+                  ? "border-[#82693c] bg-[#82693c] text-white"
+                  : "border-[#dccfb3] bg-white/70 text-[#5c4314] hover:bg-white"
+              }`}
               style={{ top: clamp(top - 12, 84, wrapperSize.height - 42) }}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={() =>
+                setHighlightedGeneration((current) =>
+                  current === marker.generation ? null : marker.generation
+                )
+              }
+              type="button"
             >
               {label}{" \u00b7 "}{marker.count}
-            </div>
+            </button>
           );
         })}
       </div>
