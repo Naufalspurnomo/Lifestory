@@ -218,7 +218,7 @@ export default function AppHome() {
     [getNode, deleteNode, showNotification, copy]
   );
 
-  // P3: Keyboard shortcuts â€” Ctrl+Z (undo), Ctrl+Y / Ctrl+Shift+Z (redo),
+  // P3: Keyboard shortcuts: Ctrl+Z (undo), Ctrl+Y / Ctrl+Shift+Z (redo),
   // Escape (deselect), Delete (delete selected node)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -438,7 +438,7 @@ export default function AppHome() {
     if (years.length > 0) stats.earliestRecord = Math.min(...years);
   }
 
-  // â”€â”€ Loading state: session or tree data still hydrating â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Loading state: session or tree data still hydrating.
   const isSessionLoading = status === "loading";
   const isTreeLoading = syncStatus === "loading";
   const showLoading = isSessionLoading || (isTreeLoading && !currentTree && !hasCreatedTree);
@@ -460,7 +460,7 @@ export default function AppHome() {
             </div>
           </div>
           <p className="font-serif text-2xl text-[#3f342d]">
-            {locale === "id" ? "Memuat pohon keluargaâ€¦" : "Loading family treeâ€¦"}
+            {locale === "id" ? "Memuat pohon keluarga..." : "Loading family tree..."}
           </p>
           <p className="text-sm text-[#7b6f63]">
             {locale === "id" ? "Menyiapkan ruang arsip Anda" : "Preparing your archive space"}
@@ -766,7 +766,7 @@ export default function AppHome() {
                 onClick={() => setIsTomeOpen(false)}
                 className="rounded-full hover:bg-[#ece2cc] p-2 text-[#73685f] font-sans font-bold transition-colors"
               >
-                âœ•
+                &times;
               </button>
             </div>
 
@@ -833,7 +833,7 @@ export default function AppHome() {
                 onClick={() => setIsVaultOpen(false)}
                 className="rounded-full hover:bg-[#ece2cc] p-2 text-[#73685f] font-sans font-bold transition-colors"
               >
-                âœ•
+                &times;
               </button>
             </div>
 
@@ -885,7 +885,7 @@ export default function AppHome() {
             </div>
           </div>
 
-          {/* Compact stats pill â€” top right below header */}
+          {/* Compact stats pill: top right below header */}
           <div className="fixed top-20 right-6 z-30 pointer-events-none hidden lg:block">
             <div className="rounded-xl border border-[#dccfb3] bg-white/70 px-4 py-2 shadow-sm backdrop-blur-md text-[#5a4d42] text-xs flex items-center gap-3 whitespace-nowrap">
               <div className="flex items-center gap-1.5" title={copy.statMembers}>
@@ -893,19 +893,19 @@ export default function AppHome() {
                 <span className="font-bold">{stats.members}</span>
                 <span className="text-[#9c8e7e]">{locale === "id" ? "anggota" : "members"}</span>
               </div>
-              <span className="text-[#dccfb3]">Â·</span>
+              <span className="text-[#dccfb3]">{"\u00b7"}</span>
               <div className="flex items-center gap-1.5" title={copy.statGenerations}>
                 <Layers3 className="h-3.5 w-3.5 text-[#82693c]" />
                 <span className="font-bold">{stats.generations}</span>
                 <span className="text-[#9c8e7e]">{locale === "id" ? "generasi" : "gen"}</span>
               </div>
-              <span className="text-[#dccfb3]">Â·</span>
+              <span className="text-[#dccfb3]">{"\u00b7"}</span>
               <div className="flex items-center gap-1.5" title={copy.statLines}>
                 <GitBranch className="h-3.5 w-3.5 text-[#82693c]" />
                 <span className="font-bold">{stats.lines}</span>
                 <span className="text-[#9c8e7e]">{locale === "id" ? "cabang" : "branches"}</span>
               </div>
-              <span className="text-[#dccfb3]">Â·</span>
+              <span className="text-[#dccfb3]">{"\u00b7"}</span>
               <div className="flex items-center gap-1.5" title={copy.statEarliest}>
                 <History className="h-3.5 w-3.5 text-[#82693c]" />
                 <span className="font-bold">{stats.earliestRecord}</span>

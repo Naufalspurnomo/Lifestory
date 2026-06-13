@@ -33,17 +33,17 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 function formatValue(value: unknown): string {
-  if (value === null || value === undefined) return "â€”";
-  if (typeof value === "string") return value || "â€”";
+  if (value === null || value === undefined) return "-";
+  if (typeof value === "string") return value || "-";
   if (typeof value === "number") return String(value);
   if (Array.isArray(value)) {
-    if (value.length === 0) return "â€”";
+    if (value.length === 0) return "-";
     return value.join(", ");
   }
   if (typeof value === "object") {
     const desc = (value as Record<string, unknown>).description;
-    if (typeof desc === "string") return desc.slice(0, 80) + (desc.length > 80 ? "â€¦" : "");
-    return JSON.stringify(value).slice(0, 80) + "â€¦";
+    if (typeof desc === "string") return desc.slice(0, 80) + (desc.length > 80 ? "..." : "");
+    return JSON.stringify(value).slice(0, 80) + "...";
   }
   return String(value);
 }
@@ -189,7 +189,7 @@ export default function ConflictResolutionModal({
           {Object.entries(grouped).map(([nodeId, nodeConflicts]) => (
             <div key={nodeId} className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-[#82693c]">
-                Node: {nodeId.slice(0, 8)}â€¦
+                Node: {nodeId.slice(0, 8)}...
               </h3>
               {nodeConflicts.map((conflict) => {
                 const key = conflictKey(conflict);

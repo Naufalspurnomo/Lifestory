@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, statSync } from "fs";
+import { readdirSync, readFileSync, statSync } from "fs";
 import { join } from "path";
 
 function source(relativePath: string): string {
   return readFileSync(join(process.cwd(), relativePath), "utf8");
+}
+
+function sourceFilesUnder(relativePath: string): string[] {
+  const root = join(process.cwd(), relativePath);
+  return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
+    const nextPath = join(relativePath, entry.name);
+    if (entry.isDirectory()) return sourceFilesUnder(nextPath);
+    return /\.(ts|tsx)$/.test(entry.name) ? [nextPath] : [];
+  });
 }
 
 describe("landing hero interaction invariants", () => {
@@ -43,5 +52,16 @@ describe("about process image budget", () => {
     expect(statSync(join(process.cwd(), imagePath)).size).toBeLessThanOrEqual(
       500 * 1024
     );
+  });
+});
+
+describe("visible UI text encoding", () => {
+  const userFacingFiles = [
+    ...sourceFilesUnder("app"),
+    ...sourceFilesUnder("components"),
+  ];
+
+  it.each(userFacingFiles)("%s does not contain mojibake characters", (file) => {
+    expect(source(file)).not.toMatch(/[\u00c3\u00c2\u00e2\ufffd]/);
   });
 });
