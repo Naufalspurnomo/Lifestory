@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import Link from "next/link";
 
 import FamilyTreeCanvas from "../../components/tree/FamilyTreeCanvas";
@@ -450,14 +451,17 @@ export default function AppHome() {
           <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-[#dfceb0]/45 blur-3xl" />
           <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-[#ece2cc]/65 blur-3xl" />
         </div>
-        <div className="relative flex flex-col items-center gap-5 text-center">
-          <div className="relative h-16 w-16">
-            <div className="absolute inset-0 animate-ping rounded-full bg-[#82693c]/30" />
-            <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[#dccfb3] bg-[linear-gradient(150deg,#fff8ea_0%,#efe4d0_100%)] shadow-[0_14px_30px_rgba(130,105,60,0.2)]">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#82693c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22v-8" /><path d="M12 14c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" /><path d="M12 14c4.42 0 8 3.58 8 8h-16c0-4.42 3.58-8 8-8z" />
-              </svg>
-            </div>
+        <div className="relative flex max-w-[min(88vw,28rem)] flex-col items-center gap-5 text-center">
+          <div className="relative flex h-24 w-64 items-center justify-center sm:h-28 sm:w-80">
+            <div className="absolute left-1/2 top-1/2 h-20 w-44 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-[#dfceb0]/40 blur-2xl sm:w-56" />
+            <Image
+              src="/logo/lifestory-logo.png"
+              alt="Lifestory"
+              width={3243}
+              height={975}
+              priority
+              className="relative h-auto w-full object-contain drop-shadow-[0_12px_22px_rgba(130,105,60,0.14)]"
+            />
           </div>
           <p className="font-serif text-2xl text-[#3f342d]">
             {locale === "id" ? "Memuat pohon keluarga..." : "Loading family tree..."}

@@ -60,17 +60,19 @@ const GEN_COLORS: Record<number, { border: string; labelId: string; labelEn: str
   [4]: { border: "#d53f8c", labelId: "Cicit", labelEn: "Great-grandchild" }, // Rose Quartz
 };
 
-const NODE_CARD_WIDTH = 150;
-const NODE_CARD_HEIGHT = 112;
-const NODE_CARD_RADIUS = 12;
-const NODE_COMPACT_WIDTH = 116;
-const NODE_COMPACT_HEIGHT = 82;
+const NODE_CARD_WIDTH = 154;
+const NODE_CARD_HEIGHT = 142;
+const NODE_CARD_RADIUS = 18;
+const NODE_COMPACT_WIDTH = 120;
+const NODE_COMPACT_HEIGHT = 94;
 const BUTTON_SIZE = 30;
 const MIN_SCALE = 0.045;
 const MAX_SCALE = 4;
 const FIT_PADDING = 96;
 const MINIMAP_DESKTOP = { width: 188, height: 118 };
 const MINIMAP_MOBILE = { width: 148, height: 94 };
+const CANVAS_TOOLBAR_SAFE_TOP_DESKTOP = 86;
+const CANVAS_TOOLBAR_SAFE_TOP_MOBILE = 112;
 const FAN_INNER_RADIUS = 82;
 const FAN_RING_WIDTH = 82;
 const FAN_RING_GAP = 4;
@@ -298,29 +300,32 @@ function drawCrown(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.restore();
 }
 
-function getQuickAddButtons(node: FamilyNode) {
+function getQuickAddButtons(
+  node: FamilyNode,
+  metrics = getNodeCardMetrics("detail", 1)
+) {
   return [
     {
       type: "parent" as const,
       x: node.x || 0,
-      y: (node.y || 0) - NODE_CARD_HEIGHT / 2 - 24,
+      y: (node.y || 0) - metrics.height / 2 - 24,
       icon: "^",
     },
     {
       type: "partner" as const,
-      x: (node.x || 0) + NODE_CARD_WIDTH / 2 + 30,
+      x: (node.x || 0) + metrics.width / 2 + 30,
       y: node.y || 0,
       icon: "+",
     },
     {
       type: "child" as const,
       x: node.x || 0,
-      y: (node.y || 0) + NODE_CARD_HEIGHT / 2 + 36,
+      y: (node.y || 0) + metrics.height / 2 + 30,
       icon: "v",
     },
     {
       type: "sibling" as const,
-      x: (node.x || 0) - NODE_CARD_WIDTH / 2 - 30,
+      x: (node.x || 0) - metrics.width / 2 - 30,
       y: node.y || 0,
       icon: "=",
     },
@@ -836,6 +841,10 @@ export default function FamilyTreeCanvas({
   const renderMode = getRenderMode(transform.k, densityMode);
   const minimapSize =
     wrapperSize.width < 480 ? MINIMAP_MOBILE : MINIMAP_DESKTOP;
+  const toolbarSafeTop =
+    wrapperSize.width < 640
+      ? CANVAS_TOOLBAR_SAFE_TOP_MOBILE
+      : CANVAS_TOOLBAR_SAFE_TOP_DESKTOP;
   const showGenerationMarkers = treeProjectionMode === "portrait";
 
   const generationMarkers = useMemo(() => {
@@ -865,16 +874,20 @@ export default function FamilyTreeCanvas({
       }
 
       const scaleX = (wrapperSize.width - FIT_PADDING) / width;
-      const scaleY = (wrapperSize.height - FIT_PADDING) / height;
+      const usableHeight = Math.max(
+        1,
+        wrapperSize.height - toolbarSafeTop
+      );
+      const scaleY = (usableHeight - FIT_PADDING) / height;
       const scale = clamp(Math.min(scaleX, scaleY), MIN_SCALE, maxScale);
 
       return {
         x: (wrapperSize.width - width * scale) / 2,
-        y: (wrapperSize.height - height * scale) / 2,
+        y: toolbarSafeTop + (usableHeight - height * scale) / 2,
         k: scale,
       };
     },
-    [height, width, wrapperSize.height, wrapperSize.width]
+    [height, toolbarSafeTop, width, wrapperSize.height, wrapperSize.width]
   );
 
   const focusNode = useCallback(
@@ -883,13 +896,23 @@ export default function FamilyTreeCanvas({
       if (!node || !wrapperSize.width || !wrapperSize.height) return;
 
       const nextScale = clamp(Math.max(transform.k, minScale), MIN_SCALE, MAX_SCALE);
+      const usableHeight = Math.max(1, wrapperSize.height - toolbarSafeTop);
       setTransform({
         x: wrapperSize.width / 2 - (node.x || 0) * nextScale,
-        y: wrapperSize.height / 2 - (node.y || 0) * nextScale,
+        y:
+          toolbarSafeTop +
+          usableHeight / 2 -
+          (node.y || 0) * nextScale,
         k: nextScale,
       });
     },
-    [nodes, transform.k, wrapperSize.height, wrapperSize.width]
+    [
+      nodes,
+      toolbarSafeTop,
+      transform.k,
+      wrapperSize.height,
+      wrapperSize.width,
+    ]
   );
 
   useEffect(() => {
@@ -1002,7 +1025,10 @@ export default function FamilyTreeCanvas({
       const selectedNode = nodes.find((node) => node.id === selectedId);
       if (!selectedNode) return null;
 
-      for (const button of getQuickAddButtons(selectedNode)) {
+      for (const button of getQuickAddButtons(
+        selectedNode,
+        getNodeCardMetrics(renderMode, transform.k, true)
+      )) {
         const dx = world.x - button.x;
         const dy = world.y - button.y;
         const radius = BUTTON_SIZE / 2 + 8 / transform.k;
@@ -1042,7 +1068,7 @@ export default function FamilyTreeCanvas({
     const outside =
       screenX < 72 ||
       screenX > wrapperSize.width - 72 ||
-      screenY < 72 ||
+      screenY < toolbarSafeTop + 24 ||
       screenY > wrapperSize.height - 72;
 
     if (outside || transform.k < 0.2) {
@@ -1056,6 +1082,7 @@ export default function FamilyTreeCanvas({
     transform.k,
     transform.x,
     transform.y,
+    toolbarSafeTop,
     wrapperSize.height,
     wrapperSize.width,
   ]);
@@ -1332,10 +1359,10 @@ export default function FamilyTreeCanvas({
       }
 
       if (renderMode !== "overview") {
-        const avatarSize = renderMode === "compact" ? 38 : 48;
+        const avatarSize = renderMode === "compact" ? 34 : 46;
         const avatarRadius = avatarSize / 2;
         const avatarX = x;
-        const avatarY = y - cardH / 2 + (renderMode === "compact" ? 13 : 17);
+        const avatarY = y - cardH / 2 + (renderMode === "compact" ? 12 : 16);
         const avatarCenterY = avatarY + avatarRadius;
 
         ctx.save();
@@ -1400,33 +1427,46 @@ export default function FamilyTreeCanvas({
         ctx.stroke();
         ctx.restore();
 
-        const labelY = avatarCenterY + avatarRadius + (renderMode === "detail" ? 14 : 10);
+        const labelY =
+          avatarCenterY + avatarRadius + (renderMode === "detail" ? 11 : 8);
         const maxTextW = cardW - 24;
 
         ctx.save();
         ctx.textAlign = "center";
 
         if (renderMode === "detail") {
-          ctx.font = '700 14px "Playfair Display", serif';
+          ctx.font = '700 13px "Playfair Display", serif';
           ctx.fillStyle = "#3a2a18";
           ctx.textBaseline = "top";
           const labelLines = wrapLabel(ctx, node.label, maxTextW, 2);
           labelLines.forEach((line, index) => {
-            ctx.fillText(line, x, labelY + index * 15);
+            ctx.fillText(line, x, labelY + index * 14);
           });
 
-          ctx.font = '600 10px Inter, system-ui, sans-serif';
-          ctx.fillStyle = "#7a6749";
-          const desc = [
-            node.year && (node.deathYear ? `${node.year} - ${node.deathYear}` : `${node.year}`),
-            node.content?.description ? (locale === "id" ? "cerita" : "story") : ""
-          ].filter(Boolean).join("  ");
-          if (desc) {
-             ctx.fillText(
-               truncateLabel(ctx, desc, maxTextW),
-               x,
-               labelY + labelLines.length * 15 + 3
-             );
+          const meta = [
+            node.year &&
+              (node.deathYear ? `${node.year} - ${node.deathYear}` : `${node.year}`),
+            node.content?.description ? (locale === "id" ? "Cerita" : "Story") : "",
+          ]
+            .filter(Boolean)
+            .join("  ·  ");
+          if (meta) {
+            ctx.font = "700 9px Inter, system-ui, sans-serif";
+            const metaText = truncateLabel(ctx, meta, maxTextW - 18);
+            const metaWidth = Math.min(
+              maxTextW,
+              Math.max(44, ctx.measureText(metaText).width + 18)
+            );
+            const metaY = y + cardH / 2 - 22;
+            traceRoundedRect(ctx, x - metaWidth / 2, metaY - 9, metaWidth, 18, 9);
+            ctx.fillStyle = "rgba(130,105,60,0.1)";
+            ctx.fill();
+            ctx.strokeStyle = "rgba(130,105,60,0.22)";
+            ctx.lineWidth = 0.8 / Math.max(transform.k, 0.45);
+            ctx.stroke();
+            ctx.fillStyle = "#715c3d";
+            ctx.textBaseline = "middle";
+            ctx.fillText(metaText, x, metaY + 0.5);
           }
         } else {
           ctx.font = '700 13px "Playfair Display", serif';
@@ -1445,7 +1485,7 @@ export default function FamilyTreeCanvas({
       }
 
       if (isSelected && renderMode !== "overview") {
-        for (const button of getQuickAddButtons(node)) {
+        for (const button of getQuickAddButtons(node, metrics)) {
           traceRoundedRect(
             ctx,
             button.x - BUTTON_SIZE / 2,
@@ -1754,7 +1794,7 @@ export default function FamilyTreeCanvas({
       <canvas ref={canvasRef} className="block" />
 
       <div
-        className="absolute left-3 top-3 flex flex-wrap items-center gap-2 sm:left-4 sm:top-4 lg:left-6 lg:top-6"
+        className="absolute left-3 right-3 top-3 flex max-w-full flex-wrap items-center gap-2 sm:left-4 sm:right-4 sm:top-4 lg:left-6 lg:right-6 lg:top-6"
         onPointerDown={(event) => event.stopPropagation()}
       >
         <div className="flex overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md">
