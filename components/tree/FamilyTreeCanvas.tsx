@@ -34,6 +34,15 @@ type TreeProjectionMode = "portrait" | "landscape" | "fan";
 type DensityMode = "auto" | "map" | "detail";
 type RenderMode = "overview" | "compact" | "detail";
 
+type FanSegment = {
+  node: FamilyNode;
+  innerRadius: number;
+  outerRadius: number;
+  startAngle: number;
+  endAngle: number;
+  relativeGeneration: number;
+};
+
 const GEN_COLORS: Record<number, { border: string; labelId: string; labelEn: string }> = {
   [-2]: { border: "#805ad5", labelId: "Buyut", labelEn: "Great-grandparent" }, // Amethyst
   [-1]: { border: "#2f855a", labelId: "Kakek/Nenek", labelEn: "Grandparent" }, // Emerald
@@ -55,6 +64,10 @@ const MAX_SCALE = 4;
 const FIT_PADDING = 96;
 const MINIMAP_DESKTOP = { width: 188, height: 118 };
 const MINIMAP_MOBILE = { width: 148, height: 94 };
+const FAN_INNER_RADIUS = 82;
+const FAN_RING_WIDTH = 82;
+const FAN_RING_GAP = 4;
+const FAN_PADDING = 140;
 
 // LRU image cache. Evicts oldest entries when exceeding MAX_IMAGE_CACHE_SIZE.
 const MAX_IMAGE_CACHE_SIZE = 200;
@@ -172,6 +185,51 @@ function traceEdgePath(ctx: CanvasRenderingContext2D, path: { x: number; y: numb
   }
 }
 
+function degreesToRadians(degrees: number) {
+  return (degrees * Math.PI) / 180;
+}
+
+function polarToPoint(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  degrees: number
+) {
+  const radians = degreesToRadians(degrees);
+  return {
+    x: centerX + Math.cos(radians) * radius,
+    y: centerY + Math.sin(radians) * radius,
+  };
+}
+
+function traceFanSegment(
+  ctx: CanvasRenderingContext2D,
+  centerX: number,
+  centerY: number,
+  innerRadius: number,
+  outerRadius: number,
+  startAngle: number,
+  endAngle: number
+) {
+  ctx.beginPath();
+  ctx.arc(
+    centerX,
+    centerY,
+    outerRadius,
+    degreesToRadians(startAngle),
+    degreesToRadians(endAngle)
+  );
+  ctx.arc(
+    centerX,
+    centerY,
+    innerRadius,
+    degreesToRadians(endAngle),
+    degreesToRadians(startAngle),
+    true
+  );
+  ctx.closePath();
+}
+
 function drawConnectorJoint(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -270,20 +328,6 @@ function getRenderMode(scale: number, densityMode: DensityMode): RenderMode {
   return "detail";
 }
 
-function getLayoutNodePosition(layout: LayoutGraph, id: string) {
-  const node = layout.nodes.find((item) => item.id === id);
-  if (node && Number.isFinite(node.x) && Number.isFinite(node.y)) {
-    return { x: node.x!, y: node.y! };
-  }
-
-  const union = layout.unions?.find((item) => item.id === id);
-  if (union && Number.isFinite(union.x) && Number.isFinite(union.y)) {
-    return { x: union.x!, y: union.y! };
-  }
-
-  return null;
-}
-
 function projectLandscapeLayout(layout: LayoutGraph): LayoutGraph {
   const project = (point: { x: number; y: number }) => ({
     x: point.y,
@@ -316,6 +360,78 @@ function distributeAngle(index: number, count: number, start: number, end: numbe
   return start + ((end - start) * index) / (count - 1);
 }
 
+function getFanArc(relativeGeneration: number) {
+  if (relativeGeneration < 0) {
+    return { start: 200, end: 340 };
+  }
+  if (relativeGeneration > 0) {
+    return { start: 20, end: 160 };
+  }
+  return { start: 20, end: 160 };
+}
+
+function getFanRing(relativeGeneration: number) {
+  if (relativeGeneration > 0) return relativeGeneration + 1;
+  return Math.max(1, Math.abs(relativeGeneration));
+}
+
+function getFanSegmentFill(relativeGeneration: number, index: number) {
+  const ancestor = ["#d9efe5", "#dce9f8", "#eadff5", "#f4e3c9"];
+  const descendant = ["#f4e7cc", "#ecd8b8", "#e6cfaa", "#dcc49e"];
+  const peer = ["#f0e2c8", "#e8d8b7"];
+  const palette =
+    relativeGeneration < 0
+      ? ancestor
+      : relativeGeneration > 0
+      ? descendant
+      : peer;
+  return palette[index % palette.length];
+}
+
+function buildFanSegments(nodes: FamilyNode[], owner: FamilyNode): FanSegment[] {
+  const ownerGeneration = owner.generation ?? 0;
+  const byRelativeGeneration = new Map<number, FamilyNode[]>();
+
+  for (const node of nodes) {
+    if (node.id === owner.id) continue;
+    const relativeGeneration = (node.generation ?? ownerGeneration) - ownerGeneration;
+    byRelativeGeneration.set(relativeGeneration, [
+      ...(byRelativeGeneration.get(relativeGeneration) || []),
+      node,
+    ]);
+  }
+
+  const segments: FanSegment[] = [];
+  for (const [relativeGeneration, group] of byRelativeGeneration.entries()) {
+    const sorted = [...group].sort((a, b) => {
+      const byX = (a.x || 0) - (b.x || 0);
+      if (Math.abs(byX) > 0.001) return byX;
+      return a.label.localeCompare(b.label, "id", { sensitivity: "base" });
+    });
+    const arc = getFanArc(relativeGeneration);
+    const span = arc.end - arc.start;
+    const gap = sorted.length > 1 ? Math.min(1.4, span / sorted.length / 5) : 0;
+    const step = span / Math.max(1, sorted.length);
+    const ring = getFanRing(relativeGeneration);
+    const innerRadius =
+      FAN_INNER_RADIUS + (ring - 1) * (FAN_RING_WIDTH + FAN_RING_GAP);
+    const outerRadius = innerRadius + FAN_RING_WIDTH;
+
+    sorted.forEach((node, index) => {
+      segments.push({
+        node,
+        innerRadius,
+        outerRadius,
+        startAngle: arc.start + index * step + gap,
+        endAngle: arc.start + (index + 1) * step - gap,
+        relativeGeneration,
+      });
+    });
+  }
+
+  return segments;
+}
+
 function projectFanLayout(layout: LayoutGraph): LayoutGraph {
   if (layout.nodes.length === 0) return layout;
 
@@ -327,13 +443,14 @@ function projectFanLayout(layout: LayoutGraph): LayoutGraph {
   );
   const maxRing = Math.max(
     1,
-    ...relativeGenerations.map((generation) => Math.abs(generation))
+    ...relativeGenerations.map(getFanRing)
   );
-  const ringGap = 150;
-  const innerRadius = 130;
-  const padding = 140;
-  const maxRadius = innerRadius + maxRing * ringGap;
-  const center = { x: padding + maxRadius, y: padding + maxRadius };
+  const maxRadius =
+    FAN_INNER_RADIUS + maxRing * (FAN_RING_WIDTH + FAN_RING_GAP);
+  const center = {
+    x: FAN_PADDING + maxRadius,
+    y: FAN_PADDING + maxRadius,
+  };
   const positioned = new Map<string, { x: number; y: number }>();
 
   const byGeneration = new Map<number, typeof layout.nodes>();
@@ -356,19 +473,13 @@ function projectFanLayout(layout: LayoutGraph): LayoutGraph {
     const siblings = group.filter((item) => item.id !== owner.id);
     const index = Math.max(0, siblings.findIndex((item) => item.id === node.id));
     const count = Math.max(1, siblings.length);
-    const ring = Math.max(1, Math.abs(relative));
-    const radius = innerRadius + ring * ringGap;
-    const angle =
-      relative < 0
-        ? distributeAngle(index, count, 205, 335)
-        : relative > 0
-        ? distributeAngle(index, count, 25, 155)
-        : distributeAngle(index, count, 175, 365);
-    const radians = (angle * Math.PI) / 180;
-    const position = {
-      x: center.x + Math.cos(radians) * radius,
-      y: center.y + Math.sin(radians) * radius,
-    };
+    const ring = getFanRing(relative);
+    const radius =
+      FAN_INNER_RADIUS +
+      (ring - 0.5) * (FAN_RING_WIDTH + FAN_RING_GAP);
+    const arc = getFanArc(relative);
+    const angle = distributeAngle(index, count, arc.start + 6, arc.end - 6);
+    const position = polarToPoint(center.x, center.y, radius, angle);
     positioned.set(node.id, position);
     return { ...node, x: position.x, y: position.y, generation: relative };
   });
@@ -395,34 +506,19 @@ function projectFanLayout(layout: LayoutGraph): LayoutGraph {
     return { ...union, x, y };
   });
 
-  const fanEdges = layout.edges
-    .map((edge) => {
-      const source = positioned.get(edge.source) || getLayoutNodePosition(layout, edge.source);
-      const target = positioned.get(edge.target) || getLayoutNodePosition(layout, edge.target);
-      if (!source || !target) return null;
-      return {
-        ...edge,
-        path: [
-          { x: source.x, y: source.y },
-          { x: target.x, y: target.y },
-        ],
-      };
-    })
-    .filter((edge): edge is LayoutGraph["edges"][number] => Boolean(edge));
-
   const allPoints = [
     ...fanNodes.map((node) => ({ x: node.x || 0, y: node.y || 0 })),
     ...(fanUnions || []).map((union) => ({ x: union.x || 0, y: union.y || 0 })),
   ];
   const width =
-    Math.ceil(Math.max(...allPoints.map((point) => point.x)) + padding) || 0;
+    Math.ceil(Math.max(...allPoints.map((point) => point.x)) + FAN_PADDING) || 0;
   const height =
-    Math.ceil(Math.max(...allPoints.map((point) => point.y)) + padding) || 0;
+    Math.ceil(Math.max(...allPoints.map((point) => point.y)) + FAN_PADDING) || 0;
 
   return {
     nodes: fanNodes,
     unions: fanUnions,
-    edges: fanEdges,
+    edges: [],
     width,
     height,
   };
@@ -432,6 +528,142 @@ function projectLayout(layout: LayoutGraph, mode: TreeProjectionMode): LayoutGra
   if (mode === "landscape") return projectLandscapeLayout(layout);
   if (mode === "fan") return projectFanLayout(layout);
   return layout;
+}
+
+function drawFanChart(
+  ctx: CanvasRenderingContext2D,
+  nodes: FamilyNode[],
+  owner: FamilyNode | undefined,
+  selectedId: string | null,
+  hoveredId: string | null,
+  locale: string,
+  scale: number
+) {
+  if (!owner || !Number.isFinite(owner.x) || !Number.isFinite(owner.y)) return;
+
+  const centerX = owner.x || 0;
+  const centerY = owner.y || 0;
+  const segments = buildFanSegments(nodes, owner);
+  const safeScale = Math.max(scale, 0.35);
+
+  ctx.save();
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+
+  for (const segment of segments) {
+    const isActive =
+      segment.node.id === selectedId || segment.node.id === hoveredId;
+    const fill = getFanSegmentFill(
+      segment.relativeGeneration,
+      Math.abs(segment.node.label.length + segment.node.id.length)
+    );
+
+    ctx.save();
+    traceFanSegment(
+      ctx,
+      centerX,
+      centerY,
+      segment.innerRadius,
+      segment.outerRadius,
+      segment.startAngle,
+      segment.endAngle
+    );
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = isActive ? "#82693c" : "rgba(116,88,48,0.36)";
+    ctx.lineWidth = (isActive ? 2.4 : 1.15) / safeScale;
+    ctx.stroke();
+    ctx.restore();
+
+    const angle = (segment.startAngle + segment.endAngle) / 2;
+    const radius = (segment.innerRadius + segment.outerRadius) / 2;
+    const labelPoint = polarToPoint(centerX, centerY, radius, angle);
+    const arcWidth =
+      degreesToRadians(segment.endAngle - segment.startAngle) * radius;
+    const maxTextWidth = Math.max(38, Math.min(120, arcWidth * 0.74));
+    const showLabel = arcWidth > 42 && segment.outerRadius - segment.innerRadius > 42;
+
+    if (showLabel) {
+      ctx.save();
+      ctx.translate(labelPoint.x, labelPoint.y);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = isActive ? "#2f241c" : "#3f342d";
+      ctx.font = `${isActive ? 800 : 700} 11px "Playfair Display", serif`;
+      const labelLines = wrapLabel(ctx, segment.node.label, maxTextWidth, 2);
+      labelLines.forEach((line, index) => {
+        ctx.fillText(
+          line,
+          0,
+          (index - (labelLines.length - 1) / 2) * 12
+        );
+      });
+
+      if (segment.node.year && labelLines.length < 2) {
+        ctx.font = "600 9px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#725f45";
+        ctx.fillText(String(segment.node.year), 0, 16);
+      }
+      ctx.restore();
+    }
+  }
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, FAN_INNER_RADIUS - 14, 0, Math.PI * 2);
+  ctx.fillStyle = "#fffaf0";
+  ctx.shadowColor = "rgba(44,30,22,0.24)";
+  ctx.shadowBlur = 14 / safeScale;
+  ctx.shadowOffsetY = 4 / safeScale;
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, FAN_INNER_RADIUS - 14, 0, Math.PI * 2);
+  ctx.strokeStyle = selectedId === owner.id ? "#82693c" : "rgba(116,88,48,0.46)";
+  ctx.lineWidth = (selectedId === owner.id ? 2.4 : 1.4) / safeScale;
+  ctx.stroke();
+  ctx.clip();
+  ctx.fillStyle = "#3f342d";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = '800 13px "Playfair Display", serif';
+  const ownerLines = wrapLabel(ctx, owner.label, FAN_INNER_RADIUS * 1.15, 2);
+  ownerLines.forEach((line, index) => {
+    ctx.fillText(line, centerX, centerY - 6 + index * 14);
+  });
+  if (owner.year) {
+    ctx.font = "600 9px Inter, system-ui, sans-serif";
+    ctx.fillStyle = "#725f45";
+    ctx.fillText(
+      owner.deathYear ? `${owner.year} - ${owner.deathYear}` : String(owner.year),
+      centerX,
+      centerY + 25
+    );
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.font = "800 10px Inter, system-ui, sans-serif";
+  ctx.fillStyle = "rgba(92,67,20,0.72)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const ancestorPoint = polarToPoint(centerX, centerY, FAN_INNER_RADIUS + 36, 270);
+  const descendantPoint = polarToPoint(centerX, centerY, FAN_INNER_RADIUS + 36, 90);
+  ctx.fillText(
+    locale === "id" ? "LELUHUR" : "ANCESTORS",
+    ancestorPoint.x,
+    ancestorPoint.y
+  );
+  ctx.fillText(
+    locale === "id" ? "KETURUNAN" : "DESCENDANTS",
+    descendantPoint.x,
+    descendantPoint.y
+  );
+  ctx.restore();
+
+  ctx.restore();
 }
 
 export default function FamilyTreeCanvas({
@@ -684,7 +916,9 @@ export default function FamilyTreeCanvas({
 
   const findButtonAt = useCallback(
     (clientX: number, clientY: number) => {
-      if (!selectedId || renderMode === "overview") return null;
+      if (!selectedId || renderMode === "overview" || treeProjectionMode === "fan") {
+        return null;
+      }
       const point = getRelativePoint(clientX, clientY);
       if (!point) return null;
       const world = screenToWorld(point.x, point.y);
@@ -701,7 +935,15 @@ export default function FamilyTreeCanvas({
       }
       return null;
     },
-    [getRelativePoint, nodes, renderMode, screenToWorld, selectedId, transform.k]
+    [
+      getRelativePoint,
+      nodes,
+      renderMode,
+      screenToWorld,
+      selectedId,
+      transform.k,
+      treeProjectionMode,
+    ]
   );
 
   // C4: Auto-focus selected node if it's off-screen, but guard against
@@ -794,32 +1036,18 @@ export default function FamilyTreeCanvas({
     ctx.translate(transform.x, transform.y);
     ctx.scale(transform.k, transform.k);
 
-    if (treeProjectionMode === "fan" && owner) {
-      const centerX = owner.x || width / 2;
-      const centerY = owner.y || height / 2;
-      const rings = new Set(
-        nodes
-          .map((node) => Math.abs((node.generation ?? 0) - (owner.generation ?? 0)))
-          .filter((ring) => ring > 0)
+    if (treeProjectionMode === "fan") {
+      drawFanChart(
+        ctx,
+        nodes,
+        owner,
+        selectedId,
+        hoveredId,
+        locale,
+        transform.k
       );
-
-      ctx.save();
-      ctx.strokeStyle = "rgba(130,105,60,0.16)";
-      ctx.lineWidth = 1.4 / Math.max(transform.k, 0.35);
-      for (const ring of rings) {
-        const sample = nodes.find(
-          (node) =>
-            Math.abs((node.generation ?? 0) - (owner.generation ?? 0)) === ring
-        );
-        if (!sample || !Number.isFinite(sample.x) || !Number.isFinite(sample.y)) {
-          continue;
-        }
-        const radius = Math.hypot((sample.x || 0) - centerX, (sample.y || 0) - centerY);
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-        ctx.stroke();
-      }
       ctx.restore();
+      return;
     }
 
     // S7: Use NODE_SPACING_Y for generation band height instead of hardcoded 75.
@@ -1178,7 +1406,6 @@ export default function FamilyTreeCanvas({
   }, [
     edges,
     generationMarkers,
-    height,
     hoveredId,
     locale,
     nodes,
@@ -1189,7 +1416,6 @@ export default function FamilyTreeCanvas({
     transform,
     treeProjectionMode,
     visibleWorld,
-    width,
   ]);
 
   useEffect(() => {
@@ -1411,7 +1637,9 @@ export default function FamilyTreeCanvas({
   };
 
   const modeLabel =
-    renderMode === "detail"
+    treeProjectionMode === "fan"
+      ? copy.fan
+      : renderMode === "detail"
       ? copy.detailed
       : renderMode === "compact"
       ? copy.compact
