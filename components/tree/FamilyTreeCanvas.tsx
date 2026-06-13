@@ -1076,10 +1076,21 @@ export default function FamilyTreeCanvas({
       const selectedNode = nodes.find((node) => node.id === selectedId);
       if (!selectedNode) return null;
 
-      for (const button of getQuickAddButtons(
-        selectedNode,
-        getNodeCardMetrics(renderMode, transform.k, true)
-      )) {
+      // Guard: reject clicks that land inside the node card itself.
+      // This prevents touch taps on a selected node from accidentally
+      // triggering an overlapping quick-add button (especially at low zoom
+      // where the button hit radius inflates via 8/transform.k).
+      const cardMetrics = getNodeCardMetrics(renderMode, transform.k, true);
+      const nx = selectedNode.x || 0;
+      const ny = selectedNode.y || 0;
+      if (
+        Math.abs(world.x - nx) <= cardMetrics.width / 2 &&
+        Math.abs(world.y - ny) <= cardMetrics.height / 2
+      ) {
+        return null;
+      }
+
+      for (const button of getQuickAddButtons(selectedNode, cardMetrics)) {
         const dx = world.x - button.x;
         const dy = world.y - button.y;
         const radius = BUTTON_SIZE / 2 + 8 / transform.k;
@@ -1735,12 +1746,6 @@ export default function FamilyTreeCanvas({
     event.currentTarget.setPointerCapture(event.pointerId);
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
-    const buttonHit = findButtonAt(event.clientX, event.clientY);
-    if (buttonHit) {
-      onAddNode(buttonHit.nodeId, buttonHit.type);
-      return;
-    }
-
     if (pointersRef.current.size >= 2) {
       setupPinch();
       return;
@@ -1816,6 +1821,15 @@ export default function FamilyTreeCanvas({
     // S4: Adaptive threshold: 12px for touch, 6px for mouse.
     const clickThreshold = lastPointerTypeRef.current === "touch" ? 12 : 6;
     if (wasDragging && dragDistanceRef.current < clickThreshold) {
+      // Check quick-add button hit first (moved from pointerDown to
+      // pointerUp so buttons only trigger on clean taps, not drag starts.
+      // This prevents accidental button triggers on mobile touch).
+      const buttonHit = findButtonAt(event.clientX, event.clientY);
+      if (buttonHit) {
+        onAddNode(buttonHit.nodeId, buttonHit.type);
+        return;
+      }
+
       const node = findNodeAt(event.clientX, event.clientY);
       onSelectNode(node ? node.id : null);
     }
