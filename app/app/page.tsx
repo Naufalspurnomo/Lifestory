@@ -686,6 +686,7 @@ export default function AppHome() {
               >
                 <FamilyTreeCanvas
                   layout={layoutGraph}
+                  graph={currentTree!.graph}
                   selectedId={selectedId}
                   onSelectNode={setSelectedId}
                   onAddNode={handleAddNode}

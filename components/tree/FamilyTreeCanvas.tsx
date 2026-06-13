@@ -9,13 +9,19 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
-import type { FamilyNode, LayoutGraph } from "../../lib/types/tree";
+import type { FamilyGraph, FamilyNode, LayoutGraph } from "../../lib/types/tree";
 import { LAYOUT } from "../../lib/types/tree";
+import {
+  resolveRadialPeople,
+  type RadialRelation,
+  type RadialViewMode,
+} from "../../lib/tree/radialView";
 import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import { useLanguage } from "../providers/LanguageProvider";
 
 type Props = {
   layout: LayoutGraph;
+  graph?: FamilyGraph;
   selectedId: string | null;
   onSelectNode: (id: string | null) => void;
   onAddNode: (
@@ -41,6 +47,7 @@ type FanSegment = {
   startAngle: number;
   endAngle: number;
   relativeGeneration: number;
+  relation: RadialRelation;
 };
 
 const GEN_COLORS: Record<number, { border: string; labelId: string; labelEn: string }> = {
@@ -360,7 +367,10 @@ function distributeAngle(index: number, count: number, start: number, end: numbe
   return start + ((end - start) * index) / (count - 1);
 }
 
-function getFanArc(relativeGeneration: number) {
+function getFanArc(relativeGeneration: number, relation: RadialRelation) {
+  if (relation === "partner" || relation === "collateral") {
+    return { start: 160, end: 200 };
+  }
   if (relativeGeneration < 0) {
     return { start: 200, end: 340 };
   }
@@ -371,15 +381,21 @@ function getFanArc(relativeGeneration: number) {
 }
 
 function getFanRing(relativeGeneration: number) {
-  if (relativeGeneration > 0) return relativeGeneration + 1;
   return Math.max(1, Math.abs(relativeGeneration));
 }
 
-function getFanSegmentFill(relativeGeneration: number, index: number) {
+function getFanSegmentFill(
+  relativeGeneration: number,
+  index: number,
+  relation: RadialRelation
+) {
   const ancestor = ["#d9efe5", "#dce9f8", "#eadff5", "#f4e3c9"];
   const descendant = ["#f4e7cc", "#ecd8b8", "#e6cfaa", "#dcc49e"];
   const peer = ["#f0e2c8", "#e8d8b7"];
   const palette =
+    relation === "partner" || relation === "collateral"
+      ? peer
+      :
     relativeGeneration < 0
       ? ancestor
       : relativeGeneration > 0
@@ -408,7 +424,8 @@ function buildFanSegments(nodes: FamilyNode[], owner: FamilyNode): FanSegment[] 
       if (Math.abs(byX) > 0.001) return byX;
       return a.label.localeCompare(b.label, "id", { sensitivity: "base" });
     });
-    const arc = getFanArc(relativeGeneration);
+    const relation = (sorted[0]?.line || "default") as RadialRelation;
+    const arc = getFanArc(relativeGeneration, relation);
     const span = arc.end - arc.start;
     const gap = sorted.length > 1 ? Math.min(1.4, span / sorted.length / 5) : 0;
     const step = span / Math.max(1, sorted.length);
@@ -425,6 +442,7 @@ function buildFanSegments(nodes: FamilyNode[], owner: FamilyNode): FanSegment[] 
         startAngle: arc.start + index * step + gap,
         endAngle: arc.start + (index + 1) * step - gap,
         relativeGeneration,
+        relation,
       });
     });
   }
@@ -432,13 +450,30 @@ function buildFanSegments(nodes: FamilyNode[], owner: FamilyNode): FanSegment[] 
   return segments;
 }
 
-function projectFanLayout(layout: LayoutGraph): LayoutGraph {
+function projectFanLayout(
+  layout: LayoutGraph,
+  graph: FamilyGraph | undefined,
+  focusId: string,
+  mode: RadialViewMode
+): LayoutGraph {
   if (layout.nodes.length === 0) return layout;
 
-  const owner =
-    layout.nodes.find((node) => node.line === "self") || layout.nodes[0];
-  const ownerGeneration = owner.generation ?? 0;
-  const relativeGenerations = layout.nodes.map(
+  const radialPeople = resolveRadialPeople(layout.nodes, focusId, mode, graph);
+  const radialIds = new Set(radialPeople.map((entry) => entry.node.id));
+  const sourceById = new Map(layout.nodes.map((node) => [node.id, node]));
+  const radialNodes = radialPeople.map((entry) => ({
+    ...(sourceById.get(entry.node.id) || entry.node),
+    generation:
+      entry.relation === "ancestor" || entry.relation === "unknown"
+        ? -entry.depth
+        : entry.relation === "descendant"
+        ? entry.depth
+        : 0,
+    line: entry.relation as FamilyNode["line"],
+  }));
+  const owner = radialNodes.find((node) => node.id === focusId) || radialNodes[0];
+  const ownerGeneration = 0;
+  const relativeGenerations = radialNodes.map(
     (node) => (node.generation ?? ownerGeneration) - ownerGeneration
   );
   const maxRing = Math.max(
@@ -454,12 +489,12 @@ function projectFanLayout(layout: LayoutGraph): LayoutGraph {
   const positioned = new Map<string, { x: number; y: number }>();
 
   const byGeneration = new Map<number, typeof layout.nodes>();
-  for (const node of layout.nodes) {
+  for (const node of radialNodes) {
     const relative = (node.generation ?? ownerGeneration) - ownerGeneration;
     byGeneration.set(relative, [...(byGeneration.get(relative) || []), node]);
   }
 
-  const fanNodes = layout.nodes.map((node) => {
+  const fanNodes = radialNodes.map((node) => {
     const relative = (node.generation ?? ownerGeneration) - ownerGeneration;
 
     if (node.id === owner.id) {
@@ -477,14 +512,16 @@ function projectFanLayout(layout: LayoutGraph): LayoutGraph {
     const radius =
       FAN_INNER_RADIUS +
       (ring - 0.5) * (FAN_RING_WIDTH + FAN_RING_GAP);
-    const arc = getFanArc(relative);
+    const arc = getFanArc(relative, (node.line || "default") as RadialRelation);
     const angle = distributeAngle(index, count, arc.start + 6, arc.end - 6);
     const position = polarToPoint(center.x, center.y, radius, angle);
     positioned.set(node.id, position);
     return { ...node, x: position.x, y: position.y, generation: relative };
   });
 
-  const fanUnions = layout.unions?.map((union) => {
+  const fanUnions = layout.unions?.filter((union) =>
+    union.partnerIds.some((id) => radialIds.has(id))
+  ).map((union) => {
     const partnerPoints = union.partnerIds
       .map((id) => positioned.get(id))
       .filter((point): point is { x: number; y: number } => Boolean(point));
@@ -524,9 +561,15 @@ function projectFanLayout(layout: LayoutGraph): LayoutGraph {
   };
 }
 
-function projectLayout(layout: LayoutGraph, mode: TreeProjectionMode): LayoutGraph {
+function projectLayout(
+  layout: LayoutGraph,
+  mode: TreeProjectionMode,
+  graph: FamilyGraph | undefined,
+  focusId: string,
+  radialMode: RadialViewMode
+): LayoutGraph {
   if (mode === "landscape") return projectLandscapeLayout(layout);
-  if (mode === "fan") return projectFanLayout(layout);
+  if (mode === "fan") return projectFanLayout(layout, graph, focusId, radialMode);
   return layout;
 }
 
@@ -537,7 +580,8 @@ function drawFanChart(
   selectedId: string | null,
   hoveredId: string | null,
   locale: string,
-  scale: number
+  scale: number,
+  radialMode: RadialViewMode
 ) {
   if (!owner || !Number.isFinite(owner.x) || !Number.isFinite(owner.y)) return;
 
@@ -555,7 +599,8 @@ function drawFanChart(
       segment.node.id === selectedId || segment.node.id === hoveredId;
     const fill = getFanSegmentFill(
       segment.relativeGeneration,
-      Math.abs(segment.node.label.length + segment.node.id.length)
+      Math.abs(segment.node.label.length + segment.node.id.length),
+      segment.relation
     );
 
     ctx.save();
@@ -618,6 +663,20 @@ function drawFanChart(
   ctx.fill();
   ctx.restore();
 
+  if (radialMode === "descendants" && nodes.length === 1) {
+    ctx.save();
+    ctx.font = "700 11px Inter, system-ui, sans-serif";
+    ctx.fillStyle = "rgba(92,67,20,0.72)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(
+      locale === "id" ? "Belum ada keturunan" : "No descendants yet",
+      centerX,
+      centerY + FAN_INNER_RADIUS + 28
+    );
+    ctx.restore();
+  }
+
   ctx.save();
   ctx.beginPath();
   ctx.arc(centerX, centerY, FAN_INNER_RADIUS - 14, 0, Math.PI * 2);
@@ -649,18 +708,22 @@ function drawFanChart(
   ctx.fillStyle = "rgba(92,67,20,0.72)";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  const ancestorPoint = polarToPoint(centerX, centerY, FAN_INNER_RADIUS + 36, 270);
-  const descendantPoint = polarToPoint(centerX, centerY, FAN_INNER_RADIUS + 36, 90);
-  ctx.fillText(
-    locale === "id" ? "LELUHUR" : "ANCESTORS",
-    ancestorPoint.x,
-    ancestorPoint.y
-  );
-  ctx.fillText(
-    locale === "id" ? "KETURUNAN" : "DESCENDANTS",
-    descendantPoint.x,
-    descendantPoint.y
-  );
+  if (radialMode !== "descendants") {
+    const ancestorPoint = polarToPoint(centerX, centerY, FAN_INNER_RADIUS + 36, 270);
+    ctx.fillText(
+      locale === "id" ? "LELUHUR" : "ANCESTORS",
+      ancestorPoint.x,
+      ancestorPoint.y
+    );
+  }
+  if (radialMode !== "ancestors") {
+    const descendantPoint = polarToPoint(centerX, centerY, FAN_INNER_RADIUS + 36, 90);
+    ctx.fillText(
+      locale === "id" ? "KETURUNAN" : "DESCENDANTS",
+      descendantPoint.x,
+      descendantPoint.y
+    );
+  }
   ctx.restore();
 
   ctx.restore();
@@ -668,6 +731,7 @@ function drawFanChart(
 
 export default function FamilyTreeCanvas({
   layout,
+  graph,
   selectedId,
   onSelectNode,
   onAddNode,
@@ -699,7 +763,11 @@ export default function FamilyTreeCanvas({
             view: "Arah pohon",
             portrait: "Potret",
             landscape: "Lanskap",
-            fan: "Fan",
+            fan: "Radial",
+            radial: "Radial View",
+            ancestors: "Leluhur",
+            descendants: "Keturunan",
+            family: "Keluarga Besar",
             density: "Mode tampilan",
             auto: "Auto",
             map: "Map",
@@ -720,7 +788,11 @@ export default function FamilyTreeCanvas({
             view: "Tree view",
             portrait: "Portrait",
             landscape: "Landscape",
-            fan: "Fan",
+            fan: "Radial",
+            radial: "Radial View",
+            ancestors: "Ancestors",
+            descendants: "Descendants",
+            family: "Extended Family",
             density: "View mode",
             auto: "Auto",
             map: "Map",
@@ -741,13 +813,18 @@ export default function FamilyTreeCanvas({
   const [wrapperSize, setWrapperSize] = useState({ width: 0, height: 0 });
   const [treeProjectionMode, setTreeProjectionMode] =
     useState<TreeProjectionMode>("portrait");
+  const [radialMode, setRadialMode] = useState<RadialViewMode>("ancestors");
   const [densityMode, setDensityMode] = useState<DensityMode>("auto");
   const [isDragging, setIsDragging] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [imagesLoaded, setImagesLoaded] = useState(0);
+  const radialFocusId =
+    layout.nodes.some((node) => node.id === selectedId)
+      ? selectedId!
+      : layout.nodes.find((node) => node.line === "self")?.id || layout.nodes[0]?.id || "";
   const projectedLayout = useMemo(
-    () => projectLayout(layout, treeProjectionMode),
-    [layout, treeProjectionMode]
+    () => projectLayout(layout, treeProjectionMode, graph, radialFocusId, radialMode),
+    [graph, layout, radialFocusId, radialMode, treeProjectionMode]
   );
   const { nodes, edges, width, height } = projectedLayout;
 
@@ -1044,7 +1121,8 @@ export default function FamilyTreeCanvas({
         selectedId,
         hoveredId,
         locale,
-        transform.k
+        transform.k,
+        radialMode
       );
       ctx.restore();
       return;
@@ -1411,6 +1489,7 @@ export default function FamilyTreeCanvas({
     nodes,
     owner,
     ownerGen,
+    radialMode,
     renderMode,
     selectedId,
     transform,
@@ -1638,7 +1717,7 @@ export default function FamilyTreeCanvas({
 
   const modeLabel =
     treeProjectionMode === "fan"
-      ? copy.fan
+      ? `${copy.radial} · ${copy[radialMode]}`
       : renderMode === "detail"
       ? copy.detailed
       : renderMode === "compact"
@@ -1689,6 +1768,25 @@ export default function FamilyTreeCanvas({
             <span className="hidden sm:inline">{copy.fit}</span>
           </button>
         </div>
+
+        {treeProjectionMode === "fan" && (
+          <div className="flex overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md">
+            {(["ancestors", "descendants", "family"] as const).map((mode) => (
+              <button
+                key={mode}
+                className={`inline-flex h-9 items-center rounded-lg px-3 text-xs font-bold transition ${
+                  radialMode === mode
+                    ? "bg-[#82693c] text-white shadow-md"
+                    : "text-[#5c4314] hover:bg-white hover:shadow-sm"
+                }`}
+                onClick={() => setRadialMode(mode)}
+                type="button"
+              >
+                {copy[mode]}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md">
           {(["portrait", "landscape", "fan"] as const).map((mode) => (
