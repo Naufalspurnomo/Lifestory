@@ -19,6 +19,7 @@ const CONFLICT_FIELDS: Array<keyof FamilyNode> = [
   "partners",
   "childrenIds",
   "generation",
+  "siblingOrder",
   "line",
   "imageUrl",
   "content",

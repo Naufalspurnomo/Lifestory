@@ -169,6 +169,7 @@ model Node {
   socialTiktok      String?
   socialLinkedin    String?
   generationCached  Int      @default(0)
+  siblingOrder      Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

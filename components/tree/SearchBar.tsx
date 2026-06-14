@@ -17,8 +17,7 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
       ? {
           placeholder: "Cari keluarga...",
           generation: "Generasi",
-          notFound: (text: string) =>
-            `Tidak ditemukan hasil untuk "${text}"`,
+          notFound: (text: string) => `Tidak ditemukan hasil untuk "${text}"`,
         }
       : {
           placeholder: "Search family...",
@@ -27,10 +26,11 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
         };
 
   const filteredNodes = useMemo(() => {
-    if (!query.trim()) return [];
-    const lowerQuery = query.toLowerCase();
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return [];
+
     return nodes.filter((node) =>
-      node.label.toLowerCase().includes(lowerQuery)
+      node.label.toLowerCase().includes(normalizedQuery)
     );
   }, [nodes, query]);
 
@@ -40,8 +40,8 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
         <input
           type="text"
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
+          onChange={(event) => {
+            setQuery(event.target.value);
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
@@ -70,8 +70,9 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
             }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-warmMuted/50 hover:text-warmMuted"
             aria-label="clear search"
+            type="button"
           >
-            ×
+            x
           </button>
         )}
       </div>
@@ -84,35 +85,37 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
                 const displayImageUrl = node.imageUrl
                   ? resolveDisplayMediaUrl(node.imageUrl)
                   : null;
+
                 return (
                   <button
-                  key={node.id}
-                  onClick={() => {
-                    onSelect(node.id);
-                    setIsOpen(false);
-                    setQuery("");
-                  }}
-                  className="flex w-full items-center gap-3 border-b border-warm-100 px-4 py-3 text-left transition-colors last:border-0 hover:bg-warm-100"
-                >
-                  <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-warm-100 text-xs font-bold text-warmMuted flex items-center justify-center">
-                    {displayImageUrl ? (
-                      <img
-                        src={displayImageUrl}
-                        alt={node.label}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      node.label.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-warmText">
-                      {node.label}
+                    key={node.id}
+                    onClick={() => {
+                      onSelect(node.id);
+                      setIsOpen(false);
+                      setQuery("");
+                    }}
+                    className="flex w-full items-center gap-3 border-b border-warm-100 px-4 py-3 text-left transition-colors last:border-0 hover:bg-warm-100"
+                    type="button"
+                  >
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-warm-100 text-xs font-bold text-warmMuted">
+                      {displayImageUrl ? (
+                        <img
+                          src={displayImageUrl}
+                          alt={node.label}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        node.label.charAt(0).toUpperCase()
+                      )}
                     </div>
-                    <div className="text-xs text-warmMuted">
-                      {copy.generation} {node.generation} • {node.year || "?"}
+                    <div>
+                      <div className="text-sm font-medium text-warmText">
+                        {node.label}
+                      </div>
+                      <div className="text-xs text-warmMuted">
+                        {copy.generation} {node.generation} - {node.year || "?"}
+                      </div>
                     </div>
-                  </div>
                   </button>
                 );
               })}

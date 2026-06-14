@@ -43,6 +43,7 @@ function mapNode(row: {
   socialTiktok: string | null;
   socialLinkedin: string | null;
   generationCached: number;
+  siblingOrder: number | null;
 }): DbNode {
   return {
     id: row.id,
@@ -62,6 +63,7 @@ function mapNode(row: {
     socialTiktok: row.socialTiktok,
     socialLinkedin: row.socialLinkedin,
     generationCached: row.generationCached,
+    siblingOrder: row.siblingOrder,
   };
 }
 
@@ -234,6 +236,7 @@ export class BackupManager {
               socialTiktok: node.socialTiktok,
               socialLinkedin: node.socialLinkedin,
               generationCached: node.generationCached,
+              siblingOrder: node.siblingOrder,
             })),
           });
         }

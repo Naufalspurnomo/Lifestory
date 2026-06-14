@@ -132,6 +132,17 @@ describe("tree persistence projection", () => {
     expect(byId.get("child")?.partners).toEqual(["spouse"]);
     expect(byId.get("spouse")?.partners).toEqual(["child"]);
   });
+
+  it("round-trips manual sibling order", () => {
+    const result = roundTripTree([
+      familyNode("child-a", { siblingOrder: 1 }),
+      familyNode("child-b", { siblingOrder: 0 }),
+    ]);
+    const byId = new Map(result.map((node) => [node.id, node]));
+
+    expect(byId.get("child-a")?.siblingOrder).toBe(1);
+    expect(byId.get("child-b")?.siblingOrder).toBe(0);
+  });
 });
 
 describe("canonical family graph", () => {

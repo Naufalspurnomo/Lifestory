@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculateHierarchicalLayout } from "../lib/tree/layoutEngine";
+import { getSiblingOrderUpdates } from "../lib/tree/siblingOrder";
 import type { FamilyNode } from "../lib/types/tree";
 
 function familyNode(id: string, label: string, overrides: Partial<FamilyNode> = {}): FamilyNode {
@@ -125,5 +126,65 @@ describe("family tree layout spacing", () => {
     const soedibyo = getPosition(layout.nodes, "soedibyo");
 
     expect(Math.abs(phoa.x - soedibyo.x)).toBeGreaterThanOrEqual(260);
+  });
+
+  it("orders sibling branches by birth year and keeps partners with the moved branch", () => {
+    const nodes = [
+      familyNode("father", "Father", {
+        partners: ["mother"],
+        childrenIds: ["oldest", "middle", "youngest"],
+      }),
+      familyNode("mother", "Mother", {
+        partners: ["father"],
+        childrenIds: ["oldest", "middle", "youngest"],
+      }),
+      familyNode("oldest", "Oldest", {
+        year: 1988,
+        parentId: "father",
+        parentIds: ["father", "mother"],
+      }),
+      familyNode("middle", "Middle", {
+        year: 1989,
+        parentId: "father",
+        parentIds: ["father", "mother"],
+      }),
+      familyNode("youngest", "Youngest", {
+        year: 1992,
+        parentId: "father",
+        parentIds: ["father", "mother"],
+        partners: ["youngest-partner"],
+      }),
+      familyNode("youngest-partner", "Youngest Partner", {
+        partners: ["youngest"],
+      }),
+    ];
+
+    const automatic = calculateHierarchicalLayout(nodes);
+    expect(getPosition(automatic.nodes, "oldest").x).toBeLessThan(
+      getPosition(automatic.nodes, "middle").x
+    );
+    expect(getPosition(automatic.nodes, "middle").x).toBeLessThan(
+      getPosition(automatic.nodes, "youngest").x
+    );
+
+    const orderedBranchIds = [
+      "youngest::youngest-partner",
+      "oldest",
+      "middle",
+    ];
+    const updates = getSiblingOrderUpdates(nodes, "youngest", orderedBranchIds);
+    const reorderedNodes = nodes.map((node) => ({
+      ...node,
+      ...(updates.find((update) => update.nodeId === node.id)?.data || {}),
+    }));
+    const reordered = calculateHierarchicalLayout(reorderedNodes);
+    const youngest = getPosition(reordered.nodes, "youngest");
+    const partner = getPosition(reordered.nodes, "youngest-partner");
+
+    expect(youngest.x).toBeLessThan(getPosition(reordered.nodes, "oldest").x);
+    expect(Math.abs(youngest.x - partner.x)).toBeLessThanOrEqual(240);
+    expect(updates.some((update) => update.nodeId === "youngest-partner")).toBe(
+      false
+    );
   });
 });

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
+import { AnimatePresence } from "framer-motion";
 
 import FamilyTreeCanvas from "../../components/tree/FamilyTreeCanvas";
 import CanvasErrorBoundary from "../../components/tree/CanvasErrorBoundary";
@@ -21,6 +22,7 @@ import { useTreeState } from "../../lib/hooks/useTreeState";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 import { downloadTreeJson } from "../../lib/sync/ExportManager";
 import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
+import { getSiblingOrderUpdates } from "../../lib/tree/siblingOrder";
 import {
   BookOpen,
   ChevronLeft,
@@ -55,6 +57,7 @@ export default function AppHome() {
           notifTreeCreateFailed:
             "Pohon belum dibuat di server. Periksa koneksi lalu coba lagi.",
           notifProfileUpdated: "Profil diperbarui",
+          notifSiblingOrderUpdated: "Urutan saudara berhasil dirapikan.",
           notifAutoParentCreated: "Orang tua placeholder dibuat otomatis.",
           notifAdded: (name: string) => `${name} ditambahkan ke pohon`,
           notifError: (error?: string) => `Error: ${error || "Tidak diketahui"}`,
@@ -93,6 +96,7 @@ export default function AppHome() {
           notifTreeCreateFailed:
             "The tree was not created on the server. Check your connection and try again.",
           notifProfileUpdated: "Profile updated",
+          notifSiblingOrderUpdated: "Sibling order updated.",
           notifAutoParentCreated: "Placeholder parents created automatically.",
           notifAdded: (name: string) => `${name} added to tree`,
           notifError: (error?: string) => `Error: ${error || "Unknown error"}`,
@@ -145,6 +149,7 @@ export default function AppHome() {
     createTree,
     addNode,
     updateNode,
+    updateNodes,
     deleteNode,
     getNode,
     importNodes,
@@ -281,6 +286,21 @@ export default function AppHome() {
     setSelectedId(null);
     setShowNodeEditor(true);
   };
+
+  const handleReorderSiblings = useCallback(
+    (sourceNodeId: string, orderedBranchIds: string[]) => {
+      if (!currentTree) return;
+      const updates = getSiblingOrderUpdates(
+        currentTree.nodes,
+        sourceNodeId,
+        orderedBranchIds
+      );
+      if (updates.length === 0) return;
+      updateNodes(updates);
+      showNotification(copy.notifSiblingOrderUpdated);
+    },
+    [copy.notifSiblingOrderUpdated, currentTree, showNotification, updateNodes]
+  );
 
   const handleSaveNode = (
     nodeData: Omit<FamilyNode, "id" | "generation" | "childrenIds">
@@ -694,6 +714,7 @@ export default function AppHome() {
                   selectedId={selectedId}
                   onSelectNode={setSelectedId}
                   onAddNode={handleAddNode}
+                  onReorderSiblings={handleReorderSiblings}
                 />
               </CanvasErrorBoundary>
             ) : (
@@ -918,17 +939,20 @@ export default function AppHome() {
             </div>
           </div>
 
-          {selectedNode && (
-            <BioModal
-              node={selectedNode}
-              onClose={() => setSelectedId(null)}
-              onEdit={() => handleEditNode(selectedNode)}
-              onDelete={() => handleDeleteNode(selectedNode.id)}
-              onAddRelative={(type) => {
-                handleAddNode(selectedNode.id, type);
-              }}
-            />
-          )}
+          <AnimatePresence initial={false}>
+            {selectedNode && (
+              <BioModal
+                key={selectedNode.id}
+                node={selectedNode}
+                onClose={() => setSelectedId(null)}
+                onEdit={() => handleEditNode(selectedNode)}
+                onDelete={() => handleDeleteNode(selectedNode.id)}
+                onAddRelative={(type) => {
+                  handleAddNode(selectedNode.id, type);
+                }}
+              />
+            )}
+          </AnimatePresence>
 
           <NodeEditor
             isOpen={showNodeEditor}

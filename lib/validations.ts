@@ -186,6 +186,13 @@ const familyNodeSchema = z.object({
   partners: z.array(nodeIdSchema).max(20).optional().default([]),
   childrenIds: z.array(nodeIdSchema).max(250).optional().default([]),
   generation: z.number().int().min(-100).max(100).optional().default(0),
+  siblingOrder: z
+    .number()
+    .int()
+    .min(0)
+    .max(10_000)
+    .nullable()
+    .optional(),
   line: z
     .enum(["paternal", "maternal", "union", "descendant", "self", "default"])
     .optional()

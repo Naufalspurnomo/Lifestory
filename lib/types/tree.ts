@@ -127,6 +127,7 @@ export type FamilyNode = {
   partners: string[]; // Partner IDs
   childrenIds: string[]; // Children IDs
   generation: number; // Depth level
+  siblingOrder?: number | null; // Manual left-to-right order within one parent unit
   line?: "paternal" | "maternal" | "union" | "descendant" | "self" | "default";
   imageUrl: string | null;
   imageStorageKey?: string | null;

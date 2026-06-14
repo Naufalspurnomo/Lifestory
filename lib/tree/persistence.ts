@@ -39,6 +39,7 @@ export type DbNode = {
   socialTiktok: string | null;
   socialLinkedin: string | null;
   generationCached: number;
+  siblingOrder: number | null;
 };
 
 export type DbEdge = {
@@ -109,6 +110,7 @@ export function serializeTreeToRows(nodes: FamilyNode[]): DbTreeSnapshot {
     socialTiktok: n.content?.tiktok ?? null,
     socialLinkedin: n.content?.linkedin ?? null,
     generationCached: n.generation ?? 0,
+    siblingOrder: n.siblingOrder ?? null,
   }));
 
   const seenEdges = new Set<string>();
@@ -194,6 +196,7 @@ export function deserializeRowsToTree(
       partners: [],
       childrenIds: [],
       generation: row.generationCached ?? 0,
+      siblingOrder: row.siblingOrder ?? null,
       line: (row.line as FamilyNode["line"]) || "default",
       imageUrl: row.imageUrl,
       imageStorageKey: row.imageStorageKey,

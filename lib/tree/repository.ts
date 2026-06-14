@@ -138,6 +138,7 @@ async function writeGraph(
         socialTiktok: n.socialTiktok,
         socialLinkedin: n.socialLinkedin,
         generationCached: n.generationCached,
+        siblingOrder: n.siblingOrder,
       })),
     });
   }
@@ -180,6 +181,7 @@ function toNodeCreateData(treeId: string, n: DbNode) {
     socialTiktok: n.socialTiktok,
     socialLinkedin: n.socialLinkedin,
     generationCached: n.generationCached,
+    siblingOrder: n.siblingOrder,
   };
 }
 
@@ -208,6 +210,7 @@ function dbNodeFingerprint(n: DbNode): string {
     n.socialTiktok,
     n.socialLinkedin,
     n.generationCached,
+    n.siblingOrder,
   ]);
 }
 
@@ -338,6 +341,7 @@ export async function getTreeForUser(
     socialTiktok: n.socialTiktok,
     socialLinkedin: n.socialLinkedin,
     generationCached: n.generationCached,
+    siblingOrder: n.siblingOrder,
   }));
 
   const dbEdges: DbEdge[] = edges.map((e) => ({
@@ -610,6 +614,7 @@ export async function applyTreeMutations(
           socialTiktok: n.socialTiktok,
           socialLinkedin: n.socialLinkedin,
           generationCached: n.generationCached,
+          siblingOrder: n.siblingOrder,
         }));
       const currentNodes = deserializeRowsToTree({
         nodes: currentDbNodes,

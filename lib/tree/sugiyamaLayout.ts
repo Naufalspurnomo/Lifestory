@@ -44,6 +44,7 @@ type PersonNode = Person & {
   x: number;
   y: number;
   order: number;
+  siblingOrder?: number;
 };
 
 type UnionNode = Union & {
@@ -78,8 +79,9 @@ function getUnionKey(partnerIds: string[]): string {
 }
 
 function comparePersons(a: PersonNode, b: PersonNode): number {
-  const byYear = (a.birthDate || "").localeCompare(b.birthDate || "");
-  if (byYear !== 0) return byYear;
+  const aYear = a.birthDate ? Number(a.birthDate) : Number.POSITIVE_INFINITY;
+  const bYear = b.birthDate ? Number(b.birthDate) : Number.POSITIVE_INFINITY;
+  if (aYear !== bYear) return aYear - bYear;
 
   const byLabel = a.label.localeCompare(b.label, "id", {
     sensitivity: "base",
@@ -208,6 +210,8 @@ function buildInternalGraph(nodes: FamilyNode[]): InternalGraph {
       x: 0,
       y: 0,
       order: index,
+      siblingOrder:
+        typeof node.siblingOrder === "number" ? node.siblingOrder : undefined,
     });
   });
 
@@ -737,11 +741,58 @@ function placeBlock(g: InternalGraph, block: RowBlock) {
   });
 }
 
+function compareSiblingBlocks(
+  g: InternalGraph,
+  a: RowBlock,
+  b: RowBlock
+): number {
+  const aParentIds = new Set(
+    a.personIds
+      .map((id) => g.persons.get(id)?.parentUnionId)
+      .filter((id): id is string => Boolean(id))
+  );
+  const sharedParentIds = b.personIds
+    .map((id) => g.persons.get(id)?.parentUnionId)
+    .filter(
+      (id): id is string => id !== undefined && aParentIds.has(id)
+    );
+
+  if (sharedParentIds.length !== 1) return 0;
+  const parentUnionId = sharedParentIds[0];
+  const membersForParent = (block: RowBlock) =>
+    block.personIds
+      .map((id) => g.persons.get(id))
+      .filter(
+        (person): person is PersonNode =>
+          person !== undefined && person.parentUnionId === parentUnionId
+      )
+      .sort(comparePersons);
+
+  const aMembers = membersForParent(a);
+  const bMembers = membersForParent(b);
+  if (aMembers.length === 0 || bMembers.length === 0) return 0;
+
+  const aManual = aMembers
+    .map((person) => person.siblingOrder)
+    .filter((order): order is number => typeof order === "number");
+  const bManual = bMembers
+    .map((person) => person.siblingOrder)
+    .filter((order): order is number => typeof order === "number");
+
+  if (aManual.length > 0 && bManual.length > 0) {
+    const byManual = Math.min(...aManual) - Math.min(...bManual);
+    if (byManual !== 0) return byManual;
+  }
+
+  return comparePersons(aMembers[0], bMembers[0]);
+}
+
 function packAndPlaceBlocks(g: InternalGraph, blocks: RowBlock[]) {
-  // Primary sort by target; when two blocks share the same target (common
-  // when they have the same parent union), break ties using ancestry order
-  // so siblings always sit together, then by insertion order.
+  // A manual sibling order is a hard left-to-right constraint. Coordinates
+  // remain automatic so connectors and whole branches stay valid.
   blocks.sort((a, b) => {
+    const bySiblingOrder = compareSiblingBlocks(g, a, b);
+    if (bySiblingOrder !== 0) return bySiblingOrder;
     const byTarget = a.target - b.target;
     if (Math.abs(byTarget) > 0.001) return byTarget;
     const ancA = computeAncestryOrder(g, a);
@@ -795,8 +846,10 @@ function initializeCoordinates(g: InternalGraph) {
   for (let layer = 0; layer <= maxLayer; layer++) {
     const blocks = makeRowBlocks(g, layer);
     // Sort by ancestry centre (so siblings from the same parent cluster),
-    // then by insertion order as a stable tie-breaker.
+    // then by birth year/manual sibling order as a stable tie-breaker.
     blocks.sort((a, b) => {
+      const bySiblingOrder = compareSiblingBlocks(g, a, b);
+      if (bySiblingOrder !== 0) return bySiblingOrder;
       const ancA = computeAncestryOrder(g, a);
       const ancB = computeAncestryOrder(g, b);
       if (Math.abs(ancA - ancB) > 0.001) return ancA - ancB;

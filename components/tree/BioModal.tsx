@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowDown,
   ArrowUp,
@@ -52,6 +53,7 @@ export default function BioModal({
   onAddRelative,
 }: BioModalProps) {
   const { locale } = useLanguage();
+  const shouldReduceMotion = useReducedMotion();
   const [activeTab, setActiveTab] = useState<Tab>("story");
   const isDeceased = node.deathYear !== null;
   const instagramHandle = normalizeInstagramHandle(node.content?.instagram);
@@ -197,10 +199,32 @@ export default function BioModal({
     },
   ];
 
+  const fadeTransition = { duration: shouldReduceMotion ? 0 : 0.18 };
+  const panelTransition = shouldReduceMotion
+    ? { duration: 0 }
+    : { type: "spring" as const, stiffness: 420, damping: 38, mass: 0.9 };
+
   return (
-    <div className="pointer-events-none fixed inset-0 z-[100] flex justify-end">
-      <aside
+    <motion.div
+      className="pointer-events-none fixed inset-0 z-[100] flex justify-end"
+      initial={shouldReduceMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+      transition={fadeTransition}
+    >
+      <motion.div
+        className="pointer-events-none absolute inset-0 bg-ink-950/10 backdrop-blur-[1px]"
+        initial={shouldReduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+        transition={fadeTransition}
+      />
+      <motion.aside
         className="pointer-events-auto relative z-[1] flex h-full w-full max-w-[520px] flex-col border-l border-brand-200 bg-cream-50 bg-grain shadow-deep"
+        initial={shouldReduceMotion ? false : { x: "100%", opacity: 0.94 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={shouldReduceMotion ? { x: 0, opacity: 1 } : { x: "100%", opacity: 0.94 }}
+        transition={panelTransition}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="relative h-56 shrink-0 overflow-hidden border-b border-brand-200 bg-ink-900 text-cream-50">
@@ -475,7 +499,7 @@ export default function BioModal({
             </button>
           </div>
         </div>
-      </aside>
-    </div>
+      </motion.aside>
+    </motion.div>
   );
 }

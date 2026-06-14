@@ -17,6 +17,7 @@ import {
   type RadialViewMode,
 } from "../../lib/tree/radialView";
 import { resolveTreeFocusContext } from "../../lib/tree/focusView";
+import { getSiblingBranchGroup } from "../../lib/tree/siblingOrder";
 import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import { useLanguage } from "../providers/LanguageProvider";
 
@@ -29,6 +30,7 @@ type Props = {
     parentId: string,
     type: "parent" | "partner" | "child" | "sibling"
   ) => void;
+  onReorderSiblings: (sourceNodeId: string, orderedBranchIds: string[]) => void;
 };
 
 type Transform = {
@@ -49,6 +51,16 @@ type FanSegment = {
   endAngle: number;
   relativeGeneration: number;
   relation: RadialRelation;
+};
+
+type BranchDragState = {
+  sourceNodeId: string;
+  sourceBranchId: string;
+  draggedNodeIds: string[];
+  orderedBranchIds: string[];
+  dropX: number;
+  rowY: number;
+  changed: boolean;
 };
 
 const GEN_COLORS: Record<number, { border: string; labelId: string; labelEn: string }> = {
@@ -743,6 +755,7 @@ export default function FamilyTreeCanvas({
   selectedId,
   onSelectNode,
   onAddNode,
+  onReorderSiblings,
 }: Props) {
   const { locale } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -750,6 +763,12 @@ export default function FamilyTreeCanvas({
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const dragStartRef = useRef({ x: 0, y: 0 });
   const dragDistanceRef = useRef(0);
+  const pendingBranchDragRef = useRef<{
+    pointerId: number;
+    sourceNodeId: string;
+    startX: number;
+    startY: number;
+  } | null>(null);
   const pinchRef = useRef<{
     distance: number;
     center: { x: number; y: number };
@@ -790,7 +809,8 @@ export default function FamilyTreeCanvas({
             compact: "Ringkas",
             detailed: "Detail",
             hint:
-              "Drag untuk geser. Pinch atau Ctrl/Cmd + scroll untuk zoom. Klik minimap untuk lompat area.",
+              "Drag area kosong untuk geser. Tekan lalu geser kartu saudara untuk mengatur urutan.",
+            reorderHint: "Geser ke posisi baru, lalu lepaskan.",
           }
         : {
             fit: "Fit all",
@@ -818,7 +838,8 @@ export default function FamilyTreeCanvas({
             compact: "Compact",
             detailed: "Detail",
             hint:
-              "Drag to pan. Pinch or Ctrl/Cmd + scroll to zoom. Click the minimap to jump.",
+              "Drag empty space to pan. Press and drag a sibling card to reorder.",
+            reorderHint: "Move to a new position, then release.",
           },
     [locale]
   );
@@ -833,6 +854,7 @@ export default function FamilyTreeCanvas({
     null
   );
   const [isDragging, setIsDragging] = useState(false);
+  const [branchDrag, setBranchDrag] = useState<BranchDragState | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [imagesLoaded, setImagesLoaded] = useState(0);
   const radialFocusId =
@@ -1063,6 +1085,82 @@ export default function FamilyTreeCanvas({
       return null;
     },
     [getRelativePoint, nodes, renderMode, screenToWorld, transform.k]
+  );
+
+  const buildBranchDragState = useCallback(
+    (
+      sourceNodeId: string,
+      clientX: number,
+      clientY: number
+    ): BranchDragState | null => {
+      if (treeProjectionMode !== "portrait") return null;
+      const group = getSiblingBranchGroup(nodes, sourceNodeId);
+      const point = getRelativePoint(clientX, clientY);
+      if (!group || !point) return null;
+
+      const byId = new Map(nodes.map((node) => [node.id, node]));
+      const branches = group.branches
+        .map((branch) => {
+          const positioned = branch.nodeIds
+            .map((id) => byId.get(id))
+            .filter(
+              (node): node is FamilyNode =>
+                node !== undefined &&
+                Number.isFinite(node.x) &&
+                Number.isFinite(node.y)
+            );
+          if (positioned.length === 0) return null;
+          return {
+            ...branch,
+            centerX:
+              positioned.reduce((sum, node) => sum + node.x!, 0) /
+              positioned.length,
+            centerY:
+              positioned.reduce((sum, node) => sum + node.y!, 0) /
+              positioned.length,
+          };
+        })
+        .filter((branch): branch is NonNullable<typeof branch> => Boolean(branch))
+        .sort((a, b) => a.centerX - b.centerX);
+
+      const sourceBranch = branches.find(
+        (branch) => branch.id === group.sourceBranchId
+      );
+      if (!sourceBranch || branches.length < 2) return null;
+
+      const world = screenToWorld(point.x, point.y);
+      const remaining = branches.filter((branch) => branch.id !== sourceBranch.id);
+      let insertAt = remaining.findIndex((branch) => world.x < branch.centerX);
+      if (insertAt === -1) insertAt = remaining.length;
+
+      const orderedBranchIds = remaining.map((branch) => branch.id);
+      orderedBranchIds.splice(insertAt, 0, sourceBranch.id);
+      const currentBranchIds = branches.map((branch) => branch.id);
+
+      const left = remaining[insertAt - 1];
+      const right = remaining[insertAt];
+      const dropX =
+        left && right
+          ? (left.centerX + right.centerX) / 2
+          : left
+          ? left.centerX + LAYOUT.NODE_SPACING_X * 0.55
+          : right
+          ? right.centerX - LAYOUT.NODE_SPACING_X * 0.55
+          : sourceBranch.centerX;
+
+      return {
+        sourceNodeId,
+        sourceBranchId: sourceBranch.id,
+        draggedNodeIds: sourceBranch.nodeIds,
+        orderedBranchIds,
+        dropX,
+        rowY: sourceBranch.centerY,
+        changed: orderedBranchIds.some(
+          (branchId, index) => branchId !== currentBranchIds[index]
+        ),
+      };
+    },
+    [getRelativePoint, nodes, screenToWorld, treeProjectionMode]
   );
 
   const findButtonAt = useCallback(
@@ -1366,9 +1464,10 @@ export default function FamilyTreeCanvas({
       ctx.globalAlpha = visualFocusContext ? (isRelevantNode ? 1 : 0.2) : 1;
       const isSelected = node.id === selectedId;
       const isHovered = node.id === hoveredId;
+      const isBranchDragged = branchDrag?.draggedNodeIds.includes(node.id) || false;
       const displayGen = (node.generation ?? 0) - ownerGen + baseGen;
       const genColor = GEN_COLORS[displayGen]?.border || "#be123c";
-      const active = isSelected || isHovered;
+      const active = isSelected || isHovered || isBranchDragged;
       const accentColor = node.line === "self" ? "#82693c" : genColor;
       const metrics = getNodeCardMetrics(renderMode, transform.k, active);
       const cardW = renderMode === "overview" ? ((active ? 11 : 7.2) / transform.k) : metrics.width;
@@ -1618,8 +1717,33 @@ export default function FamilyTreeCanvas({
       ctx.restore();
     }
 
+    if (branchDrag?.changed && treeProjectionMode === "portrait") {
+      const markerHalfHeight = NODE_CARD_HEIGHT * 0.72;
+      ctx.save();
+      ctx.strokeStyle = "#82693c";
+      ctx.fillStyle = "#82693c";
+      ctx.lineWidth = 3 / Math.max(transform.k, 0.45);
+      ctx.setLineDash([8 / transform.k, 7 / transform.k]);
+      ctx.beginPath();
+      ctx.moveTo(branchDrag.dropX, branchDrag.rowY - markerHalfHeight);
+      ctx.lineTo(branchDrag.dropX, branchDrag.rowY + markerHalfHeight);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(
+        branchDrag.dropX,
+        branchDrag.rowY,
+        5 / Math.max(transform.k, 0.45),
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+      ctx.restore();
+    }
+
     ctx.restore();
   }, [
+    branchDrag,
     edges,
     generationMarkers,
     hoveredId,
@@ -1747,7 +1871,27 @@ export default function FamilyTreeCanvas({
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
     if (pointersRef.current.size >= 2) {
+      pendingBranchDragRef.current = null;
+      setBranchDrag(null);
       setupPinch();
+      return;
+    }
+
+    const node = findNodeAt(event.clientX, event.clientY);
+    if (
+      node &&
+      treeProjectionMode === "portrait" &&
+      getSiblingBranchGroup(nodes, node.id)
+    ) {
+      pendingBranchDragRef.current = {
+        pointerId: event.pointerId,
+        sourceNodeId: node.id,
+        startX: event.clientX,
+        startY: event.clientY,
+      };
+      dragStartRef.current = { x: event.clientX, y: event.clientY };
+      dragDistanceRef.current = 0;
+      if (canvasRef.current) canvasRef.current.style.cursor = "grab";
       return;
     }
 
@@ -1782,6 +1926,42 @@ export default function FamilyTreeCanvas({
       return;
     }
 
+    const pendingBranch = pendingBranchDragRef.current;
+    if (pendingBranch?.pointerId === event.pointerId) {
+      const dx = event.clientX - pendingBranch.startX;
+      const dy = event.clientY - pendingBranch.startY;
+      const distance = Math.hypot(dx, dy);
+      dragDistanceRef.current = Math.max(dragDistanceRef.current, distance);
+      const threshold = event.pointerType === "touch" ? 12 : 6;
+      const horizontalIntent = Math.abs(dx) >= Math.abs(dy) * 1.15;
+
+      if (!branchDrag && distance >= threshold && !horizontalIntent) {
+        pendingBranchDragRef.current = null;
+        setIsDragging(true);
+        setTransform((previous) => ({
+          ...previous,
+          x: previous.x + dx,
+          y: previous.y + dy,
+        }));
+        dragStartRef.current = { x: event.clientX, y: event.clientY };
+        if (canvasRef.current) canvasRef.current.style.cursor = "grabbing";
+        return;
+      }
+
+      if (branchDrag || (distance >= threshold && horizontalIntent)) {
+        const nextBranchDrag = buildBranchDragState(
+          pendingBranch.sourceNodeId,
+          event.clientX,
+          event.clientY
+        );
+        if (nextBranchDrag) {
+          setBranchDrag(nextBranchDrag);
+          if (canvasRef.current) canvasRef.current.style.cursor = "grabbing";
+        }
+      }
+      return;
+    }
+
     if (isDragging) {
       const dx = event.clientX - dragStartRef.current.x;
       const dy = event.clientY - dragStartRef.current.y;
@@ -1801,13 +1981,23 @@ export default function FamilyTreeCanvas({
       const buttonHit = findButtonAt(event.clientX, event.clientY);
       setHoveredId(node?.id || null);
       if (canvasRef.current) {
-        canvasRef.current.style.cursor = node || buttonHit ? "pointer" : "grab";
+        const reorderable =
+          node &&
+          treeProjectionMode === "portrait" &&
+          getSiblingBranchGroup(nodes, node.id);
+        canvasRef.current.style.cursor = reorderable
+          ? "grab"
+          : node || buttonHit
+          ? "pointer"
+          : "grab";
       }
     }
   };
 
   const endPointer = (event: React.PointerEvent<HTMLDivElement>) => {
     const wasDragging = isDragging;
+    const pendingBranch = pendingBranchDragRef.current;
+    const completedBranchDrag = branchDrag;
     pointersRef.current.delete(event.pointerId);
     pinchRef.current = null;
     if (pointersRef.current.size >= 2) {
@@ -1816,11 +2006,27 @@ export default function FamilyTreeCanvas({
     }
 
     setIsDragging(false);
+    setBranchDrag(null);
+    pendingBranchDragRef.current = null;
     if (canvasRef.current) canvasRef.current.style.cursor = "grab";
+
+    if (completedBranchDrag) {
+      if (completedBranchDrag.changed) {
+        onReorderSiblings(
+          completedBranchDrag.sourceNodeId,
+          completedBranchDrag.orderedBranchIds
+        );
+      }
+      onSelectNode(completedBranchDrag.sourceNodeId);
+      return;
+    }
 
     // S4: Adaptive threshold: 12px for touch, 6px for mouse.
     const clickThreshold = lastPointerTypeRef.current === "touch" ? 12 : 6;
-    if (wasDragging && dragDistanceRef.current < clickThreshold) {
+    if (
+      (wasDragging || pendingBranch?.pointerId === event.pointerId) &&
+      dragDistanceRef.current < clickThreshold
+    ) {
       // Check quick-add button hit first (moved from pointerDown to
       // pointerUp so buttons only trigger on clean taps, not drag starts.
       // This prevents accidental button triggers on mobile touch).
@@ -1909,13 +2115,21 @@ export default function FamilyTreeCanvas({
       onPointerLeave={() => {
         // S1: Reset all interaction state on pointer leave
         setIsDragging(false);
+        setBranchDrag(null);
         setHoveredId(null);
         pointersRef.current.clear();
         pinchRef.current = null;
+        pendingBranchDragRef.current = null;
         dragDistanceRef.current = 0;
       }}
     >
       <canvas ref={canvasRef} className="block" />
+
+      {branchDrag?.changed && (
+        <div className="pointer-events-none absolute bottom-28 left-1/2 z-20 max-w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2 rounded-full border border-[#cbb78e] bg-[#fffaf0]/90 px-3 py-2 text-center text-[11px] font-bold text-[#5c4314] shadow-sm backdrop-blur-md sm:bottom-8 sm:text-xs">
+          {copy.reorderHint}
+        </div>
+      )}
 
       <div
         className="absolute left-3 right-3 top-3 flex max-w-full flex-wrap items-center gap-2 sm:left-4 sm:right-4 sm:top-4 lg:left-6 lg:right-6 lg:top-6"
