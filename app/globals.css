@@ -339,3 +339,15 @@ h3 {
     clip-path: inset(0 0 0 0);
   }
 }
+
+/* ============================================================
+   Chrome Autofill Override
+   ============================================================ */
+.lifestory-input:-webkit-autofill,
+.lifestory-input:-webkit-autofill:hover,
+.lifestory-input:-webkit-autofill:focus,
+.lifestory-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: #3f342d !important;
+  transition: background-color 5000s ease-in-out 0s;
+}

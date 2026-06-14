@@ -9,7 +9,9 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { useLanguage } from "../providers/LanguageProvider";
 
 /**
  * FloatingField primitives — input, textarea, select with floating label.
@@ -25,6 +27,7 @@ type BaseSlots = {
   error?: ReactNode;
   iconLeft?: ReactNode;
   iconRight?: ReactNode;
+  actionRight?: ReactNode;
   fullWidth?: boolean;
   containerClassName?: string;
 };
@@ -45,6 +48,7 @@ function FieldShell({
   error,
   iconLeft,
   iconRight,
+  actionRight,
   fullWidth,
   containerClassName,
   children,
@@ -82,13 +86,18 @@ function FieldShell({
         >
           {label}
         </label>
-        {iconRight && (
+        {iconRight && !actionRight && (
           <span
             aria-hidden
             className="pointer-events-none absolute right-3.5 top-1/2 inline-flex -translate-y-1/2 text-ink-300 [&>svg]:h-4 [&>svg]:w-4"
           >
             {iconRight}
           </span>
+        )}
+        {actionRight && (
+          <div className="absolute right-3.5 top-1/2 inline-flex -translate-y-1/2 items-center justify-center">
+            {actionRight}
+          </div>
         )}
       </div>
       {(hint || error) && (
@@ -120,16 +129,44 @@ export const FloatingInput = forwardRef<HTMLInputElement, InputProps>(
       error,
       iconLeft,
       iconRight,
+      actionRight,
       fullWidth = true,
       containerClassName,
       className,
       id: providedId,
+      type,
       ...rest
     },
     ref
   ) {
+    const { locale } = useLanguage();
     const reactId = useId();
     const id = providedId ?? `f-${reactId}`;
+    const [showPassword, setShowPassword] = useState(false);
+
+    const isPassword = type === "password";
+    const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+
+    const actualActionRight = isPassword ? (
+      <button
+        type="button"
+        onClick={() => setShowPassword(!showPassword)}
+        className="flex h-6 w-6 items-center justify-center rounded-md text-ink-400 outline-none transition-colors hover:text-ink-600 focus-visible:ring-2 focus-visible:ring-brand-400"
+        aria-label={
+          showPassword
+            ? locale === "id"
+              ? "Sembunyikan password"
+              : "Hide password"
+            : locale === "id"
+              ? "Tampilkan password"
+              : "Show password"
+        }
+      >
+        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
+    ) : (
+      actionRight
+    );
 
     return (
       <FieldShell
@@ -139,22 +176,25 @@ export const FloatingInput = forwardRef<HTMLInputElement, InputProps>(
         error={error}
         iconLeft={iconLeft}
         iconRight={iconRight}
+        actionRight={actualActionRight}
         fullWidth={fullWidth}
         containerClassName={containerClassName}
         hasPaddingLeft={Boolean(iconLeft)}
-        hasPaddingRight={Boolean(iconRight)}
+        hasPaddingRight={Boolean(iconRight) || Boolean(actualActionRight)}
       >
         <input
           ref={ref}
           id={id}
+          type={inputType}
           placeholder=" "
           aria-invalid={Boolean(error) || undefined}
           aria-describedby={hint || error ? `${id}-hint` : undefined}
           className={cn(
             baseField,
+            "lifestory-input",
             error ? fieldErr : fieldOk,
             iconLeft && "pl-10",
-            iconRight && "pr-10",
+            (iconRight || actualActionRight) && "pr-10",
             className
           )}
           {...rest}
