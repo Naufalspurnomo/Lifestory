@@ -9,15 +9,16 @@ import {
   BadgeCheck,
   MessageCircleMore,
   ShieldCheck,
-  Sparkles,
-  TreePine,
   Users,
+  Mail,
+  Lock,
+  User2,
+  Phone,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLanguage } from "../../../components/providers/LanguageProvider";
 import { Button } from "../../../components/ui/Button";
 import { FloatingInput } from "../../../components/ui/FloatingField";
-import { Mail, Lock, User2, Phone } from "lucide-react";
 import { getRegistrationErrorMessage } from "../../../lib/registration-errors";
 
 function LoadingState() {
@@ -70,18 +71,13 @@ function SuccessState() {
         };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-warm-50 via-[#fdfbf6] to-white">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-gold-200/45 blur-3xl" />
-        <div className="absolute -right-20 bottom-14 h-72 w-72 rounded-full bg-accent-100/65 blur-3xl" />
-      </div>
-
+    <main className="bg-cream-50">
       <div className="relative mx-auto max-w-3xl px-6 py-20">
         <motion.div
           initial={{ opacity: 0, y: reduce ? 0 : 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: reduce ? 0.01 : 0.45 }}
-          className="rounded-[30px] border border-green-200 bg-white/88 p-8 text-center shadow-[0_22px_60px_rgba(70,109,86,0.2)] backdrop-blur-sm"
+          className="rounded-card border border-green-200 bg-white p-8 text-center shadow-soft"
         >
           <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100 text-green-700">
             <BadgeCheck className="h-6 w-6" />
@@ -108,7 +104,7 @@ function SuccessState() {
           </div>
         </motion.div>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -149,6 +145,8 @@ export default function RegisterPage() {
           ],
           afterSubmit: "Setelah submit",
           afterSubmitDesc: "Tim admin akan menghubungi Anda",
+          helper:
+            "Pendaftaran membuat akun nonaktif terlebih dahulu. Admin akan verifikasi pembayaran dan mengaktifkan akses Anda.",
         }
       : {
           badge: "Family Onboarding",
@@ -179,6 +177,8 @@ export default function RegisterPage() {
           ],
           afterSubmit: "After submit",
           afterSubmitDesc: "Our admin team will contact you",
+          helper:
+            "Registration creates an inactive account first. Admin verifies payment and activates access.",
         };
 
   useEffect(() => {
@@ -231,34 +231,32 @@ export default function RegisterPage() {
   if (status === "success") return <SuccessState />;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-warm-50 via-[#fdfbf6] to-white">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-gold-200/50 blur-3xl" />
-        <div className="absolute -right-24 bottom-16 h-72 w-72 rounded-full bg-accent-100/70 blur-3xl" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(164,146,117,0.08)_1px,transparent_0)] [background-size:24px_24px]" />
-      </div>
-
-      <div className="relative mx-auto grid max-w-6xl gap-8 px-6 py-14 lg:grid-cols-[1fr_0.95fr] lg:py-20">
-        <motion.section
+    <main className="bg-cream-50">
+      <div className="mx-auto grid min-h-[calc(100vh-78px)] w-full max-w-[1440px] lg:grid-cols-[minmax(0,0.92fr)_minmax(460px,0.78fr)]">
+      <section className="relative z-10 flex w-full flex-col justify-center px-5 py-8 sm:px-8 lg:px-16 xl:px-24">
+        <motion.div
           initial={{ opacity: 0, y: reduce ? 0 : 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduce ? 0.01 : 0.45 }}
-          className="rounded-[30px] border border-warmBorder bg-white/86 p-6 shadow-[0_24px_64px_rgba(88,74,51,0.18)] backdrop-blur-sm sm:p-8"
+          transition={{ duration: reduce ? 0.01 : 0.4 }}
+          className="mx-auto w-full max-w-[460px]"
         >
-          <div className="mb-8 space-y-3">
-            <p className="inline-flex items-center gap-2 rounded-full border border-warmBorder bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-accent-700">
-              <Sparkles className="h-3.5 w-3.5" />
+          <div className="mb-8">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">
               {copy.badge}
             </p>
-            <h1 className="font-serif text-3xl leading-tight text-warmText sm:text-4xl">
+            <h1 className="font-serif text-3xl leading-tight text-ink-900 sm:text-4xl">
               {copy.title}
             </h1>
-            <p className="max-w-lg text-sm leading-relaxed text-warmMuted sm:text-base">
+            <p className="mt-4 text-sm leading-relaxed text-ink-500 sm:text-base">
               {copy.subtitle}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            className="rounded-card border border-cream-300 bg-white p-4 shadow-soft sm:p-6"
+          >
+            <div className="space-y-4">
             <FloatingInput
               required
               name="name"
@@ -300,85 +298,94 @@ export default function RegisterPage() {
               title={copy.passwordTitle}
               autoComplete="new-password"
             />
+            </div>
+
+            {error && (
+              <div
+                role="alert"
+                className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-relaxed text-red-700"
+              >
+                {error}
+              </div>
+            )}
 
             <Button
               type="submit"
               block
               loading={status === "loading"}
               size="lg"
+              className="mt-5 h-12 text-sm font-semibold shadow-sm transition-all duration-300 hover:shadow-md"
             >
               {copy.register}
             </Button>
-
-            {error && (
-              <div
-                role="alert"
-                className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-              >
-                {error}
-              </div>
-            )}
           </form>
 
-          <div className="mt-6 border-t border-warmBorder pt-5 text-sm text-warmMuted">
-            {copy.haveAccount}{" "}
+          <div className="mt-6 rounded-card border border-cream-300 bg-white/70 p-4 text-sm leading-relaxed text-ink-500">
+            <p>{copy.helper}</p>
+            <p className="mt-3">
+              {copy.haveAccount}{" "}
             <Link
               href="/auth/login"
-              className="font-semibold text-accent-700 transition hover:text-accent-800"
+              className="font-semibold text-brand-700 transition hover:text-brand-800 hover:underline"
             >
               {copy.signIn}
             </Link>
+            </p>
           </div>
-        </motion.section>
+        </motion.div>
+      </section>
 
-        <motion.aside
-          initial={{ opacity: 0, y: reduce ? 0 : 28 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduce ? 0.01 : 0.5, delay: reduce ? 0 : 0.08 }}
-          className="relative overflow-hidden rounded-[30px] border border-accent-300 bg-gradient-to-br from-accent-900 via-accent-800 to-gold-800 p-6 text-white shadow-[0_22px_68px_rgba(19,45,42,0.4)] sm:p-8"
+      <aside className="hidden lg:relative lg:flex lg:flex-col lg:justify-between lg:overflow-hidden lg:bg-ink-900 lg:px-14 lg:py-16 xl:px-20">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.04)_1px,transparent_0)] [background-size:24px_24px]" />
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-brand-900/30 to-transparent" />
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, x: reduce ? 0 : 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: reduce ? 0.01 : 0.5, delay: 0.1 }}
+          className="relative z-10"
         >
-          <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute -bottom-10 left-6 h-28 w-28 rounded-full bg-gold-200/30 blur-3xl" />
-
-          <div className="relative space-y-6">
-            <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-white/10">
-              <TreePine className="h-5 w-5" />
-            </div>
-            <h2 className="font-serif text-2xl leading-tight sm:text-3xl">
-              {copy.sideTitle}
-            </h2>
-
-            <div className="space-y-3 text-sm text-white/85">
-              {[
-                { icon: ShieldCheck, text: copy.sidePoints[0] },
-                { icon: Users, text: copy.sidePoints[1] },
-                { icon: MessageCircleMore, text: copy.sidePoints[2] },
-              ].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    key={item.text}
-                    className="flex items-start gap-3 rounded-xl border border-white/15 bg-white/10 p-3"
-                  >
-                    <Icon className="mt-0.5 h-4.5 w-4.5 shrink-0" />
-                    <p>{item.text}</p>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="rounded-2xl border border-white/15 bg-black/20 p-4 text-sm">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.15em] text-gold-200">
-                {copy.afterSubmit}
-              </p>
-              <p className="inline-flex items-center gap-2 font-medium text-white">
-                {copy.afterSubmitDesc}
-                <ArrowRight className="h-4 w-4" />
-              </p>
-            </div>
+          <h2 className="max-w-xl font-serif text-4xl leading-tight text-white xl:text-5xl">
+            {copy.sideTitle}
+          </h2>
+          <div className="mt-12 space-y-6 text-cream-100/80">
+            {[
+              { icon: ShieldCheck, text: copy.sidePoints[0] },
+              { icon: Users, text: copy.sidePoints[1] },
+              { icon: MessageCircleMore, text: copy.sidePoints[2] },
+            ].map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <div key={i} className="flex items-start gap-4">
+                  <Icon className="mt-1 h-5 w-5 shrink-0 text-brand-400" />
+                  <p className="max-w-md text-base leading-relaxed text-cream-50/90">{item.text}</p>
+                </div>
+              );
+            })}
           </div>
-        </motion.aside>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="relative z-10 mt-auto pt-16"
+        >
+          <div className="inline-flex max-w-full items-center gap-4 rounded-full border border-white/10 bg-white/5 px-5 py-3 backdrop-blur-sm">
+            <span className="shrink-0 text-xs font-semibold uppercase tracking-[0.15em] text-gold-200/70">
+              {copy.afterSubmit}
+            </span>
+            <span className="h-4 w-px bg-white/20" />
+            <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-white">
+              {copy.afterSubmitDesc}
+              <ArrowRight className="h-4 w-4" />
+            </span>
+          </div>
+        </motion.div>
+      </aside>
       </div>
-    </div>
+    </main>
   );
 }

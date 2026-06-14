@@ -17,7 +17,12 @@ export function Footer() {
   const pathname = usePathname();
   const { locale } = useLanguage();
 
-  if (pathname === "/app" || pathname?.startsWith("/app/")) {
+  if (
+    pathname === "/app" ||
+    pathname?.startsWith("/app/") ||
+    pathname === "/auth/login" ||
+    pathname === "/auth/register"
+  ) {
     return null;
   }
 
