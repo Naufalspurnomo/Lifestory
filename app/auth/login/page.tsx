@@ -94,6 +94,8 @@ function LoginPageContent() {
           ],
           redirectTarget: "Redirect tujuan",
           helper: "Gunakan email yang terdaftar saat pembelian atau undangan keluarga.",
+          mobileProof: "Arsip keluarga pribadi",
+          mobileMetric: "Auto-save aktif",
         }
       : {
           badge: "Secure Access",
@@ -123,6 +125,8 @@ function LoginPageContent() {
           ],
           redirectTarget: "Redirect target",
           helper: "Use the email registered during purchase or family invitation.",
+          mobileProof: "Private family archive",
+          mobileMetric: "Auto-save active",
         };
 
   useEffect(() => {
@@ -172,53 +176,89 @@ function LoginPageContent() {
   if (sessionStatus === "authenticated") return <AuthenticatedState />;
 
   return (
-    <main className="bg-cream-50">
-      <div className="mx-auto grid min-h-[calc(100vh-78px)] w-full max-w-[1440px] lg:grid-cols-[minmax(0,0.92fr)_minmax(460px,0.78fr)]">
-      <section className="relative z-10 flex w-full flex-col justify-center px-5 py-8 sm:px-8 lg:px-16 xl:px-24">
-        <motion.div
-          initial={{ opacity: 0, y: reduce ? 0 : 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduce ? 0.01 : 0.4 }}
-          className="mx-auto w-full max-w-[460px]"
-        >
-          <div className="mb-8">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">
-              {copy.badge}
-            </p>
-            <h1 className="font-serif text-3xl leading-tight text-ink-900 sm:text-4xl">
-              {copy.title}
-            </h1>
-            <p className="mt-4 text-sm leading-relaxed text-ink-500 sm:text-base">
-              {copy.subtitle}
-            </p>
-          </div>
+    <main className="relative overflow-hidden bg-cream-50">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(130,105,60,0.13),transparent_34%),radial-gradient(circle_at_15%_18%,rgba(170,141,92,0.18),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(29,22,16,0.08),transparent_26%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-grain opacity-60" />
+
+      <div className="relative mx-auto grid min-h-[calc(100vh-78px)] w-full max-w-[1440px] lg:grid-cols-[minmax(0,0.92fr)_minmax(460px,0.78fr)]">
+        <section className="relative z-10 flex w-full flex-col justify-center px-5 py-7 sm:px-8 lg:px-16 xl:px-24">
+          <motion.div
+            initial={{ opacity: 0, y: reduce ? 0 : 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduce ? 0.01 : 0.4 }}
+            className="mx-auto w-full max-w-[480px]"
+          >
+            <div className="mb-6 overflow-hidden rounded-card border border-brand-200 bg-ink-900 p-5 text-cream-50 shadow-deep lg:hidden">
+              <div className="grid grid-cols-[1fr_auto] items-start gap-4">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-300">
+                    {copy.mobileProof}
+                  </p>
+                </div>
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
+                  <LockKeyhole className="h-5 w-5 text-brand-300" />
+                </div>
+              </div>
+              <p className="mt-3 max-w-[15rem] font-serif text-2xl leading-[1.05]">
+                {copy.sideTitle}
+              </p>
+              <div className="mt-5 grid gap-2 text-xs font-medium text-cream-100/85">
+                {[
+                  { icon: LockKeyhole, text: copy.secureLogin },
+                  { icon: Clock3, text: copy.mobileMetric },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={item.text}
+                      className="grid min-h-11 grid-cols-[1rem_1fr] items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.08] px-3.5 py-2.5"
+                    >
+                      <Icon className="h-4 w-4 text-brand-300" />
+                      <span className="leading-snug">{item.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mb-7">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">
+                {copy.badge}
+              </p>
+              <h1 className="font-serif text-3xl leading-tight text-ink-900 sm:text-4xl">
+                {copy.title}
+              </h1>
+              <p className="mt-4 text-sm leading-relaxed text-ink-500 sm:text-base">
+                {copy.subtitle}
+              </p>
+            </div>
 
           <form
             onSubmit={handleSubmit}
-            className="rounded-card border border-cream-300 bg-white p-4 shadow-soft sm:p-6"
+            className="rounded-card border border-cream-300 bg-white/95 p-4 shadow-lift backdrop-blur-sm sm:p-6"
           >
             <div className="space-y-4">
-            <FloatingInput
-              required
-              name="email"
-              type="email"
-              label={copy.email}
-              hint={copy.emailPlaceholder}
-              iconLeft={<Mail />}
-              autoComplete="email"
-              maxLength={254}
-            />
+              <FloatingInput
+                required
+                name="email"
+                type="email"
+                label={copy.email}
+                hint={copy.emailPlaceholder}
+                iconLeft={<Mail />}
+                autoComplete="email"
+                maxLength={254}
+              />
 
-            <FloatingInput
-              required
-              name="password"
-              type="password"
-              label={copy.password}
-              hint={copy.passwordPlaceholder}
-              iconLeft={<Lock />}
-              autoComplete="current-password"
-              maxLength={128}
-            />
+              <FloatingInput
+                required
+                name="password"
+                type="password"
+                label={copy.password}
+                hint={copy.passwordPlaceholder}
+                iconLeft={<Lock />}
+                autoComplete="current-password"
+                maxLength={128}
+              />
             </div>
 
             <div className="flex flex-col gap-2 py-4 text-sm sm:flex-row sm:items-center sm:justify-between">
@@ -255,12 +295,12 @@ function LoginPageContent() {
             <p>{copy.helper}</p>
             <p className="mt-3">
               {copy.noAccount}{" "}
-            <Link
-              href="/auth/register"
-              className="font-semibold text-brand-700 transition hover:text-brand-800 hover:underline"
-            >
-              {copy.registerNow}
-            </Link>
+              <Link
+                href="/auth/register"
+                className="font-semibold text-brand-700 transition hover:text-brand-800 hover:underline"
+              >
+                {copy.registerNow}
+              </Link>
             </p>
           </div>
         </motion.div>
@@ -278,6 +318,10 @@ function LoginPageContent() {
           transition={{ duration: reduce ? 0.01 : 0.5, delay: 0.1 }}
           className="relative z-10"
         >
+          <div className="mb-12 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-300">
+            <LockKeyhole className="h-4 w-4" />
+            {copy.mobileProof}
+          </div>
           <h2 className="max-w-xl font-serif text-4xl leading-tight text-white xl:text-5xl">
             {copy.sideTitle}
           </h2>

@@ -147,6 +147,8 @@ export default function RegisterPage() {
           afterSubmitDesc: "Tim admin akan menghubungi Anda",
           helper:
             "Pendaftaran membuat akun nonaktif terlebih dahulu. Admin akan verifikasi pembayaran dan mengaktifkan akses Anda.",
+          mobileProof: "Aktivasi terverifikasi",
+          mobileMetric: "Kontak via WhatsApp",
         }
       : {
           badge: "Family Onboarding",
@@ -179,6 +181,8 @@ export default function RegisterPage() {
           afterSubmitDesc: "Our admin team will contact you",
           helper:
             "Registration creates an inactive account first. Admin verifies payment and activates access.",
+          mobileProof: "Verified activation",
+          mobileMetric: "WhatsApp contact",
         };
 
   useEffect(() => {
@@ -231,73 +235,109 @@ export default function RegisterPage() {
   if (status === "success") return <SuccessState />;
 
   return (
-    <main className="bg-cream-50">
-      <div className="mx-auto grid min-h-[calc(100vh-78px)] w-full max-w-[1440px] lg:grid-cols-[minmax(0,0.92fr)_minmax(460px,0.78fr)]">
-      <section className="relative z-10 flex w-full flex-col justify-center px-5 py-8 sm:px-8 lg:px-16 xl:px-24">
-        <motion.div
-          initial={{ opacity: 0, y: reduce ? 0 : 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduce ? 0.01 : 0.4 }}
-          className="mx-auto w-full max-w-[460px]"
-        >
-          <div className="mb-8">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">
-              {copy.badge}
-            </p>
-            <h1 className="font-serif text-3xl leading-tight text-ink-900 sm:text-4xl">
-              {copy.title}
-            </h1>
-            <p className="mt-4 text-sm leading-relaxed text-ink-500 sm:text-base">
-              {copy.subtitle}
-            </p>
-          </div>
+    <main className="relative overflow-hidden bg-cream-50">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(130,105,60,0.13),transparent_34%),radial-gradient(circle_at_15%_18%,rgba(170,141,92,0.18),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(29,22,16,0.08),transparent_26%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-grain opacity-60" />
+
+      <div className="relative mx-auto grid min-h-[calc(100vh-78px)] w-full max-w-[1440px] lg:grid-cols-[minmax(0,0.92fr)_minmax(460px,0.78fr)]">
+        <section className="relative z-10 flex w-full flex-col justify-center px-5 py-7 sm:px-8 lg:px-16 xl:px-24">
+          <motion.div
+            initial={{ opacity: 0, y: reduce ? 0 : 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduce ? 0.01 : 0.4 }}
+            className="mx-auto w-full max-w-[480px]"
+          >
+            <div className="mb-6 overflow-hidden rounded-card border border-brand-200 bg-ink-900 p-5 text-cream-50 shadow-deep lg:hidden">
+              <div className="grid grid-cols-[1fr_auto] items-start gap-4">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-300">
+                    {copy.mobileProof}
+                  </p>
+                </div>
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
+                  <ShieldCheck className="h-5 w-5 text-brand-300" />
+                </div>
+              </div>
+              <p className="mt-3 max-w-[15rem] font-serif text-2xl leading-[1.05]">
+                {copy.sideTitle}
+              </p>
+              <div className="mt-5 grid gap-2 text-xs font-medium text-cream-100/85">
+                {[
+                  { icon: MessageCircleMore, text: copy.afterSubmitDesc },
+                  { icon: ShieldCheck, text: copy.mobileMetric },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={item.text}
+                      className="grid min-h-11 grid-cols-[1rem_1fr] items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.08] px-3.5 py-2.5"
+                    >
+                      <Icon className="h-4 w-4 text-brand-300" />
+                      <span className="leading-snug">{item.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mb-7">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">
+                {copy.badge}
+              </p>
+              <h1 className="font-serif text-3xl leading-tight text-ink-900 sm:text-4xl">
+                {copy.title}
+              </h1>
+              <p className="mt-4 text-sm leading-relaxed text-ink-500 sm:text-base">
+                {copy.subtitle}
+              </p>
+            </div>
 
           <form
             onSubmit={handleSubmit}
-            className="rounded-card border border-cream-300 bg-white p-4 shadow-soft sm:p-6"
+            className="rounded-card border border-cream-300 bg-white/95 p-4 shadow-lift backdrop-blur-sm sm:p-6"
           >
             <div className="space-y-4">
-            <FloatingInput
-              required
-              name="name"
-              label={copy.name}
-              hint={copy.namePlaceholder}
-              iconLeft={<User2 />}
-              autoComplete="name"
-              maxLength={120}
-            />
-            <FloatingInput
-              required
-              name="email"
-              type="email"
-              label={copy.email}
-              hint={copy.emailPlaceholder}
-              iconLeft={<Mail />}
-              autoComplete="email"
-              maxLength={254}
-            />
-            <FloatingInput
-              required
-              name="phone"
-              type="tel"
-              label={copy.phone}
-              hint={copy.phonePlaceholder}
-              iconLeft={<Phone />}
-              autoComplete="tel"
-            />
-            <FloatingInput
-              required
-              name="password"
-              type="password"
-              label={copy.password}
-              hint={copy.passwordPlaceholder}
-              iconLeft={<Lock />}
-              minLength={8}
-              maxLength={128}
-              pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,}"
-              title={copy.passwordTitle}
-              autoComplete="new-password"
-            />
+              <FloatingInput
+                required
+                name="name"
+                label={copy.name}
+                hint={copy.namePlaceholder}
+                iconLeft={<User2 />}
+                autoComplete="name"
+                maxLength={120}
+              />
+              <FloatingInput
+                required
+                name="email"
+                type="email"
+                label={copy.email}
+                hint={copy.emailPlaceholder}
+                iconLeft={<Mail />}
+                autoComplete="email"
+                maxLength={254}
+              />
+              <FloatingInput
+                required
+                name="phone"
+                type="tel"
+                label={copy.phone}
+                hint={copy.phonePlaceholder}
+                iconLeft={<Phone />}
+                autoComplete="tel"
+              />
+              <FloatingInput
+                required
+                name="password"
+                type="password"
+                label={copy.password}
+                hint={copy.passwordPlaceholder}
+                iconLeft={<Lock />}
+                minLength={8}
+                maxLength={128}
+                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,}"
+                title={copy.passwordTitle}
+                autoComplete="new-password"
+              />
             </div>
 
             {error && (
@@ -324,12 +364,12 @@ export default function RegisterPage() {
             <p>{copy.helper}</p>
             <p className="mt-3">
               {copy.haveAccount}{" "}
-            <Link
-              href="/auth/login"
-              className="font-semibold text-brand-700 transition hover:text-brand-800 hover:underline"
-            >
-              {copy.signIn}
-            </Link>
+              <Link
+                href="/auth/login"
+                className="font-semibold text-brand-700 transition hover:text-brand-800 hover:underline"
+              >
+                {copy.signIn}
+              </Link>
             </p>
           </div>
         </motion.div>
@@ -347,6 +387,10 @@ export default function RegisterPage() {
           transition={{ duration: reduce ? 0.01 : 0.5, delay: 0.1 }}
           className="relative z-10"
         >
+          <div className="mb-12 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-300">
+            <ShieldCheck className="h-4 w-4" />
+            {copy.mobileProof}
+          </div>
           <h2 className="max-w-xl font-serif text-4xl leading-tight text-white xl:text-5xl">
             {copy.sideTitle}
           </h2>
