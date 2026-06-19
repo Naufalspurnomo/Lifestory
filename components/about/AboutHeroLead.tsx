@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpenText } from "lucide-react";
@@ -155,6 +156,36 @@ function HeadlineAccent({ children }: { children: string }) {
   );
 }
 
+/** Gentle, endless float/sway. Renders a plain wrapper when motion is off. */
+function Floating({
+  children,
+  still,
+  y = 9,
+  rotate = 1,
+  duration = 7,
+  delay = 0,
+  className,
+}: {
+  children: ReactNode;
+  still: boolean;
+  y?: number;
+  rotate?: number;
+  duration?: number;
+  delay?: number;
+  className?: string;
+}) {
+  if (still) return <div className={className}>{children}</div>;
+  return (
+    <motion.div
+      className={className}
+      animate={{ y: [0, -y, 0], rotate: [0, rotate, 0] }}
+      transition={{ duration, delay, ease: "easeInOut", repeat: Infinity, repeatType: "loop" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 function FabricBackground() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -181,10 +212,11 @@ function PhotoCollage({
   reduced: boolean;
   lightMotion: boolean;
 }) {
+  const still = reduced || lightMotion;
   const photos = [
-    { src: "/image/about-hero-1.webp", className: "left-[4%] top-[14%] z-10 w-[38%] max-w-[220px]", ratio: "aspect-[3/4]", rotate: -1.5 },
-    { src: "/image/about-hero-2.webp", className: "left-[27%] top-[7%] z-20 w-[42%] max-w-[250px]", ratio: "aspect-[4/5]", rotate: 1 },
-    { src: "/image/about-hero-3.webp", className: "right-[3%] top-[18%] z-30 w-[39%] max-w-[230px]", ratio: "aspect-[3/4]", rotate: 2 },
+    { src: "/image/about-hero-1.webp", className: "left-[4%] top-[14%] z-10 w-[38%] max-w-[220px]", ratio: "aspect-[3/4]", rotate: -1.5, float: { y: 9, rotate: 0.8, duration: 7, delay: 0 } },
+    { src: "/image/about-hero-2.webp", className: "left-[27%] top-[7%] z-20 w-[42%] max-w-[250px]", ratio: "aspect-[4/5]", rotate: 1, float: { y: 12, rotate: -0.7, duration: 8.5, delay: 0.6 } },
+    { src: "/image/about-hero-3.webp", className: "right-[3%] top-[18%] z-30 w-[39%] max-w-[230px]", ratio: "aspect-[3/4]", rotate: 2, float: { y: 8, rotate: 1.1, duration: 7.6, delay: 1.1 } },
   ];
 
   return (
@@ -196,7 +228,7 @@ function PhotoCollage({
     >
       <div aria-hidden className="absolute left-[23%] top-[3%] z-0 h-[430px] w-[48%] rotate-[7deg] border border-[#cbbda4]/40 bg-[repeating-linear-gradient(0deg,rgba(139,111,73,0.08)_0px,rgba(139,111,73,0.08)_1px,transparent_1px,transparent_4px),repeating-linear-gradient(90deg,rgba(139,111,73,0.06)_0px,rgba(139,111,73,0.06)_1px,transparent_1px,transparent_5px),#d6c4a5] shadow-[0_18px_40px_rgba(69,51,31,0.18)]" />
 
-      <FlowerBranch />
+      <FlowerBranch still={still} />
 
       {photos.map((photo, index) => (
         <motion.figure
@@ -206,22 +238,30 @@ function PhotoCollage({
           transition={{ duration: reduced ? 0.01 : 0.85, delay: reduced ? 0 : 0.38 + index * 0.14, ease: EASE }}
           className={`absolute ${photo.className}`}
         >
-          <div className="overflow-hidden rounded-[7px] border border-cream-300 bg-[#eee8db] p-[7px] shadow-deep">
-            <div className={`relative overflow-hidden rounded-[4px] ${photo.ratio}`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo.src} alt="" className="h-full w-full object-cover" />
+          <Floating
+            still={still}
+            y={photo.float.y}
+            rotate={photo.float.rotate}
+            duration={photo.float.duration}
+            delay={photo.float.delay}
+          >
+            <div className="overflow-hidden rounded-[7px] border border-cream-300 bg-[#eee8db] p-[7px] shadow-deep">
+              <div className={`relative overflow-hidden rounded-[4px] ${photo.ratio}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photo.src} alt="" className="h-full w-full object-cover" />
+              </div>
+              <div className="mt-[-14px] flex justify-center pb-1">
+                <span className="relative rounded-full bg-[#f1ebde] px-3 py-1 text-[8px] font-bold uppercase tracking-[0.14em] text-ink-500 shadow-sm">
+                  {photoTags[index]}
+                </span>
+              </div>
             </div>
-            <div className="mt-[-14px] flex justify-center pb-1">
-              <span className="relative rounded-full bg-[#f1ebde] px-3 py-1 text-[8px] font-bold uppercase tracking-[0.14em] text-ink-500 shadow-sm">
-                {photoTags[index]}
-              </span>
-            </div>
-          </div>
+          </Floating>
           {index === 1 && <PaperClip />}
         </motion.figure>
       ))}
 
-      <DryLeaf />
+      <DryLeaf still={still} />
 
       <motion.div
         initial={{ opacity: 0, rotate: lightMotion ? 1 : 4, y: reduced ? 0 : lightMotion ? 8 : 16 }}
@@ -230,7 +270,9 @@ function PhotoCollage({
         aria-hidden
         className="absolute bottom-[2%] right-[7%] z-40 max-w-[180px] bg-[#eee4d2] px-5 py-4 shadow-[0_14px_30px_rgba(70,51,31,0.18)] [clip-path:polygon(5%_0,100%_4%,96%_100%,0_94%)]"
       >
-        <p className="font-serif text-[0.85rem] italic leading-[1.5] text-ink-700">{note}</p>
+        <Floating still={still} y={6} rotate={0.8} duration={6.8} delay={0.4}>
+          <p className="font-serif text-[0.85rem] italic leading-[1.5] text-ink-700">{note}</p>
+        </Floating>
       </motion.div>
     </motion.div>
   );
@@ -246,10 +288,17 @@ function PaperClip() {
   );
 }
 
-function FlowerBranch() {
+function FlowerBranch({ still }: { still: boolean }) {
   return (
     <div aria-hidden className="pointer-events-none absolute -right-[7%] top-[20%] z-40 h-[300px] w-[170px] rotate-[7deg] text-[#b5965c]/55">
-      <svg viewBox="0 0 170 300" fill="none" className="h-full w-full">
+      <motion.svg
+        viewBox="0 0 170 300"
+        fill="none"
+        className="h-full w-full"
+        style={{ transformOrigin: "bottom center" }}
+        animate={still ? undefined : { rotate: [0, 2.6, 0], y: [0, -4, 0] }}
+        transition={still ? undefined : { duration: 9, ease: "easeInOut", repeat: Infinity }}
+      >
         <path d="M28 286C61 215 78 148 104 42" stroke="currentColor" strokeWidth="1.4" />
         {[[39,255,26,10],[51,230,31,11],[62,202,28,10],[72,176,32,11],[81,150,26,10],[91,124,28,10],[101,96,24,9],[108,69,21,8]].map(([cx, cy, rx, ry], index) => (
           <g key={index}>
@@ -257,19 +306,26 @@ function FlowerBranch() {
             <ellipse cx={cx + 45} cy={cy - 8} rx={rx - 3} ry={ry - 1} transform={`rotate(${24 - index * 2} ${cx + 45} ${cy - 8})`} stroke="currentColor" />
           </g>
         ))}
-      </svg>
+      </motion.svg>
     </div>
   );
 }
 
-function DryLeaf() {
+function DryLeaf({ still }: { still: boolean }) {
   return (
     <div aria-hidden className="pointer-events-none absolute bottom-[8%] left-[22%] z-30 h-[150px] w-[105px] rotate-[-24deg] text-[#8d7754]/55">
-      <svg viewBox="0 0 105 150" fill="none" className="h-full w-full drop-shadow-[0_8px_8px_rgba(65,47,29,0.16)]">
+      <motion.svg
+        viewBox="0 0 105 150"
+        fill="none"
+        className="h-full w-full drop-shadow-[0_8px_8px_rgba(65,47,29,0.16)]"
+        style={{ transformOrigin: "top center" }}
+        animate={still ? undefined : { rotate: [0, -3.2, 0], y: [0, 4, 0] }}
+        transition={still ? undefined : { duration: 10, ease: "easeInOut", repeat: Infinity, delay: 1.2 }}
+      >
         <path d="M54 144C54 105 53 67 51 16" stroke="currentColor" strokeWidth="2" />
         <path d="M51 18C13 41 14 82 53 106C90 76 88 38 51 18Z" fill="currentColor" fillOpacity="0.32" stroke="currentColor" />
         <path d="M51 23C51 61 52 82 53 103M51 51L29 42M52 70L76 56M52 88L34 78" stroke="currentColor" strokeWidth="1" opacity="0.65" />
-      </svg>
+      </motion.svg>
     </div>
   );
 }

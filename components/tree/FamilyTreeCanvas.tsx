@@ -63,15 +63,19 @@ type BranchDragState = {
   changed: boolean;
 };
 
+// Generation is encoded as a warm tonal ramp, not a rainbow: ancestors recede
+// into deep walnut, "you" is the signature bronze anchor, descendants brighten
+// into honey. Keeps the quiet-archive identity while staying legible.
 const GEN_COLORS: Record<number, { border: string; labelId: string; labelEn: string }> = {
-  [-2]: { border: "#805ad5", labelId: "Buyut", labelEn: "Great-grandparent" }, // Amethyst
-  [-1]: { border: "#2f855a", labelId: "Kakek/Nenek", labelEn: "Grandparent" }, // Emerald
-  [0]: { border: "#3182ce", labelId: "Orang Tua", labelEn: "Parent" }, // Sapphire
-  [1]: { border: "#82693c", labelId: "Anda", labelEn: "You" }, // Gold Crown
-  [2]: { border: "#b08e51", labelId: "Anak", labelEn: "Child" }, // Bronze
-  [3]: { border: "#e53e3e", labelId: "Cucu", labelEn: "Grandchild" }, // Ruby
-  [4]: { border: "#d53f8c", labelId: "Cicit", labelEn: "Great-grandchild" }, // Rose Quartz
+  [-2]: { border: "#574c40", labelId: "Buyut", labelEn: "Great-grandparent" }, // Deep walnut
+  [-1]: { border: "#6b5b46", labelId: "Kakek/Nenek", labelEn: "Grandparent" }, // Umber
+  [0]: { border: "#7e6a49", labelId: "Orang Tua", labelEn: "Parent" }, // Antique brown
+  [1]: { border: "#82693c", labelId: "Anda", labelEn: "You" }, // Signature bronze
+  [2]: { border: "#9c8052", labelId: "Anak", labelEn: "Child" }, // Warm bronze
+  [3]: { border: "#b39565", labelId: "Cucu", labelEn: "Grandchild" }, // Tan
+  [4]: { border: "#c8ac7e", labelId: "Cicit", labelEn: "Great-grandchild" }, // Honey
 };
+const GEN_FALLBACK_COLOR = "#8c7655";
 
 const NODE_CARD_WIDTH = 154;
 const NODE_CARD_HEIGHT = 142;
@@ -307,11 +311,37 @@ function traceNodeShape(
   traceRoundedRect(ctx, x - w / 2, y - h / 2, w, h, r);
 }
 
-function drawCrown(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) {
+function drawCrown(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  const w = r * 1.9;
+  const h = r * 1.2;
+  const left = cx - w / 2;
+  const right = cx + w / 2;
+  const top = cy - h / 2;
+  const bottom = cy + h / 2;
+  const dip = cy - h * 0.06;
+
   ctx.save();
-  traceRoundedRect(ctx, x - 12, y - r - 5, 24, 8, 4);
-  ctx.fillStyle = "#82693c";
+  ctx.shadowColor = "rgba(44,30,22,0.3)";
+  ctx.shadowBlur = 4;
+  ctx.shadowOffsetY = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(left, bottom);
+  ctx.lineTo(left, top + h * 0.28);
+  ctx.lineTo(cx - w * 0.24, dip);
+  ctx.lineTo(cx, top);
+  ctx.lineTo(cx + w * 0.24, dip);
+  ctx.lineTo(right, top + h * 0.28);
+  ctx.lineTo(right, bottom);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(left, top, right, bottom);
+  grad.addColorStop(0, "#9c8052");
+  grad.addColorStop(1, "#6f5630");
+  ctx.fillStyle = grad;
   ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.lineWidth = 1.1;
+  ctx.strokeStyle = "rgba(255,250,240,0.85)";
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -324,25 +354,21 @@ function getQuickAddButtons(
       type: "parent" as const,
       x: node.x || 0,
       y: (node.y || 0) - metrics.height / 2 - 24,
-      icon: "^",
     },
     {
       type: "partner" as const,
       x: (node.x || 0) + metrics.width / 2 + 30,
       y: node.y || 0,
-      icon: "+",
     },
     {
       type: "child" as const,
       x: node.x || 0,
       y: (node.y || 0) + metrics.height / 2 + 30,
-      icon: "v",
     },
     {
       type: "sibling" as const,
       x: (node.x || 0) - metrics.width / 2 - 30,
       y: node.y || 0,
-      icon: "=",
     },
   ];
 }
@@ -409,9 +435,9 @@ function getFanSegmentFill(
   index: number,
   relation: RadialRelation
 ) {
-  const ancestor = ["#d9efe5", "#dce9f8", "#eadff5", "#f4e3c9"];
-  const descendant = ["#f4e7cc", "#ecd8b8", "#e6cfaa", "#dcc49e"];
-  const peer = ["#f0e2c8", "#e8d8b7"];
+  const ancestor = ["#e3dac8", "#d6c8ac", "#c7b690", "#b8a479"];
+  const descendant = ["#f4e7c9", "#edd9af", "#e4c995", "#d9b87f"];
+  const peer = ["#ece0c6", "#e1d1ad"];
   const palette =
     relation === "partner" || relation === "collateral"
       ? peer
@@ -619,7 +645,7 @@ function drawFanChart(
       segment.node.id === selectedId || segment.node.id === hoveredId;
     const fill = getFanSegmentFill(
       segment.relativeGeneration,
-      Math.abs(segment.node.label.length + segment.node.id.length),
+      Math.abs(segment.relativeGeneration),
       segment.relation
     );
 
@@ -665,8 +691,8 @@ function drawFanChart(
       });
 
       if (segment.node.year && labelLines.length < 2) {
-        ctx.font = "600 9px Inter, system-ui, sans-serif";
-        ctx.fillStyle = "#725f45";
+        ctx.font = "700 9px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#3f342d";
         ctx.fillText(String(segment.node.year), 0, 16);
       }
       ctx.restore();
@@ -686,7 +712,7 @@ function drawFanChart(
   if (radialMode === "descendants" && nodes.length === 1) {
     ctx.save();
     ctx.font = "700 11px Inter, system-ui, sans-serif";
-    ctx.fillStyle = "rgba(92,67,20,0.72)";
+    ctx.fillStyle = "rgba(45,33,22,0.92)";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(
@@ -725,7 +751,7 @@ function drawFanChart(
 
   ctx.save();
   ctx.font = "800 10px Inter, system-ui, sans-serif";
-  ctx.fillStyle = "rgba(92,67,20,0.72)";
+  ctx.fillStyle = "rgba(45,33,22,0.92)";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   if (radialMode !== "descendants") {
@@ -1326,8 +1352,8 @@ export default function FamilyTreeCanvas({
       }
       ctx.fillStyle =
         marker.generation % 2 === 0
-          ? "rgba(130, 105, 60, 0.04)"
-          : "rgba(212, 175, 55, 0.06)"; // subtle gold shimmer band
+          ? "rgba(130, 105, 60, 0.035)"
+          : "rgba(130, 105, 60, 0.06)"; // quiet alternating bronze bands
       ctx.fillRect(visibleWorld.left, bandTop, visibleWorld.right - visibleWorld.left, bandHalf * 2);
     }
 
@@ -1466,7 +1492,7 @@ export default function FamilyTreeCanvas({
       const isHovered = node.id === hoveredId;
       const isBranchDragged = branchDrag?.draggedNodeIds.includes(node.id) || false;
       const displayGen = (node.generation ?? 0) - ownerGen + baseGen;
-      const genColor = GEN_COLORS[displayGen]?.border || "#be123c";
+      const genColor = GEN_COLORS[displayGen]?.border || GEN_FALLBACK_COLOR;
       const active = isSelected || isHovered || isBranchDragged;
       const accentColor = node.line === "self" ? "#82693c" : genColor;
       const metrics = getNodeCardMetrics(renderMode, transform.k, active);
@@ -1482,40 +1508,39 @@ export default function FamilyTreeCanvas({
         ctx.restore();
 
         ctx.save();
-        ctx.shadowColor = active ? "rgba(44,30,22,0.34)" : "rgba(44,30,22,0.2)";
-        ctx.shadowBlur = (active ? 18 : 10) / transform.k;
-        ctx.shadowOffsetY = (active ? 7 : 4) / transform.k;
+        ctx.shadowColor = active ? "rgba(44,30,22,0.32)" : "rgba(44,30,22,0.18)";
+        ctx.shadowBlur = (active ? 20 : 11) / transform.k;
+        ctx.shadowOffsetY = (active ? 8 : 4.5) / transform.k;
         traceNodeShape(ctx, x, y, cardW, cardH, cardR);
         const cardGrad = ctx.createLinearGradient(
-          x - cardW / 2,
+          x,
           y - cardH / 2,
-          x + cardW / 2,
+          x,
           y + cardH / 2
         );
-        cardGrad.addColorStop(0, "#fffdf8");
-        cardGrad.addColorStop(0.68, "#fbf3df");
-        cardGrad.addColorStop(1, "#ead8b8");
+        cardGrad.addColorStop(0, "#fffefb");
+        cardGrad.addColorStop(0.74, "#fbf5ea");
+        cardGrad.addColorStop(1, "#f1e6d2");
         ctx.fillStyle = cardGrad;
         ctx.fill();
         ctx.restore();
 
         ctx.save();
-        traceNodeShape(ctx, x, y, cardW, cardH, cardR);
-        ctx.strokeStyle = active ? accentColor : "rgba(112,86,50,0.5)";
-        ctx.lineWidth = (active ? 2 : 1.15) / Math.max(transform.k, 0.45);
-        ctx.stroke();
-
-        traceNodeShape(ctx, x, y, cardW - 8, cardH - 8, Math.max(4, cardR - 4));
-        ctx.strokeStyle = "rgba(255,255,255,0.58)";
+        traceNodeShape(ctx, x, y, cardW - 7, cardH - 7, Math.max(4, cardR - 4));
+        ctx.strokeStyle = "rgba(255,255,255,0.55)";
         ctx.lineWidth = 1 / Math.max(transform.k, 0.45);
         ctx.stroke();
         ctx.restore();
 
         ctx.save();
-        const barW = Math.min(44, cardW - 54);
-        const barH = renderMode === "compact" ? 4 : 5;
-        traceRoundedRect(ctx, x - barW / 2, y - cardH / 2, barW, barH, 5);
-        ctx.fillStyle = accentColor;
+        const barW = Math.min(42, cardW - 54);
+        const barH = renderMode === "compact" ? 3.5 : 4.5;
+        const barGrad = ctx.createLinearGradient(x - barW / 2, 0, x + barW / 2, 0);
+        barGrad.addColorStop(0, "rgba(255,255,255,0)");
+        barGrad.addColorStop(0.5, accentColor);
+        barGrad.addColorStop(1, "rgba(255,255,255,0)");
+        traceRoundedRect(ctx, x - barW / 2, y - cardH / 2 + 1, barW, barH, barH / 2);
+        ctx.fillStyle = barGrad;
         ctx.fill();
         ctx.restore();
       } else {
@@ -1528,8 +1553,8 @@ export default function FamilyTreeCanvas({
 
       ctx.save();
       traceNodeShape(ctx, x, y, cardW, cardH, cardR);
-      ctx.strokeStyle = active ? accentColor : "rgba(113,88,51,0.5)";
-      ctx.lineWidth = (active ? 2.4 : 1.1) / Math.max(transform.k, 0.35);
+      ctx.strokeStyle = active ? accentColor : "rgba(120,92,54,0.42)";
+      ctx.lineWidth = (active ? 2.2 : 1) / Math.max(transform.k, 0.35);
       if (renderMode === "overview") {
         ctx.strokeStyle = active ? "#82693c" : genColor;
       }
@@ -1540,8 +1565,12 @@ export default function FamilyTreeCanvas({
         if (active) {
           ctx.save();
           traceNodeShape(ctx, x, y, cardW + 6, cardH + 6, cardR + 3);
-          ctx.strokeStyle = "rgba(130,105,60,0.4)";
-          ctx.lineWidth = 3 / Math.max(transform.k, 0.45);
+          ctx.strokeStyle = "rgba(130,105,60,0.34)";
+          ctx.lineWidth = 2 / Math.max(transform.k, 0.45);
+          ctx.stroke();
+          traceNodeShape(ctx, x, y, cardW + 11, cardH + 11, cardR + 6);
+          ctx.strokeStyle = "rgba(130,105,60,0.14)";
+          ctx.lineWidth = 1.5 / Math.max(transform.k, 0.45);
           ctx.stroke();
           ctx.restore();
         }
@@ -1682,36 +1711,41 @@ export default function FamilyTreeCanvas({
 
       if (isSelected && renderMode !== "overview") {
         for (const button of getQuickAddButtons(node, metrics)) {
-          traceRoundedRect(
-            ctx,
-            button.x - BUTTON_SIZE / 2,
-            button.y - BUTTON_SIZE / 2 + 2,
-            BUTTON_SIZE,
-            BUTTON_SIZE,
-            7
-          );
-          ctx.fillStyle = "rgba(0,0,0,0.16)";
-          ctx.fill();
+          const bx = button.x;
+          const by = button.y;
+          const br = BUTTON_SIZE / 2;
 
-          traceRoundedRect(
-            ctx,
-            button.x - BUTTON_SIZE / 2,
-            button.y - BUTTON_SIZE / 2,
-            BUTTON_SIZE,
-            BUTTON_SIZE,
-            7
-          );
-          ctx.fillStyle = "#82693c";
+          ctx.save();
+          ctx.shadowColor = "rgba(44,30,22,0.3)";
+          ctx.shadowBlur = 5;
+          ctx.shadowOffsetY = 2.5;
+          ctx.beginPath();
+          ctx.arc(bx, by, br, 0, Math.PI * 2);
+          const bGrad = ctx.createLinearGradient(bx, by - br, bx, by + br);
+          bGrad.addColorStop(0, "#94774a");
+          bGrad.addColorStop(1, "#6e5530");
+          ctx.fillStyle = bGrad;
           ctx.fill();
-          ctx.strokeStyle = "white";
-          ctx.lineWidth = 1.5;
+          ctx.restore();
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(bx, by, br, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(255,250,240,0.92)";
+          ctx.lineWidth = 1.6;
           ctx.stroke();
 
-          ctx.fillStyle = "white";
-          ctx.font = "800 15px Inter, sans-serif";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(button.icon, button.x, button.y);
+          ctx.strokeStyle = "#fffaf0";
+          ctx.lineCap = "round";
+          ctx.lineWidth = 2.6;
+          const g = br * 0.42;
+          ctx.beginPath();
+          ctx.moveTo(bx - g, by);
+          ctx.lineTo(bx + g, by);
+          ctx.moveTo(bx, by - g);
+          ctx.lineTo(bx, by + g);
+          ctx.stroke();
+          ctx.restore();
         }
       }
       ctx.restore();
@@ -2126,7 +2160,7 @@ export default function FamilyTreeCanvas({
       <canvas ref={canvasRef} className="block" />
 
       {branchDrag?.changed && (
-        <div className="pointer-events-none absolute bottom-28 left-1/2 z-20 max-w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2 rounded-full border border-[#cbb78e] bg-[#fffaf0]/90 px-3 py-2 text-center text-[11px] font-bold text-[#5c4314] shadow-sm backdrop-blur-md sm:bottom-8 sm:text-xs">
+        <div className="pointer-events-none absolute bottom-28 left-1/2 z-20 max-w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2 rounded-full border border-cream-500 bg-ink-50/90 px-3 py-2 text-center text-[11px] font-bold text-ink-700 shadow-sm backdrop-blur-md sm:bottom-8 sm:text-xs">
           {copy.reorderHint}
         </div>
       )}
@@ -2135,18 +2169,18 @@ export default function FamilyTreeCanvas({
         className="absolute left-3 right-3 top-3 flex max-w-full flex-wrap items-center gap-2 sm:left-4 sm:right-4 sm:top-4 lg:left-6 lg:right-6 lg:top-6"
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <div className="flex overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md">
+        <div className="flex overflow-hidden rounded-xl border border-cream-400 p-1 shadow-sm bg-white/70 backdrop-blur-md">
           <button
-            className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-bold text-[#5c4314] hover:bg-white hover:shadow-sm transition"
+            className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-bold text-ink-700 hover:bg-white hover:shadow-sm transition"
             onClick={() => setTransform(calculateFitTransform())}
             title={copy.fit}
             type="button"
           >
-            <Maximize2 className="h-4 w-4 text-[#82693c]" />
+            <Maximize2 className="h-4 w-4 text-brand-700" />
             <span className="hidden sm:inline">{copy.fit}</span>
           </button>
           <button
-            className="inline-flex h-9 items-center gap-2 border-l border-[#dccfb3]/70 px-3 text-xs font-bold text-[#5c4314] transition hover:bg-white hover:shadow-sm"
+            className="inline-flex h-9 items-center gap-2 border-l border-cream-400/70 px-3 text-xs font-bold text-ink-700 transition hover:bg-white hover:shadow-sm"
             onClick={() => {
               const targetId = selectedId || owner?.id;
               if (targetId) focusNode(targetId, 0.88);
@@ -2154,20 +2188,20 @@ export default function FamilyTreeCanvas({
             title={copy.center}
             type="button"
           >
-            <Crosshair className="h-4 w-4 text-[#82693c]" />
+            <Crosshair className="h-4 w-4 text-brand-700" />
             <span className="hidden sm:inline">{copy.center}</span>
           </button>
         </div>
 
         {treeProjectionMode === "fan" && (
-          <div className="flex overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md">
+          <div className="flex overflow-hidden rounded-xl border border-cream-400 p-1 shadow-sm bg-white/70 backdrop-blur-md">
             {(["ancestors", "descendants", "family"] as const).map((mode) => (
               <button
                 key={mode}
                 className={`inline-flex h-9 items-center rounded-lg px-3 text-xs font-bold transition ${
                   radialMode === mode
-                    ? "bg-[#82693c] text-white shadow-md"
-                    : "text-[#5c4314] hover:bg-white hover:shadow-sm"
+                    ? "bg-brand-700 text-white shadow-md"
+                    : "text-ink-700 hover:bg-white hover:shadow-sm"
                 }`}
                 onClick={() => setRadialMode(mode)}
                 type="button"
@@ -2178,8 +2212,8 @@ export default function FamilyTreeCanvas({
           </div>
         )}
 
-        <div className="flex overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md">
-          <span className="hidden items-center px-2 text-[9px] font-black uppercase tracking-[0.14em] text-[#82693c]/75 xl:inline-flex">
+        <div className="flex overflow-hidden rounded-xl border border-cream-400 p-1 shadow-sm bg-white/70 backdrop-blur-md">
+          <span className="hidden items-center px-2 text-[9px] font-black uppercase tracking-[0.14em] text-ink-600 xl:inline-flex">
             {copy.layout}
           </span>
           {(["portrait", "landscape", "fan"] as const).map((mode) => (
@@ -2187,8 +2221,8 @@ export default function FamilyTreeCanvas({
               key={mode}
               className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition ${
                 treeProjectionMode === mode
-                  ? "bg-[#82693c] text-white shadow-md"
-                  : "text-[#5c4314] hover:bg-white hover:shadow-sm"
+                  ? "bg-brand-700 text-white shadow-md"
+                  : "text-ink-700 hover:bg-white hover:shadow-sm"
               }`}
               onClick={() => setTreeProjectionMode(mode)}
               title={copy.view}
@@ -2212,8 +2246,8 @@ export default function FamilyTreeCanvas({
           ))}
         </div>
 
-        <div className="flex overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md">
-          <span className="hidden items-center px-2 text-[9px] font-black uppercase tracking-[0.14em] text-[#82693c]/75 xl:inline-flex">
+        <div className="flex overflow-hidden rounded-xl border border-cream-400 p-1 shadow-sm bg-white/70 backdrop-blur-md">
+          <span className="hidden items-center px-2 text-[9px] font-black uppercase tracking-[0.14em] text-ink-600 xl:inline-flex">
             {copy.display}
           </span>
           {(["auto", "map", "detail"] as const).map((mode) => (
@@ -2221,8 +2255,8 @@ export default function FamilyTreeCanvas({
               key={mode}
               className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition ${
                 densityMode === mode
-                  ? "bg-[#82693c] text-white shadow-md"
-                  : "text-[#5c4314] hover:bg-white hover:shadow-sm"
+                  ? "bg-brand-700 text-white shadow-md"
+                  : "text-ink-700 hover:bg-white hover:shadow-sm"
               }`}
               onClick={() => selectDensityMode(mode)}
               title={copy.density}
@@ -2257,8 +2291,8 @@ export default function FamilyTreeCanvas({
               key={marker.generation}
               className={`pointer-events-auto absolute rounded-lg border px-3 py-1.5 text-left text-[10px] font-bold shadow-sm backdrop-blur-md transition ${
                 isHighlighted
-                  ? "border-[#82693c] bg-[#82693c] text-white"
-                  : "border-[#dccfb3] bg-white/70 text-[#5c4314] hover:bg-white"
+                  ? "border-brand-700 bg-brand-700 text-white"
+                  : "border-cream-400 bg-white/70 text-ink-700 hover:bg-white"
               }`}
               style={{ top: clamp(top - 12, 84, wrapperSize.height - 42) }}
               onPointerDown={(event) => event.stopPropagation()}
@@ -2276,43 +2310,46 @@ export default function FamilyTreeCanvas({
       </div>
 
       <div className="absolute bottom-3 right-3 flex flex-col items-end gap-3 select-none sm:bottom-4 sm:right-4 lg:bottom-6 lg:right-6" onPointerDown={(event) => event.stopPropagation()}>
-        <div className="flex flex-col overflow-hidden rounded-xl border border-[#dccfb3] p-1 shadow-sm bg-white/70 backdrop-blur-md">
+        <div className="flex flex-col overflow-hidden rounded-xl border border-cream-400 p-1 shadow-sm bg-white/70 backdrop-blur-md">
           <button
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#5c4314] hover:bg-white hover:shadow-sm transition"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-700 hover:bg-white hover:shadow-sm transition"
             onClick={() => zoomAt(wrapperSize.width / 2, wrapperSize.height / 2, transform.k * 1.22)}
             title={copy.zoomIn}
+            aria-label={copy.zoomIn}
             type="button"
           >
-            <Plus className="h-4 w-4 text-[#82693c]" />
+            <Plus className="h-4 w-4 text-brand-700" />
           </button>
-          <div className="h-px w-full bg-[#dccfb3]/50 my-0.5" />
+          <div className="h-px w-full bg-cream-400/50 my-0.5" />
           <button
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#5c4314] hover:bg-white hover:shadow-sm transition"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-700 hover:bg-white hover:shadow-sm transition"
             onClick={() => zoomAt(wrapperSize.width / 2, wrapperSize.height / 2, transform.k / 1.22)}
             title={copy.zoomOut}
+            aria-label={copy.zoomOut}
             type="button"
           >
-            <Minus className="h-4 w-4 text-[#82693c]" />
+            <Minus className="h-4 w-4 text-brand-700" />
           </button>
         </div>
 
         {minimap && (
           <div
-            className="rounded-xl border border-[#dccfb3] p-2.5 shadow-sm bg-white/70 backdrop-blur-md relative cursor-pointer hover:bg-white/90 transition-colors"
+            className="rounded-xl border border-cream-400 p-2.5 shadow-sm bg-white/70 backdrop-blur-md relative cursor-pointer hover:bg-white/90 transition-colors"
             style={{ width: minimapSize.width, height: minimapSize.height }}
             onClick={jumpMinimap}
             role="button"
             tabIndex={0}
             title={copy.hint}
+            aria-label={copy.hint}
           >
-            <div className="absolute left-2.5 top-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[#82693c]">
+            <div className="absolute left-2.5 top-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-brand-700">
               {modeLabel}
             </div>
             {nodes.map((node) => {
               if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return null;
               const isSelected = node.id === selectedId;
               const displayGen = (node.generation ?? 0) - ownerGen + 1;
-              const genColor = GEN_COLORS[displayGen]?.border || "#8c7655";
+              const genColor = GEN_COLORS[displayGen]?.border || GEN_FALLBACK_COLOR;
               return (
                 <span
                   key={node.id}
@@ -2322,14 +2359,14 @@ export default function FamilyTreeCanvas({
                     top: minimap.offsetY + (node.y || 0) * minimap.scale,
                     width: isSelected ? 6 : 4,
                     height: isSelected ? 6 : 4,
-                    backgroundColor: isSelected ? "#c2410c" : genColor,
+                    backgroundColor: isSelected ? "#1d1610" : genColor,
                     transform: "translate(-50%, -50%)",
                   }}
                 />
               );
             })}
             <div
-              className="absolute rounded border border-[#82693c] bg-[#82693c]/10"
+              className="absolute rounded border border-brand-700 bg-brand-700/10"
               style={{
                 left: clamp(minimap.viewport.x, 0, minimapSize.width),
                 top: clamp(minimap.viewport.y, 0, minimapSize.height),

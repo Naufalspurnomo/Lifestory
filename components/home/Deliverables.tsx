@@ -19,6 +19,7 @@ import {
 import { Container } from "../ui/Container";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Reveal } from "../ui/Reveal";
+import { AmbientGlow } from "../ui/AmbientGlow";
 import { cn } from "../../lib/utils";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
@@ -96,9 +97,22 @@ export function Deliverables({ copy }: Props) {
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/35 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cream-400/70 to-transparent" />
         <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-30" />
+        <AmbientGlow
+          className="-left-24 top-1/4"
+          color="rgba(176,141,87,0.12)"
+          size={520}
+          duration={18}
+        />
+        <AmbientGlow
+          className="-right-28 bottom-[12%]"
+          color="rgba(176,141,87,0.09)"
+          size={460}
+          duration={22}
+          delay={2.5}
+        />
       </div>
 
-      <Container>
+      <Container className="relative">
         <Reveal className="relative mb-12 max-w-3xl md:mb-16">
           <Eyebrow>{copy.eyebrow}</Eyebrow>
           <h2 className="mt-4 font-serif text-[clamp(1.85rem,4.6vw,3.6rem)] leading-[1.05] tracking-[-0.02em] text-ink-800">

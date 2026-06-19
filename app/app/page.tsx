@@ -26,10 +26,13 @@ import { getSiblingOrderUpdates } from "../../lib/tree/siblingOrder";
 import {
   BookOpen,
   ChevronLeft,
+  Download,
   GitBranch,
   History,
   ImageIcon,
   Layers3,
+  Upload,
+  UserPlus,
   Users,
 } from "lucide-react";
 
@@ -427,17 +430,17 @@ export default function AppHome() {
     {
       label: copy.invite,
       onClick: () => setShowInviteModal(true),
-      icon: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8 12 3 7 8 M12 3v12",
+      Icon: UserPlus,
     },
     {
       label: copy.import,
       onClick: () => setShowImportModal(true),
-      icon: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3",
+      Icon: Upload,
     },
     {
       label: copy.export,
       onClick: handleExportTree,
-      icon: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6",
+      Icon: Download,
     },
   ];
 
@@ -486,7 +489,7 @@ export default function AppHome() {
           <p className="font-serif text-2xl text-[#3f342d]">
             {locale === "id" ? "Memuat pohon keluarga..." : "Loading family tree..."}
           </p>
-          <p className="text-sm text-[#7b6f63]">
+          <p className="text-sm text-ink-500">
             {locale === "id" ? "Menyiapkan ruang arsip Anda" : "Preparing your archive space"}
           </p>
         </div>
@@ -504,28 +507,28 @@ export default function AppHome() {
       {showTree && (
         <>
           {/* HUD HEADER */}
-          <header 
-            className="fixed top-0 left-0 right-0 z-40 flex h-[148px] flex-col justify-center gap-2 border-b border-[#dccfb3] px-3 py-2 text-[#3f342d] shadow-[0_4px_16px_rgba(59,43,24,0.08)] sm:h-[112px] sm:px-4 lg:h-16 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-6 xl:px-8"
-            style={{ 
-              background: "linear-gradient(180deg, #fdfbf6 0%, #faf6ed 100%)",
-            }}
+          <header
+            className="fixed top-0 left-0 right-0 z-40 flex h-[164px] flex-col justify-center gap-2 border-b border-cream-300 bg-cream-50/90 px-3 py-2 text-ink-800 shadow-[0_1px_0_rgba(255,255,255,0.65),0_10px_30px_-18px_rgba(59,43,24,0.4)] backdrop-blur-xl sm:h-[112px] sm:px-4 lg:h-16 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-6 xl:px-8"
           >
-            {/* Sisi Kiri: konteks pohon keluarga */}
+            {/* Left: family tree context */}
             <div className="flex w-full min-w-0 items-center justify-between gap-3 lg:w-auto lg:shrink-0">
               <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                 <Link
                   href="/"
-                  className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#dccfb3] bg-white/80 text-[#82693c] shadow-[0_10px_24px_rgba(59,43,24,0.08)] backdrop-blur-md transition hover:border-[#c5b395] hover:bg-white hover:text-[#3f342d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#82693c] focus-visible:ring-offset-2 focus-visible:ring-offset-[#faf6ed]"
+                  className="group inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cream-400 bg-cream-50 text-brand-700 transition hover:border-brand-300 hover:text-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-100"
                   title={locale === "id" ? "Kembali ke beranda" : "Back to home"}
                   aria-label={locale === "id" ? "Kembali ke beranda" : "Back to home"}
                 >
                   <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
                 </Link>
+                <span className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-gradient text-cream-50 shadow-[0_6px_16px_-6px_rgba(130,105,60,0.6)] ring-1 ring-inset ring-cream-50/15 sm:inline-flex">
+                  <GitBranch className="h-[18px] w-[18px]" />
+                </span>
                 <div className="min-w-0">
-                  <div className="mb-0.5 hidden items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#82693c] sm:flex">
+                  <div className="mb-0.5 hidden items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700 sm:flex">
                     <span>{locale === "id" ? "Pohon keluarga" : "Family tree"}</span>
-                    <span className="h-1 w-1 rounded-full bg-[#dccfb3]" />
-                    <span className="font-bold tracking-[0.12em] text-[#73685f]">
+                    <span className="h-1 w-1 rounded-full bg-brand-300" />
+                    <span className="font-semibold tracking-[0.12em] text-ink-500">
                       {stats.members} {locale === "id" ? "anggota" : "members"}
                     </span>
                   </div>
@@ -535,7 +538,7 @@ export default function AppHome() {
                       onChange={(event) => {
                         void selectTree(event.target.value);
                       }}
-                      className="-ml-2 block min-w-0 max-w-[180px] rounded-lg border border-transparent bg-transparent px-2 py-0 font-playfair text-lg font-bold leading-tight text-[#3f342d] outline-none transition hover:border-[#dccfb3] hover:bg-white/70 focus:border-[#82693c] focus:bg-white sm:max-w-[280px] lg:max-w-[260px] xl:max-w-[320px]"
+                      className="-ml-2 block min-w-0 max-w-[180px] cursor-pointer rounded-lg border border-transparent bg-transparent px-2 py-0 font-serif text-lg font-bold leading-tight text-ink-800 outline-none transition hover:border-cream-400 hover:bg-cream-50 focus:border-brand-700 focus:bg-cream-50 sm:max-w-[280px] lg:max-w-[240px] xl:max-w-[320px]"
                       aria-label={locale === "id" ? "Pilih pohon keluarga" : "Select family tree"}
                     >
                       {treeSummaries.map((tree) => (
@@ -545,20 +548,20 @@ export default function AppHome() {
                       ))}
                     </select>
                   ) : (
-                    <h1 className="min-w-0 max-w-[180px] truncate font-playfair text-lg font-bold leading-tight text-[#3f342d] sm:max-w-[280px] lg:max-w-[260px] xl:max-w-[320px]">
+                    <h1 className="min-w-0 max-w-[180px] truncate font-serif text-lg font-bold leading-tight text-ink-800 sm:max-w-[280px] lg:max-w-[240px] xl:max-w-[320px]">
                       {currentTree!.name}
                     </h1>
                   )}
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-2 rounded-full border border-[#dccfb3] bg-[#fdfbf6] px-2 py-1.5 lg:hidden">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#dccfb3] bg-gradient-to-br from-[#82693c] to-[#82693c] text-sm font-bold text-white shadow-sm">
+              <div className="flex shrink-0 items-center gap-2 rounded-full border border-cream-300 bg-cream-50 px-1.5 py-1.5 lg:hidden">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-cream-50 ring-1 ring-inset ring-cream-50/20">
                   {userName.charAt(0).toUpperCase()}
                 </span>
-                <div className="hidden text-left leading-none sm:block">
-                  <p className="max-w-[100px] truncate text-[11px] font-bold text-[#3f342d]">{userName}</p>
-                  <p className="text-[9px] font-semibold uppercase tracking-wider text-[#73685f]">
+                <div className="hidden pr-1 text-left leading-none sm:block">
+                  <p className="max-w-[100px] truncate text-[11px] font-bold text-ink-800">{userName}</p>
+                  <p className="text-[9px] font-semibold uppercase tracking-wider text-ink-500">
                     {accountRoleLabel}
                   </p>
                 </div>
@@ -571,75 +574,74 @@ export default function AppHome() {
                 <SearchBar nodes={currentTree!.nodes} onSelect={setSelectedId} />
               </div>
               <div className="flex w-full items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#dccfb3] bg-[#f5efe1] p-1">
+                <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-cream-400 bg-cream-200 p-1">
                   <button
                     onClick={() => setViewMode("tree")}
-                    className={`h-8 flex-1 rounded-full px-3 text-[11px] font-bold uppercase transition-all sm:flex-none ${
+                    className={`h-8 flex-1 rounded-full px-3 text-[11px] font-bold uppercase tracking-wide transition-all sm:flex-none ${
                       viewMode === "tree"
-                        ? "bg-[#82693c] text-white shadow-sm"
-                        : "text-[#73685f] hover:bg-[#ece2cc] hover:text-[#3f342d]"
+                        ? "bg-brand-700 text-white shadow-[0_2px_8px_-1px_rgba(130,105,60,0.45)]"
+                        : "text-ink-500 hover:bg-cream-300/70 hover:text-ink-800"
                     }`}
                   >
                     {copy.viewTree}
                   </button>
                   <button
                     onClick={() => setViewMode("timeline")}
-                    className={`h-8 flex-1 rounded-full px-3 text-[11px] font-bold uppercase transition-all sm:flex-none ${
+                    className={`h-8 flex-1 rounded-full px-3 text-[11px] font-bold uppercase tracking-wide transition-all sm:flex-none ${
                       viewMode === "timeline"
-                        ? "bg-[#82693c] text-white shadow-sm"
-                        : "text-[#73685f] hover:bg-[#ece2cc] hover:text-[#3f342d]"
+                        ? "bg-brand-700 text-white shadow-[0_2px_8px_-1px_rgba(130,105,60,0.45)]"
+                        : "text-ink-500 hover:bg-cream-300/70 hover:text-ink-800"
                     }`}
                   >
                     {copy.viewTimeline}
                   </button>
                 </div>
-                <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#dccfb3] bg-[#f5efe1] p-1">
-                  {treeActions.map((btn) => (
-                    <button
-                      key={btn.label}
-                      onClick={btn.onClick}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#5a4d42] transition-colors hover:bg-[#ece2cc] hover:text-[#3f342d] sm:w-auto sm:px-2.5"
-                      title={btn.label}
-                      aria-label={btn.label}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        {btn.icon.split(" M").map((d, i) => (
-                          <path key={i} d={i === 0 ? d : `M${d}`} />
-                        ))}
-                      </svg>
-                      <span className="ml-1.5 hidden text-[11px] font-bold sm:inline">{btn.label}</span>
-                    </button>
-                  ))}
+                <div className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-cream-400 bg-cream-200 p-1">
+                  {treeActions.map((btn) => {
+                    const Icon = btn.Icon;
+                    return (
+                      <button
+                        key={btn.label}
+                        onClick={btn.onClick}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-600 transition-colors hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm sm:w-auto sm:px-2.5"
+                        title={btn.label}
+                        aria-label={btn.label}
+                      >
+                        <Icon className="h-[15px] w-[15px]" />
+                        <span className="ml-1.5 hidden text-[11px] font-bold sm:inline">{btn.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
                 <LanguageToggle
                   compact
-                  className="shrink-0 border-[#dccfb3] bg-[#fdfbf6] shadow-sm"
+                  className="shrink-0 border-cream-400 bg-cream-50 shadow-sm"
                 />
               </div>
             </div>
 
-            {/* Sisi Tengah: Search & View Mode */}
+            {/* Center (desktop): Search & view mode */}
             <div className="hidden items-center gap-3 lg:flex">
               <div className="w-64 lg:w-72">
                 <SearchBar nodes={currentTree!.nodes} onSelect={setSelectedId} />
               </div>
-              <div className="inline-flex items-center gap-1 px-1.5 py-1.5 rounded-full bg-[#f5efe1] border border-[#dccfb3]">
+              <div className="inline-flex items-center gap-1 rounded-full border border-cream-400 bg-cream-200 p-1">
                 <button
                   onClick={() => setViewMode("tree")}
-                  className={`px-4 py-1.5 text-xs font-bold uppercase transition-all rounded-full ${
+                  className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-all ${
                     viewMode === "tree"
-                      ? "bg-[#82693c] text-white shadow-sm"
-                      : "text-[#73685f] hover:text-[#3f342d] hover:bg-[#ece2cc]"
+                      ? "bg-brand-700 text-white shadow-[0_2px_8px_-1px_rgba(130,105,60,0.45)]"
+                      : "text-ink-500 hover:bg-cream-300/70 hover:text-ink-800"
                   }`}
                 >
                   {copy.viewTree}
                 </button>
                 <button
                   onClick={() => setViewMode("timeline")}
-                  className={`px-4 py-1.5 text-xs font-bold uppercase transition-all rounded-full ${
+                  className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-all ${
                     viewMode === "timeline"
-                      ? "bg-[#82693c] text-white shadow-sm"
-                      : "text-[#73685f] hover:text-[#3f342d] hover:bg-[#ece2cc]"
+                      ? "bg-brand-700 text-white shadow-[0_2px_8px_-1px_rgba(130,105,60,0.45)]"
+                      : "text-ink-500 hover:bg-cream-300/70 hover:text-ink-800"
                   }`}
                 >
                   {copy.viewTimeline}
@@ -647,7 +649,7 @@ export default function AppHome() {
               </div>
             </div>
 
-            {/* Sisi Kanan: Operasi & Profil Lord */}
+            {/* Right (desktop): operations & profile */}
             <div className="hidden items-center gap-3 lg:flex">
               <div className="hidden xl:block">
                 <SyncStatusIndicator
@@ -657,35 +659,34 @@ export default function AppHome() {
                   }}
                 />
               </div>
-              <div className="flex items-center gap-2 px-2 py-1.5 rounded-full bg-[#f5efe1] border border-[#dccfb3]">
-                {treeActions.map((btn) => (
-                  <button
-                    key={btn.label}
-                    onClick={btn.onClick}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#5a4d42] hover:text-[#3f342d] hover:bg-[#ece2cc] rounded-full transition-colors"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      {btn.icon.split(" M").map((d, i) => (
-                        <path key={i} d={i === 0 ? d : `M${d}`} />
-                      ))}
-                    </svg>
-                    {btn.label}
-                  </button>
-                ))}
+              <div className="flex items-center gap-0.5 rounded-full border border-cream-400 bg-cream-200 p-1">
+                {treeActions.map((btn) => {
+                  const Icon = btn.Icon;
+                  return (
+                    <button
+                      key={btn.label}
+                      onClick={btn.onClick}
+                      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-ink-600 transition-colors hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm"
+                    >
+                      <Icon className="h-[15px] w-[15px]" />
+                      {btn.label}
+                    </button>
+                  );
+                })}
               </div>
               <LanguageToggle
                 compact
-                className="border-[#dccfb3] bg-[#fdfbf6] shadow-sm"
+                className="border-cream-400 bg-cream-50 shadow-sm"
               />
-              
-              {/* User Profile */}
-              <div className="flex items-center gap-2 border border-[#dccfb3] bg-[#fdfbf6] px-2 py-1.5 rounded-full">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#82693c] to-[#82693c] border border-[#dccfb3] shadow-sm text-sm font-bold text-white">
+
+              {/* User profile */}
+              <div className="flex items-center gap-2 rounded-full border border-cream-300 bg-cream-50 px-1.5 py-1.5">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-cream-50 ring-1 ring-inset ring-cream-50/20">
                   {userName.charAt(0).toUpperCase()}
                 </span>
-                <div className="text-left hidden sm:block leading-none">
-                  <p className="text-[11px] font-bold text-[#3f342d] truncate max-w-[80px]">{userName}</p>
-                  <p className="text-[9px] font-semibold text-[#73685f] uppercase tracking-wider">
+                <div className="hidden pr-1 text-left leading-none sm:block">
+                  <p className="max-w-[80px] truncate text-[11px] font-bold text-ink-800">{userName}</p>
+                  <p className="text-[9px] font-semibold uppercase tracking-wider text-ink-500">
                     {accountRoleLabel}
                   </p>
                 </div>
@@ -693,7 +694,7 @@ export default function AppHome() {
             </div>
           </header>
 
-          <div className="fixed right-3 top-[156px] z-50 sm:right-4 sm:top-[120px] lg:top-20 xl:hidden">
+          <div className="fixed right-3 top-[172px] z-50 sm:right-4 sm:top-[120px] lg:top-20 xl:hidden">
             <SyncStatusIndicator
               status={syncStatusInfo}
               onRetry={() => {
@@ -703,7 +704,7 @@ export default function AppHome() {
           </div>
 
           {/* MAIN CANVAS */}
-          <main className="flex-1 w-full h-full relative overflow-hidden mt-[148px] sm:mt-[112px] lg:mt-16">
+          <main className="flex-1 w-full h-full relative overflow-hidden mt-[164px] sm:mt-[112px] lg:mt-16">
             {viewMode === "tree" ? (
               <CanvasErrorBoundary
                 fallbackMessage={locale === "id" ? "Terjadi kesalahan pada canvas" : "Canvas rendering error"}
@@ -771,7 +772,7 @@ export default function AppHome() {
 
           {/* TOME OF CHRONICLES (SLIDE OUT DRAWER - RIGHT) */}
           <div
-            className={`fixed top-[148px] right-0 bottom-0 w-full border-l border-[#dccfb3] shadow-[-8px_0_24px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-[#fdfbf6] sm:top-[112px] sm:w-96 md:w-[420px] lg:top-16 ${
+            className={`fixed top-[164px] right-0 bottom-0 w-full border-l border-cream-400 shadow-[-8px_0_24px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-cream-50 sm:top-[112px] sm:w-96 md:w-[420px] lg:top-16 ${
               isTomeOpen ? "translate-x-0" : "translate-x-full"
             }`}
           >
@@ -780,7 +781,7 @@ export default function AppHome() {
               <div className="flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-[#82693c]" />
                 <div>
-                  <h3 className="font-playfair text-base font-bold tracking-wide">
+                  <h3 className="font-serif text-base font-bold tracking-wide">
                     {locale === "id" ? "Cerita Keluarga" : "Family Stories"}
                   </h3>
                   <p className="text-[10px] text-[#9c8e7e] font-medium italic">
@@ -815,7 +816,7 @@ export default function AppHome() {
                         Gen {node.generation}
                       </span>
                     </div>
-                    <h4 className="font-playfair font-bold text-lg text-[#3f342d]">
+                    <h4 className="font-serif font-bold text-lg text-[#3f342d]">
                       {node.label}
                     </h4>
                     <p className="line-clamp-3 text-sm leading-relaxed text-[#73685f] mt-2">
@@ -847,7 +848,7 @@ export default function AppHome() {
               <div className="flex items-center gap-2">
                 <ImageIcon className="h-5 w-5 text-[#82693c]" />
                 <div>
-                  <h3 className="font-playfair text-base font-bold tracking-wide">
+                  <h3 className="font-serif text-base font-bold tracking-wide">
                     {locale === "id" ? "Galeri Keluarga" : "Family Gallery"}
                   </h3>
                   <p className="text-[10px] text-[#9c8e7e] font-medium italic">
@@ -998,7 +999,7 @@ export default function AppHome() {
           )}
 
           {notification && (
-            <div className="fixed left-1/2 top-[156px] z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 rounded-full border border-[#dccfb3] bg-[#fdfbf6]/95 px-5 py-3 text-center text-sm font-medium text-[#3f342d] shadow-md backdrop-blur sm:top-[120px] lg:top-20">
+            <div className="fixed left-1/2 top-[172px] z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 rounded-full border border-cream-400 bg-cream-50/95 px-5 py-3 text-center text-sm font-medium text-ink-800 shadow-md backdrop-blur sm:top-[120px] lg:top-20">
               {notification}
             </div>
           )}

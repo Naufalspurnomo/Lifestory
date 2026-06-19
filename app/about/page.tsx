@@ -19,6 +19,8 @@ import { PromiseGrid } from "../../components/about/PromiseGrid";
 import { VisionMissionSplit } from "../../components/about/VisionMissionSplit";
 import { ValuesMarquee } from "../../components/about/ValuesMarquee";
 import { AboutHeroLead } from "../../components/about/AboutHeroLead";
+import { CountUp } from "../../components/ui/CountUp";
+import { AmbientGlow } from "../../components/ui/AmbientGlow";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 export default function AboutPage() {
@@ -606,7 +608,7 @@ export default function AboutPage() {
                   }`}
                 >
                   <p className="shrink-0 font-serif text-[1.75rem] font-light leading-none text-ink-900 lg:text-[2rem]">
-                    {stat.number}
+                    <CountUp value={stat.number} />
                   </p>
                   <p className="max-w-[13ch] text-[10px] font-medium leading-[1.55] text-ink-500 sm:text-[11px]">
                     {stat.label}
@@ -686,8 +688,16 @@ export default function AboutPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: reduced ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="relative border border-cream-300 bg-cream-50 px-8 py-14 text-center md:px-16 md:py-20"
+            className="relative overflow-hidden border border-cream-300 bg-cream-50 px-8 py-14 text-center md:px-16 md:py-20"
           >
+            <AmbientGlow className="-left-20 -top-24" size={400} duration={16} />
+            <AmbientGlow
+              className="-bottom-24 -right-16"
+              color="rgba(176,141,87,0.1)"
+              size={360}
+              duration={19}
+              delay={1.5}
+            />
             <span
               aria-hidden
               className="absolute left-1/2 top-0 h-[3px] w-24 -translate-x-1/2 bg-brand-700"

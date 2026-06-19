@@ -3,6 +3,7 @@
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import { Container } from "../ui/Container";
+import { AmbientGlow } from "../ui/AmbientGlow";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Item = {
@@ -36,6 +37,19 @@ export function WhyNowDark({ copy }: Props) {
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/30 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-brand-300/20 to-transparent" />
         <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-15" />
+        <AmbientGlow
+          className="-left-24 top-[8%]"
+          color="rgba(184,149,92,0.18)"
+          size={560}
+          duration={17}
+        />
+        <AmbientGlow
+          className="-right-28 bottom-[6%]"
+          color="rgba(184,149,92,0.12)"
+          size={480}
+          duration={21}
+          delay={2}
+        />
       </div>
 
       <Container size="xl" className="relative">

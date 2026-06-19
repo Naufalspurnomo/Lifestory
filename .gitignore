@@ -54,3 +54,11 @@ Thumbs.db
 
 # Debug
 .vercel
+
+# Local agent/tooling scratch
+.agents/
+.codex/
+.codex-screens/
+.gemini/
+.impeccable/
+.kiro/

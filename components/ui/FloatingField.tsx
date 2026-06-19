@@ -33,13 +33,13 @@ type BaseSlots = {
 };
 
 const baseField =
-  "peer block w-full rounded-card border bg-white px-4 pb-2.5 pt-5 text-[15px] text-ink-800 placeholder:text-transparent outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-200/70 disabled:bg-cream-100 disabled:text-ink-300";
+  "peer block w-full rounded-card border bg-white px-4 pb-2.5 pt-5 text-[15px] text-ink-800 placeholder:text-transparent outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-200/70 disabled:cursor-not-allowed disabled:bg-cream-100 disabled:text-ink-500";
 
 const fieldOk = "border-cream-300";
 const fieldErr = "border-danger/60 focus:border-danger focus:ring-danger/15";
 
 const labelBase =
-  "pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 origin-[0_0] text-[15px] font-medium text-ink-300 transition-all duration-200 ease-smooth peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:scale-100 peer-focus:top-2.5 peer-focus:translate-y-0 peer-focus:scale-[0.75] peer-focus:text-brand-700 peer-[&:not(:placeholder-shown)]:top-2.5 peer-[&:not(:placeholder-shown)]:translate-y-0 peer-[&:not(:placeholder-shown)]:scale-[0.75] peer-[&:not(:placeholder-shown)]:text-brand-700";
+  "pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 origin-[0_0] text-[15px] font-medium text-ink-500 transition-all duration-200 ease-smooth peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:scale-100 peer-focus:top-2.5 peer-focus:translate-y-0 peer-focus:scale-[0.75] peer-focus:text-brand-700 peer-[&:not(:placeholder-shown)]:top-2.5 peer-[&:not(:placeholder-shown)]:translate-y-0 peer-[&:not(:placeholder-shown)]:scale-[0.75] peer-[&:not(:placeholder-shown)]:text-brand-700";
 
 function FieldShell({
   id,
@@ -71,7 +71,7 @@ function FieldShell({
         {iconLeft && (
           <span
             aria-hidden
-            className="pointer-events-none absolute left-3.5 top-1/2 inline-flex -translate-y-1/2 text-ink-300 [&>svg]:h-4 [&>svg]:w-4"
+            className="pointer-events-none absolute left-3.5 top-1/2 inline-flex -translate-y-1/2 text-ink-500 [&>svg]:h-4 [&>svg]:w-4"
           >
             {iconLeft}
           </span>
@@ -89,13 +89,13 @@ function FieldShell({
         {iconRight && !actionRight && (
           <span
             aria-hidden
-            className="pointer-events-none absolute right-3.5 top-1/2 inline-flex -translate-y-1/2 text-ink-300 [&>svg]:h-4 [&>svg]:w-4"
+            className="pointer-events-none absolute right-3.5 top-1/2 inline-flex -translate-y-1/2 text-ink-500 [&>svg]:h-4 [&>svg]:w-4"
           >
             {iconRight}
           </span>
         )}
         {actionRight && (
-          <div className="absolute right-3.5 top-1/2 inline-flex -translate-y-1/2 items-center justify-center">
+          <div className="absolute right-2 top-1/2 inline-flex -translate-y-1/2 items-center justify-center">
             {actionRight}
           </div>
         )}
@@ -105,7 +105,7 @@ function FieldShell({
           id={`${id}-hint`}
           className={cn(
             "mt-1.5 text-xs leading-relaxed",
-            error ? "text-danger" : "text-ink-300"
+            error ? "text-danger" : "text-ink-500"
           )}
           role={error ? "alert" : undefined}
         >
@@ -151,7 +151,7 @@ export const FloatingInput = forwardRef<HTMLInputElement, InputProps>(
       <button
         type="button"
         onClick={() => setShowPassword(!showPassword)}
-        className="flex h-6 w-6 items-center justify-center rounded-md text-ink-400 outline-none transition-colors hover:text-ink-600 focus-visible:ring-2 focus-visible:ring-brand-400"
+        className="flex h-10 w-10 items-center justify-center rounded-xl text-ink-500 outline-none transition-colors hover:bg-cream-100 hover:text-ink-700 focus-visible:ring-2 focus-visible:ring-brand-400"
         aria-label={
           showPassword
             ? locale === "id"
@@ -194,7 +194,8 @@ export const FloatingInput = forwardRef<HTMLInputElement, InputProps>(
             "lifestory-input",
             error ? fieldErr : fieldOk,
             iconLeft && "pl-10",
-            (iconRight || actualActionRight) && "pr-10",
+            iconRight && !actualActionRight && "pr-10",
+            actualActionRight && "pr-12",
             className
           )}
           {...rest}
@@ -251,7 +252,7 @@ export const FloatingTextarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         />
         <label
           htmlFor={id}
-          className="pointer-events-none absolute left-4 top-5 origin-[0_0] text-[15px] font-medium text-ink-300 transition-all duration-200 ease-smooth peer-placeholder-shown:top-5 peer-placeholder-shown:scale-100 peer-focus:top-2 peer-focus:scale-[0.78] peer-focus:text-brand-700 peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:scale-[0.78] peer-[&:not(:placeholder-shown)]:text-brand-700"
+          className="pointer-events-none absolute left-4 top-5 origin-[0_0] text-[15px] font-medium text-ink-500 transition-all duration-200 ease-smooth peer-placeholder-shown:top-5 peer-placeholder-shown:scale-100 peer-focus:top-2 peer-focus:scale-[0.78] peer-focus:text-brand-700 peer-[&:not(:placeholder-shown)]:top-2 peer-[&:not(:placeholder-shown)]:scale-[0.78] peer-[&:not(:placeholder-shown)]:text-brand-700"
         >
           {label}
         </label>
@@ -260,7 +261,7 @@ export const FloatingTextarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             id={`${id}-hint`}
             className={cn(
               "mt-1.5 text-xs leading-relaxed",
-              error ? "text-danger" : "text-ink-300"
+              error ? "text-danger" : "text-ink-500"
             )}
             role={error ? "alert" : undefined}
           >
@@ -330,7 +331,7 @@ export const FloatingSelect = forwardRef<HTMLSelectElement, SelectProps>(
             error ? fieldErr : fieldOk,
             iconLeft && "pl-10",
             "pr-10",
-            !hasValue && "text-ink-300",
+            !hasValue && "text-ink-500",
             className
           )}
           {...rest}
@@ -346,7 +347,7 @@ export const FloatingSelect = forwardRef<HTMLSelectElement, SelectProps>(
         </select>
         <span
           aria-hidden
-          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-ink-300"
+          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-ink-500"
         >
           <svg
             width="14"
