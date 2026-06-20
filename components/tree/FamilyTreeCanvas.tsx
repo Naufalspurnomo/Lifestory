@@ -800,6 +800,10 @@ export default function FamilyTreeCanvas({
     center: { x: number; y: number };
     transform: Transform;
   } | null>(null);
+  const transformFrameRef = useRef<number | null>(null);
+  const queuedTransformRef = useRef<((previous: Transform) => Transform) | null>(
+    null
+  );
   const initializedRef = useRef(false);
   // C4: Guard to prevent infinite focus -> re-render -> focus loop.
   const focusedForRef = useRef<string | null>(null);
@@ -883,6 +887,37 @@ export default function FamilyTreeCanvas({
   const [branchDrag, setBranchDrag] = useState<BranchDragState | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [imagesLoaded, setImagesLoaded] = useState(0);
+
+  const scheduleTransform = useCallback(
+    (update: Transform | ((previous: Transform) => Transform)) => {
+      const updater =
+        typeof update === "function" ? update : () => update;
+      const previousQueued = queuedTransformRef.current;
+      queuedTransformRef.current = previousQueued
+        ? (previous) => updater(previousQueued(previous))
+        : updater;
+
+      if (transformFrameRef.current !== null) return;
+      transformFrameRef.current = window.requestAnimationFrame(() => {
+        transformFrameRef.current = null;
+        const queued = queuedTransformRef.current;
+        queuedTransformRef.current = null;
+        if (queued) setTransform(queued);
+      });
+    },
+    []
+  );
+
+  useEffect(
+    () => () => {
+      if (transformFrameRef.current !== null) {
+        window.cancelAnimationFrame(transformFrameRef.current);
+      }
+      transformFrameRef.current = null;
+      queuedTransformRef.current = null;
+    },
+    []
+  );
   const radialFocusId =
     layout.nodes.some((node) => node.id === selectedId)
       ? selectedId!
@@ -1952,7 +1987,7 @@ export default function FamilyTreeCanvas({
         MIN_SCALE,
         MAX_SCALE
       );
-      setTransform({
+      scheduleTransform({
         x: center.x - worldX * scale,
         y: center.y - worldY * scale,
         k: scale,
@@ -1972,7 +2007,7 @@ export default function FamilyTreeCanvas({
       if (!branchDrag && distance >= threshold && !horizontalIntent) {
         pendingBranchDragRef.current = null;
         setIsDragging(true);
-        setTransform((previous) => ({
+        scheduleTransform((previous) => ({
           ...previous,
           x: previous.x + dx,
           y: previous.y + dy,
@@ -2000,7 +2035,7 @@ export default function FamilyTreeCanvas({
       const dx = event.clientX - dragStartRef.current.x;
       const dy = event.clientY - dragStartRef.current.y;
       dragDistanceRef.current += Math.abs(dx) + Math.abs(dy);
-      setTransform((previous) => ({
+      scheduleTransform((previous) => ({
         ...previous,
         x: previous.x + dx,
         y: previous.y + dy,
@@ -2155,6 +2190,7 @@ export default function FamilyTreeCanvas({
         pinchRef.current = null;
         pendingBranchDragRef.current = null;
         dragDistanceRef.current = 0;
+        queuedTransformRef.current = null;
       }}
     >
       <canvas ref={canvasRef} className="block" />

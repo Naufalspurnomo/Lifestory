@@ -505,6 +505,22 @@ function sortBlockPersonIds(g: InternalGraph, ids: string[]) {
   return [...ids].sort((aId, bId) => {
     const a = g.persons.get(aId)!;
     const b = g.persons.get(bId)!;
+    const aParentUnionX = a.parentUnionId
+      ? g.unions.get(a.parentUnionId)?.x
+      : undefined;
+    const bParentUnionX = b.parentUnionId
+      ? g.unions.get(b.parentUnionId)?.x
+      : undefined;
+    if (
+      typeof aParentUnionX === "number" &&
+      typeof bParentUnionX === "number" &&
+      Number.isFinite(aParentUnionX) &&
+      Number.isFinite(bParentUnionX) &&
+      Math.abs(aParentUnionX - bParentUnionX) > 0.001
+    ) {
+      return aParentUnionX - bParentUnionX;
+    }
+
     const byX = a.x - b.x;
     if (Math.abs(byX) > 0.001) return byX;
     return comparePersons(a, b);

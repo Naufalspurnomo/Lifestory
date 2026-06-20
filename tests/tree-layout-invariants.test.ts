@@ -187,4 +187,69 @@ describe("family tree layout spacing", () => {
       false
     );
   });
+
+  it("keeps each parent on the same side as their own parents", () => {
+    const nodes = [
+      familyNode("paternal-grandfather", "Ayah (Tidak Diketahui)", {
+        partners: ["paternal-grandmother"],
+        sex: "M",
+        childrenIds: ["father"],
+      }),
+      familyNode("paternal-grandmother", "Ibu (Tidak Diketahui)", {
+        partners: ["paternal-grandfather"],
+        sex: "F",
+        childrenIds: ["father"],
+      }),
+      familyNode("maternal-grandfather", "Ayah (Tidak Diketahui)", {
+        partners: ["maternal-grandmother"],
+        sex: "M",
+        childrenIds: ["mother"],
+      }),
+      familyNode("maternal-grandmother", "Ibu (Tidak Diketahui)", {
+        partners: ["maternal-grandfather"],
+        sex: "F",
+        childrenIds: ["mother"],
+      }),
+      familyNode("father", "Ayah (Tidak Diketahui)", {
+        partners: ["mother"],
+        parentId: "paternal-grandfather",
+        parentIds: ["paternal-grandfather", "paternal-grandmother"],
+        sex: "M",
+        childrenIds: ["child"],
+      }),
+      familyNode("mother", "Ibu (Tidak Diketahui)", {
+        partners: ["father"],
+        parentId: "maternal-grandfather",
+        parentIds: ["maternal-grandfather", "maternal-grandmother"],
+        sex: "F",
+        childrenIds: ["child"],
+      }),
+      familyNode("child", "Lingga", {
+        parentId: "father",
+        parentIds: ["father", "mother"],
+      }),
+    ];
+
+    const layout = calculateHierarchicalLayout(nodes);
+    const father = getPosition(layout.nodes, "father");
+    const mother = getPosition(layout.nodes, "mother");
+    const paternalCenter =
+      (getPosition(layout.nodes, "paternal-grandfather").x +
+        getPosition(layout.nodes, "paternal-grandmother").x) /
+      2;
+    const maternalCenter =
+      (getPosition(layout.nodes, "maternal-grandfather").x +
+        getPosition(layout.nodes, "maternal-grandmother").x) /
+      2;
+
+    expect(Math.abs(father.x - paternalCenter)).toBeLessThan(
+      Math.abs(father.x - maternalCenter)
+    );
+    expect(Math.abs(mother.x - maternalCenter)).toBeLessThan(
+      Math.abs(mother.x - paternalCenter)
+    );
+    expect(Math.sign(father.x - mother.x)).toBe(
+      Math.sign(paternalCenter - maternalCenter)
+    );
+  });
 });
