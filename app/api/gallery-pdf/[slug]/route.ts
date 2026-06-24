@@ -9,6 +9,8 @@ const pdfCatalog: Record<string, { relativePath: string; downloadName: string }>
   },
 };
 
+const genericPdfError = { error: "PDF unavailable." };
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ slug: string }> },
@@ -17,7 +19,7 @@ export async function GET(
   const pdfEntry = pdfCatalog[slug];
 
   if (!pdfEntry) {
-    return NextResponse.json({ error: "PDF not found." }, { status: 404 });
+    return NextResponse.json(genericPdfError, { status: 404 });
   }
 
   try {
@@ -95,6 +97,6 @@ export async function GET(
       },
     });
   } catch {
-    return NextResponse.json({ error: "Unable to load PDF file." }, { status: 500 });
+    return NextResponse.json(genericPdfError, { status: 404 });
   }
 }

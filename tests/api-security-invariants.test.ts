@@ -68,3 +68,34 @@ describe("tree mutation API security invariants", () => {
     }
   );
 });
+
+describe("public auth and gallery hardening invariants", () => {
+  it("keeps registration throttled to five attempts per IP per hour", () => {
+    const source = readSource("lib/rate-limit.ts");
+
+    expect(source).toContain(
+      "register: { windowMs: 60 * 60 * 1000, maxRequests: 5 }"
+    );
+  });
+
+  it("checks duplicate registration emails before hashing and inserting", () => {
+    const section = handlerSection(
+      readSource("app/api/auth/register/route.ts"),
+      "export async function POST"
+    );
+
+    expect(section).toContain("prisma.user.findUnique");
+    expect(section).toContain("where: { email }");
+    expect(section).toContain('message: "Registration received"');
+    expectBefore(section, "prisma.user.findUnique", "hash(password");
+    expectBefore(section, "prisma.user.findUnique", "prisma.user.create");
+  });
+
+  it("uses the same public PDF error for missing and unavailable catalog entries", () => {
+    const source = readSource("app/api/gallery-pdf/[slug]/route.ts");
+
+    expect(source).toContain('const genericPdfError = { error: "PDF unavailable." }');
+    expect(source).not.toContain("PDF not found.");
+    expect(source).not.toContain("Unable to load PDF file.");
+  });
+});

@@ -18,7 +18,7 @@ const defaultConfig: RateLimitConfig = {
 
 export const rateLimitConfigs = {
   login: { windowMs: 15 * 60 * 1000, maxRequests: 5 },
-  register: { windowMs: 60 * 60 * 1000, maxRequests: 10 },
+  register: { windowMs: 60 * 60 * 1000, maxRequests: 5 },
   contact: { windowMs: 15 * 60 * 1000, maxRequests: 5 },
   admin: { windowMs: 60 * 1000, maxRequests: 100 },
   api: { windowMs: 60 * 1000, maxRequests: 60 },

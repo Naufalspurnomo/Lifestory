@@ -45,6 +45,20 @@ export async function POST(request: Request) {
   }
 
   try {
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        {
+          message: "Registration received",
+        },
+        { status: 201 }
+      );
+    }
+
     const passwordHash = await hash(password, 10);
 
     await prisma.user.create({

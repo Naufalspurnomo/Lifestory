@@ -1,5 +1,3 @@
-import { CONTACT_EMAIL } from "./contact-info";
-
 type PasswordResetEmailInput = {
   to: string;
   resetUrl: string;
@@ -27,6 +25,8 @@ type EmailResult =
 
 const EMAIL_REQUEST_TIMEOUT_MS = 10_000;
 const PLACEHOLDER_VALUES = new Set(["replace_me", "your-resend-api-key"]);
+const contactInboxEmail =
+  process.env.CONTACT_INBOX_EMAIL || "lifestory.co.id@gmail.com";
 
 function escapeHtml(value: string): string {
   return value
@@ -188,7 +188,7 @@ export async function sendContactInquiryEmail({
   `;
 
   return sendEmail({
-    to: CONTACT_EMAIL,
+    to: contactInboxEmail,
     subject,
     html,
     text,
