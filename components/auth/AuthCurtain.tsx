@@ -10,6 +10,7 @@ import { Button } from "../ui/Button";
 import { AuthField } from "./AuthField";
 import { getRegistrationErrorMessage } from "../../lib/registration-errors";
 import { getSafeNextPath } from "../../lib/utils/navigation";
+import { registerConsentCopy } from "../../lib/legal/consent";
 
 type Mode = "login" | "register";
 type Status = "idle" | "loading" | "success";
@@ -65,7 +66,10 @@ export function AuthCurtain({
     window.location.href = safeNext;
   }
 
-  async function handleRegister(event: React.FormEvent<HTMLFormElement>) {
+  async function handleRegister(
+    event: React.FormEvent<HTMLFormElement>,
+    consentAccepted: boolean
+  ) {
     event.preventDefault();
     setRegisterStatus("loading");
     setRegisterError(null);
@@ -76,6 +80,7 @@ export function AuthCurtain({
       email: String(data.get("email") || "").trim(),
       phone: String(data.get("phone") || "").trim(),
       password: String(data.get("password") || ""),
+      consentAccepted,
     };
 
     try {
@@ -348,14 +353,19 @@ function RegisterForm({
   error,
 }: {
   t: Copy;
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>, consentAccepted: boolean) => void;
   status: Status;
   error: string | null;
 }) {
+  const [consentAccepted, setConsentAccepted] = useState(false);
+
   return (
     <div>
       <FormHeader title={t.register.title} subtitle={t.register.subtitle} />
-      <form onSubmit={onSubmit} className="flex flex-col gap-5">
+      <form
+        onSubmit={(event) => onSubmit(event, consentAccepted)}
+        className="flex flex-col gap-5"
+      >
         <AuthField required name="name" label={t.register.name} autoComplete="name" maxLength={120} />
         <AuthField
           required
@@ -386,6 +396,31 @@ function RegisterForm({
           autoComplete="new-password"
         />
 
+        <label className="flex items-start gap-3 rounded-2xl border border-cream-300 bg-cream-50 px-4 py-4">
+          <input
+            required
+            type="checkbox"
+            name="consentAccepted"
+            checked={consentAccepted}
+            onChange={(event) => setConsentAccepted(event.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-cream-400 text-brand-700 focus:ring-brand-400"
+          />
+          <span className="text-[0.85rem] leading-relaxed text-ink-600">
+            {t.register.consentIntro}
+            <Link href="/terms" className="font-medium text-brand-700 underline-offset-2 hover:underline">
+              {t.register.consentTerms}
+            </Link>
+            {t.register.consentMid}
+            <Link
+              href="/privacy-policy"
+              className="font-medium text-brand-700 underline-offset-2 hover:underline"
+            >
+              {t.register.consentPrivacy}
+            </Link>
+            {t.register.consentOutro}
+          </span>
+        </label>
+
         {error && (
           <p role="alert" aria-live="polite" className="text-[0.85rem] leading-relaxed text-danger">
             {error}
@@ -397,10 +432,15 @@ function RegisterForm({
           block
           size="lg"
           loading={status === "loading"}
+          disabled={status === "loading" || !consentAccepted}
           className="mt-1 h-12 rounded-pill"
         >
           {status === "loading" ? t.shared.processing : t.register.cta}
         </Button>
+
+        <p className="text-center text-[0.8rem] leading-relaxed text-ink-500">
+          {t.register.consentNote}
+        </p>
 
         <p className="text-center text-[0.8rem] leading-relaxed text-ink-500">
           {t.register.verifyNote}
@@ -475,6 +515,7 @@ type Copy = ReturnType<typeof copyFor>;
 
 function copyFor(locale: string) {
   if (locale === "id") {
+    const consent = registerConsentCopy.id;
     return {
       shared: {
         processing: "Memproses...",
@@ -504,6 +545,12 @@ function copyFor(locale: string) {
         password: "Password",
         passwordHint: "Min 8 karakter, dengan huruf besar, kecil, dan angka.",
         passwordTitle: "Minimal 8 karakter dengan huruf besar, huruf kecil, dan angka",
+        consentIntro: consent.intro,
+        consentTerms: consent.terms,
+        consentMid: consent.mid,
+        consentPrivacy: consent.privacy,
+        consentOutro: consent.outro,
+        consentNote: consent.note,
         cta: "Daftar Sekarang",
         verifyNote:
           "Akun dibuat nonaktif dulu. Tim kami menghubungi via WhatsApp untuk verifikasi sebelum akun aktif.",
@@ -522,6 +569,7 @@ function copyFor(locale: string) {
       },
     } as const;
   }
+  const consent = registerConsentCopy.en;
   return {
     shared: {
       processing: "Processing...",
@@ -551,6 +599,12 @@ function copyFor(locale: string) {
       password: "Password",
       passwordHint: "Min 8 characters, with uppercase, lowercase, and a number.",
       passwordTitle: "At least 8 characters with uppercase, lowercase, and number",
+      consentIntro: consent.intro,
+      consentTerms: consent.terms,
+      consentMid: consent.mid,
+      consentPrivacy: consent.privacy,
+      consentOutro: consent.outro,
+      consentNote: consent.note,
       cta: "Create your archive",
       verifyNote:
         "Your account starts inactive. Our team contacts you via WhatsApp to verify before it activates.",

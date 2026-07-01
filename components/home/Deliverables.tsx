@@ -4,9 +4,8 @@ import Image from "next/image";
 import {
   AnimatePresence,
   motion,
-  useMotionValue,
 } from "framer-motion";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   BookOpenText,
   Camera,
@@ -19,7 +18,6 @@ import {
 import { Container } from "../ui/Container";
 import { Eyebrow } from "../ui/Eyebrow";
 import { Reveal } from "../ui/Reveal";
-import { AmbientGlow } from "../ui/AmbientGlow";
 import { cn } from "../../lib/utils";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
@@ -34,51 +32,19 @@ const IMAGES = [
   "/image/home-deliverable-6.webp",
 ];
 
-const AUTO_ROTATE_MS = 6000;
-
 type Props = {
   copy: {
     eyebrow: string;
     title: string;
     lead: string;
-    items: Array<{ title: string; body: string }>;
+    items: Array<{ title: string; body: string; tag?: string }>;
   };
 };
 
 export function Deliverables({ copy }: Props) {
-  const { reduced, isCoarsePointer } = useMotionGuard();
+  const { reduced } = useMotionGuard();
   const items = copy.items.slice(0, 6);
   const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
-
-  // Manual progress (0..1) drives both auto-advance and the visual ring.
-  const progress = useMotionValue(0);
-
-  // Auto-progress engine using rAF — pauses cleanly, resets on active change.
-  useEffect(() => {
-    if (reduced || isCoarsePointer || paused) return;
-    let frame = 0;
-    const start = performance.now();
-    const total = AUTO_ROTATE_MS;
-
-    function tick(now: number) {
-      const elapsed = now - start;
-      const p = Math.min(1, elapsed / total);
-      progress.set(p);
-      if (p < 1) {
-        frame = requestAnimationFrame(tick);
-      } else {
-        setActive((a) => (a + 1) % items.length);
-      }
-    }
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [active, reduced, isCoarsePointer, paused, items.length, progress]);
-
-  // Reset progress whenever active changes (both auto and manual)
-  useEffect(() => {
-    progress.set(0);
-  }, [active, progress]);
 
   const select = useCallback((i: number) => {
     setActive(i);
@@ -87,29 +53,11 @@ export function Deliverables({ copy }: Props) {
   const activeItem = items[active] ?? items[0];
 
   return (
-    <section
-      className="relative overflow-hidden bg-cream-100 section-y-md"
-      onPointerEnter={() => setPaused(true)}
-      onPointerLeave={() => setPaused(false)}
-    >
-      {/* Ambient color blob that morphs per active */}
+    <section className="relative overflow-hidden bg-cream-100 section-y-md">
+      {/* Subtle texture and section separators */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/35 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cream-400/70 to-transparent" />
-        <div className="absolute inset-0 bg-grain bg-[length:24px_24px] opacity-30" />
-        <AmbientGlow
-          className="-left-24 top-1/4"
-          color="rgba(176,141,87,0.12)"
-          size={520}
-          duration={18}
-        />
-        <AmbientGlow
-          className="-right-28 bottom-[12%]"
-          color="rgba(176,141,87,0.09)"
-          size={460}
-          duration={22}
-          delay={2.5}
-        />
       </div>
 
       <Container className="relative">
@@ -181,13 +129,6 @@ export function Deliverables({ copy }: Props) {
                   </motion.div>
                 </AnimatePresence>
 
-                <motion.span
-                  aria-hidden
-                  className="absolute left-0 top-0 z-30 block h-[3px] w-full origin-left bg-brand-300"
-                  style={{ scaleX: progress, transformOrigin: "left" }}
-                  animate={{ opacity: paused || reduced || isCoarsePointer ? 0 : 0.95 }}
-                  transition={{ duration: 0.3 }}
-                />
               </div>
 
               <div className="mt-4 grid grid-cols-6 gap-2">
@@ -196,7 +137,6 @@ export function Deliverables({ copy }: Props) {
                     key={item.title}
                     type="button"
                     onClick={() => select(i)}
-                    onMouseEnter={() => select(i)}
                     aria-label={`Show item ${i + 1}`}
                     aria-current={i === active || undefined}
                     className={cn(
@@ -261,7 +201,7 @@ function DeliverableRow({
   index: number;
   total: number;
   isActive: boolean;
-  item: { title: string; body: string };
+  item: { title: string; body: string; tag?: string };
   Icon: LucideIcon;
   onSelect: () => void;
   reduce: boolean;
@@ -298,9 +238,20 @@ function DeliverableRow({
           </span>
 
           <div className="min-w-0">
+            {item.tag && (
+              <p
+                className={cn(
+                  "text-[9px] font-bold uppercase tracking-[0.18em]",
+                  isActive ? "text-brand-700" : "text-ink-400"
+                )}
+              >
+                {item.tag}
+              </p>
+            )}
             <h3
               className={cn(
                 "font-serif text-[clamp(1.35rem,2.4vw,1.85rem)] leading-tight transition-colors duration-500",
+                item.tag && "mt-1",
                 isActive
                   ? "text-ink-800"
                   : "text-ink-500/70 group-hover:text-ink-700"

@@ -19,6 +19,7 @@ import {
 } from "../../lib/contact-info";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 import { cn } from "../../lib/utils";
+import { contactConsentCopy } from "../../lib/legal/consent";
 
 type FieldName = "name" | "email" | "message";
 
@@ -26,10 +27,12 @@ export default function ContactPage() {
   const { locale } = useLanguage();
   const { reduced } = useMotionGuard();
   const isId = locale === "id";
+  const consentCopy = contactConsentCopy[isId ? "id" : "en"];
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
   const [activeField, setActiveField] = useState<FieldName>("name");
   const [selectedPrompt, setSelectedPrompt] = useState<number | null>(null);
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const messageRef = useRef<HTMLTextAreaElement>(null);
 
   const copy = isId
@@ -57,13 +60,14 @@ export default function ContactPage() {
         message: "Ceritakan sedikit tentang keluarga Anda",
         messagePlaceholder:
           "Siapa yang ingin diabadikan? Cerita seperti apa yang penting bagi keluarga?",
+        consentLabel: consentCopy.label,
+        consentNote: consentCopy.note,
         send: "Mulai konsultasi",
         sending: "Mengirim...",
         sent: "Pesan terkirim",
         sendFailed:
           "Pesan belum terkirim. Coba lagi atau hubungi kami lewat WhatsApp.",
-        validationFailed:
-          "Lengkapi nama, email yang valid, dan pesan minimal 10 karakter.",
+        validationFailed: consentCopy.validationFailed,
         thanks: "Terima kasih. Tim Lifestory akan menghubungi Anda dalam 1x24 jam.",
         contactRail: "Atau hubungi studio secara langsung",
         emailLabel: "Email studio",
@@ -95,13 +99,14 @@ export default function ContactPage() {
         message: "Tell us a little about your family",
         messagePlaceholder:
           "Who would you like to preserve? Which stories matter most to your family?",
+        consentLabel: consentCopy.label,
+        consentNote: consentCopy.note,
         send: "Start consultation",
         sending: "Sending...",
         sent: "Message sent",
         sendFailed:
           "Your message was not sent. Please try again or contact us through WhatsApp.",
-        validationFailed:
-          "Please enter a valid name, email, and message of at least 10 characters.",
+        validationFailed: consentCopy.validationFailed,
         thanks: "Thank you. The Lifestory team will reply within one working day.",
         contactRail: "Or reach the studio directly",
         emailLabel: "Studio email",
@@ -136,7 +141,7 @@ export default function ContactPage() {
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, message }),
+        body: JSON.stringify({ name, email, message, consentAccepted }),
       });
 
       if (!response.ok) {
@@ -147,6 +152,7 @@ export default function ContactPage() {
 
       form.reset();
       setSelectedPrompt(null);
+      setConsentAccepted(false);
       setStatus("sent");
     } catch {
       setError(copy.sendFailed);
@@ -320,12 +326,33 @@ export default function ContactPage() {
                 />
               </ContactField>
 
+              <label className="mt-6 flex items-start gap-3 rounded-2xl border border-cream-300 bg-cream-50 px-4 py-4">
+                <input
+                  required
+                  type="checkbox"
+                  checked={consentAccepted}
+                  onChange={(event) => setConsentAccepted(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-cream-400 text-brand-700 focus:ring-brand-400"
+                  aria-describedby="contact-consent-note"
+                />
+                <span className="text-sm leading-relaxed text-ink-600">
+                  {copy.consentLabel}
+                </span>
+              </label>
+
+              <p
+                id="contact-consent-note"
+                className="mt-3 text-xs leading-relaxed text-ink-500"
+              >
+                {copy.consentNote}
+              </p>
+
               {/* Submit + feedback */}
               <div className="mt-10 flex flex-wrap items-center gap-5">
                 <button
                   type="submit"
-                  disabled={status === "sending"}
-                  className="group inline-flex min-h-[56px] items-center gap-8 bg-brand-700 px-8 text-[10px] font-bold uppercase tracking-[0.18em] text-cream-50 transition-colors duration-500 hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:cursor-wait disabled:opacity-60"
+                  disabled={status === "sending" || !consentAccepted}
+                  className="group inline-flex min-h-[56px] items-center gap-8 bg-brand-700 px-8 text-[10px] font-bold uppercase tracking-[0.18em] text-cream-50 transition-colors duration-500 hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {status === "sending"
                     ? copy.sending

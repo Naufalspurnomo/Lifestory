@@ -59,6 +59,9 @@ export const registerSchema = z.object({
       "Phone number can only contain digits, spaces, and +().-"
     ),
   password: strongPasswordSchema,
+  consentAccepted: z.boolean().refine((value) => value === true, {
+    message: "Consent is required",
+  }),
 });
 
 export const forgotPasswordSchema = z.object({
@@ -78,6 +81,9 @@ export const contactInquirySchema = z.object({
     .trim()
     .min(10, "Message must be at least 10 characters")
     .max(4_000, "Message is too long"),
+  consentAccepted: z.boolean().refine((value) => value === true, {
+    message: "Consent is required",
+  }),
 });
 
 // ====== Family Tree Schemas ======

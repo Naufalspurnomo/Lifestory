@@ -22,9 +22,6 @@ export default function HomePage() {
   const isSubscribed = Boolean(user?.subscriptionActive);
 
   const isId = locale === "id";
-  const displayName = user?.name?.trim() || (isId ? "Anggota" : "Member");
-  const firstName = displayName.split(" ")[0];
-
   const primaryCtaHref = !isLoggedIn
     ? "/auth/login"
     : isAdmin
@@ -43,23 +40,22 @@ export default function HomePage() {
   const copy = isId
     ? {
         hero: {
-          welcomeBack: "Selamat datang kembali",
           eyebrow: "Lifestory · Studio Biografi",
           studioCity: STUDIO_CITY,
           featuredLabel: "Featured",
           headlineLine1: "Kisah",
-          headlineRotators: ["hidup", "ayah", "ibu", "keluarga", "warisan"],
+          headlineRotators: ["keluarga", "ayah", "ibu", "hidup", "warisan"],
           headlineLine2: "yang berharga",
           headlineAccent: "diabadikan",
           headlineLine3: "lintas generasi.",
           subheading:
-            "Jangan biarkan kisah keluarga hilang bersama waktu. Setiap memori, suara, dan momen berharga layak dijaga sebelum terlambat.",
+            "Kami membantu keluarga merekam wawancara, merapikan arsip foto, dan menyusunnya jadi buku serta film yang bisa diwariskan.",
           primaryCta: !isLoggedIn
-            ? "Lihat Keluargamu!"
+            ? "Mulai Konsultasi"
             : isAdmin
             ? "Buka Dashboard"
             : isSubscribed
-            ? "Lihat Keluargamu!"
+            ? "Buka Arsip Keluarga"
             : "Aktifkan Paket",
           secondaryCta: !isLoggedIn ? "Galeri Lifestory" : "Galeri Lifestory",
           badge1: "Server aman",
@@ -76,7 +72,7 @@ export default function HomePage() {
           photoLabel: "Arsip keluarga",
           videoLabel: "Film keluarga",
           interactionHint:
-            "Arahkan atau pilih judul untuk menjelajahi setiap arsip keluarga.",
+            "Pilih judul untuk menelusuri setiap arsip keluarga dengan ritme Anda sendiri.",
           items: [
             {
               src: "/cover-gallery/cover-1.webp",
@@ -124,55 +120,69 @@ export default function HomePage() {
         },
         howItWorks: {
           eyebrow: "Cara Kami Bekerja",
-          title: "Tiga langkah sederhana menuju warisan abadi.",
-          lead: "Dari pertemuan pertama hingga momen penyerahan, setiap langkah kami rancang agar bermakna.",
+          title: "Tiga tahap kerja dari arsip mentah ke karya jadi.",
+          lead: "Alurnya jelas: wawancara dan pengumpulan bahan, penyuntingan naskah serta visual, lalu penyerahan final bersama keluarga.",
+          stepLabel: "Tahap",
+          activeStepLabel: "Tahap aktif",
           steps: [
             {
-              title: "Terkoneksi & merangkai narasi visual.",
-              body: "Kami bertemu, mendengarkan, dan bersama-sama menyusun cerita keluarga Anda menjadi narasi visual yang utuh, dari foto lama hingga rekaman suara.",
+              title: "Wawancara dan pengumpulan arsip.",
+              body: "Kami menjadwalkan sesi wawancara, memetakan timeline keluarga, lalu mengumpulkan foto, dokumen, dan rekaman suara yang masih tersimpan.",
+              note: "Minggu 1-3",
+              points: ["Sesi wawancara terstruktur", "Audit foto & dokumen", "Pemetaan timeline keluarga"],
               image: "/image/home-step-1.webp",
-              alt: "Terkoneksi bersama dan merangkai narasi visual",
+              alt: "Sesi wawancara dan pengumpulan arsip keluarga",
             },
             {
-              title: "Upacara kecil penyerahan.",
-              body: "Hasil akhir diserahkan dalam momen intim bersama keluarga, sebagai perayaan kecil yang menandai warisan resmi telah lahir.",
+              title: "Penyuntingan naskah, foto, dan film.",
+              body: "Tim kami menulis naskah biografi, merestorasi foto terpilih, lalu menyusun layout buku dan potongan film dokumenter untuk direview bersama.",
+              note: "Minggu 4-10",
+              points: ["Penulisan naskah biografi", "Restorasi foto prioritas", "Review layout & rough cut"],
               image: "/image/home-step-2.webp",
-              alt: "Upacara kecil penyerahan karya",
+              alt: "Proses penyuntingan naskah, foto, dan film dokumenter",
             },
             {
-              title: "Update pohon keluarga secara bebas.",
-              body: "Setelah selesai, Anda bebas memperbarui pohon silsilah digital kapan saja. Tambah anggota baru, perbarui cerita, tanpa biaya tambahan.",
+              title: "Penyerahan final dan aktivasi arsip digital.",
+              body: "Setelah revisi akhir disetujui, buku dan film diserahkan ke keluarga, lalu akses pohon keluarga digital diaktifkan untuk pembaruan mandiri.",
+              note: "Minggu 11-12",
+              points: ["Final QC & approval", "Penyerahan buku dan film", "Aktivasi pohon keluarga digital"],
               image: "/image/home-step-3.webp",
-              alt: "Update pohon keluarga secara mandiri",
+              alt: "Penyerahan final karya dan aktivasi arsip digital keluarga",
             },
           ],
         },
         deliverables: {
           eyebrow: "Apa yang Anda terima",
           title: "Enam karya warisan untuk keluarga Anda.",
-          lead: "Setiap keluarga menerima paket lengkap yang saling melengkapi: cerita yang bisa dibaca, ditonton, dirayakan, dan diteruskan lintas generasi.",
+          lead: "Kami susun hasil akhir dalam tiga lapis: output utama, pendukung, dan tambahan personal agar keluarga tahu mana yang paling penting terlebih dahulu.",
           items: [
             {
+              tag: "Output utama",
               title: "Buku biografi & album foto premium",
               body: "Naskah kehidupan ditulis dengan penuh kedalaman, dicetak di atas kertas berkualitas arsip, dan dilengkapi album foto yang dikurasi serta direstorasi secara profesional.",
             },
             {
+              tag: "Output utama",
               title: "Sesi foto keluarga bersama Lifestory",
               body: "Pemotretan profesional yang mengabadikan potret keluarga Anda hari ini, menjadi momen autentik yang kelak menjadi harta karun visual generasi berikutnya.",
             },
             {
+              tag: "Output utama",
               title: "Video dokumenter sinematik",
               body: "Film pendek berkualitas sinema yang menghidupkan kembali suara, ekspresi, dan emosi sebagai warisan bergerak yang tak bisa ditangkap oleh tulisan saja.",
             },
             {
+              tag: "Pendukung",
               title: "Pohon keluarga digital interaktif",
               body: "Akses seumur hidup ke silsilah digital Lifestory. Tambah anggota baru, perbarui cerita, dan kembangkan warisan Anda secara mandiri tanpa biaya tambahan.",
             },
             {
+              tag: "Pendukung",
               title: "Makan malam perayaan keluarga",
               body: "Momen intim bersama orang-orang tercinta untuk merayakan kisah yang telah diabadikan sambil menikmati hidangan istimewa dan menyaksikan hasil karya untuk pertama kalinya.",
             },
             {
+              tag: "Tambahan",
               title: "Karya seni kustom eksklusif",
               body: "Ilustrasi, lukisan, atau karya seni pilihan yang terinspirasi dari kisah keluarga Anda, memberi sentuhan artistik unik yang menjadikan paket warisan benar-benar personal.",
             },
@@ -180,30 +190,30 @@ export default function HomePage() {
         },
         featured: {
           eyebrow: "Galeri biografi",
-          title: "Beberapa kisah yang sudah kami abadikan.",
-          lead: "Setiap sampul mewakili pendekatan berbeda, dari memoar personal hingga tribute lintas generasi. Klik untuk melihat detail dan baca naskahnya.",
+          title: "Kurasi sampul dengan konteks keluarga yang berbeda.",
+          lead: "Setiap cover kami tampilkan bersama catatan era, palet visual, dan ringkasan cerita agar Anda bisa menilai pendekatan yang paling dekat dengan karakter keluarga.",
           viewMore: "Lihat detail",
         },
         testimonials: {
           eyebrow: "Suara keluarga",
           title: "Yang kami dengar setelah buku diserahkan.",
-          lead: "Beberapa kalimat tulus dari keluarga yang sudah memegang hasil akhirnya.",
+          lead: "Kalimat-kalimat ini kami tulis apa adanya, lengkap dengan detail kecil yang paling diingat keluarga.",
           items: [
             {
               quote:
-                "Buku ini terasa seperti mendengar suara ibu kembali. Anak cucu kami akhirnya tahu bagaimana beliau berbicara, bukan cuma seperti apa wajahnya.",
+                "Di halaman 47 ada resep tulisan tangan ibu yang kami kira sudah hilang. Malam itu cucu-cucu langsung minta dibacakan ceritanya, dan untuk pertama kalinya mereka merasa benar-benar kenal neneknya.",
               author: "Keluarga Tanuwijaya",
               role: "Edisi Tribute Ibu",
             },
             {
               quote:
-                "Tim Lifestory menjaga setiap detail. Mereka mau wawancara berkali-kali sampai ceritanya benar-benar utuh, bukan sekadar lengkap.",
+                "Tim Lifestory datang lagi dua kali karena saya masih ragu menyebut beberapa nama lama. Mereka tidak buru-buru; justru membantu kami cek ulang foto dan kronologi sampai ceritanya terasa jujur.",
               author: "Pak Yohannes",
               role: "Memoar Personal",
             },
             {
               quote:
-                "Saya tidak menyangka bisa menangis hanya karena melihat layout halaman. Hasilnya jauh melebihi ekspektasi saya.",
+                "Saya kira saya sudah siap saat proof PDF dikirim. Ternyata saya menangis di bagian surat untuk ayah. Layout-nya sederhana, tapi urutan fotonya persis seperti yang kami kenang di rumah lama.",
               author: "Suwati",
               role: "Memoar Lintas Generasi",
             },
@@ -277,38 +287,37 @@ export default function HomePage() {
               a: "Setiap buku dirancang khusus. Kami punya beberapa direction visual sebagai titik mulai, lalu disesuaikan dengan kepribadian dan estetika keluarga.",
             },
           ],
-          asideTitle: "Belum yakin paket mana yang cocok?",
+          asideTitle: "Butuh bantuan menentukan paket?",
           asideBody:
-            "Kami punya sesi konsultasi 30 menit tanpa biaya untuk membahas keluarga Anda dan merancang pendekatan yang paling masuk akal.",
-          asideCta: "Jadwalkan konsultasi",
+            "Kami sediakan konsultasi 30 menit tanpa biaya untuk memetakan kebutuhan keluarga dan estimasi alur kerja.",
+          asideCta: "Jadwalkan sesi",
         },
         finalCta: {
           eyebrow: "Konsultasi awal",
-          title: "Mulai dari satu cerita keluarga.",
-          lead: "Ceritakan siapa yang ingin Anda abadikan. Kami bantu susun alur wawancara, arsip foto, dan bentuk akhirnya dengan rapi.",
+          title: "Mulai dengan konsultasi singkat.",
+          lead: "Dalam satu sesi awal, kami bantu tentukan narasumber utama, bahan arsip yang perlu disiapkan, dan format hasil akhir yang paling tepat.",
           primaryCta: !isLoggedIn ? "Mulai Cerita" : "Lanjutkan Cerita",
           secondaryCta: "Lihat semua paket",
         },
       }
     : {
         hero: {
-          welcomeBack: "Welcome back",
           eyebrow: "Lifestory · Biography Studio",
           studioCity: STUDIO_CITY,
           featuredLabel: "Featured",
           headlineLine1: "Stories of",
-          headlineRotators: ["a life", "a father", "a mother", "a family", "a lineage"],
+          headlineRotators: ["a family", "a father", "a mother", "a life", "a lineage"],
           headlineLine2: "worth keeping",
           headlineAccent: "preserved",
           headlineLine3: "for generations.",
           subheading:
-            "Don't let your family's story fade with time. Every memory, voice, and precious moment deserves to be preserved before it's too late.",
+            "We help families record interviews, restore photo archives, and shape them into books and films that can be passed forward.",
           primaryCta: !isLoggedIn
-            ? "See Your Family!"
+            ? "Start Consultation"
             : isAdmin
             ? "Open Dashboard"
             : isSubscribed
-            ? "See Your Family!"
+            ? "Open Family Archive"
             : "Activate Plan",
           secondaryCta: !isLoggedIn ? "Lifestory Gallery" : "Lifestory Gallery",
           badge1: "Secure servers",
@@ -325,7 +334,7 @@ export default function HomePage() {
           photoLabel: "Family archive",
           videoLabel: "Family film",
           interactionHint:
-            "Hover or select a title to explore each family archive.",
+            "Select a title to explore each family archive at your own pace.",
           items: [
             {
               src: "/cover-gallery/cover-1.webp",
@@ -373,26 +382,34 @@ export default function HomePage() {
         },
         howItWorks: {
           eyebrow: "How we work",
-          title: "Three simple steps toward a lasting legacy.",
-          lead: "From our first meeting to the handover moment, every step is designed to be meaningful.",
+          title: "Three working stages from raw archives to final delivery.",
+          lead: "The flow is clear: interviews and material collection, editorial production, then final handover with family-ready digital access.",
+          stepLabel: "Step",
+          activeStepLabel: "Active step",
           steps: [
             {
-              title: "Connect & craft the visual narrative.",
-              body: "We meet, listen, and together shape your family story into a complete visual narrative, from old photographs to voice recordings.",
+              title: "Interviews and archive collection.",
+              body: "We schedule interviews, map the family timeline, and gather available photographs, documents, and voice recordings.",
+              note: "Week 1-3",
+              points: ["Structured interview sessions", "Photo and document audit", "Family timeline mapping"],
               image: "/image/home-step-1.webp",
-              alt: "Connecting together and crafting the visual narrative",
+              alt: "Interview session and family archive collection",
             },
             {
-              title: "A small handover ceremony.",
-              body: "The finished work is presented in an intimate family moment, a small celebration marking the official birth of your legacy.",
+              title: "Editorial production for book, photos, and film.",
+              body: "Our team writes the biography manuscript, restores selected photos, and builds the book layout plus documentary edit for review.",
+              note: "Week 4-10",
+              points: ["Biography manuscript writing", "Priority photo restoration", "Layout and rough-cut review"],
               image: "/image/home-step-2.webp",
-              alt: "Small ceremony handing over the work",
+              alt: "Editorial production for manuscript, photos, and documentary film",
             },
             {
-              title: "Update your family tree freely.",
-              body: "Once complete, you can update your digital family tree anytime. Add new members, refresh stories, at no extra cost.",
+              title: "Final handover and digital archive activation.",
+              body: "After final approval, the book and film are delivered, and your digital family tree access is activated for independent updates.",
+              note: "Week 11-12",
+              points: ["Final QC and approval", "Book and film handover", "Digital family tree activation"],
               image: "/image/home-step-3.webp",
-              alt: "Freely updating the family tree",
+              alt: "Final handover and digital family archive activation",
             },
           ],
         },
@@ -429,30 +446,30 @@ export default function HomePage() {
         },
         featured: {
           eyebrow: "Biography gallery",
-          title: "A few of the stories we have preserved.",
-          lead: "Each cover represents a different approach, from personal memoirs to multi-generation tributes. Tap to view details and read the manuscript.",
+          title: "Curated covers with distinct family contexts.",
+          lead: "Each cover is presented with era notes, visual palette, and story summary so you can evaluate which direction best fits your family narrative.",
           viewMore: "View detail",
         },
         testimonials: {
           eyebrow: "Family voices",
           title: "What we hear after the book is delivered.",
-          lead: "A few honest words from families who already hold the finished work.",
+          lead: "These are shared as spoken, including the small details families remember most.",
           items: [
             {
               quote:
-                "It feels like hearing my mother's voice again. Our grandchildren now know how she actually spoke, not just how she looked.",
+                "On page 47 we found my mother's handwritten recipe that we thought was gone. That night, the grandchildren asked us to read the story aloud, and for the first time they felt they truly knew her.",
               author: "The Tanuwijaya Family",
               role: "Mother Tribute Edition",
             },
             {
               quote:
-                "The Lifestory team protects every detail. They returned for several rounds of interviews until the story was truly whole, not just complete.",
+                "The Lifestory team came back twice because I was still unsure about a few old names. They never rushed us; they helped verify photos and chronology until the story finally felt honest.",
               author: "Pak Yohannes",
               role: "Personal Memoir",
             },
             {
               quote:
-                "I did not expect to cry over a page layout. The result far exceeded my expectations.",
+                "I thought I was ready when the PDF proof arrived. I cried at the letter-to-father spread. The layout was simple, but the photo sequence matched exactly how we remembered that old house.",
               author: "Suwati",
               role: "Cross-Generation Memoir",
             },
@@ -526,15 +543,15 @@ export default function HomePage() {
               a: "Every book is custom designed. We start from a few visual directions and tailor it to the family's personality and aesthetic.",
             },
           ],
-          asideTitle: "Not sure which package fits?",
+          asideTitle: "Need help choosing a package?",
           asideBody:
-            "We offer a 30-minute discovery call at no cost to discuss your family and design the most sensible approach.",
-          asideCta: "Schedule consult",
+            "We offer a no-cost 30-minute consult to map family needs and define a practical project scope.",
+          asideCta: "Book a session",
         },
         finalCta: {
           eyebrow: "Initial consultation",
-          title: "Start with one family story.",
-          lead: "Tell us who you want to preserve. We will shape the interview plan, photo archive, and final format from there.",
+          title: "Start with a short consultation.",
+          lead: "In one early session, we define key interview subjects, archive materials to prepare, and the most suitable final format.",
           primaryCta: !isLoggedIn ? "Start the Story" : "Continue Story",
           secondaryCta: "View all packages",
         },
@@ -544,8 +561,6 @@ export default function HomePage() {
     <>
       <div id="hero">
         <HomeHero
-          isLoggedIn={isLoggedIn}
-          firstName={firstName}
           isId={isId}
           copy={copy.hero}
           primaryCtaHref={primaryCtaHref}

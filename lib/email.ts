@@ -12,6 +12,9 @@ type ContactInquiryEmailInput = {
   name: string;
   email: string;
   message: string;
+  consentAcceptedAt?: Date;
+  consentIp?: string;
+  consentPolicyVersion?: string;
 };
 
 type EmailResult =
@@ -161,16 +164,25 @@ export async function sendContactInquiryEmail({
   name,
   email,
   message,
+  consentAcceptedAt,
+  consentIp,
+  consentPolicyVersion,
 }: ContactInquiryEmailInput): Promise<EmailResult> {
   const safeName = escapeHtml(name);
   const safeEmail = escapeHtml(email);
   const safeMessage = escapeHtml(message).replaceAll("\n", "<br />");
+  const consentAtText = consentAcceptedAt ? consentAcceptedAt.toISOString() : "n/a";
+  const consentIpText = consentIp || "n/a";
+  const consentVersionText = consentPolicyVersion || "n/a";
   const subject = `Lifestory contact inquiry from ${name}`;
   const text = [
     "Ada pesan baru dari form kontak Lifestory.",
     "",
     `Nama: ${name}`,
     `Email: ${email}`,
+    `Consent accepted at: ${consentAtText}`,
+    `Consent IP: ${consentIpText}`,
+    `Consent policy version: ${consentVersionText}`,
     "",
     "Pesan:",
     message,
@@ -180,6 +192,9 @@ export async function sendContactInquiryEmail({
       <h1 style="font-size:22px;margin:0 0 16px">Pesan baru dari form kontak Lifestory</h1>
       <p><strong>Nama:</strong> ${safeName}</p>
       <p><strong>Email:</strong> ${safeEmail}</p>
+      <p><strong>Consent accepted at:</strong> ${escapeHtml(consentAtText)}</p>
+      <p><strong>Consent IP:</strong> ${escapeHtml(consentIpText)}</p>
+      <p><strong>Consent policy version:</strong> ${escapeHtml(consentVersionText)}</p>
       <p><strong>Pesan:</strong></p>
       <div style="padding:14px 16px;border:1px solid #ece2cc;border-radius:12px;background:#faf6ed;color:#40342c">
         ${safeMessage}

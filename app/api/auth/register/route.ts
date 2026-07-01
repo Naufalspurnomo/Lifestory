@@ -2,13 +2,25 @@ import { Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/db";
-import { applyRateLimit, rateLimitConfigs } from "../../../../lib/rate-limit";
+import {
+  applyRateLimit,
+  getClientIdentifier,
+  rateLimitConfigs,
+} from "../../../../lib/rate-limit";
 import {
   formatZodErrors,
   registerSchema,
   validateBody,
 } from "../../../../lib/validations";
 import { jsonBodyLimits, parseJsonBody } from "../../../../lib/request-body";
+import { CONSENT_POLICY_VERSION } from "../../../../lib/legal/consent";
+
+function readUserAgent(request: Request): string | null {
+  const value = request.headers.get("user-agent");
+  if (!value) return null;
+  // Keep the stored value bounded to avoid unbounded header abuse.
+  return value.slice(0, 512);
+}
 
 export async function POST(request: Request) {
   const rateLimitError = await applyRateLimit(
@@ -36,6 +48,10 @@ export async function POST(request: Request) {
   const email = validation.data.email.toLowerCase().trim();
   const phone = validation.data.phone.trim();
   const password = validation.data.password;
+  const consentAcceptedAt = new Date();
+  const consentIp = getClientIdentifier(request);
+  const consentUserAgent = readUserAgent(request);
+  const consentPolicyVersion = CONSENT_POLICY_VERSION;
 
   if (!name) {
     return NextResponse.json(
@@ -70,6 +86,10 @@ export async function POST(request: Request) {
         role: "user",
         subscriptionActive: false,
         status: "inactive",
+        consentAcceptedAt,
+        consentIp,
+        consentUserAgent,
+        consentPolicyVersion,
       },
     });
 

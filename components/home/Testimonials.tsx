@@ -28,8 +28,8 @@ function getStackGapClass(index: number, total: number) {
   if (index >= total - 1) return "";
 
   return index === total - 2
-    ? "mb-[8vh] sm:mb-[9vh] lg:mb-[8vh] xl:mb-[9vh]"
-    : "mb-[12vh] sm:mb-[13vh] lg:mb-[12vh] xl:mb-[13vh]";
+    ? "mb-[5vh] sm:mb-[6vh] lg:mb-[5vh] xl:mb-[6vh]"
+    : "mb-[7vh] sm:mb-[8vh] lg:mb-[7vh] xl:mb-[8vh]";
 }
 
 export function Testimonials({ copy }: Props) {
@@ -56,20 +56,18 @@ export function Testimonials({ copy }: Props) {
 
           <div
             className="isolate flex w-full flex-col gap-0 overflow-visible pb-16 sm:pb-20 lg:w-[69%] lg:pb-20"
-            style={isCoarsePointer ? undefined : { perspective: "1800px", transformStyle: "preserve-3d" }}
           >
             {copy.items.map((testimonial, index) => (
               <article
                 key={testimonial.author}
                 className="relative overflow-visible lg:sticky"
                 style={{
-                  top: `calc(5.25rem + ${index * 0.85}rem)`,
+                  top: `calc(5rem + ${index * 0.45}rem)`,
                   zIndex: 20 + index,
-                  transformStyle: isCoarsePointer ? undefined : "preserve-3d",
                 }}
               >
                 <div
-                  className={`relative min-h-[360px] w-full border border-brand-200/80 px-6 py-7 text-ink-900 shadow-[0_22px_48px_rgba(63,52,45,0.14)] sm:min-h-[390px] sm:px-10 sm:py-10 md:min-h-[450px] md:px-14 md:py-12 ${
+                  className={`relative min-h-[340px] w-full border border-brand-200/80 px-6 py-7 text-ink-900 shadow-[0_16px_34px_rgba(63,52,45,0.12)] sm:min-h-[360px] sm:px-10 sm:py-10 md:min-h-[400px] md:px-14 md:py-12 ${
                     isCoarsePointer
                       ? index < copy.items.length - 1
                         ? "mb-5"
@@ -80,12 +78,11 @@ export function Testimonials({ copy }: Props) {
                     backgroundColor: paperTones[index % paperTones.length],
                     transform: isCoarsePointer
                       ? "none"
-                      : `translate3d(${index * 4}px, ${index * 3}px, ${-index * 40}px) rotateX(${index * -1.05}deg) rotateZ(${index % 2 === 0 ? -0.14 : 0.14}deg) scale(${1 - index * 0.02})`,
+                      : `translateY(${index * 3}px) scale(${1 - index * 0.008})`,
                     transformOrigin: "top center",
-                    transformStyle: isCoarsePointer ? undefined : "preserve-3d",
                   }}
                 >
-                  <div className="flex h-full min-h-[295px] flex-col justify-between border-t border-ink-900/70 pt-7 sm:min-h-[315px] sm:pt-8 md:min-h-[350px] md:pt-10">
+                  <div className="flex h-full min-h-[260px] flex-col justify-between border-t border-ink-900/70 pt-7 sm:min-h-[280px] sm:pt-8 md:min-h-[305px] md:pt-10">
                     <blockquote className="max-w-[23ch] font-serif text-[1.45rem] font-light leading-[1.28] tracking-normal text-ink-900 sm:text-[1.8rem] md:text-[2.25rem]">
                       {testimonial.quote}
                     </blockquote>

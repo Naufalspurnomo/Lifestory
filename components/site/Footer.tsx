@@ -36,12 +36,17 @@ export function Footer() {
         consultation: "Mulai percakapan",
         explore: "Navigasi",
         contact: "Kontak",
+        legal: "Legal",
         links: [
           { href: "/", label: "Beranda" },
           { href: "/gallery", label: "Galeri" },
           { href: "/app", label: "Pohon Keluarga" },
           { href: "/about", label: "Tentang Kami" },
           { href: "/contact", label: "Hubungi Kami" },
+        ],
+        legalLinks: [
+          { href: "/privacy-policy", label: "Kebijakan Privasi" },
+          { href: "/terms", label: "Syarat & Ketentuan" },
         ],
         rights: "Hak cipta dilindungi.",
         closing: "Mengabadikan cerita keluarga dengan rapi.",
@@ -54,12 +59,17 @@ export function Footer() {
         consultation: "Start a conversation",
         explore: "Explore",
         contact: "Contact",
+        legal: "Legal",
         links: [
           { href: "/", label: "Home" },
           { href: "/gallery", label: "Gallery" },
           { href: "/app", label: "Family Trees" },
           { href: "/about", label: "About Us" },
           { href: "/contact", label: "Get in Touch" },
+        ],
+        legalLinks: [
+          { href: "/privacy-policy", label: "Privacy Policy" },
+          { href: "/terms", label: "Terms & Conditions" },
         ],
         rights: "All rights reserved.",
         closing: "Preserving family stories with care.",
@@ -68,7 +78,7 @@ export function Footer() {
   return (
     <footer className="border-t border-cream-300 bg-cream-50 text-ink-700">
       <div className="mx-auto max-w-[1320px] px-6 py-10 md:py-12">
-        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.7fr_1fr] lg:gap-16">
+        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.7fr_1fr_0.9fr] lg:gap-16">
           <div className="max-w-md">
             <BrandLogo variant="footer" />
             <p className="mt-3 font-serif text-lg italic leading-none text-ink-900">
@@ -124,6 +134,21 @@ export function Footer() {
                 {STUDIO_ADDRESS}
               </address>
             </div>
+          </FooterGroup>
+
+          <FooterGroup title={copy.legal}>
+            <ul className="space-y-3">
+              {copy.legalLinks.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-ink-600 transition-colors hover:text-ink-900"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </FooterGroup>
         </div>
 

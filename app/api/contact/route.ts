@@ -1,12 +1,24 @@
 import { NextResponse } from "next/server";
 import { sendContactInquiryEmail } from "../../../lib/email";
 import { jsonBodyLimits, parseJsonBody } from "../../../lib/request-body";
-import { applyRateLimit, rateLimitConfigs } from "../../../lib/rate-limit";
+import {
+  applyRateLimit,
+  getClientIdentifier,
+  rateLimitConfigs,
+} from "../../../lib/rate-limit";
 import {
   contactInquirySchema,
   formatZodErrors,
   validateBody,
 } from "../../../lib/validations";
+import { prisma } from "../../../lib/db";
+import { CONSENT_POLICY_VERSION } from "../../../lib/legal/consent";
+
+function readUserAgent(request: Request): string | null {
+  const value = request.headers.get("user-agent");
+  if (!value) return null;
+  return value.slice(0, 512);
+}
 
 export async function POST(request: Request) {
   const rateLimitError = await applyRateLimit(
@@ -30,7 +42,40 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await sendContactInquiryEmail(validation.data);
+  const consentAcceptedAt = new Date();
+  const consentIp = getClientIdentifier(request);
+  const consentUserAgent = readUserAgent(request);
+  const consentPolicyVersion = CONSENT_POLICY_VERSION;
+
+  // Persist consent proof before sending the inquiry. If this fails, do not
+  // process the submitted contact details further without an audit record.
+  try {
+    await prisma.contactConsentLog.create({
+      data: {
+        email: validation.data.email.toLowerCase().trim(),
+        name: validation.data.name.trim(),
+        consentAcceptedAt,
+        consentIp,
+        consentUserAgent,
+        consentPolicyVersion,
+      },
+    });
+  } catch (error) {
+    console.error("[contact] Failed to persist consent log", error);
+    return NextResponse.json(
+      { error: "Contact consent could not be recorded" },
+      { status: 503 }
+    );
+  }
+
+  const result = await sendContactInquiryEmail({
+    name: validation.data.name,
+    email: validation.data.email,
+    message: validation.data.message,
+    consentAcceptedAt,
+    consentIp,
+    consentPolicyVersion,
+  });
   if (!result.ok) {
     console.warn("[contact] Contact inquiry email was not sent", {
       reason: result.skipped ? result.reason : result.error,

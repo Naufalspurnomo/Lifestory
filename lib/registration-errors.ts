@@ -12,6 +12,8 @@ const validationMessages: Record<RegistrationLocale, Record<string, string>> = {
     phone: "Masukkan nomor WhatsApp yang valid (minimal 8 digit).",
     password:
       "Password harus minimal 8 karakter dan berisi huruf besar, huruf kecil, serta angka.",
+    consentAccepted:
+      "Anda harus menyetujui Syarat & Ketentuan dan Kebijakan Privasi untuk mendaftar.",
   },
   en: {
     name: "Check your full name (at least 2 characters).",
@@ -19,6 +21,8 @@ const validationMessages: Record<RegistrationLocale, Record<string, string>> = {
     phone: "Enter a valid WhatsApp number (at least 8 digits).",
     password:
       "Password must be at least 8 characters and include uppercase, lowercase, and a number.",
+    consentAccepted:
+      "You must agree to the Terms & Conditions and Privacy Policy to register.",
   },
 };
 

@@ -14,17 +14,21 @@ datasource db {
 // ---------- Identity ----------
 
 model User {
-  id                 String   @id @default(cuid())
-  name               String
-  email              String   @unique
-  phone              String?
-  passwordHash       String
-  role               String   @default("user") // "admin" or "user"
-  subscriptionActive Boolean  @default(false)
-  status             String   @default("inactive") // "active" | "inactive" | "suspended"
-  sessionVersion     Int      @default(1)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                   String    @id @default(cuid())
+  name                 String
+  email                String    @unique
+  phone                String?
+  passwordHash         String
+  role                 String    @default("user") // "admin" or "user"
+  subscriptionActive   Boolean   @default(false)
+  status               String    @default("inactive") // "active" | "inactive" | "suspended"
+  consentAcceptedAt    DateTime?
+  consentIp            String?
+  consentUserAgent     String?
+  consentPolicyVersion String?
+  sessionVersion       Int       @default(1)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   trees       Tree[]               @relation("TreeOwner")
   memberships TreeMember[]
@@ -45,6 +49,24 @@ model PasswordResetToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+// Durable audit trail for consent captured on the public contact / consultation
+// form. Contact inquiries are not stored as accounts, so this table is the only
+// persistent proof that a submitter agreed to data processing, independent of
+// whether the notification email was successfully delivered.
+model ContactConsentLog {
+  id                   String   @id @default(cuid())
+  email                String
+  name                 String
+  consentAcceptedAt    DateTime
+  consentIp            String?
+  consentUserAgent     String?
+  consentPolicyVersion String
+  createdAt            DateTime @default(now())
+
+  @@index([email])
+  @@index([createdAt])
 }
 
 // Shared across Vercel instances so auth throttling survives cold starts and

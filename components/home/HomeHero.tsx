@@ -4,18 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, BookOpenText } from "lucide-react";
-import { Fragment, useRef } from "react";
+import { useRef } from "react";
 import { Button } from "../ui/Button";
-import { WordRotator } from "../ui/WordRotator";
-import { MagneticButton } from "../ui/MagneticButton";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Props = {
-  isLoggedIn: boolean;
-  firstName: string;
   isId: boolean;
   copy: {
-    welcomeBack: string;
     headlineLine1: string;
     headlineRotators: string[];
     headlineLine2: string;
@@ -35,13 +30,15 @@ type Props = {
   secondaryCtaHref: string;
 };
 
-export function HomeHero({ isLoggedIn, firstName, isId, copy, primaryCtaHref, secondaryCtaHref }: Props) {
+export function HomeHero({ isId, copy, primaryCtaHref, secondaryCtaHref }: Props) {
   const ref = useRef<HTMLElement>(null);
   const { shouldReduceScrollMotion } = useMotionGuard();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
+  const headlineFocus = copy.headlineRotators[0] ?? "";
 
   // Subtle parallax for the portrait image
   const imageY = useTransform(scrollYProgress, [0, 1], [0, shouldReduceScrollMotion ? 0 : 36]);
+
 
   return (
     <section
@@ -49,10 +46,7 @@ export function HomeHero({ isLoggedIn, firstName, isId, copy, primaryCtaHref, se
       className="relative w-full min-h-[100svh] overflow-hidden bg-cream-50 lg:h-[calc(100svh-78px)] lg:min-h-[640px] lg:max-h-[760px]"
     >
       
-      {/* 1. PAPER TEXTURE */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 z-10 bg-grain bg-[length:24px_24px] opacity-15" />
-
-      {/* 2. BACKGROUND IMAGE WITH GRADIENT FADE */}
+      {/* 1. BACKGROUND IMAGE WITH GRADIENT FADE */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         {/* MOBILE IMAGE (Top Half) */}
         <div className="absolute top-0 inset-x-0 h-[55svh] lg:hidden">
@@ -92,18 +86,6 @@ export function HomeHero({ isLoggedIn, firstName, isId, copy, primaryCtaHref, se
         {/* 3. LEFT: ASYMMETRICAL TYPOGRAPHY */}
         <div className="relative flex w-full flex-col lg:w-[60%] xl:w-[55%] shrink-0 lg:pr-16 xl:pr-24">
           
-          {isLoggedIn && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="mb-8 inline-flex self-start items-center gap-3 rounded-full border border-ink-200/60 bg-cream-100/50 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-ink-600"
-            >
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-500 animate-pulse" />
-              {copy.welcomeBack} · <span className="text-ink-900">{firstName}</span>
-            </motion.div>
-          )}
-
           <motion.h1 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -116,33 +98,20 @@ export function HomeHero({ isLoggedIn, firstName, isId, copy, primaryCtaHref, se
           >
             <span className="block mb-2 md:mb-3">
               {copy.headlineLine1}{" "}
-              <WordRotator
-                words={copy.headlineRotators}
-                className={`font-serif italic text-brand-700 font-light ${
+              <span
+                className={`inline-block align-bottom font-serif italic text-brand-700 font-light ${
                   isId
                     ? "text-[2.5rem] sm:text-[3.4rem] md:text-[3.75rem] lg:text-[3.9rem] xl:text-[4.35rem] 2xl:text-[4.6rem]"
                     : "text-[2.3rem] sm:text-[3.05rem] md:text-[3.35rem] lg:text-[3.55rem] xl:text-[4rem] 2xl:text-[4.25rem]"
                 }`}
-                interval={3000}
-                startDelay={800}
-                outerClassName="inline-block align-bottom"
-              />
+              >
+                {headlineFocus}
+              </span>
             </span>
             <span className="block mb-1 md:mb-2">
               {copy.headlineLine2}{" "}
-              <span className="relative inline-block italic text-brand-700 font-medium whitespace-nowrap pr-[0.1em]">
+              <span className="inline-block italic text-brand-700 font-medium whitespace-nowrap pr-[0.1em]">
                 {copy.headlineAccent}
-                <motion.svg
-                  aria-hidden
-                  viewBox="0 0 100 10"
-                  preserveAspectRatio="none"
-                  className="absolute -bottom-1 lg:-bottom-2 left-0 h-[6px] lg:h-[8px] w-full text-brand-300 opacity-60"
-                  initial={{ strokeDasharray: 100, strokeDashoffset: 100 }}
-                  animate={{ strokeDashoffset: 0 }}
-                  transition={{ duration: 1.2, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <path d="M0,5 Q50,0 100,8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </motion.svg>
               </span>
             </span>
             <span className="block">{copy.headlineLine3}</span>
@@ -159,18 +128,16 @@ export function HomeHero({ isLoggedIn, firstName, isId, copy, primaryCtaHref, se
 
           <div className="mt-8 flex flex-col gap-4 sm:flex-row md:mt-9 lg:mt-8">
             <Link href={primaryCtaHref} className="w-full sm:w-auto">
-              <MagneticButton strength={0.2} distance={100} className="w-full sm:w-auto">
-                <Button
-                  variant="dark"
-                  size="lg"
-                  block
-                  iconRight={<ArrowRight className="h-4 w-4" />}
-                  animateRightIcon
-                  className="group relative overflow-hidden sm:w-auto !bg-brand-700 text-cream-50 hover:!bg-brand-800 transition-all duration-500 border-none px-10 py-6 rounded-none shadow-none"
-                >
-                  <span className="relative z-10 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap">{copy.primaryCta}</span>
-                </Button>
-              </MagneticButton>
+              <Button
+                variant="dark"
+                size="lg"
+                block
+                iconRight={<ArrowRight className="h-4 w-4" />}
+                animateRightIcon
+                className="group relative overflow-hidden sm:w-auto !bg-brand-700 text-cream-50 hover:!bg-brand-800 transition-all duration-500 border-none px-10 py-6 rounded-none shadow-none"
+              >
+                <span className="relative z-10 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap">{copy.primaryCta}</span>
+              </Button>
             </Link>
             <Link href={secondaryCtaHref} className="w-full sm:w-auto">
               <Button
@@ -193,13 +160,11 @@ export function HomeHero({ isLoggedIn, firstName, isId, copy, primaryCtaHref, se
             className="mt-10 flex w-full flex-col border-t border-ink-200/40 pt-5 lg:mt-9"
           >
             <ul className="flex max-w-full flex-wrap items-center gap-x-4 gap-y-4">
-              {[copy.badge1, copy.badge2, copy.badge3].map((label, index) => (
-                <Fragment key={label}>
+              {[copy.badge1, copy.badge2, copy.badge3, copy.badge4].map((label, index) => (
+                <li key={label} className="flex items-center gap-4 text-[9px] font-bold italic uppercase tracking-[0.2em] text-ink-500">
                   {index > 0 && <span aria-hidden className="h-4 w-px flex-none bg-ink-300/50" />}
-                  <li className="text-[9px] font-bold italic uppercase tracking-[0.2em] text-ink-500">
-                     {label}
-                  </li>
-                </Fragment>
+                  <span>{label}</span>
+                </li>
               ))}
             </ul>
           </motion.div>
@@ -208,26 +173,21 @@ export function HomeHero({ isLoggedIn, firstName, isId, copy, primaryCtaHref, se
       </div>
 
       {/* Scroll hint */}
-      <div
-        className="absolute bottom-0 left-6 md:left-12 lg:left-16 hidden md:flex flex-col items-center gap-4 z-20 pb-8"
-      >
-        <div className="relative" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
-          {/* Base faded text */}
-          <span className="text-[9px] font-bold tracking-[0.25em] text-ink-200/50 uppercase">
+      <div className="absolute bottom-0 left-6 z-20 hidden flex-col items-center gap-4 pb-8 md:left-12 md:flex lg:left-16">
+        <div
+          className="relative"
+          style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+        >
+          <span className="text-[9px] font-bold uppercase tracking-[0.25em] text-ink-200/50">
             {copy.scrollHint}
           </span>
-          {/* Animated Highlight Sweep */}
-          <span
-            className="hero-scroll-highlight absolute top-0 left-0 text-[9px] font-bold tracking-[0.25em] text-brand-700 uppercase"
-          >
+          <span className="hero-scroll-highlight absolute left-0 top-0 text-[9px] font-bold uppercase tracking-[0.25em] text-brand-700">
             {copy.scrollHint}
           </span>
         </div>
-        
-        <div className="h-16 w-px bg-ink-200/40 relative overflow-hidden">
-          <div
-            className="hero-scroll-line absolute inset-0 w-full h-full bg-brand-700"
-          />
+
+        <div className="relative h-16 w-px overflow-hidden bg-ink-200/40">
+          <div className="hero-scroll-line absolute inset-0 h-full w-full bg-brand-700" />
         </div>
       </div>
 

@@ -220,3 +220,69 @@ Lifestory uses a hybrid of tonal layering, borders, and soft warm shadows. Flat 
 - **Don't** introduce ad-hoc hex values when a Tailwind token or CSS custom property already exists.
 - **Don't** use Playfair in buttons, dense forms, data, or repeated product labels.
 - **Don't** ship abrupt mount/unmount panels for member details; drawers should feel layered and intentional.
+
+## 7. Home Page Audit Checklist
+
+This is the operational version of the Home analysis. Use it when editing the public landing page so the result keeps the same brand, but loses the template-like polish that makes it feel AI-generated.
+
+### Hero
+- Keep one dominant idea only: headline, one supporting image, and two CTAs.
+- Remove or reduce decorative signals that do not add meaning, especially repeated grain, scroll hints, underline sweeps, and multiple trust badges.
+- Keep the rotating word only if it changes the promise; otherwise replace it with a fixed noun that feels more specific to the service.
+- Make the primary CTA concrete and outcome-oriented; avoid generic marketing phrasing.
+- Prefer one strong image crop over several layered visual tricks.
+
+### Stats / Proof
+- Reframe the section as an archive or evidence block, not a generic gallery carousel.
+- Add concrete metadata to each item: year, city, format, or role in the project.
+- Reduce the sense of a reusable UI widget by giving each card a clearer editorial label.
+- Keep navigation simple and make the interaction feel like browsing records, not browsing ads.
+
+### How It Works
+- Make the section read like a real process timeline rather than a polished marketing sequence.
+- Use fewer abstract phrases and more verbs that describe actual work.
+- Let the left side carry the narrative and the right side carry the proof image, but keep the motion quiet.
+- Preserve the step structure, but make each step feel specific enough to be believable.
+
+### Deliverables
+- Collapse the six-item package into a clearer hierarchy: core outputs, supporting outputs, optional extras.
+- Decrease the amount of auto-rotating motion so the section feels curated instead of animated for its own sake.
+- Keep the preview pane, but make the labels and captions more like archive notes than brochure copy.
+- Remove any item that does not help a customer understand what they are actually receiving.
+
+### Featured Collections
+- Add editorial context to each cover so it feels chosen, not just displayed.
+- Give every item a reason to exist in the grid, such as format, tone, or family use case.
+- Keep the grid, but let the captions do more storytelling work.
+- Avoid making every card look equally important; create one or two focal items.
+
+### Testimonials
+- Replace polished praise with specific, lived-in detail.
+- Keep quotes shorter and more human, even if they are less perfect.
+- Let the stacked-card effect stay only if the text feels real enough to justify it.
+- Use testimonials to prove process quality, not just emotional satisfaction.
+
+### Philosophy
+- Keep this as one calm contemplative moment, not a manifesto wall.
+- Trim the copy if it starts feeling self-important or overly lyrical.
+- Use the section to establish meaning, then move on quickly.
+- Avoid adding more motion or decoration here; the tone should come from pacing.
+
+### FAQ
+- Make this the quietest section on the page.
+- Prioritize scannability and clarity over visual drama.
+- Keep ornamentation to a minimum so the content feels like practical decision support.
+- If a question is already answered elsewhere, do not restate it with more flourish.
+
+### Final CTA
+- End with one strong promise, one primary action, and one secondary escape hatch.
+- Remove extra decoration so the close feels confident instead of overstated.
+- Match the visual language of the CTA to the tone of the whole page, but keep it simpler than the hero.
+- The final section should feel like a decision point, not another sales pitch.
+
+### Highest-Priority Fix Order
+1. Simplify Hero.
+2. Reduce repeated ornament across all sections.
+3. Rewrite Deliverables and Testimonials to sound more specific and less brochure-like.
+4. Make How It Works, Featured Collections, and FAQ more documentary and less promotional.
+5. Keep Philosophy restrained so it supports the page instead of dominating it.

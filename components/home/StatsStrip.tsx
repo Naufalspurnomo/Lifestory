@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { useState, type ReactNode } from "react";
 import { Container } from "../ui/Container";
@@ -112,7 +112,7 @@ export function StatsStrip({ copy }: Props) {
                     priority={activeIndex === 0}
                     sizes="(max-width: 1024px) calc(100vw - 3rem), 64vw"
                     quality={82}
-                    className="object-cover transition-transform duration-[1400ms] ease-smooth lg:group-hover:scale-[1.025]"
+                    className="object-cover"
                   />
                 </motion.div>
               </AnimatePresence>
@@ -146,9 +146,6 @@ export function StatsStrip({ copy }: Props) {
                     >
                       {activeItem.title}
                     </h3>
-                    <span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/25 text-white transition-colors duration-300 group-hover:border-brand-300 group-hover:bg-brand-700 sm:flex">
-                      <ArrowUpRight className="h-4 w-4" />
-                    </span>
                   </div>
                 </motion.div>
               </AnimatePresence>
@@ -165,7 +162,6 @@ export function StatsStrip({ copy }: Props) {
                     key={`${item.title}-${index}`}
                     type="button"
                     onClick={() => setActiveIndex(index)}
-                    onMouseEnter={() => setActiveIndex(index)}
                     onFocus={() => setActiveIndex(index)}
                     aria-pressed={isActive}
                     className="group relative grid w-full grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-white/15 py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-300"
@@ -178,6 +174,9 @@ export function StatsStrip({ copy }: Props) {
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     <span className="min-w-0">
+                      <span className="mb-1 block text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">
+                        {item.subtitle}
+                      </span>
                       <span
                         className={`block truncate font-serif text-xl leading-tight transition-all duration-500 md:text-2xl ${
                           isActive ? "translate-x-1 text-cream-50" : "text-white/45 group-hover:text-white/75"

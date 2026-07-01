@@ -8,6 +8,7 @@ const prisma = new PrismaClient();
 const relevantTables = new Set([
   "User",
   "PasswordResetToken",
+  "ContactConsentLog",
   "RateLimitBucket",
   "Tree",
   "TreeMember",
@@ -23,6 +24,12 @@ const requiredColumns = new Set([
   "PasswordResetToken.tokenHash",
   "PasswordResetToken.expiresAt",
   "PasswordResetToken.usedAt",
+  "ContactConsentLog.email",
+  "ContactConsentLog.name",
+  "ContactConsentLog.consentAcceptedAt",
+  "ContactConsentLog.consentIp",
+  "ContactConsentLog.consentUserAgent",
+  "ContactConsentLog.consentPolicyVersion",
   "RateLimitBucket.key",
   "RateLimitBucket.count",
   "RateLimitBucket.resetAt",
@@ -46,6 +53,7 @@ const requiredColumns = new Set([
 const rlsRequiredTables = new Set([
   "User",
   "PasswordResetToken",
+  "ContactConsentLog",
   "RateLimitBucket",
   "Tree",
   "TreeMember",
@@ -113,6 +121,28 @@ try {
     (tree) => tree.deletedAt === null && tree.nodeCount === 0
   );
   const treeOwnerDeleteRule = foreignKeys[0]?.delete_rule;
+  const contactConsentLogPrivileges = existingTables.has("ContactConsentLog")
+    ? await prisma.$queryRawUnsafe(
+        `WITH roles AS (
+          SELECT rolname AS role_name
+          FROM pg_roles
+          WHERE rolname IN ('anon', 'authenticated')
+        ),
+        privileges AS (
+          SELECT privilege
+          FROM (VALUES ('SELECT'), ('INSERT'), ('UPDATE'), ('DELETE')) AS p(privilege)
+        )
+        SELECT
+          roles.role_name,
+          privileges.privilege,
+          has_table_privilege(roles.role_name, '"ContactConsentLog"', privileges.privilege) AS granted
+        FROM roles
+        CROSS JOIN privileges
+        ORDER BY roles.role_name, privileges.privilege`
+      )
+    : [];
+  const exposedContactConsentLogPrivileges =
+    contactConsentLogPrivileges.filter(({ granted }) => granted === true);
 
   console.log(
     JSON.stringify(
@@ -121,6 +151,7 @@ try {
         columns: relevantColumns,
         missingColumns,
         rlsDisabledTables,
+        exposedContactConsentLogPrivileges,
         treeOwnerDeleteRule,
         activeTreesWithoutSnapshots,
         emptyActiveTrees,
@@ -137,6 +168,11 @@ try {
   }
   if (rlsDisabledTables.length > 0) {
     throw new Error(`RLS is disabled for required tables: ${rlsDisabledTables.join(", ")}`);
+  }
+  if (exposedContactConsentLogPrivileges.length > 0) {
+    throw new Error(
+      `ContactConsentLog is directly exposed to Supabase API roles: ${exposedContactConsentLogPrivileges.map(({ role_name, privilege }) => `${role_name}.${privilege}`).join(", ")}`
+    );
   }
   if (treeOwnerDeleteRule !== "RESTRICT" && treeOwnerDeleteRule !== "NO ACTION") {
     throw new Error(`Tree owner deletion is not restricted: ${treeOwnerDeleteRule ?? "missing foreign key"}`);

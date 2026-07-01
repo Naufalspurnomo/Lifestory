@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Container } from "../ui/Container";
-import { AmbientGlow } from "../ui/AmbientGlow";
 import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Props = {
@@ -31,19 +30,11 @@ export function FinalCTA({ copy, primaryHref, secondaryHref }: Props) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: reduced ? 0.01 : 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden rounded-[28px] border border-cream-300 bg-cream-100 px-6 py-10 shadow-[0_18px_42px_rgba(59,43,24,0.08)] sm:px-8 md:px-10 md:py-12 lg:px-12 lg:py-14"
+          className="relative overflow-hidden rounded-[22px] border border-cream-300 bg-cream-100 px-6 py-10 sm:px-8 md:px-10 md:py-12 lg:px-12 lg:py-14"
         >
-          <AmbientGlow className="-right-16 -top-24" size={420} duration={16} />
-          <AmbientGlow
-            className="-bottom-24 left-[8%]"
-            color="rgba(176,141,87,0.1)"
-            size={380}
-            duration={20}
-            delay={1.5}
-          />
           <span
             aria-hidden
-            className="absolute left-6 top-0 h-[3px] w-24 bg-brand-700 sm:left-8 md:left-10 lg:left-12"
+            className="absolute left-6 top-0 h-[2px] w-20 bg-brand-700 sm:left-8 md:left-10 lg:left-12"
           />
           <div className="relative z-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="max-w-3xl">
