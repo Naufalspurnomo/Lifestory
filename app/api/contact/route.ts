@@ -50,16 +50,23 @@ export async function POST(request: Request) {
   // Persist consent proof before sending the inquiry. If this fails, do not
   // process the submitted contact details further without an audit record.
   try {
-    await prisma.contactConsentLog.create({
-      data: {
-        email: validation.data.email.toLowerCase().trim(),
-        name: validation.data.name.trim(),
-        consentAcceptedAt,
-        consentIp,
-        consentUserAgent,
-        consentPolicyVersion,
-      },
-    });
+    await prisma.$executeRaw`
+      INSERT INTO "ContactConsentLog" (
+        "email",
+        "name",
+        "consentAcceptedAt",
+        "consentIp",
+        "consentUserAgent",
+        "consentPolicyVersion"
+      ) VALUES (
+        ${validation.data.email.toLowerCase().trim()},
+        ${validation.data.name.trim()},
+        ${consentAcceptedAt},
+        ${consentIp},
+        ${consentUserAgent},
+        ${consentPolicyVersion}
+      )
+    `;
   } catch (error) {
     console.error("[contact] Failed to persist consent log", error);
     return NextResponse.json(
