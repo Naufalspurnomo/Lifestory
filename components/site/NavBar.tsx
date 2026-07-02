@@ -28,108 +28,63 @@ type AccountLink = {
   icon: LucideIcon;
 };
 
+type NavLink = {
+  href: string;
+  label: string;
+};
+
+type Copy = ReturnType<typeof buildCopy>;
+
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function NavBar() {
-  const pathname = usePathname();
-  const { data: session, status } = useSession();
-  const { locale } = useLanguage();
-
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  const isHome = pathname === "/";
-
-  const user = session?.user;
-  const isLoggedIn = status === "authenticated";
-  const isAdmin = user?.role === "admin";
-  const isSubscribed = Boolean(user?.subscriptionActive);
-  const copy = useMemo(
-    () =>
-      locale === "id"
-        ? {
-          nav: {
-            home: "Beranda",
-            gallery: "Galeri",
-            familyTrees: "Pohon Keluarga",
-            about: "Tentang Kami",
-            contact: "Kontak",
-          },
-          startStory: "Mulai Cerita",
-          accountAdmin: "Admin",
-          accountMember: "Anggota",
-          accountPending: "Menunggu",
-          adminDashboard: "Dashboard Admin",
-          collections: "Koleksi",
-          activatePlan: "Aktifkan Paket",
+function buildCopy(locale: string) {
+  return locale === "id"
+    ? {
+        nav: {
+          home: "Beranda",
+          gallery: "Galeri",
           familyTrees: "Pohon Keluarga",
-          signOut: "Keluar",
-          noEmail: "Email tidak tersedia",
-          adminAccount: "Akun Admin",
-          memberAccount: "Akun Anggota",
-          pendingMember: "Anggota Menunggu",
-          closeAccountMenu: "Tutup latar menu akun",
-          toggleMenu: "Buka/tutup menu",
-        }
-        : {
-          nav: {
-            home: "Home",
-            gallery: "Gallery",
-            familyTrees: "Family Trees",
-            about: "About Us",
-            contact: "Contact",
-          },
-          startStory: "Start Story",
-          accountAdmin: "Admin",
-          accountMember: "Member",
-          accountPending: "Pending",
-          adminDashboard: "Admin Dashboard",
-          collections: "Collections",
-          activatePlan: "Activate Plan",
-          familyTrees: "Family Trees",
-          signOut: "Sign Out",
-          noEmail: "No email",
-          adminAccount: "Admin Account",
-          memberAccount: "Member Account",
-          pendingMember: "Pending Member",
-          closeAccountMenu: "Close account menu backdrop",
-          toggleMenu: "Toggle menu",
+          about: "Tentang Kami",
+          contact: "Kontak",
         },
-    [locale]
-  );
-  const navLinks = [
-    { href: "/", label: copy.nav.home },
-    { href: "/gallery", label: copy.nav.gallery },
-    { href: "/app", label: copy.nav.familyTrees },
-    { href: "/about", label: copy.nav.about },
-    { href: "/contact", label: copy.nav.contact },
-  ];
-  const displayName = user?.name?.trim() || copy.accountMember;
-  const displayEmail = user?.email || copy.noEmail;
-  const userInitial = displayName.charAt(0).toUpperCase();
+        startStory: "Mulai Cerita",
+        adminDashboard: "Dashboard Admin",
+        collections: "Koleksi",
+        activatePlan: "Aktifkan Paket",
+        familyTrees: "Pohon Keluarga",
+        signOut: "Keluar",
+        noEmail: "Email tidak tersedia",
+        accountMember: "Anggota",
+        closeAccountMenu: "Tutup latar menu akun",
+        toggleMenu: "Buka/tutup menu",
+      }
+    : {
+        nav: {
+          home: "Home",
+          gallery: "Gallery",
+          familyTrees: "Family Trees",
+          about: "About Us",
+          contact: "Contact",
+        },
+        startStory: "Start Story",
+        adminDashboard: "Admin Dashboard",
+        collections: "Collections",
+        activatePlan: "Activate Plan",
+        familyTrees: "Family Trees",
+        signOut: "Sign Out",
+        noEmail: "No email",
+        accountMember: "Member",
+        closeAccountMenu: "Close account menu backdrop",
+        toggleMenu: "Toggle menu",
+      };
+}
 
-  const accountLinks = useMemo<AccountLink[]>(() => {
-    if (isAdmin) {
-      return [
-        { href: "/dashboard", label: copy.adminDashboard, icon: LayoutDashboard },
-        { href: "/app", label: copy.familyTrees, icon: TreePine },
-        { href: "/gallery", label: copy.collections, icon: Sparkles },
-      ];
-    }
-
-    return [
-      {
-        href: isSubscribed ? "/app" : "/subscribe",
-        label: isSubscribed ? copy.familyTrees : copy.activatePlan,
-        icon: isSubscribed ? TreePine : Crown,
-      },
-      { href: "/gallery", label: copy.collections, icon: Sparkles },
-    ];
-  }, [copy, isAdmin, isSubscribed]);
+function useNavbarChrome(pathname: string) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     let current = window.scrollY > 24;
@@ -157,6 +112,258 @@ export function NavBar() {
 
   useEffect(() => {
     setMobileOpen(false);
+  }, [pathname]);
+
+  return { mobileOpen, setMobileOpen, isScrolled };
+}
+
+export function NavBar() {
+  const pathname = usePathname();
+  const { locale } = useLanguage();
+
+  if (pathname === "/app" || pathname.startsWith("/app/")) {
+    return null;
+  }
+
+  const copy = buildCopy(locale);
+  const navLinks: NavLink[] = [
+    { href: "/", label: copy.nav.home },
+    { href: "/gallery", label: copy.nav.gallery },
+    { href: "/app", label: copy.nav.familyTrees },
+    { href: "/about", label: copy.nav.about },
+    { href: "/contact", label: copy.nav.contact },
+  ];
+  const isMarketingRoute =
+    pathname === "/" ||
+    pathname === "/gallery" ||
+    pathname === "/about" ||
+    pathname === "/contact" ||
+    pathname === "/terms" ||
+    pathname === "/privacy-policy";
+
+  if (isMarketingRoute) {
+    return (
+      <MarketingNavBar
+        pathname={pathname}
+        locale={locale}
+        copy={copy}
+        navLinks={navLinks}
+      />
+    );
+  }
+
+  return (
+    <SessionAwareNavBar
+      pathname={pathname}
+      locale={locale}
+      copy={copy}
+      navLinks={navLinks}
+    />
+  );
+}
+
+function MarketingNavBar({
+  pathname,
+  locale,
+  copy,
+  navLinks,
+}: {
+  pathname: string;
+  locale: string;
+  copy: Copy;
+  navLinks: NavLink[];
+}) {
+  const { mobileOpen, setMobileOpen, isScrolled } = useNavbarChrome(pathname);
+  const isHome = pathname === "/";
+
+  return (
+    <header
+      className={`sticky top-0 z-50 border-b transition-all duration-300 ${
+        isScrolled
+          ? "border-cream-300 bg-cream-50/95 shadow-soft backdrop-blur-md"
+          : "border-cream-300/60 bg-cream-100/85 backdrop-blur-sm"
+      }`}
+    >
+      <div
+        className={`mx-auto flex max-w-[1320px] items-center justify-between px-4 transition-all duration-300 sm:px-6 ${
+          isScrolled ? "h-[56px] lg:h-[64px]" : "h-[78px]"
+        }`}
+      >
+        <div className="relative">
+          <BrandLogo variant={isScrolled ? "navbar-compact" : "navbar"} />
+          {isHome && (
+            <span
+              className="absolute left-0 top-full mt-[-2px] block whitespace-nowrap font-sans text-[9.5px] font-medium uppercase text-brand-700/75 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{
+                letterSpacing: "1.8px",
+                opacity: isScrolled ? 0 : 1,
+                transform: isScrolled ? "translateY(-4px)" : "translateY(0)",
+                pointerEvents: "none",
+              }}
+            >
+              {locale === "id" ? "Abadikan Warisanmu" : "Preserve Your Legacy"}
+            </span>
+          )}
+        </div>
+
+        <nav
+          className={`hidden items-center transition-all duration-300 lg:flex ${
+            isScrolled ? "gap-8" : "gap-12"
+          }`}
+        >
+          {navLinks.map((link) => {
+            const active = isActive(pathname, link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`group relative pb-2 text-[14px] font-serif tracking-[0.03em] transition-all duration-300 ${
+                  active
+                    ? "text-ink-900 italic font-medium"
+                    : "text-ink-500 hover:text-ink-900"
+                }`}
+              >
+                {link.label}
+                <span
+                  className={`absolute -bottom-1 left-1/2 h-[3px] w-[3px] -translate-x-1/2 rounded-full bg-brand-400 transition-all duration-300 ${
+                    active
+                      ? "opacity-100 scale-100"
+                      : "opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100"
+                  }`}
+                />
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="hidden items-center gap-4 lg:flex">
+          <Link href="/auth/login">
+            <Button
+              variant="outline"
+              size={isScrolled ? "sm" : "md"}
+              iconRight={<ArrowRight className="h-3.5 w-3.5" />}
+              animateRightIcon
+              className="rounded-none !border-brand-700 !text-brand-700 px-6 text-[10px] font-medium uppercase tracking-[0.15em] transition-colors duration-500 hover:!bg-brand-700 hover:!text-cream-50"
+            >
+              {copy.startStory}
+            </Button>
+          </Link>
+          <LanguageToggle className="ml-2" />
+        </div>
+
+        <button
+          onClick={() => setMobileOpen((prev) => !prev)}
+          className="relative z-[60] -mr-2 inline-flex h-10 w-10 items-center justify-center rounded-full text-ink-800 transition hover:bg-cream-200/50 lg:hidden"
+          aria-label={copy.toggleMenu}
+        >
+          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-cream-50 px-6 pb-10 pt-28 lg:hidden"
+          >
+            <nav className="flex flex-col gap-6">
+              {navLinks.map((link, i) => {
+                const active = isActive(pathname, link.href);
+                return (
+                  <motion.div
+                    key={link.href}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 + i * 0.05, duration: 0.4 }}
+                  >
+                    <Link
+                      href={link.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={`block font-serif text-[2.5rem] leading-tight font-medium tracking-tight transition-colors ${
+                        active
+                          ? "text-brand-700 italic"
+                          : "text-ink-800 hover:text-ink-500"
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </nav>
+
+            <div className="mt-auto pt-12">
+              <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
+                <Button
+                  variant="outline"
+                  block
+                  size="lg"
+                  iconRight={<ArrowRight className="h-4 w-4" />}
+                  animateRightIcon
+                  className="w-full rounded-none py-6 font-sans text-[12px] font-medium uppercase tracking-[0.15em] !border-brand-700 !text-brand-700 hover:!bg-brand-700 hover:!text-cream-50"
+                >
+                  {copy.startStory}
+                </Button>
+              </Link>
+
+              <div className="mt-12 flex justify-start">
+                <LanguageToggle />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </header>
+  );
+}
+
+function SessionAwareNavBar({
+  pathname,
+  locale,
+  copy,
+  navLinks,
+}: {
+  pathname: string;
+  locale: string;
+  copy: Copy;
+  navLinks: NavLink[];
+}) {
+  const { data: session, status } = useSession();
+  const { mobileOpen, setMobileOpen, isScrolled } = useNavbarChrome(pathname);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const isHome = pathname === "/";
+
+  const user = session?.user;
+  const isLoggedIn = status === "authenticated";
+  const isAdmin = user?.role === "admin";
+  const isSubscribed = Boolean(user?.subscriptionActive);
+  const displayName = user?.name?.trim() || copy.accountMember;
+  const displayEmail = user?.email || copy.noEmail;
+  const userInitial = displayName.charAt(0).toUpperCase();
+
+  const accountLinks = useMemo<AccountLink[]>(() => {
+    if (isAdmin) {
+      return [
+        { href: "/dashboard", label: copy.adminDashboard, icon: LayoutDashboard },
+        { href: "/app", label: copy.familyTrees, icon: TreePine },
+        { href: "/gallery", label: copy.collections, icon: Sparkles },
+      ];
+    }
+
+    return [
+      {
+        href: isSubscribed ? "/app" : "/subscribe",
+        label: isSubscribed ? copy.familyTrees : copy.activatePlan,
+        icon: isSubscribed ? TreePine : Crown,
+      },
+      { href: "/gallery", label: copy.collections, icon: Sparkles },
+    ];
+  }, [copy, isAdmin, isSubscribed]);
+
+  useEffect(() => {
     setAccountOpen(false);
   }, [pathname]);
 
@@ -164,10 +371,6 @@ export function NavBar() {
     setAccountOpen(false);
     setMobileOpen(false);
     signOut({ callbackUrl: "/" });
-  }
-
-  if (pathname === "/app" || pathname?.startsWith("/app/")) {
-    return null;
   }
 
   return (
@@ -212,14 +415,17 @@ export function NavBar() {
                 key={link.href}
                 href={link.href}
                 className={`group relative pb-2 text-[14px] font-serif tracking-[0.03em] transition-all duration-300 ${
-                  active ? "text-ink-900 italic font-medium" : "text-ink-500 hover:text-ink-900"
+                  active
+                    ? "text-ink-900 italic font-medium"
+                    : "text-ink-500 hover:text-ink-900"
                 }`}
               >
                 {link.label}
-                {/* Minimalist active dot indicator */}
                 <span
                   className={`absolute -bottom-1 left-1/2 h-[3px] w-[3px] -translate-x-1/2 rounded-full bg-brand-400 transition-all duration-300 ${
-                    active ? "opacity-100 scale-100" : "opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100"
+                    active
+                      ? "opacity-100 scale-100"
+                      : "opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100"
                   }`}
                 />
               </Link>
@@ -228,7 +434,6 @@ export function NavBar() {
         </nav>
 
         <div className="hidden items-center gap-4 lg:flex">
-
           {status === "loading" && (
             <div className="h-10 w-44 animate-pulse rounded-full border border-cream-300 bg-cream-50/80" />
           )}
@@ -240,7 +445,7 @@ export function NavBar() {
                 size={isScrolled ? "sm" : "md"}
                 iconRight={<ArrowRight className="h-3.5 w-3.5" />}
                 animateRightIcon
-                className="uppercase tracking-[0.15em] rounded-none !border-brand-700 !text-brand-700 hover:!bg-brand-700 hover:!text-cream-50 transition-colors duration-500 px-6 font-medium text-[10px]"
+                className="rounded-none !border-brand-700 !text-brand-700 px-6 text-[10px] font-medium uppercase tracking-[0.15em] transition-colors duration-500 hover:!bg-brand-700 hover:!text-cream-50"
               >
                 {copy.startStory}
               </Button>
@@ -254,13 +459,17 @@ export function NavBar() {
                 onClick={() => setAccountOpen((prev) => !prev)}
                 className="group flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition-all duration-300 hover:bg-cream-200/40"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-[13px] font-bold text-brand-800 shadow-sm border border-brand-200/50">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full border border-brand-200/50 bg-brand-100 text-[13px] font-bold text-brand-800 shadow-sm">
                   {userInitial}
                 </div>
                 <span className="hidden max-w-[120px] truncate text-[13px] font-semibold tracking-[0.02em] text-ink-800 xl:inline">
                   {displayName}
                 </span>
-                <ChevronDown className={`h-3.5 w-3.5 text-ink-400 transition-transform duration-300 ${accountOpen ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`h-3.5 w-3.5 text-ink-400 transition-transform duration-300 ${
+                    accountOpen ? "rotate-180" : ""
+                  }`}
+                />
               </button>
 
               <AnimatePresence>
@@ -284,7 +493,9 @@ export function NavBar() {
                             {userInitial}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate text-[15px] font-semibold tracking-tight text-ink-900">{displayName}</p>
+                            <p className="truncate text-[15px] font-semibold tracking-tight text-ink-900">
+                              {displayName}
+                            </p>
                             <p className="truncate text-[12px] text-ink-400">{displayEmail}</p>
                           </div>
                         </div>
@@ -322,6 +533,7 @@ export function NavBar() {
               </AnimatePresence>
             </div>
           )}
+
           <LanguageToggle className="ml-2" />
         </div>
 
@@ -341,7 +553,7 @@ export function NavBar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-0 z-50 flex flex-col bg-cream-50 px-6 pt-28 pb-10 lg:hidden overflow-y-auto"
+            className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-cream-50 px-6 pb-10 pt-28 lg:hidden"
           >
             <nav className="flex flex-col gap-6">
               {navLinks.map((link, i) => {
@@ -382,7 +594,7 @@ export function NavBar() {
                     size="lg"
                     iconRight={<ArrowRight className="h-4 w-4" />}
                     animateRightIcon
-                    className="w-full uppercase tracking-[0.15em] rounded-none py-6 font-medium text-[12px] font-sans !border-brand-700 !text-brand-700 hover:!bg-brand-700 hover:!text-cream-50"
+                    className="w-full rounded-none py-6 font-sans text-[12px] font-medium uppercase tracking-[0.15em] !border-brand-700 !text-brand-700 hover:!bg-brand-700 hover:!text-cream-50"
                   >
                     {copy.startStory}
                   </Button>
@@ -401,24 +613,24 @@ export function NavBar() {
                       {userInitial}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-[15px] font-semibold tracking-tight text-ink-900">{displayName}</p>
+                      <p className="truncate text-[15px] font-semibold tracking-tight text-ink-900">
+                        {displayName}
+                      </p>
                       <p className="truncate text-[12px] text-ink-400">{displayEmail}</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-5">
-                    {accountLinks.map((item) => {
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setMobileOpen(false)}
-                          className="flex items-center gap-4 text-[12px] font-bold uppercase tracking-[0.15em] text-ink-600 transition hover:text-ink-900"
-                        >
-                          {item.label}
-                        </Link>
-                      );
-                    })}
+                    {accountLinks.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-4 text-[12px] font-bold uppercase tracking-[0.15em] text-ink-600 transition hover:text-ink-900"
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
 
                     <button
                       type="button"

@@ -12,7 +12,7 @@ import {
   Maximize2,
   X,
 } from "lucide-react";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { galleryItems } from "../../lib/content/galleryItems";
 import { useLanguage } from "../../components/providers/LanguageProvider";
@@ -108,12 +108,14 @@ function GalleryPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [activePane, setActivePane] = useState<"story" | "pdf">("story");
   const [isFocusedReaderOpen, setIsFocusedReaderOpen] = useState(false);
+  const touchStartXRef = useRef<number | null>(null);
 
-  const activeItem = activeIndex !== null ? galleryItems[activeIndex] : null;
+  const activeItem = galleryItems[activeIndex] ?? galleryItems[0];
   const activePdf = activeItem?.pdf ?? null;
   const pdfViewerSrc = activePdf
     ? `${activePdf.url}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`
@@ -217,28 +219,34 @@ function GalleryPageContent() {
     [pathname, router, searchParams],
   );
 
-  const openItem = useCallback(
+  const selectItem = useCallback(
     (index: number) => {
-      setActivePane("story");
-      setIsFocusedReaderOpen(false);
       setActiveIndex(index);
       replaceItemQuery(galleryItems[index].id);
     },
     [replaceItemQuery],
   );
 
+  const openItem = useCallback(
+    (index: number) => {
+      selectItem(index);
+      setIsDetailOpen(true);
+      setActivePane("story");
+      setIsFocusedReaderOpen(false);
+    },
+    [selectItem],
+  );
+
   const closeModal = useCallback(() => {
     setActivePane("story");
     setIsFocusedReaderOpen(false);
-    setActiveIndex(null);
-    replaceItemQuery(null);
-  }, [replaceItemQuery]);
+    setIsDetailOpen(false);
+  }, []);
 
   const goNext = useCallback(() => {
     setActivePane("story");
     setIsFocusedReaderOpen(false);
     setActiveIndex((prev) => {
-      if (prev === null) return prev;
       const nextIndex = (prev + 1) % galleryItems.length;
       replaceItemQuery(galleryItems[nextIndex].id);
       return nextIndex;
@@ -249,7 +257,6 @@ function GalleryPageContent() {
     setActivePane("story");
     setIsFocusedReaderOpen(false);
     setActiveIndex((prev) => {
-      if (prev === null) return prev;
       const prevIndex = (prev - 1 + galleryItems.length) % galleryItems.length;
       replaceItemQuery(galleryItems[prevIndex].id);
       return prevIndex;
@@ -264,12 +271,15 @@ function GalleryPageContent() {
     const itemId = searchParams.get("item");
 
     if (!itemId) {
-      setActiveIndex(null);
+      setActiveIndex(0);
       return;
     }
 
     const indexFromQuery = galleryItems.findIndex((item) => item.id === itemId);
-    if (indexFromQuery === -1) return;
+    if (indexFromQuery === -1) {
+      setActiveIndex(0);
+      return;
+    }
 
     setActiveIndex((prev) => (prev === indexFromQuery ? prev : indexFromQuery));
   }, [searchParams]);
@@ -282,7 +292,7 @@ function GalleryPageContent() {
   }, [activePdf]);
 
   useEffect(() => {
-    if (activeIndex === null || isFocusedReaderOpen) return;
+    if (!isDetailOpen || isFocusedReaderOpen) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -311,7 +321,7 @@ function GalleryPageContent() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [activeIndex, closeModal, goNext, goPrev, isFocusedReaderOpen]);
+  }, [closeModal, goNext, goPrev, isDetailOpen, isFocusedReaderOpen]);
 
   useEffect(() => {
     if (!isFocusedReaderOpen) return;
@@ -333,7 +343,7 @@ function GalleryPageContent() {
     };
   }, [isFocusedReaderOpen]);
 
-  const modal = activeItem ? (
+  const modal = isDetailOpen && activeItem ? (
     <div
       className="fixed inset-0 z-[120] bg-[rgba(16,11,7,0.76)] backdrop-blur-[3px]"
       role="dialog"
@@ -542,7 +552,7 @@ function GalleryPageContent() {
   ) : null;
 
   const focusedReaderModal =
-    activeItem && activePdf && pdfViewerSrc && isFocusedReaderOpen ? (
+    isDetailOpen && activeItem && activePdf && pdfViewerSrc && isFocusedReaderOpen ? (
       <div
         className="fixed inset-0 z-[130] bg-[rgba(19,12,6,0.84)] backdrop-blur-[4px]"
         role="dialog"
@@ -603,7 +613,7 @@ function GalleryPageContent() {
   return (
     <div className="bg-[#faf6ed] text-[#40342c]">
       <section className="mx-auto max-w-[1320px] px-6 py-16 md:py-20">
-        <div className="mb-10 flex flex-col gap-5 md:mb-12 md:flex-row md:items-end md:justify-between">
+        <div className="mb-14 flex flex-col gap-6 md:mb-16 md:flex-row md:items-start md:justify-between md:gap-10">
           <div className="max-w-3xl space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a68553]">
               {copy.sectionLabel}
@@ -618,62 +628,187 @@ function GalleryPageContent() {
 
           <Link
             href="/"
-            className="inline-flex items-center gap-2 self-start rounded-full border border-[#dccfb3] bg-white/80 px-5 py-2 text-sm font-semibold text-[#6c5a49] transition hover:border-[#c7b289] hover:bg-white hover:text-[#4c3f34] md:self-auto"
+            className="inline-flex items-center gap-2 self-start rounded-full border border-[#dccfb3] bg-white/80 px-5 py-2 text-sm font-semibold text-[#6c5a49] transition hover:border-[#c7b289] hover:bg-white hover:text-[#4c3f34] md:mt-1 md:self-start"
           >
             {copy.backHome}
             <span aria-hidden>&rarr;</span>
           </Link>
         </div>
 
-        <div className="grid gap-7 sm:grid-cols-2 xl:grid-cols-4">
-          {galleryItems.map((item, index) => (
-            <article
-              key={item.id}
-              className="group overflow-hidden rounded-[22px] border border-[#d7cbb6] bg-white shadow-[0_14px_34px_rgba(88,67,37,0.12)] transition duration-500 hover:-translate-y-1.5 hover:shadow-[0_24px_42px_rgba(88,67,37,0.2)]"
-            >
-              <button
-                type="button"
-                onClick={() => openItem(index)}
-                className="block w-full text-left"
-                aria-label={copy.ariaOpenDetails(item.title)}
-              >
-                <div className="relative aspect-[2/3] overflow-hidden">
-                  <Image
-                    src={item.src}
-                    alt={item.alt}
-                    fill
-                    className="object-cover transition duration-700 group-hover:scale-[1.04]"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
-                    priority={index < 2}
-                  />
-                </div>
-
-                <div className="space-y-3 p-5">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#aa8b5c]">
-                      {getLocalizedMeta(item.id)?.subtitle || item.subtitle}
-                    </p>
-                    <h2 className="font-serif text-2xl leading-tight text-[#3f342d]">
-                      {item.title}
-                    </h2>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#705f4e]">
-                    <span className="rounded-full border border-[#dfd2bb] bg-[#faf7f1] px-2.5 py-1">
-                      {copy.era}: {getLocalizedMeta(item.id)?.era || item.era}
-                    </span>
-                    <span className="rounded-full border border-[#dfd2bb] bg-[#faf7f1] px-2.5 py-1">
-                      {getLocalizedMeta(item.id)?.palette || item.palette}
-                    </span>
-                  </div>
-
-                  <p className="text-sm leading-relaxed text-[#6f6358]">
-                    {getLocalizedMeta(item.id)?.summary || item.summary}
+        <div className="space-y-7">
+          <div className="grid gap-6 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)] lg:gap-7">
+            <aside className="rounded-[28px] border border-[#d7cbb6] bg-white/75 p-4 shadow-[0_14px_34px_rgba(88,67,37,0.08)] backdrop-blur-sm">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a68553]">
+                    Pilih sampul
+                  </p>
+                  <p className="mt-1 text-sm text-[#72675f]">
+                    Geser daftar ini untuk melihat opsi lain.
                   </p>
                 </div>
-              </button>
-            </article>
-          ))}
+                <span className="rounded-full border border-[#e1d4bc] bg-[#faf7f1] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7d6a55]">
+                  {activeIndex + 1}/{galleryItems.length}
+                </span>
+              </div>
+
+              <div className="flex gap-3 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0">
+                {galleryItems.map((item, index) => {
+                  const meta = getLocalizedMeta(item.id);
+                  const isActive = index === activeIndex;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => selectItem(index)}
+                      className={`group min-w-[220px] rounded-[22px] border p-3 text-left transition duration-300 lg:min-w-0 ${
+                        isActive
+                          ? "border-[#c8ad7e] bg-[#fff8ec] shadow-[0_10px_24px_rgba(139,102,44,0.14)]"
+                          : "border-[#e4d7bf] bg-white hover:border-[#d2be9b] hover:bg-[#fffdf9]"
+                      }`}
+                      aria-pressed={isActive}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded-[14px] border border-[#ddcfb8] bg-[#f3ede0]">
+                          <Image src={item.src} alt={item.alt} fill className="object-cover" sizes="48px" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#aa8b5c]">
+                            {meta?.subtitle || item.subtitle}
+                          </p>
+                          <h2 className="mt-1 font-serif text-[1.1rem] leading-tight text-[#3f342d]">
+                            {item.title}
+                          </h2>
+                          <p className="mt-2 text-xs leading-relaxed text-[#776a5f] line-clamp-2">
+                            {meta?.summary || item.summary}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
+
+            <div
+              className="rounded-[34px] border border-[#d7cbb6] bg-[linear-gradient(180deg,#fffdf8_0%,#f7efe4_100%)] p-4 shadow-[0_18px_42px_rgba(88,67,37,0.12)] md:p-5"
+              onTouchStart={(event) => {
+                touchStartXRef.current = event.touches[0]?.clientX ?? null;
+              }}
+              onTouchEnd={(event) => {
+                const startX = touchStartXRef.current;
+                const endX = event.changedTouches[0]?.clientX ?? null;
+
+                if (startX === null || endX === null) return;
+
+                const deltaX = endX - startX;
+                if (Math.abs(deltaX) < 48) return;
+
+                if (deltaX < 0) {
+                  goNext();
+                } else {
+                  goPrev();
+                }
+
+                touchStartXRef.current = null;
+              }}
+              onTouchCancel={() => {
+                touchStartXRef.current = null;
+              }}
+            >
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7d6a55]">
+                    <span className="rounded-full border border-[#dccfb3] bg-white/80 px-3 py-1">
+                      {copy.sectionLabel}
+                    </span>
+                    <span className="rounded-full border border-[#dccfb3] bg-white/80 px-3 py-1">
+                      {copy.era}: {activeMeta?.era || activeItem.era}
+                    </span>
+                    <span className="rounded-full border border-[#dccfb3] bg-white/80 px-3 py-1">
+                      {copy.palette}: {activeMeta?.palette || activeItem.palette}
+                    </span>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a68553]">
+                      {activeMeta?.subtitle || activeItem.subtitle}
+                    </p>
+                    <h2 className="mt-2 font-serif text-[clamp(2rem,3.8vw,3.4rem)] leading-[1.02] text-[#3f342d]">
+                      {activeItem.title}
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 justify-self-start xl:justify-self-end">
+                  <button
+                    type="button"
+                    onClick={goPrev}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#dccfb3] bg-white/90 text-[#5d4f42] transition hover:bg-white"
+                    aria-label={copy.ariaPrevCover}
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#dccfb3] bg-white/90 text-[#5d4f42] transition hover:bg-white"
+                    aria-label={copy.ariaNextCover}
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-5 overflow-hidden rounded-[28px] border border-[#dfd2bb] bg-[#f9f4ea] shadow-inner">
+                <div className="relative aspect-[4/5] bg-[#f2eadc] sm:aspect-[16/11] xl:aspect-[5/6]">
+                  <Image
+                    src={activeItem.src}
+                    alt={activeItem.alt}
+                    fill
+                    priority
+                    className="object-cover"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1280px) 70vw, 60vw"
+                  />
+                  <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0)_55%,rgba(30,20,10,0.28)_100%)]" />
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                <div className="space-y-3">
+                  <p className="max-w-2xl text-base leading-relaxed text-[#6f6358] md:text-lg">
+                    {activeMeta?.summary || activeItem.summary}
+                  </p>
+                  <p className="text-sm text-[#7b6e61]">
+                    Geser panel gambar atau klik pilihan di kiri untuk berpindah sampul.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2 lg:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => openItem(activeIndex)}
+                    className="inline-flex items-center gap-2 rounded-full border border-[#cfb07e] bg-[#fff8ea] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#70491f] transition hover:bg-white"
+                  >
+                    {copy.ariaOpenDetails(activeItem.title)}
+                  </button>
+                  {activePdf ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        openItem(activeIndex);
+                        setActivePane("pdf");
+                      }}
+                      className="inline-flex items-center gap-2 rounded-full border border-[#dbcba6] bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f4d37] transition hover:bg-white"
+                    >
+                      {copy.openPdfTab}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -694,18 +829,21 @@ function GalleryPageSkeleton() {
   return (
     <div className="bg-[#faf6ed] text-[#40342c]">
       <section className="mx-auto max-w-[1320px] px-6 py-16 md:py-20">
-        <div className="mb-10 space-y-4">
+        <div className="mb-14 space-y-4 md:mb-16">
           <div className="h-3 w-20 animate-pulse rounded-full bg-[#e9e0cf]" />
           <div className="h-10 w-[min(560px,90%)] animate-pulse rounded-xl bg-[#e9e0cf]" />
           <div className="h-5 w-[min(760px,95%)] animate-pulse rounded-lg bg-[#ece4d6]" />
         </div>
-        <div className="grid gap-7 sm:grid-cols-2 xl:grid-cols-4">
-          {galleryItems.map((item) => (
-            <div
-              key={item.id}
-              className="aspect-[2/3] animate-pulse rounded-[22px] border border-[#ded2be] bg-[#efe6d8]"
-            />
-          ))}
+        <div className="space-y-7">
+          <div className="grid gap-7 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] xl:items-stretch">
+            <div className="aspect-[4/5] animate-pulse rounded-[28px] border border-[#ded2be] bg-[#efe6d8]" />
+
+            <div className="grid gap-7 sm:grid-cols-2">
+              <div className="aspect-[3/4] animate-pulse rounded-[24px] border border-[#ded2be] bg-[#efe6d8]" />
+              <div className="aspect-[3/4] animate-pulse rounded-[24px] border border-[#ded2be] bg-[#efe6d8]" />
+              <div className="sm:col-span-2 flex min-h-[260px] animate-pulse flex-col rounded-[28px] border border-[#ded2be] bg-[#efe6d8] md:flex-row" />
+            </div>
+          </div>
         </div>
       </section>
     </div>

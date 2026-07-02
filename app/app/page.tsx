@@ -21,12 +21,14 @@ import { LanguageToggle } from "../../components/site/LanguageToggle";
 import { useTreeState } from "../../lib/hooks/useTreeState";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 import { downloadTreeJson } from "../../lib/sync/ExportManager";
+import { downloadTreePdf } from "../../lib/export/treePdf";
 import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import { getSiblingOrderUpdates } from "../../lib/tree/siblingOrder";
 import {
   BookOpen,
   ChevronLeft,
   Download,
+  FileText,
   GitBranch,
   History,
   ImageIcon,
@@ -69,8 +71,11 @@ export default function AppHome() {
             `${count} anggota keluarga berhasil diimpor`,
           notifExported: (count: number) =>
             `Ekspor selesai: ${count} anggota dengan relasi lengkap.`,
+          notifPdfExported: (count: number) =>
+            `PDF siap diunduh: ${count} anggota keluarga.`,
           notifNoDataToExport: "Belum ada data keluarga untuk diekspor.",
           notifExportFailed: "Gagal mengekspor data keluarga.",
+          notifPdfExportFailed: "Gagal membuat PDF pohon keluarga.",
           notifConflictResolved: "Konflik sinkronisasi berhasil diselesaikan.",
           notifConflictFailed:
             "Resolusi konflik belum tersimpan. Salinan lokal tetap aman.",
@@ -87,6 +92,7 @@ export default function AppHome() {
           invite: "Undang",
           import: "Import",
           export: "Ekspor",
+          exportPdf: "PDF",
           addMemberTitle: "Tambah anggota keluarga",
           statGenerations: "Generasi",
           statMembers: "Anggota Keluarga",
@@ -108,8 +114,11 @@ export default function AppHome() {
             `${count} family members imported successfully`,
           notifExported: (count: number) =>
             `Export complete: ${count} members with full relationship mapping.`,
+          notifPdfExported: (count: number) =>
+            `PDF ready to download: ${count} family members.`,
           notifNoDataToExport: "No family data available to export.",
           notifExportFailed: "Failed to export family data.",
+          notifPdfExportFailed: "Failed to create family tree PDF.",
           notifConflictResolved: "Sync conflict resolved successfully.",
           notifConflictFailed:
             "Conflict resolution has not been saved. Your local copy remains safe.",
@@ -126,6 +135,7 @@ export default function AppHome() {
           invite: "Invite",
           import: "Import",
           export: "Export",
+          exportPdf: "PDF",
           addMemberTitle: "Add family member",
           statGenerations: "Generations",
           statMembers: "Family Members",
@@ -426,6 +436,21 @@ export default function AppHome() {
     }
   }, [copy, currentTree, showNotification]);
 
+  const handleExportPdf = useCallback(async () => {
+    if (!currentTree || currentTree.nodes.length === 0) {
+      showNotification(copy.notifNoDataToExport);
+      return;
+    }
+
+    try {
+      await downloadTreePdf(currentTree, locale);
+      showNotification(copy.notifPdfExported(currentTree.nodes.length));
+    } catch (error) {
+      console.error("Failed to export tree PDF:", error);
+      showNotification(copy.notifPdfExportFailed);
+    }
+  }, [copy, currentTree, locale, showNotification]);
+
   const treeActions = [
     {
       label: copy.invite,
@@ -441,6 +466,11 @@ export default function AppHome() {
       label: copy.export,
       onClick: handleExportTree,
       Icon: Download,
+    },
+    {
+      label: copy.exportPdf,
+      onClick: handleExportPdf,
+      Icon: FileText,
     },
   ];
 
