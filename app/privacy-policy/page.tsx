@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import {
   CONSENT_POLICY_VERSION,
   LEGAL_EFFECTIVE_DATE,
 } from "../../lib/legal/consent";
 import { CONTACT_EMAIL, STUDIO_ADDRESS } from "../../lib/contact-info";
+import LegalDocumentView from "../../components/legal/LegalDocumentView";
 
 // NOTE (internal, not shown to users): This is an operational draft aligned with
 // UU PDP (UU No. 27/2022) structure. Have it reviewed by legal counsel before
@@ -17,11 +16,20 @@ export const metadata: Metadata = {
     "Bagaimana Lifestory mengumpulkan, memakai, menyimpan, dan melindungi data keluarga Anda sesuai UU Pelindungan Data Pribadi.",
 };
 
-type Section = { title: string; body: string; points?: string[] };
-
-const content: Record<"id" | "en", { title: string; intro: string; sections: Section[] }> = {
+const content = {
   id: {
     title: "Kebijakan Privasi",
+    label: "Dokumen legal",
+    effectiveLabel: "Berlaku sejak",
+    versionLabel: "Versi kebijakan",
+    contentsLabel: "Isi dokumen",
+    reviewedLabel:
+      "Dokumen operasional ini perlu ditinjau penasihat hukum sebelum dipakai sebagai nasihat legal final.",
+    links: [
+      { href: "/terms", label: "Syarat & Ketentuan" },
+      { href: "/contact", label: "Hubungi Kami" },
+      { href: "/legal/release-form-template.md", label: "Release Form", download: true },
+    ],
     intro:
       "Kebijakan ini menjelaskan bagaimana Lifestory mengumpulkan, memakai, menyimpan, dan melindungi data pribadi Anda serta materi keluarga yang Anda percayakan kepada kami, sesuai dengan Undang-Undang Pelindungan Data Pribadi (UU No. 27 Tahun 2022).",
     sections: [
@@ -32,6 +40,8 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
       {
         title: "2. Data yang Kami Kumpulkan",
         body: "Kami mengumpulkan data yang Anda berikan secara sukarela dan data teknis terbatas:",
+        tone: "critical",
+        badge: "Data Sensitif",
         points: [
           "Data identitas dan kontak: nama, email, nomor WhatsApp.",
           "Materi keluarga: foto, video, rekaman suara, kisah hidup, nama dan riwayat keluarga.",
@@ -46,14 +56,20 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
       {
         title: "4. Tujuan Penggunaan",
         body: "Data dipakai untuk menanggapi konsultasi, menyiapkan dan menjalankan layanan biografi, memproses onboarding, komunikasi terkait proyek, dan memenuhi kewajiban hukum. Publikasi materi keluarga di web atau materi pemasaran hanya dilakukan dengan izin tertulis terpisah (Release Form).",
+        tone: "critical",
+        badge: "Izin Publikasi",
       },
       {
         title: "5. Penyimpanan dan Retensi",
         body: "Kami menyimpan data selama diperlukan untuk tujuan di atas atau selama diwajibkan hukum. Setelah tidak diperlukan, data akan dihapus atau dianonimkan. Bukti persetujuan disimpan sebagai catatan kepatuhan.",
+        tone: "critical",
+        badge: "Retensi",
       },
       {
         title: "6. Pihak Ketiga",
         body: "Kami menggunakan penyedia layanan tepercaya untuk menjalankan platform:",
+        tone: "critical",
+        badge: "Berbagi Data",
         points: [
           "Penyedia email transaksional (Resend) untuk notifikasi.",
           "Penyedia hosting dan infrastruktur (Vercel) untuk menjalankan situs.",
@@ -64,6 +80,8 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
       {
         title: "7. Hak Subjek Data",
         body: "Sesuai UU PDP, Anda berhak mengakses, memperbaiki, menghapus, dan membatasi pemrosesan data, meminta salinan data, serta menarik persetujuan kapan saja. Penarikan persetujuan tidak memengaruhi keabsahan pemrosesan sebelum penarikan. Ajukan permintaan lewat kontak di atas.",
+        tone: "critical",
+        badge: "Hak Anda",
       },
       {
         title: "8. Keamanan",
@@ -81,6 +99,17 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
   },
   en: {
     title: "Privacy Policy",
+    label: "Legal document",
+    effectiveLabel: "Effective date",
+    versionLabel: "Policy version",
+    contentsLabel: "Contents",
+    reviewedLabel:
+      "This operational document should be reviewed by legal counsel before being treated as final legal advice.",
+    links: [
+      { href: "/terms", label: "Terms & Conditions" },
+      { href: "/contact", label: "Contact Us" },
+      { href: "/legal/release-form-template.md", label: "Release Form", download: true },
+    ],
     intro:
       "This policy explains how Lifestory collects, uses, stores, and protects your personal data and the family materials you entrust to us, in line with Indonesia's Personal Data Protection Law (Law No. 27 of 2022).",
     sections: [
@@ -91,6 +120,8 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
       {
         title: "2. Data We Collect",
         body: "We collect data you provide voluntarily and limited technical data:",
+        tone: "critical",
+        badge: "Sensitive Data",
         points: [
           "Identity and contact data: name, email, WhatsApp number.",
           "Family materials: photos, videos, audio recordings, life stories, names and family history.",
@@ -105,14 +136,20 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
       {
         title: "4. How We Use It",
         body: "Data is used to respond to consultations, prepare and deliver biography services, handle onboarding, communicate about your project, and meet legal obligations. Publishing family materials on the web or in marketing only happens with separate written permission (Release Form).",
+        tone: "critical",
+        badge: "Publication Permission",
       },
       {
         title: "5. Storage and Retention",
         body: "We retain data for as long as needed for the purposes above or as required by law. When no longer needed, data is deleted or anonymized. Consent proof is retained as a compliance record.",
+        tone: "critical",
+        badge: "Retention",
       },
       {
         title: "6. Third Parties",
         body: "We use trusted service providers to run the platform:",
+        tone: "critical",
+        badge: "Data Sharing",
         points: [
           "Transactional email provider (Resend) for notifications.",
           "Hosting and infrastructure provider (Vercel) to run the site.",
@@ -123,6 +160,8 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
       {
         title: "7. Your Rights",
         body: "Under the PDP Law, you may access, correct, erase, and restrict processing of your data, request a copy, and withdraw consent at any time. Withdrawal does not affect processing carried out before withdrawal. Submit requests via the contact above.",
+        tone: "critical",
+        badge: "Your Rights",
       },
       {
         title: "8. Security",
@@ -142,74 +181,10 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="bg-cream-50 text-ink-900">
-      <section className="mx-auto max-w-4xl px-6 py-16 md:px-10 md:py-20">
-        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-brand-700">Legal</p>
-        <h1 className="mt-4 font-serif text-[clamp(2.4rem,5vw,4.6rem)] font-light leading-[0.98] tracking-[-0.03em]">
-          Kebijakan Privasi / Privacy Policy
-        </h1>
-        <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.18em] text-ink-500">
-          Berlaku sejak {LEGAL_EFFECTIVE_DATE} · Versi {CONSENT_POLICY_VERSION}
-        </p>
-
-        <div className="mt-12 grid gap-10 border-t border-cream-300 pt-10 md:grid-cols-2">
-          {(Object.entries(content) as Array<[keyof typeof content, (typeof content)["id"]]>).map(
-            ([locale, block]) => (
-              <article key={locale} className="space-y-6">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
-                    {locale === "id" ? "Bahasa Indonesia" : "English"}
-                  </p>
-                  <h2 className="mt-3 font-serif text-3xl font-light text-ink-900">{block.title}</h2>
-                </div>
-                <p className="text-[0.98rem] leading-[1.8] text-ink-600">{block.intro}</p>
-                <div className="space-y-5">
-                  {block.sections.map((section) => (
-                    <div key={section.title} className="rounded-2xl border border-cream-300 bg-cream-50 p-5">
-                      <h3 className="font-serif text-lg font-medium text-ink-900">{section.title}</h3>
-                      <p className="mt-3 text-[0.95rem] leading-[1.8] text-ink-600">{section.body}</p>
-                      {section.points && (
-                        <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[0.92rem] leading-[1.7] text-ink-600">
-                          {section.points.map((point) => (
-                            <li key={point}>{point}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </article>
-            )
-          )}
-        </div>
-
-        <div className="mt-12 flex flex-wrap gap-4 border-t border-cream-300 pt-8">
-          <a
-            href="/legal/release-form-template.md"
-            download
-            className="group inline-flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-brand-700"
-          >
-            Release Form Template
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </a>
-          <a
-            href="/legal/service-contract-template.md"
-            download
-            className="group inline-flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-brand-700"
-          >
-            Service Contract Template
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </a>
-          <Link href="/terms" className="group inline-flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-brand-700">
-            Syarat &amp; Ketentuan
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </Link>
-          <Link href="/contact" className="group inline-flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-brand-700">
-            Hubungi Kami
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </Link>
-        </div>
-      </section>
-    </main>
+    <LegalDocumentView
+      content={content}
+      effectiveDate={LEGAL_EFFECTIVE_DATE}
+      policyVersion={CONSENT_POLICY_VERSION}
+    />
   );
 }

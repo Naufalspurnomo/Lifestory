@@ -8,6 +8,7 @@ import {
   Maximize2,
   Minus,
   Plus,
+  SlidersHorizontal,
 } from "lucide-react";
 import type { FamilyGraph, FamilyNode, LayoutGraph } from "../../lib/types/tree";
 import { LAYOUT } from "../../lib/types/tree";
@@ -342,6 +343,97 @@ function drawCrown(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: num
   ctx.lineWidth = 1.1;
   ctx.strokeStyle = "rgba(255,250,240,0.85)";
   ctx.stroke();
+  ctx.restore();
+}
+
+function drawOrnateCardFrame(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  accentColor: string,
+  active: boolean,
+  transformScale: number
+) {
+  const safeScale = Math.max(transformScale, 0.45);
+  const innerInset = 7;
+  const outerInset = 2;
+  const innerRadius = Math.max(4, radius - 4);
+  const frameStroke = active ? 2.1 : 1.1;
+
+  ctx.save();
+  ctx.shadowColor = active ? "rgba(44,30,22,0.32)" : "rgba(44,30,22,0.18)";
+  ctx.shadowBlur = (active ? 22 : 14) / safeScale;
+  ctx.shadowOffsetY = (active ? 8 : 5) / safeScale;
+  traceNodeShape(ctx, x, y + 6, width - 10, height - 6, radius);
+  ctx.fillStyle = active ? "rgba(44,30,22,0.28)" : "rgba(44,30,22,0.18)";
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  traceNodeShape(ctx, x, y, width, height, radius);
+  const cardGrad = ctx.createLinearGradient(x, y - height / 2, x, y + height / 2);
+  cardGrad.addColorStop(0, "#fffdf9");
+  cardGrad.addColorStop(0.58, "#fbf4e9");
+  cardGrad.addColorStop(1, "#efe1cc");
+  ctx.fillStyle = cardGrad;
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  traceNodeShape(ctx, x, y, width - outerInset, height - outerInset, radius - 1);
+  ctx.strokeStyle = "rgba(255,250,242,0.78)";
+  ctx.lineWidth = frameStroke / safeScale;
+  ctx.stroke();
+
+  traceNodeShape(ctx, x, y, width - innerInset, height - innerInset, innerRadius);
+  ctx.strokeStyle = active ? accentColor : "rgba(130,105,60,0.38)";
+  ctx.lineWidth = (active ? 1.6 : 1) / safeScale;
+  ctx.stroke();
+  ctx.restore();
+
+  const cornerSize = Math.max(10, 14 / safeScale);
+  const cornerOffsetX = width / 2 - 16 / safeScale;
+  const cornerOffsetY = height / 2 - 16 / safeScale;
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(130,105,60,0.26)";
+  ctx.fillStyle = "rgba(255,250,240,0.9)";
+  ctx.lineWidth = 1 / safeScale;
+
+  const corners = [
+    [x - cornerOffsetX, y - cornerOffsetY, 1, 1],
+    [x + cornerOffsetX, y - cornerOffsetY, -1, 1],
+    [x - cornerOffsetX, y + cornerOffsetY, 1, -1],
+    [x + cornerOffsetX, y + cornerOffsetY, -1, -1],
+  ] as const;
+
+  for (const [cx, cy, dirX, dirY] of corners) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + dirY * (cornerSize * 0.22));
+    ctx.lineTo(cx + dirX * (cornerSize * 0.62), cy);
+    ctx.lineTo(cx, cy + dirY * (cornerSize * 0.62));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, cornerSize * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  ctx.save();
+  const topLineY = y - height / 2 + 18 / safeScale;
+  const topLineW = Math.min(width * 0.42, 42);
+  const topLineGrad = ctx.createLinearGradient(x - topLineW / 2, 0, x + topLineW / 2, 0);
+  topLineGrad.addColorStop(0, "rgba(255,255,255,0)");
+  topLineGrad.addColorStop(0.5, accentColor);
+  topLineGrad.addColorStop(1, "rgba(255,255,255,0)");
+  traceRoundedRect(ctx, x - topLineW / 2, topLineY - 1.5, topLineW, 3, 1.5);
+  ctx.fillStyle = topLineGrad;
+  ctx.fill();
   ctx.restore();
 }
 
@@ -816,8 +908,10 @@ export default function FamilyTreeCanvas({
         ? {
             fit: "Lihat semua",
             center: "Pusatkan",
+            navigation: "Navigasi",
             layout: "Layout",
             display: "Tampilan",
+            settings: "Atur",
             zoomIn: "Perbesar",
             zoomOut: "Perkecil",
             view: "Arah pohon",
@@ -845,8 +939,10 @@ export default function FamilyTreeCanvas({
         : {
             fit: "Fit all",
             center: "Center",
+            navigation: "Navigate",
             layout: "Layout",
             display: "View",
+            settings: "Settings",
             zoomIn: "Zoom in",
             zoomOut: "Zoom out",
             view: "Tree view",
@@ -1536,48 +1632,7 @@ export default function FamilyTreeCanvas({
       const cardR = renderMode === "overview" ? ((active ? 5.5 : 3.6) / transform.k) : metrics.radius;
 
       if (renderMode !== "overview") {
-        ctx.save();
-        traceNodeShape(ctx, x, y + 6, cardW - 10, cardH - 6, cardR);
-        ctx.fillStyle = active ? "rgba(44,30,22,0.26)" : "rgba(44,30,22,0.18)";
-        ctx.fill();
-        ctx.restore();
-
-        ctx.save();
-        ctx.shadowColor = active ? "rgba(44,30,22,0.32)" : "rgba(44,30,22,0.18)";
-        ctx.shadowBlur = (active ? 20 : 11) / transform.k;
-        ctx.shadowOffsetY = (active ? 8 : 4.5) / transform.k;
-        traceNodeShape(ctx, x, y, cardW, cardH, cardR);
-        const cardGrad = ctx.createLinearGradient(
-          x,
-          y - cardH / 2,
-          x,
-          y + cardH / 2
-        );
-        cardGrad.addColorStop(0, "#fffefb");
-        cardGrad.addColorStop(0.74, "#fbf5ea");
-        cardGrad.addColorStop(1, "#f1e6d2");
-        ctx.fillStyle = cardGrad;
-        ctx.fill();
-        ctx.restore();
-
-        ctx.save();
-        traceNodeShape(ctx, x, y, cardW - 7, cardH - 7, Math.max(4, cardR - 4));
-        ctx.strokeStyle = "rgba(255,255,255,0.55)";
-        ctx.lineWidth = 1 / Math.max(transform.k, 0.45);
-        ctx.stroke();
-        ctx.restore();
-
-        ctx.save();
-        const barW = Math.min(42, cardW - 54);
-        const barH = renderMode === "compact" ? 3.5 : 4.5;
-        const barGrad = ctx.createLinearGradient(x - barW / 2, 0, x + barW / 2, 0);
-        barGrad.addColorStop(0, "rgba(255,255,255,0)");
-        barGrad.addColorStop(0.5, accentColor);
-        barGrad.addColorStop(1, "rgba(255,255,255,0)");
-        traceRoundedRect(ctx, x - barW / 2, y - cardH / 2 + 1, barW, barH, barH / 2);
-        ctx.fillStyle = barGrad;
-        ctx.fill();
-        ctx.restore();
+        drawOrnateCardFrame(ctx, x, y, cardW, cardH, cardR, accentColor, active, transform.k);
       } else {
         ctx.save();
         traceNodeShape(ctx, x, y, cardW, cardH, cardR);
@@ -2202,12 +2257,12 @@ export default function FamilyTreeCanvas({
       )}
 
       <div
-        className="absolute left-3 right-3 top-3 flex max-w-full flex-wrap items-center gap-2 sm:left-4 sm:right-4 sm:top-4 lg:left-6 lg:right-6 lg:top-6"
+        className="absolute left-3 right-3 top-3 flex max-w-full sm:left-4 sm:right-4 sm:top-4 lg:left-6 lg:right-6 lg:top-6"
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <div className="flex overflow-hidden rounded-xl border border-cream-400 p-1 shadow-sm bg-white/70 backdrop-blur-md">
+        <div className="flex max-w-full items-center gap-1.5 rounded-2xl border border-[#b99f70] bg-[#fffaf0]/95 p-1.5 shadow-[0_10px_28px_-18px_rgba(45,33,22,0.55),0_1px_0_rgba(255,255,255,0.82)_inset] backdrop-blur-md">
           <button
-            className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-bold text-ink-700 hover:bg-white hover:shadow-sm transition"
+            className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dfcfad] bg-[#f8efdE] px-3 text-xs font-bold text-ink-800 shadow-[0_1px_0_rgba(255,255,255,0.75)_inset] transition hover:border-[#b99f70] hover:bg-white hover:shadow-sm"
             onClick={() => setTransform(calculateFitTransform())}
             title={copy.fit}
             type="button"
@@ -2216,7 +2271,7 @@ export default function FamilyTreeCanvas({
             <span className="hidden sm:inline">{copy.fit}</span>
           </button>
           <button
-            className="inline-flex h-9 items-center gap-2 border-l border-cream-400/70 px-3 text-xs font-bold text-ink-700 transition hover:bg-white hover:shadow-sm"
+            className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dfcfad] bg-[#f8efdE] px-3 text-xs font-bold text-ink-800 shadow-[0_1px_0_rgba(255,255,255,0.75)_inset] transition hover:border-[#b99f70] hover:bg-white hover:shadow-sm"
             onClick={() => {
               const targetId = selectedId || owner?.id;
               if (targetId) focusNode(targetId, 0.88);
@@ -2227,89 +2282,128 @@ export default function FamilyTreeCanvas({
             <Crosshair className="h-4 w-4 text-brand-700" />
             <span className="hidden sm:inline">{copy.center}</span>
           </button>
-        </div>
 
-        {treeProjectionMode === "fan" && (
-          <div className="flex overflow-hidden rounded-xl border border-cream-400 p-1 shadow-sm bg-white/70 backdrop-blur-md">
-            {(["ancestors", "descendants", "family"] as const).map((mode) => (
-              <button
-                key={mode}
-                className={`inline-flex h-9 items-center rounded-lg px-3 text-xs font-bold transition ${
-                  radialMode === mode
-                    ? "bg-brand-700 text-white shadow-md"
-                    : "text-ink-700 hover:bg-white hover:shadow-sm"
-                }`}
-                onClick={() => setRadialMode(mode)}
-                type="button"
-              >
-                {copy[mode]}
-              </button>
-            ))}
-          </div>
-        )}
+          <div className="hidden h-5 w-px bg-[#c7af82] sm:block" />
 
-        <div className="flex overflow-hidden rounded-xl border border-cream-400 p-1 shadow-sm bg-white/70 backdrop-blur-md">
-          <span className="hidden items-center px-2 text-[9px] font-black uppercase tracking-[0.14em] text-ink-600 xl:inline-flex">
-            {copy.layout}
+          <span className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#cab489] bg-white px-3 text-xs font-bold text-ink-800 shadow-[0_1px_0_rgba(255,255,255,0.85)_inset]">
+            <Layers3 className="h-3.5 w-3.5 text-brand-700" />
+            {treeProjectionMode === "portrait"
+              ? copy.portrait
+              : treeProjectionMode === "landscape"
+              ? copy.landscape
+              : `${copy.fan}: ${copy[radialMode]}`}
           </span>
-          {(["portrait", "landscape", "fan"] as const).map((mode) => (
-            <button
-              key={mode}
-              className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition ${
-                treeProjectionMode === mode
-                  ? "bg-brand-700 text-white shadow-md"
-                  : "text-ink-700 hover:bg-white hover:shadow-sm"
-              }`}
-              onClick={() => setTreeProjectionMode(mode)}
-              title={copy.view}
-              type="button"
-            >
-              {mode === "portrait" ? (
-                <Layers3 className="h-3.5 w-3.5" />
-              ) : mode === "landscape" ? (
-                <Crosshair className="h-3.5 w-3.5" />
-              ) : (
-                <Eye className="h-3.5 w-3.5" />
-              )}
-              <span className={mode === "fan" ? "" : "hidden sm:inline"}>
-                {mode === "portrait"
-                  ? copy.portrait
-                  : mode === "landscape"
-                  ? copy.landscape
-                  : copy.fan}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="flex overflow-hidden rounded-xl border border-cream-400 p-1 shadow-sm bg-white/70 backdrop-blur-md">
-          <span className="hidden items-center px-2 text-[9px] font-black uppercase tracking-[0.14em] text-ink-600 xl:inline-flex">
-            {copy.display}
+          <span className="hidden h-9 items-center gap-1.5 rounded-xl border border-[#cab489] bg-white px-3 text-xs font-bold text-ink-800 shadow-[0_1px_0_rgba(255,255,255,0.85)_inset] sm:inline-flex">
+            <Eye className="h-3.5 w-3.5 text-brand-700" />
+            {densityMode === "auto" ? copy.auto : densityMode === "map" ? copy.map : copy.detail}
           </span>
-          {(["auto", "map", "detail"] as const).map((mode) => (
-            <button
-              key={mode}
-              className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition ${
-                densityMode === mode
-                  ? "bg-brand-700 text-white shadow-md"
-                  : "text-ink-700 hover:bg-white hover:shadow-sm"
-              }`}
-              onClick={() => selectDensityMode(mode)}
-              title={copy.density}
-              type="button"
-            >
-              {mode === "auto" ? (
-                <Eye className="h-3.5 w-3.5" />
-              ) : mode === "map" ? (
-                <Crosshair className="h-3.5 w-3.5" />
-              ) : (
-                <Layers3 className="h-3.5 w-3.5" />
-              )}
-              <span className="hidden sm:inline">
-                {mode === "auto" ? copy.auto : mode === "map" ? copy.map : copy.detail}
-              </span>
-            </button>
-          ))}
+
+          <details className="group relative">
+            <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-2 rounded-xl border border-[#6f5630] bg-brand-700 px-3 text-xs font-bold text-white shadow-[0_8px_18px_-12px_rgba(45,33,22,0.8)] transition hover:bg-brand-800 [&::-webkit-details-marker]:hidden">
+              <SlidersHorizontal className="h-4 w-4" />
+              <span className="hidden sm:inline">{copy.settings}</span>
+            </summary>
+            <div className="absolute left-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-cream-300 bg-cream-50 p-3 text-ink-800 shadow-2xl shadow-ink-900/15">
+              <div className="space-y-3">
+                <div>
+                  <div className="mb-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-ink-500">
+                    {copy.layout}
+                  </div>
+                  <div className="grid grid-cols-3 gap-1 rounded-xl bg-cream-200 p-1">
+                    {(["portrait", "landscape", "fan"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-bold transition ${
+                          treeProjectionMode === mode
+                            ? "bg-brand-700 text-white shadow-sm"
+                            : "text-ink-700 hover:bg-cream-50"
+                        }`}
+                        onClick={(event) => {
+                          setTreeProjectionMode(mode);
+                          (event.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
+                        }}
+                        type="button"
+                      >
+                        {mode === "portrait" ? (
+                          <Layers3 className="h-3.5 w-3.5" />
+                        ) : mode === "landscape" ? (
+                          <Crosshair className="h-3.5 w-3.5" />
+                        ) : (
+                          <Eye className="h-3.5 w-3.5" />
+                        )}
+                        <span>
+                          {mode === "portrait"
+                            ? copy.portrait
+                            : mode === "landscape"
+                            ? copy.landscape
+                            : copy.fan}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-ink-500">
+                    {copy.display}
+                  </div>
+                  <div className="grid grid-cols-3 gap-1 rounded-xl bg-cream-200 p-1">
+                    {(["auto", "map", "detail"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-bold transition ${
+                          densityMode === mode
+                            ? "bg-brand-700 text-white shadow-sm"
+                            : "text-ink-700 hover:bg-cream-50"
+                        }`}
+                        onClick={(event) => {
+                          selectDensityMode(mode);
+                          (event.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
+                        }}
+                        type="button"
+                      >
+                        {mode === "auto" ? (
+                          <Eye className="h-3.5 w-3.5" />
+                        ) : mode === "map" ? (
+                          <Crosshair className="h-3.5 w-3.5" />
+                        ) : (
+                          <Layers3 className="h-3.5 w-3.5" />
+                        )}
+                        <span>{mode === "auto" ? copy.auto : mode === "map" ? copy.map : copy.detail}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {treeProjectionMode === "fan" && (
+                  <div>
+                    <div className="mb-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-brand-700">
+                      {copy.radial}
+                    </div>
+                    <div className="grid grid-cols-3 gap-1 rounded-xl bg-brand-50 p-1 ring-1 ring-brand-200/70">
+                      {(["ancestors", "descendants", "family"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          className={`inline-flex h-9 items-center justify-center rounded-lg px-2 text-xs font-bold transition ${
+                            radialMode === mode
+                              ? "bg-brand-700 text-white shadow-sm"
+                              : "text-ink-700 hover:bg-cream-50"
+                          }`}
+                          onClick={(event) => {
+                            setRadialMode(mode);
+                            (event.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
+                          }}
+                          type="button"
+                        >
+                          {copy[mode]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </details>
         </div>
       </div>
 

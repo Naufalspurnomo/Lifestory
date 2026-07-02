@@ -86,6 +86,9 @@ export default function AppHome() {
             "Visualisasikan sejarah keluarga Anda, simpan cerita, dan wariskan memori untuk generasi mendatang.",
           viewTree: "Pohon",
           viewTimeline: "Linimasa",
+          mode: "Mode",
+          manage: "Kelola",
+          archive: "Arsip",
           filterAll: "Semua",
           filterCore: "Keluarga Inti",
           comingSoon: "Segera Hadir",
@@ -129,6 +132,9 @@ export default function AppHome() {
             "Visualize your family history, preserve stories, and pass memory to future generations.",
           viewTree: "Tree",
           viewTimeline: "Timeline",
+          mode: "Mode",
+          manage: "Manage",
+          archive: "Archive",
           filterAll: "All",
           filterCore: "Core Family",
           comingSoon: "Coming Soon",
@@ -474,6 +480,19 @@ export default function AppHome() {
     },
   ];
 
+  const actionGroups = [
+    {
+      label: copy.manage,
+      Icon: UserPlus,
+      actions: treeActions.slice(0, 2),
+    },
+    {
+      label: copy.archive,
+      Icon: Download,
+      actions: treeActions.slice(2),
+    },
+  ];
+
   const stats = {
     generations: 0,
     members: currentTree?.nodes.length || 0,
@@ -603,8 +622,11 @@ export default function AppHome() {
               <div className="min-w-0 flex-1">
                 <SearchBar nodes={currentTree!.nodes} onSelect={setSelectedId} />
               </div>
-              <div className="flex w-full items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex w-full flex-wrap items-center gap-2 pb-0.5">
                 <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-cream-400 bg-cream-200 p-1">
+                  <span className="hidden pl-2 pr-1 text-[9px] font-black uppercase tracking-[0.14em] text-ink-500 sm:inline">
+                    {copy.mode}
+                  </span>
                   <button
                     onClick={() => setViewMode("tree")}
                     className={`h-8 flex-1 rounded-full px-3 text-[11px] font-bold uppercase tracking-wide transition-all sm:flex-none ${
@@ -626,23 +648,35 @@ export default function AppHome() {
                     {copy.viewTimeline}
                   </button>
                 </div>
-                <div className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-cream-400 bg-cream-200 p-1">
-                  {treeActions.map((btn) => {
-                    const Icon = btn.Icon;
-                    return (
-                      <button
-                        key={btn.label}
-                        onClick={btn.onClick}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-600 transition-colors hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm sm:w-auto sm:px-2.5"
-                        title={btn.label}
-                        aria-label={btn.label}
-                      >
-                        <Icon className="h-[15px] w-[15px]" />
-                        <span className="ml-1.5 hidden text-[11px] font-bold sm:inline">{btn.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                {actionGroups.map((group) => {
+                  const GroupIcon = group.Icon;
+                  return (
+                    <details key={group.label} className="group relative inline-flex shrink-0">
+                      <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-1.5 rounded-full border border-cream-400 bg-cream-200 px-3 text-[11px] font-bold text-ink-600 transition hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm [&::-webkit-details-marker]:hidden">
+                        <GroupIcon className="h-[15px] w-[15px]" />
+                        {group.label}
+                      </summary>
+                      <div className="absolute left-0 top-11 z-50 min-w-40 rounded-xl border border-cream-300 bg-cream-50 p-1.5 shadow-xl shadow-ink-900/10">
+                        {group.actions.map((btn) => {
+                          const Icon = btn.Icon;
+                          return (
+                            <button
+                              key={btn.label}
+                              onClick={(event) => {
+                                (event.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
+                                btn.onClick();
+                              }}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold text-ink-700 transition hover:bg-cream-200"
+                            >
+                              <Icon className="h-[15px] w-[15px] text-brand-700" />
+                              {btn.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </details>
+                  );
+                })}
                 <LanguageToggle
                   compact
                   className="shrink-0 border-cream-400 bg-cream-50 shadow-sm"
@@ -656,6 +690,9 @@ export default function AppHome() {
                 <SearchBar nodes={currentTree!.nodes} onSelect={setSelectedId} />
               </div>
               <div className="inline-flex items-center gap-1 rounded-full border border-cream-400 bg-cream-200 p-1">
+                <span className="pl-3 pr-1 text-[9px] font-black uppercase tracking-[0.14em] text-ink-500">
+                  {copy.mode}
+                </span>
                 <button
                   onClick={() => setViewMode("tree")}
                   className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition-all ${
@@ -689,18 +726,34 @@ export default function AppHome() {
                   }}
                 />
               </div>
-              <div className="flex items-center gap-0.5 rounded-full border border-cream-400 bg-cream-200 p-1">
-                {treeActions.map((btn) => {
-                  const Icon = btn.Icon;
+              <div className="flex items-center gap-2">
+                {actionGroups.map((group) => {
+                  const GroupIcon = group.Icon;
                   return (
-                    <button
-                      key={btn.label}
-                      onClick={btn.onClick}
-                      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-ink-600 transition-colors hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm"
-                    >
-                      <Icon className="h-[15px] w-[15px]" />
-                      {btn.label}
-                    </button>
+                    <details key={group.label} className="group relative">
+                      <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-cream-400 bg-cream-200 px-3 py-1.5 text-xs font-bold text-ink-600 transition-colors hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm [&::-webkit-details-marker]:hidden">
+                        <GroupIcon className="h-[15px] w-[15px]" />
+                        {group.label}
+                      </summary>
+                      <div className="absolute right-0 top-10 z-50 min-w-40 rounded-xl border border-cream-300 bg-cream-50 p-1.5 shadow-xl shadow-ink-900/10">
+                        {group.actions.map((btn) => {
+                          const Icon = btn.Icon;
+                          return (
+                            <button
+                              key={btn.label}
+                              onClick={(event) => {
+                                (event.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
+                                btn.onClick();
+                              }}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold text-ink-700 transition hover:bg-cream-200"
+                            >
+                              <Icon className="h-[15px] w-[15px] text-brand-700" />
+                              {btn.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </details>
                   );
                 })}
               </div>

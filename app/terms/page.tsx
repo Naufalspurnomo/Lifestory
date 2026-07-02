@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import {
   CONSENT_POLICY_VERSION,
   LEGAL_EFFECTIVE_DATE,
 } from "../../lib/legal/consent";
 import { CONTACT_EMAIL } from "../../lib/contact-info";
+import LegalDocumentView from "../../components/legal/LegalDocumentView";
 
 // NOTE (internal, not shown to users): Operational draft. Have it reviewed by
 // legal counsel before treating it as final. Bump CONSENT_POLICY_VERSION when
@@ -17,11 +16,21 @@ export const metadata: Metadata = {
     "Aturan penggunaan layanan Lifestory, dari konsultasi, hak cipta, izin publikasi, pembayaran, hingga penyerahan materi keluarga.",
 };
 
-type Section = { title: string; body: string; points?: string[] };
 
-const content: Record<"id" | "en", { title: string; intro: string; sections: Section[] }> = {
+const content = {
   id: {
     title: "Syarat & Ketentuan",
+    label: "Dokumen legal",
+    effectiveLabel: "Berlaku sejak",
+    versionLabel: "Versi ketentuan",
+    contentsLabel: "Isi dokumen",
+    reviewedLabel: "Dokumen operasional ini perlu ditinjau penasihat hukum sebelum dipakai sebagai nasihat legal final.",
+    links: [
+      { href: "/privacy-policy", label: "Kebijakan Privasi" },
+      { href: "/contact", label: "Hubungi Kami" },
+      { href: "/legal/service-contract-template.md", label: "Kontrak Layanan", download: true },
+      { href: "/legal/release-form-template.md", label: "Release Form", download: true },
+    ],
     intro:
       "Syarat & Ketentuan ini mengatur penggunaan layanan Lifestory, dari konsultasi hingga penyerahan materi keluarga. Dengan menggunakan layanan kami, Anda menyetujui ketentuan ini.",
     sections: [
@@ -32,6 +41,8 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
       {
         title: "2. Akun dan Persetujuan",
         body: "Saat mendaftar atau mengirim konsultasi, Anda diminta menyetujui Syarat & Ketentuan dan Kebijakan Privasi. Kami mencatat waktu, alamat IP, dan versi kebijakan sebagai bukti persetujuan.",
+        tone: "critical",
+        badge: "Persetujuan",
       },
       {
         title: "3. Hak Cipta dan Kepemilikan",
@@ -40,18 +51,26 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
       {
         title: "4. Izin Publikasi",
         body: "Publikasi materi keluarga di web, portofolio, atau materi pemasaran hanya dilakukan bila ada izin tertulis terpisah melalui Release Form yang ditandatangani. Tanpa itu, materi diperlakukan sebagai rahasia.",
+        tone: "critical",
+        badge: "Izin Publikasi",
       },
       {
         title: "5. Pembayaran",
         body: "Biaya, uang muka, dan jadwal pelunasan diatur dalam kontrak layanan yang disepakati saat onboarding. Pekerjaan dimulai setelah ketentuan pembayaran awal terpenuhi.",
+        tone: "critical",
+        badge: "Pembayaran",
       },
       {
         title: "6. Penyerahan Materi Keluarga",
         body: "Materi asli (foto, rekaman) diserahkan setelah kontrak layanan dan Release Form ditandatangani. Ini melindungi kedua pihak dan memastikan ruang lingkup jelas sebelum pekerjaan dimulai.",
+        tone: "critical",
+        badge: "Serah Terima",
       },
       {
         title: "7. Batasan Layanan",
         body: "Kami berupaya menjaga kualitas, tetapi hasil akhir bergantung pada kelengkapan materi, persetujuan keluarga, dan ruang lingkup proyek. Tanggung jawab kami terbatas pada nilai layanan yang disepakati.",
+        tone: "critical",
+        badge: "Batas Tanggung Jawab",
       },
       {
         title: "8. Kontak",
@@ -61,6 +80,17 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
   },
   en: {
     title: "Terms & Conditions",
+    label: "Legal document",
+    effectiveLabel: "Effective date",
+    versionLabel: "Terms version",
+    contentsLabel: "Contents",
+    reviewedLabel: "This operational document should be reviewed by legal counsel before being treated as final legal advice.",
+    links: [
+      { href: "/privacy-policy", label: "Privacy Policy" },
+      { href: "/contact", label: "Contact Us" },
+      { href: "/legal/service-contract-template.md", label: "Service Contract", download: true },
+      { href: "/legal/release-form-template.md", label: "Release Form", download: true },
+    ],
     intro:
       "These Terms & Conditions govern the use of Lifestory, from consultation to family material submission. By using our service, you agree to these terms.",
     sections: [
@@ -71,6 +101,8 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
       {
         title: "2. Accounts and Consent",
         body: "When registering or submitting a consultation, you are asked to agree to the Terms & Conditions and Privacy Policy. We record the timestamp, IP address, and policy version as proof of consent.",
+        tone: "critical",
+        badge: "Consent",
       },
       {
         title: "3. Copyright and Ownership",
@@ -79,18 +111,26 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
       {
         title: "4. Publication Permission",
         body: "Publishing family materials on the website, portfolio, or marketing only happens with separate written permission through a signed Release Form. Without it, materials are treated as confidential.",
+        tone: "critical",
+        badge: "Publication Permission",
       },
       {
         title: "5. Payment",
         body: "Fees, deposits, and settlement schedules are set out in the service contract agreed at onboarding. Work begins once the initial payment terms are met.",
+        tone: "critical",
+        badge: "Payment",
       },
       {
         title: "6. Family Material Submission",
         body: "Original materials (photos, recordings) are handed over after the service contract and Release Form are signed. This protects both parties and ensures a clear scope before work begins.",
+        tone: "critical",
+        badge: "Handover",
       },
       {
         title: "7. Service Limits",
         body: "We strive for quality, but the final result depends on the completeness of the materials, family approval, and project scope. Our liability is limited to the agreed value of the service.",
+        tone: "critical",
+        badge: "Liability",
       },
       {
         title: "8. Contact",
@@ -102,74 +142,10 @@ const content: Record<"id" | "en", { title: string; intro: string; sections: Sec
 
 export default function TermsPage() {
   return (
-    <main className="bg-cream-50 text-ink-900">
-      <section className="mx-auto max-w-4xl px-6 py-16 md:px-10 md:py-20">
-        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-brand-700">Legal</p>
-        <h1 className="mt-4 font-serif text-[clamp(2.4rem,5vw,4.6rem)] font-light leading-[0.98] tracking-[-0.03em]">
-          Syarat &amp; Ketentuan / Terms &amp; Conditions
-        </h1>
-        <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.18em] text-ink-500">
-          Berlaku sejak {LEGAL_EFFECTIVE_DATE} · Versi {CONSENT_POLICY_VERSION}
-        </p>
-
-        <div className="mt-12 grid gap-10 border-t border-cream-300 pt-10 md:grid-cols-2">
-          {(Object.entries(content) as Array<[keyof typeof content, (typeof content)["id"]]>).map(
-            ([locale, block]) => (
-              <article key={locale} className="space-y-6">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
-                    {locale === "id" ? "Bahasa Indonesia" : "English"}
-                  </p>
-                  <h2 className="mt-3 font-serif text-3xl font-light text-ink-900">{block.title}</h2>
-                </div>
-                <p className="text-[0.98rem] leading-[1.8] text-ink-600">{block.intro}</p>
-                <div className="space-y-5">
-                  {block.sections.map((section) => (
-                    <div key={section.title} className="rounded-2xl border border-cream-300 bg-cream-50 p-5">
-                      <h3 className="font-serif text-lg font-medium text-ink-900">{section.title}</h3>
-                      <p className="mt-3 text-[0.95rem] leading-[1.8] text-ink-600">{section.body}</p>
-                      {section.points && (
-                        <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[0.92rem] leading-[1.7] text-ink-600">
-                          {section.points.map((point) => (
-                            <li key={point}>{point}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </article>
-            )
-          )}
-        </div>
-
-        <div className="mt-12 flex flex-wrap gap-4 border-t border-cream-300 pt-8">
-          <a
-            href="/legal/service-contract-template.md"
-            download
-            className="group inline-flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-brand-700"
-          >
-            Service Contract Template
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </a>
-          <a
-            href="/legal/release-form-template.md"
-            download
-            className="group inline-flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-brand-700"
-          >
-            Release Form Template
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </a>
-          <Link href="/privacy-policy" className="group inline-flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-brand-700">
-            Kebijakan Privasi
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </Link>
-          <Link href="/contact" className="group inline-flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-brand-700">
-            Hubungi Kami
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </Link>
-        </div>
-      </section>
-    </main>
+    <LegalDocumentView
+      content={content}
+      effectiveDate={LEGAL_EFFECTIVE_DATE}
+      policyVersion={CONSENT_POLICY_VERSION}
+    />
   );
 }
