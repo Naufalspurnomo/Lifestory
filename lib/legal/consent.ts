@@ -8,10 +8,10 @@
 export type Locale = "id" | "en";
 
 // Bump this (and LEGAL_EFFECTIVE_DATE) whenever legal copy changes materially.
-export const CONSENT_POLICY_VERSION = "2026-07-01";
+export const CONSENT_POLICY_VERSION = "2026-07-05";
 
 // Human-readable effective date rendered on the legal pages.
-export const LEGAL_EFFECTIVE_DATE = "1 Juli 2026";
+export const LEGAL_EFFECTIVE_DATE = "5 Juli 2026";
 
 // Registration consent copy (checkbox on the sign-up form).
 export const registerConsentCopy: Record<

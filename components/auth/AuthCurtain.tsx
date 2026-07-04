@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
@@ -24,7 +25,8 @@ export function AuthCurtain({
   initialMode: Mode;
   next?: string;
 }) {
-  const { status: sessionStatus } = useSession();
+  const router = useRouter();
+  const { status: sessionStatus, update } = useSession();
   const { locale } = useLanguage();
   const reduce = useReducedMotion();
 
@@ -38,9 +40,10 @@ export function AuthCurtain({
 
   useEffect(() => {
     if (sessionStatus === "authenticated") {
-      window.location.href = safeNext;
+      router.replace(safeNext);
+      router.refresh();
     }
-  }, [sessionStatus, safeNext]);
+  }, [router, sessionStatus, safeNext]);
 
   const t = copyFor(locale);
 
@@ -63,7 +66,10 @@ export function AuthCurtain({
       setLoginStatus("idle");
       return;
     }
-    window.location.href = safeNext;
+    setLoginStatus("success");
+    await update().catch(() => null);
+    router.replace(safeNext);
+    router.refresh();
   }
 
   async function handleRegister(
@@ -335,6 +341,7 @@ function LoginForm({
           block
           size="lg"
           loading={status === "loading"}
+          disabled={status === "loading" || status === "success"}
           className="mt-1 h-12 rounded-pill"
         >
           {status === "loading" ? t.shared.processing : t.login.cta}

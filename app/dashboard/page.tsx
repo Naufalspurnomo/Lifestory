@@ -14,6 +14,7 @@ import {
   Users,
   UserX,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 
 type UserStatus = "active" | "inactive" | "suspended";
@@ -30,7 +31,8 @@ interface UserData {
 }
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const { locale } = useLanguage();
   const reduce = useReducedMotion();
   const user = session?.user;
@@ -65,6 +67,7 @@ export default function DashboardPage() {
           filterSuspended: "Ditangguhkan",
           searchPlaceholder: "Cari nama atau email...",
           loadingText: "Memuat data...",
+          checkingAccess: "Memeriksa akses admin...",
           thUser: "Pengguna",
           thRole: "Peran",
           thStatus: "Status",
@@ -110,6 +113,7 @@ export default function DashboardPage() {
           filterSuspended: "Suspended",
           searchPlaceholder: "Search name or email...",
           loadingText: "Loading data...",
+          checkingAccess: "Checking admin access...",
           thUser: "User",
           thRole: "Role",
           thStatus: "Status",
@@ -135,6 +139,12 @@ export default function DashboardPage() {
 
   const isAdmin = user?.role === "admin";
 
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/auth/login?next=/dashboard");
+    }
+  }, [router, status]);
+
   const fetchUsers = useCallback(async () => {
     try {
       const res = await fetch("/api/users");
@@ -154,6 +164,19 @@ export default function DashboardPage() {
       fetchUsers();
     }
   }, [isAdmin, fetchUsers]);
+
+  if (status === "loading" || status === "unauthenticated") {
+    return (
+      <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#faf6ed] via-[#fdfbf6] to-[#faf6ed] text-[#40342c]">
+        <section className="relative mx-auto flex min-h-screen max-w-2xl items-center justify-center px-6 py-16">
+          <div className="rounded-[28px] border border-[#dfd2be] bg-white/86 px-8 py-7 text-center shadow-[0_22px_60px_rgba(88,74,51,0.14)] backdrop-blur-sm">
+            <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-[#82693c] border-t-transparent" />
+            <p className="mt-4 text-sm text-[#73685f]">{copy.checkingAccess}</p>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return (
