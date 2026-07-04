@@ -42,6 +42,10 @@ export function AuthCurtain({
     if (sessionStatus === "authenticated") {
       router.replace(safeNext);
       router.refresh();
+      const fallback = window.setTimeout(() => {
+        if (window.location.pathname !== safeNext) window.location.assign(safeNext);
+      }, 1200);
+      return () => window.clearTimeout(fallback);
     }
   }, [router, sessionStatus, safeNext]);
 
@@ -70,6 +74,9 @@ export function AuthCurtain({
     await update().catch(() => null);
     router.replace(safeNext);
     router.refresh();
+    window.setTimeout(() => {
+      if (window.location.pathname !== safeNext) window.location.assign(safeNext);
+    }, 1200);
   }
 
   async function handleRegister(

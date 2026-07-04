@@ -36,7 +36,8 @@ type MatchKeyType =
   | "self_birth"
   | "parent_pair"
   | "child_parent_pair"
-  | "child_parent"
+  | "child_father"
+  | "child_mother"
   | "grandparent_pair"
   | "hometown_parent_pair"
   | "sibling_group"
@@ -46,7 +47,8 @@ const KEY_WEIGHTS: Record<MatchKeyType, number> = {
   self_birth: 3,
   parent_pair: 6,
   child_parent_pair: 8,
-  child_parent: 3,
+  child_father: 3,
+  child_mother: 3,
   grandparent_pair: 4,
   hometown_parent_pair: 3,
   sibling_group: 5,
@@ -133,6 +135,19 @@ export function normalizeIdentityText(value: string | null | undefined): string 
     .trim();
 }
 
+function nameVariants(value: string | null | undefined): string[] {
+  const normalized = normalizeIdentityText(value);
+  if (!normalized) return [];
+  const tokens = normalized.split(" ").filter(Boolean);
+  return Array.from(
+    new Set([
+      normalized,
+      tokens[0],
+      tokens.length > 1 ? tokens.slice(0, 2).join(" ") : "",
+    ].filter(Boolean))
+  );
+}
+
 function normalizedParts(parts: Array<string | number | null | undefined>) {
   return parts
     .map((part) =>
@@ -165,6 +180,28 @@ function createMatchKey(
     weight,
     reason,
   };
+}
+
+function createNameVariantKeys(
+  keyType: MatchKeyType,
+  nameParts: Array<string | null | undefined>,
+  fixedParts: Array<string | number | null | undefined>,
+  reason: string,
+  weight = KEY_WEIGHTS[keyType]
+): FamilyMatchKeyDraft[] {
+  const variants = nameParts.map(nameVariants);
+  if (variants.some((items) => items.length === 0)) return [];
+  const result: FamilyMatchKeyDraft[] = [];
+  const walk = (index: number, selected: string[]) => {
+    if (index === variants.length) {
+      const key = createMatchKey(keyType, [...selected, ...fixedParts], reason, weight);
+      if (key) result.push(key);
+      return;
+    }
+    for (const item of variants[index]) walk(index + 1, [...selected, item]);
+  };
+  walk(0, []);
+  return result;
 }
 
 function uniqueKeys(keys: Array<FamilyMatchKeyDraft | null>): FamilyMatchKeyDraft[] {
@@ -262,27 +299,30 @@ export function buildDiscoveryMatchKeys(
           "Pasangan orang tua cocok"
         )
       : null,
-    parentPair.length === 2
-      ? createMatchKey(
+    ...(parentPair.length === 2
+      ? createNameVariantKeys(
           "child_parent_pair",
-          [clean.personName, ...parentPair],
+          [clean.personName],
+          parentPair,
           "Nama dan pasangan orang tua cocok"
         )
-      : null,
-    clean.fatherName
-      ? createMatchKey(
-          "child_parent",
+      : []),
+    ...(clean.fatherName
+      ? createNameVariantKeys(
+          "child_father",
           [clean.personName, clean.fatherName],
+          [],
           "Satu relasi orang tua cocok"
         )
-      : null,
-    clean.motherName
-      ? createMatchKey(
-          "child_parent",
+      : []),
+    ...(clean.motherName
+      ? createNameVariantKeys(
+          "child_mother",
           [clean.personName, clean.motherName],
+          [],
           "Satu relasi orang tua cocok"
         )
-      : null,
+      : []),
     parentPair.length === 2 && clean.hometown
       ? createMatchKey(
           "hometown_parent_pair",
@@ -354,22 +394,28 @@ export function buildTreeMatchKeys(nodes: FamilyNode[]): FamilyMatchKeyDraft[] {
     }
 
     const parentNames = (node.parentIds ?? [])
-      .map((id) => byId.get(id)?.label)
-      .filter((name): name is string => Boolean(name))
-      .map(normalizeIdentityText)
-      .filter(Boolean);
+      .map((id) => byId.get(id))
+      .filter((parent): parent is FamilyNode => Boolean(parent));
 
-    for (const parentName of parentNames) {
+    for (const parent of parentNames) {
+      const keyType =
+        parent.sex === "M" ? "child_father" : parent.sex === "F" ? "child_mother" : null;
+      if (!keyType) continue;
       keys.push(
-        createMatchKey(
-          "child_parent",
-          [node.label, parentName],
+        ...createNameVariantKeys(
+          keyType,
+          [node.label, parent.label],
+          [],
           "Satu relasi orang tua cocok"
         )
       );
     }
 
-    for (const pair of combinations(parentNames, 2)) {
+    const normalizedParentNames = parentNames
+      .map((parent) => normalizeIdentityText(parent.label))
+      .filter(Boolean);
+
+    for (const pair of combinations(normalizedParentNames, 2)) {
       const sorted = pair.sort((a, b) => a.localeCompare(b, "id"));
       keys.push(
         createMatchKey(
@@ -379,9 +425,10 @@ export function buildTreeMatchKeys(nodes: FamilyNode[]): FamilyMatchKeyDraft[] {
         )
       );
       keys.push(
-        createMatchKey(
+        ...createNameVariantKeys(
           "child_parent_pair",
-          [node.label, ...sorted],
+          [node.label],
+          sorted,
           "Nama dan pasangan orang tua cocok"
         )
       );
