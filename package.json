@@ -22,7 +22,8 @@
     "auth:smoke": "node scripts/smoke-auth-production.mjs",
     "auth:reset-smoke": "node scripts/smoke-password-reset-production.mjs",
     "media:smoke": "node scripts/smoke-media-production.mjs",
-    "postinstall": "npx prisma generate"
+    "postinstall": "npx prisma generate",
+    "family:resync": "tsx scripts/resync-family-identities.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
