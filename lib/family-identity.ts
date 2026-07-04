@@ -204,6 +204,60 @@ function createNameVariantKeys(
   return result;
 }
 
+function createSortedPairVariantKeys(
+  keyType: MatchKeyType,
+  firstName: string | null | undefined,
+  secondName: string | null | undefined,
+  reason: string,
+  weight = KEY_WEIGHTS[keyType]
+): FamilyMatchKeyDraft[] {
+  const firstVariants = nameVariants(firstName);
+  const secondVariants = nameVariants(secondName);
+  if (firstVariants.length === 0 || secondVariants.length === 0) return [];
+
+  const keys: FamilyMatchKeyDraft[] = [];
+  for (const first of firstVariants) {
+    for (const second of secondVariants) {
+      const pair = [first, second].sort((left, right) => left.localeCompare(right, "id"));
+      const key = createMatchKey(keyType, pair, reason, weight);
+      if (key) keys.push(key);
+    }
+  }
+  return keys;
+}
+
+function createChildParentPairVariantKeys(
+  childName: string | null | undefined,
+  firstParentName: string | null | undefined,
+  secondParentName: string | null | undefined,
+  reason: string
+): FamilyMatchKeyDraft[] {
+  const childVariants = nameVariants(childName);
+  const firstParentVariants = nameVariants(firstParentName);
+  const secondParentVariants = nameVariants(secondParentName);
+  if (
+    childVariants.length === 0 ||
+    firstParentVariants.length === 0 ||
+    secondParentVariants.length === 0
+  ) {
+    return [];
+  }
+
+  const keys: FamilyMatchKeyDraft[] = [];
+  for (const child of childVariants) {
+    for (const firstParent of firstParentVariants) {
+      for (const secondParent of secondParentVariants) {
+        const parentPair = [firstParent, secondParent].sort((left, right) =>
+          left.localeCompare(right, "id")
+        );
+        const key = createMatchKey("child_parent_pair", [child, ...parentPair], reason);
+        if (key) keys.push(key);
+      }
+    }
+  }
+  return keys;
+}
+
 function uniqueKeys(keys: Array<FamilyMatchKeyDraft | null>): FamilyMatchKeyDraft[] {
   const seen = new Set<string>();
   const result: FamilyMatchKeyDraft[] = [];
@@ -292,18 +346,19 @@ export function buildDiscoveryMatchKeys(
           "Nama dan tahun lahir cocok"
         )
       : null,
-    parentPair.length === 2
-      ? createMatchKey(
+    ...(clean.fatherName && clean.motherName
+      ? createSortedPairVariantKeys(
           "parent_pair",
-          parentPair,
+          clean.fatherName,
+          clean.motherName,
           "Pasangan orang tua cocok"
         )
-      : null,
+      : []),
     ...(parentPair.length === 2
-      ? createNameVariantKeys(
-          "child_parent_pair",
-          [clean.personName],
-          parentPair,
+      ? createChildParentPairVariantKeys(
+          clean.personName,
+          clean.fatherName,
+          clean.motherName,
           "Nama dan pasangan orang tua cocok"
         )
       : []),
@@ -418,17 +473,18 @@ export function buildTreeMatchKeys(nodes: FamilyNode[]): FamilyMatchKeyDraft[] {
     for (const pair of combinations(normalizedParentNames, 2)) {
       const sorted = pair.sort((a, b) => a.localeCompare(b, "id"));
       keys.push(
-        createMatchKey(
+        ...createSortedPairVariantKeys(
           "parent_pair",
-          sorted,
+          sorted[0],
+          sorted[1],
           "Pasangan orang tua cocok"
         )
       );
       keys.push(
-        ...createNameVariantKeys(
-          "child_parent_pair",
-          [node.label],
-          sorted,
+        ...createChildParentPairVariantKeys(
+          node.label,
+          sorted[0],
+          sorted[1],
           "Nama dan pasangan orang tua cocok"
         )
       );
