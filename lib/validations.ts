@@ -409,6 +409,65 @@ export const inviteCreateSchema = z.object({
   role: z.enum(["editor", "viewer"]).optional().default("editor"),
 });
 
+
+// ====== Family Identity Schemas ======
+
+const familyIdentityTextSchema = z.string().trim().min(1).max(160);
+const optionalFamilyIdentityTextSchema = z
+  .string()
+  .trim()
+  .max(160)
+  .nullable()
+  .optional()
+  .transform((value) => (value && value.length > 0 ? value : null));
+
+export const familyDiscoveryProfileSchema = z.object({
+  personName: familyIdentityTextSchema,
+  birthYear: z.number().int().min(0).max(9999).nullable().optional(),
+  fatherName: optionalFamilyIdentityTextSchema,
+  motherName: optionalFamilyIdentityTextSchema,
+  paternalGrandfatherName: optionalFamilyIdentityTextSchema,
+  paternalGrandmotherName: optionalFamilyIdentityTextSchema,
+  maternalGrandfatherName: optionalFamilyIdentityTextSchema,
+  maternalGrandmotherName: optionalFamilyIdentityTextSchema,
+  hometown: optionalFamilyIdentityTextSchema,
+  siblingNames: z.array(familyIdentityTextSchema).max(12).optional().default([]),
+  documentNumber: optionalFamilyIdentityTextSchema,
+  consentAccepted: z.boolean().refine((value) => value === true, {
+    message: "Family matching consent is required",
+  }),
+});
+
+export const familyAccessRequestCreateSchema = z.object({
+  familyIdentityId: nodeIdSchema,
+  treeId: nodeIdSchema,
+  requestedRole: z.enum(["editor", "viewer"]).optional().default("editor"),
+});
+
+export const familyAccessRequestReviewSchema = z.object({
+  decision: z.enum(["approved", "rejected"]),
+  role: z.enum(["editor", "viewer"]).optional().default("editor"),
+});
+
+export const familyEvidenceCreateSchema = z
+  .object({
+    kind: z.enum(["kk", "nik", "family_document", "profile_claim", "other"]),
+    familyIdentityId: nodeIdSchema.nullable().optional(),
+    accessRequestId: nodeIdSchema.nullable().optional(),
+    documentValue: z.string().trim().min(1).max(256).nullable().optional(),
+    documentHash: z.string().trim().min(16).max(256).nullable().optional(),
+    storageBucket: z.string().trim().min(1).max(160).nullable().optional(),
+    storageKey: storageKeySchema.nullable().optional(),
+    retentionUntil: z.string().datetime().nullable().optional(),
+    metadata: z.record(z.unknown()).optional().default({}),
+    consentAccepted: z.boolean().refine((value) => value === true, {
+      message: "Evidence consent is required",
+    }),
+  })
+  .refine((data) => data.documentValue || data.documentHash || data.storageKey, {
+    message: "Evidence requires a document hash/value or private storage key",
+  });
+
 export const mediaUploadIntentSchema = z.object({
   treeId: nodeIdSchema,
   nodeId: nodeIdSchema.nullable().optional(),

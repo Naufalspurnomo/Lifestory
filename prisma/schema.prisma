@@ -30,11 +30,18 @@ model User {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  trees       Tree[]               @relation("TreeOwner")
-  memberships TreeMember[]
-  createdTreeInvites TreeInvite[]  @relation("TreeInviteCreator")
-  acceptedTreeInvites TreeInvite[] @relation("TreeInviteAcceptor")
-  resetTokens PasswordResetToken[]
+  trees                         Tree[]                @relation("TreeOwner")
+  memberships                   TreeMember[]
+  createdTreeInvites            TreeInvite[]          @relation("TreeInviteCreator")
+  acceptedTreeInvites           TreeInvite[]          @relation("TreeInviteAcceptor")
+  familyDiscoveryProfile        FamilyDiscoveryProfile?
+  createdFamilyIdentities       FamilyIdentity[]      @relation("FamilyIdentityCreator")
+  familyAccessRequests          FamilyAccessRequest[] @relation("FamilyAccessRequester")
+  reviewedFamilyAccessRequests  FamilyAccessRequest[] @relation("FamilyAccessReviewer")
+  familyEvidence                FamilyEvidence[]
+  proposedFamilyMerges          FamilyMergeProposal[] @relation("FamilyMergeProposer")
+  reviewedFamilyMerges          FamilyMergeProposal[] @relation("FamilyMergeReviewer")
+  resetTokens                   PasswordResetToken[]
 }
 
 model PasswordResetToken {
@@ -83,24 +90,171 @@ model RateLimitBucket {
 // ---------- Family Tree (tenant) ----------
 
 model Tree {
-  id        String   @id @default(cuid())
-  name      String
-  ownerId   String
-  version   Int      @default(1)
-  deletedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(cuid())
+  name             String
+  ownerId          String
+  familyIdentityId String?
+  version          Int      @default(1)
+  deletedAt        DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  owner       User         @relation("TreeOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  nodes       Node[]
-  edges       Edge[]
-  memberships TreeMember[]
-  invites     TreeInvite[]
-  snapshots   TreeSnapshot[]
-  syncReceipts TreeSyncReceipt[]
+  owner                   User                   @relation("TreeOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  familyIdentity          FamilyIdentity?        @relation("TreeFamilyIdentity", fields: [familyIdentityId], references: [id], onDelete: SetNull)
+  canonicalFamilyIdentity FamilyIdentity?        @relation("CanonicalFamilyTree")
+  nodes                   Node[]
+  edges                   Edge[]
+  memberships             TreeMember[]
+  invites                 TreeInvite[]
+  snapshots               TreeSnapshot[]
+  syncReceipts            TreeSyncReceipt[]
+  familyAccessRequests    FamilyAccessRequest[]
+  familyMergeSources      FamilyMergeProposal[]  @relation("FamilyMergeSourceTree")
+  familyMergeTargets      FamilyMergeProposal[]  @relation("FamilyMergeTargetTree")
 
   @@index([ownerId])
+  @@index([familyIdentityId])
   @@index([deletedAt])
+}
+
+model FamilyDiscoveryProfile {
+  id                       String   @id @default(cuid())
+  userId                   String   @unique
+  personName               String
+  birthYear                Int?
+  fatherName               String?
+  motherName               String?
+  paternalGrandfatherName  String?
+  paternalGrandmotherName  String?
+  maternalGrandfatherName  String?
+  maternalGrandmotherName  String?
+  hometown                 String?
+  siblingNames             Json     @default("[]")
+  profileHash              String
+  consentAcceptedAt        DateTime
+  retentionUntil           DateTime?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([profileHash])
+  @@index([retentionUntil])
+}
+
+// A privacy-preserving real-family identity layer. One real family can own one
+// canonical tree and later reconcile duplicate trees through reviewed merges.
+model FamilyIdentity {
+  id                String   @id @default(cuid())
+  displayName       String
+  canonicalTreeId   String?  @unique
+  createdById       String
+  status            String   @default("active") // "active" | "archived"
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  canonicalTree  Tree?                 @relation("CanonicalFamilyTree", fields: [canonicalTreeId], references: [id], onDelete: SetNull)
+  createdBy      User                  @relation("FamilyIdentityCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  trees          Tree[]                @relation("TreeFamilyIdentity")
+  matchKeys      FamilyMatchKey[]
+  accessRequests FamilyAccessRequest[]
+  evidence       FamilyEvidence[]
+  mergeProposals FamilyMergeProposal[]
+
+  @@index([createdById])
+  @@index([status])
+}
+
+// Match keys are HMAC hashes only. Raw KK/NIK/names are never stored here.
+model FamilyMatchKey {
+  id               String   @id @default(cuid())
+  familyIdentityId String
+  keyType          String
+  keyHash          String
+  weight           Int      @default(1)
+  createdAt        DateTime @default(now())
+
+  familyIdentity FamilyIdentity @relation(fields: [familyIdentityId], references: [id], onDelete: Cascade)
+
+  @@unique([familyIdentityId, keyType, keyHash])
+  @@index([keyType, keyHash])
+  @@index([familyIdentityId])
+}
+
+model FamilyAccessRequest {
+  id               String    @id @default(cuid())
+  familyIdentityId String
+  treeId           String
+  requesterId      String
+  status           String    @default("pending") // "pending" | "approved" | "rejected"
+  requestedRole    String    @default("editor") // "editor" | "viewer"
+  confidence       Int
+  matchReasons     Json      @default("[]")
+  requesterSummary Json      @default("{}")
+  reviewedById     String?
+  reviewedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  familyIdentity FamilyIdentity  @relation(fields: [familyIdentityId], references: [id], onDelete: Cascade)
+  tree           Tree            @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  requester      User            @relation("FamilyAccessRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  reviewedBy     User?           @relation("FamilyAccessReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  evidence       FamilyEvidence[]
+
+  @@unique([treeId, requesterId, status])
+  @@index([familyIdentityId, status])
+  @@index([treeId, status])
+  @@index([requesterId, status])
+}
+
+model FamilyEvidence {
+  id                String    @id @default(cuid())
+  familyIdentityId  String?
+  accessRequestId   String?
+  userId            String
+  kind              String
+  documentHash      String?
+  storageBucket     String?
+  storageKey        String?
+  retentionUntil    DateTime?
+  consentAcceptedAt DateTime
+  metadata          Json      @default("{}")
+  createdAt         DateTime  @default(now())
+
+  familyIdentity FamilyIdentity?     @relation(fields: [familyIdentityId], references: [id], onDelete: SetNull)
+  accessRequest  FamilyAccessRequest? @relation(fields: [accessRequestId], references: [id], onDelete: SetNull)
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([familyIdentityId])
+  @@index([accessRequestId])
+  @@index([userId])
+  @@index([documentHash])
+}
+
+model FamilyMergeProposal {
+  id               String    @id @default(cuid())
+  familyIdentityId String?
+  sourceTreeId     String
+  targetTreeId     String
+  proposedById     String
+  status           String    @default("draft") // "draft" | "pending" | "approved" | "rejected" | "applied"
+  preview          Json      @default("{}")
+  reviewedById     String?
+  reviewedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  familyIdentity FamilyIdentity? @relation(fields: [familyIdentityId], references: [id], onDelete: SetNull)
+  sourceTree     Tree            @relation("FamilyMergeSourceTree", fields: [sourceTreeId], references: [id], onDelete: Cascade)
+  targetTree     Tree            @relation("FamilyMergeTargetTree", fields: [targetTreeId], references: [id], onDelete: Cascade)
+  proposedBy     User            @relation("FamilyMergeProposer", fields: [proposedById], references: [id], onDelete: Cascade)
+  reviewedBy     User?           @relation("FamilyMergeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([familyIdentityId])
+  @@index([sourceTreeId])
+  @@index([targetTreeId])
+  @@index([status])
 }
 
 model TreeSnapshot {

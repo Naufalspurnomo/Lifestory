@@ -3,6 +3,7 @@
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
+import { syncFamilyIdentityForTreeTx } from "../family-identity";
 import { applyNodeMutations } from "../sync/applyMutations";
 import { IntegrityValidator } from "../sync/IntegrityValidator";
 import {
@@ -434,6 +435,7 @@ export async function createTreeForUser(
         });
         const snapshot = await writeGraph(tx, created.id, nodes);
         await createSnapshot(tx, created.id, created.version, snapshot);
+        await syncFamilyIdentityForTreeTx(tx, created.id);
         return created;
       },
       TREE_WRITE_TRANSACTION_OPTIONS
@@ -488,6 +490,7 @@ export async function replaceTreeNodes(
       const snapshot = await writeGraph(tx, treeId, nodes);
       const newVersion = expectedVersion + 1;
       await createSnapshot(tx, treeId, newVersion, snapshot);
+      await syncFamilyIdentityForTreeTx(tx, treeId);
       return { newVersion };
     },
     TREE_WRITE_TRANSACTION_OPTIONS
@@ -648,6 +651,7 @@ export async function applyTreeMutations(
         },
       });
       await createSnapshot(tx, treeId, newVersion, snapshot);
+      await syncFamilyIdentityForTreeTx(tx, treeId);
 
       return {
         newVersion,

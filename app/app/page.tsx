@@ -10,7 +10,8 @@ import FamilyTreeCanvas from "../../components/tree/FamilyTreeCanvas";
 import CanvasErrorBoundary from "../../components/tree/CanvasErrorBoundary";
 import NodeEditor from "../../components/tree/NodeEditor";
 import BioModal from "../../components/tree/BioModal";
-import WelcomeScreen from "../../components/tree/WelcomeScreen";
+import FamilyDiscoveryGate from "../../components/tree/FamilyDiscoveryGate";
+import FamilyAccessInbox from "../../components/tree/FamilyAccessInbox";
 import InviteModal from "../../components/tree/InviteModal";
 import ImportModal from "../../components/tree/ImportModal";
 import ConflictResolutionModal from "../../components/tree/ConflictResolutionModal";
@@ -35,6 +36,7 @@ import {
   Layers3,
   Upload,
   UserPlus,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 
@@ -93,6 +95,7 @@ export default function AppHome() {
           filterCore: "Keluarga Inti",
           comingSoon: "Segera Hadir",
           invite: "Undang",
+          requests: "Request",
           import: "Import",
           export: "Ekspor",
           exportPdf: "PDF",
@@ -139,6 +142,7 @@ export default function AppHome() {
           filterCore: "Core Family",
           comingSoon: "Coming Soon",
           invite: "Invite",
+          requests: "Requests",
           import: "Import",
           export: "Export",
           exportPdf: "PDF",
@@ -190,6 +194,7 @@ export default function AppHome() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showNodeEditor, setShowNodeEditor] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showAccessInbox, setShowAccessInbox] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [addType, setAddType] = useState<
     "parent" | "partner" | "child" | "sibling"
@@ -459,6 +464,11 @@ export default function AppHome() {
 
   const treeActions = [
     {
+      label: copy.requests,
+      onClick: () => setShowAccessInbox(true),
+      Icon: ShieldCheck,
+    },
+    {
       label: copy.invite,
       onClick: () => setShowInviteModal(true),
       Icon: UserPlus,
@@ -484,12 +494,12 @@ export default function AppHome() {
     {
       label: copy.manage,
       Icon: UserPlus,
-      actions: treeActions.slice(0, 2),
+      actions: treeActions.slice(0, 3),
     },
     {
       label: copy.archive,
       Icon: Download,
-      actions: treeActions.slice(2),
+      actions: treeActions.slice(3),
     },
   ];
 
@@ -550,7 +560,7 @@ export default function AppHome() {
     <div className={showTree ? "h-[100dvh] w-screen overflow-hidden bg-[#2c1e16] flex flex-col relative text-[#3f342d]" : "min-h-screen bg-[#faf6ed] pb-32"}>
       {/* Vignette removed for a cleaner look */}
       {!showTree && !hasCreatedTree && (
-        <WelcomeScreen userName={userName} onStart={handleStartTree} />
+        <FamilyDiscoveryGate userName={userName} onStart={handleStartTree} />
       )}
 
       {showTree && (
@@ -1050,6 +1060,12 @@ export default function AppHome() {
             addType={addType}
             parentId={addParentId}
             coParentOptions={coParentOptions}
+          />
+
+          <FamilyAccessInbox
+            isOpen={showAccessInbox}
+            onClose={() => setShowAccessInbox(false)}
+            onReviewed={showNotification}
           />
 
           {currentTree && (
