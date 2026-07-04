@@ -44,7 +44,7 @@ export function AuthCurtain({
       router.refresh();
       const fallback = window.setTimeout(() => {
         if (window.location.pathname !== safeNext) window.location.assign(safeNext);
-      }, 1200);
+      }, 350);
       return () => window.clearTimeout(fallback);
     }
   }, [router, sessionStatus, safeNext]);
@@ -76,7 +76,7 @@ export function AuthCurtain({
     router.refresh();
     window.setTimeout(() => {
       if (window.location.pathname !== safeNext) window.location.assign(safeNext);
-    }, 1200);
+    }, 350);
   }
 
   async function handleRegister(
