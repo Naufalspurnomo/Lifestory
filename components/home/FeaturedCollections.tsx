@@ -4,9 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Container } from "../ui/Container";
-import { Eyebrow } from "../ui/Eyebrow";
 import { Reveal } from "../ui/Reveal";
-import { DividerMotif } from "../ui/Ornament";
 import { galleryItems } from "../../lib/content/galleryItems";
 
 type Props = {
@@ -19,132 +17,120 @@ type Props = {
 };
 
 export function FeaturedCollections({ copy }: Props) {
-  const renderBookCard = (
-    book: (typeof galleryItems)[number],
-    index: number,
-    layout: "hero" | "stack" | "wide"
-  ) => {
-    const isHero = layout === "hero";
-    const isWide = layout === "wide";
-
-    const cardClassName = isHero
-      ? "group h-full overflow-hidden rounded-card-xl border border-cream-300 bg-[linear-gradient(180deg,#fffdf8_0%,#f7efe2_100%)] transition duration-500 ease-smooth hover:-translate-y-1 hover:shadow-deep"
-      : isWide
-        ? "group h-full overflow-hidden rounded-card-xl border border-cream-300 bg-white transition duration-500 ease-smooth hover:-translate-y-1 hover:shadow-deep"
-        : "group h-full overflow-hidden rounded-card-lg border border-cream-300 bg-white transition duration-500 ease-smooth hover:-translate-y-1 hover:shadow-deep";
-
-    const imageClassName = isHero
-      ? "relative aspect-[4/5] overflow-hidden"
-      : isWide
-        ? "relative aspect-[16/9] overflow-hidden"
-        : "relative aspect-[3/4] overflow-hidden";
-
-    const bodyClassName = isHero
-      ? "space-y-4 p-6 md:p-7"
-      : isWide
-        ? "space-y-3 p-5 md:p-7"
-        : "space-y-3 p-5";
-
-    const titleClassName = isHero
-      ? "font-serif text-[clamp(2rem,3vw,2.8rem)] leading-[1.02] tracking-[-0.02em] text-ink-800"
-      : isWide
-        ? "font-serif text-[1.85rem] leading-tight tracking-[-0.02em] text-ink-800"
-        : "font-serif text-[1.45rem] leading-tight tracking-[-0.02em] text-ink-800";
-
-    const summaryClassName = isHero
-      ? "text-base leading-relaxed text-ink-500 md:text-lg"
-      : isWide
-        ? "max-w-xl text-sm leading-relaxed text-ink-500 md:text-base"
-        : "text-sm leading-relaxed text-ink-500";
-
-    return (
-      <Reveal
-        key={book.id}
-        delay={index * 0.07}
-        variant="image"
-        duration={0.75}
-        className={isHero ? "sm:col-span-2 lg:col-span-7" : isWide ? "sm:col-span-2 lg:col-span-2" : "lg:col-span-1"}
-      >
-        <Link
-          href={`/gallery?item=${book.id}`}
-          aria-label={`Open ${book.title} in gallery`}
-          className={`block ${cardClassName}`}
-        >
-          <div className="flex h-full flex-col">
-            <div className={imageClassName}>
-              <Image
-                src={book.src}
-                alt={book.alt}
-                fill
-                sizes={
-                  isHero
-                    ? "(max-width: 640px) 100vw, (max-width: 1280px) 100vw, 50vw"
-                    : isWide
-                      ? "(max-width: 640px) 100vw, (max-width: 1280px) 70vw, 50vw"
-                      : "(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
-                }
-                className="object-cover transition duration-700 ease-smooth lg:group-hover:scale-[1.05]"
-                priority={index < 2}
-              />
-            </div>
-
-            <div className={bodyClassName}>
-              <div className="space-y-1.5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-400">
-                  {book.era} · {book.palette}
-                </p>
-                <p className={titleClassName}>{book.title}</p>
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-500">
-                  {book.subtitle}
-                </p>
-              </div>
-
-              <p className={summaryClassName}>{book.summary}</p>
-
-              <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-500 transition duration-300 group-hover:translate-x-0.5">
-                {copy.viewMore}
-                <ArrowRight className="h-3 w-3" />
-              </p>
-            </div>
-          </div>
-        </Link>
-      </Reveal>
-    );
-  };
+  const leadBook = galleryItems[0];
+  const archiveBooks = galleryItems.slice(1);
 
   return (
-    <section className="relative bg-cream-50 section-y-md">
+    <section className="relative overflow-hidden bg-cream-100 section-y-md">
       <Container size="xl">
-        <Reveal className="mb-16 flex flex-col gap-6 md:flex-row md:items-start md:justify-between md:gap-10">
-          <div className="max-w-2xl">
-            <Eyebrow>{copy.eyebrow}</Eyebrow>
-            <h2 className="mt-4 font-serif text-[clamp(2rem,4.4vw,3.4rem)] leading-[1.05] tracking-[-0.02em] text-ink-800">
+        <Reveal className="grid gap-8 border-y border-cream-300 py-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.55fr)] lg:items-end">
+          <div className="max-w-3xl">
+            <p className="text-xs font-bold uppercase text-brand-700">{copy.eyebrow}</p>
+            <h2 className="mt-4 max-w-2xl font-serif text-4xl leading-[1.05] text-ink-900 sm:text-5xl lg:text-6xl">
               {copy.title}
             </h2>
-            <DividerMotif className="mt-6" width={180} />
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink-500 md:text-lg">
               {copy.lead}
             </p>
           </div>
           <Link
             href="/gallery"
-            className="group/link inline-flex items-center gap-2 self-start rounded-pill border border-cream-300 bg-cream-50 px-5 py-2.5 text-sm font-semibold text-ink-700 transition hover:border-brand-300 hover:bg-cream-100 md:mt-1 md:self-start"
+            className="group/link inline-flex w-fit items-center gap-3 self-start border-b border-brand-400 pb-2 text-sm font-semibold text-brand-700 transition hover:border-ink-900 hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-4 focus-visible:ring-offset-cream-100 lg:justify-self-end"
           >
             {copy.viewMore}
             <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/link:translate-x-1" />
           </Link>
         </Reveal>
 
-        <div className="grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-12 lg:gap-7">
-          {renderBookCard(galleryItems[0], 0, "hero")}
+        <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)] lg:items-start">
+          <Reveal variant="image" duration={0.75}>
+            <Link
+              href={`/gallery?item=${leadBook.id}`}
+              aria-label={`Open ${leadBook.title} in gallery`}
+              className="group block overflow-hidden rounded-card-lg bg-ink-900 text-cream-50 shadow-elev transition duration-500 hover:-translate-y-1 hover:shadow-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-4 focus-visible:ring-offset-cream-100"
+            >
+              <div className="grid lg:grid-cols-[0.92fr_1fr]">
+                <div className="relative min-h-[410px] overflow-hidden sm:min-h-[500px] lg:min-h-[620px]">
+                  <Image
+                    src={leadBook.src}
+                    alt={leadBook.alt}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 45vw"
+                    className="object-cover transition duration-700 ease-smooth lg:group-hover:scale-[1.04]"
+                    priority
+                  />
+                </div>
 
-          <div className="grid gap-5 sm:col-span-2 sm:grid-cols-2 lg:col-span-5">
-            {renderBookCard(galleryItems[1], 1, "stack")}
-            {renderBookCard(galleryItems[2], 2, "stack")}
-          </div>
+                <div className="flex min-h-[340px] flex-col justify-between gap-10 p-6 sm:p-8 lg:p-10">
+                  <div>
+                    <p className="text-xs font-bold uppercase text-brand-300">01 / 04</p>
+                    <h3 className="mt-5 max-w-md break-words font-serif text-4xl leading-[1.04] text-cream-50 sm:text-5xl">
+                      {leadBook.title}
+                    </h3>
+                    <p className="mt-4 text-sm font-semibold uppercase text-cream-200">
+                      {leadBook.subtitle}
+                    </p>
+                  </div>
 
-          <div className="lg:col-span-12">
-            {renderBookCard(galleryItems[3], 3, "wide")}
+                  <div className="space-y-6">
+                    <p className="max-w-md text-base leading-relaxed text-cream-100/80">
+                      {leadBook.summary}
+                    </p>
+                    <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-cream-50/15 pt-5 text-sm text-cream-100/75">
+                      <span>{leadBook.era}</span>
+                      <span>{leadBook.palette}</span>
+                    </div>
+                    <p className="inline-flex items-center gap-2 text-sm font-semibold text-brand-300 transition duration-300 group-hover:translate-x-1">
+                      {copy.viewMore}
+                      <ArrowRight className="h-4 w-4" />
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </Reveal>
+
+          <div className="border-y border-cream-300">
+            {archiveBooks.map((book, index) => (
+              <Reveal
+                key={book.id}
+                className="border-b border-cream-300 last:border-b-0"
+                delay={(index + 1) * 0.05}
+                y={16}
+              >
+                <Link
+                  href={`/gallery?item=${book.id}`}
+                  aria-label={`Open ${book.title} in gallery`}
+                  className="group grid gap-5 py-6 transition hover:bg-cream-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-4 focus-visible:ring-offset-cream-100 sm:grid-cols-[128px_1fr]"
+                >
+                  <div className="relative aspect-[4/5] w-full overflow-hidden rounded-card border border-cream-300 bg-cream-50 sm:w-32">
+                    <Image
+                      src={book.src}
+                      alt={book.alt}
+                      fill
+                      sizes="(max-width: 640px) 100vw, 128px"
+                      className="object-cover transition duration-700 ease-smooth lg:group-hover:scale-[1.05]"
+                    />
+                  </div>
+
+                  <div className="min-w-0 self-center pr-2">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold uppercase text-brand-700">
+                      <span>{String(index + 2).padStart(2, "0")} / 04</span>
+                      <span>{book.era}</span>
+                    </div>
+                    <h3 className="mt-3 break-words font-serif text-2xl leading-tight text-ink-900 transition group-hover:text-brand-700 sm:text-3xl">
+                      {book.title}
+                    </h3>
+                    <p className="mt-2 text-sm font-semibold uppercase text-ink-500">
+                      {book.subtitle}
+                    </p>
+                    <p className="mt-4 text-sm leading-relaxed text-ink-600">
+                      {book.summary}
+                    </p>
+                  </div>
+                </Link>
+              </Reveal>
+            ))}
           </div>
         </div>
       </Container>

@@ -102,20 +102,7 @@ export default function HomePage() {
               subtitle: "Legacy memory edition",
               type: "photo" as const,
             },
-            {
-              src: "/image/home-step-2.webp",
-              alt: "Proses pembuatan video dokumenter keluarga",
-              title: "Dokumenter Keluarga",
-              subtitle: "Cinematic family film",
-              type: "video" as const,
-            },
-            {
-              src: "/image/home-step-1.webp",
-              alt: "Sesi wawancara dan foto keluarga",
-              title: "Sesi Keluarga",
-              subtitle: "Behind the scenes",
-              type: "photo" as const,
-            },
+
           ],
         },
         howItWorks: {
@@ -364,20 +351,7 @@ export default function HomePage() {
               subtitle: "Legacy memory edition",
               type: "photo" as const,
             },
-            {
-              src: "/image/home-step-2.webp",
-              alt: "Family documentary film production",
-              title: "Family Documentary",
-              subtitle: "Cinematic family film",
-              type: "video" as const,
-            },
-            {
-              src: "/image/home-step-1.webp",
-              alt: "Family interview and photo session",
-              title: "Family Session",
-              subtitle: "Behind the scenes",
-              type: "photo" as const,
-            },
+
           ],
         },
         howItWorks: {

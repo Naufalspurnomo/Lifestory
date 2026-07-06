@@ -31,6 +31,60 @@ describe("landing hero interaction invariants", () => {
     expect(homeHero).not.toContain('status === "loading"');
     expect(homeHero).not.toContain("h-14 w-full sm:w-48");
   });
+
+  it("zooms the opening hero photo into a desktop photo frame on scroll", () => {
+    expect(homeHero).toContain("data-hero-scroll-section");
+    expect(homeHero).toContain("data-hero-photo-frame");
+    expect(homeHero).toContain("data-hero-copy");
+    expect(homeHero).toContain('offset: ["start start", "end end"]');
+    expect(homeHero).toContain("(min-width: 1024px) and (hover: hover) and (pointer: fine)");
+    expect(homeHero).toContain("lg:h-[170svh]");
+    expect(homeHero).toContain('shouldAnimateHeroScroll ? "42vw" : "65vw"');
+    expect(homeHero).toContain('shouldAnimateHeroScroll ? "58vh" : "100vh"');
+    expect(homeHero).toContain('shouldAnimateHeroScroll ? "14px" : "0px"');
+    expect(homeHero).not.toContain("data-hero-memory-frame");
+    expect(homeHero).not.toContain("data-hero-scrollytelling-copy");
+    expect(homeHero).not.toMatch(/phone|iphone|device mockup/i);
+  });
+});
+
+describe("home archive continuation direction", () => {
+  const statsStrip = source("components/home/StatsStrip.tsx");
+
+  it("turns the post-hero showcase into an archive landing sequence", () => {
+    expect(statsStrip).toContain("data-archive-landing");
+    expect(statsStrip).toContain("data-archive-proof");
+    expect(statsStrip).toContain("data-archive-record");
+    expect(statsStrip).toContain("border-y border-cream-50/14");
+    expect(statsStrip).not.toContain("radial-gradient");
+    expect(statsStrip).not.toContain("rounded-full border border-white/20");
+    expect(statsStrip).not.toContain("lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.62fr)]");
+  });
+});
+
+describe("home biography gallery direction", () => {
+  const featuredCollections = source("components/home/FeaturedCollections.tsx");
+
+  it("uses an editorial archive layout instead of a repeated card grid", () => {
+    expect(featuredCollections).toContain("const leadBook = galleryItems[0]");
+    expect(featuredCollections).toContain("const archiveBooks = galleryItems.slice(1)");
+    expect(featuredCollections).toContain("01 / 04");
+    expect(featuredCollections).not.toContain("renderBookCard");
+    expect(featuredCollections).not.toContain("DividerMotif");
+  });
+});
+
+describe("home testimonial archive folio treatment", () => {
+  const testimonials = source("components/home/Testimonials.tsx");
+
+  it("uses an archive folio instead of stacked paper cards", () => {
+    expect(testimonials).toContain("data-voice-folio");
+    expect(testimonials).toContain("data-voice-entry");
+    expect(testimonials).not.toContain("function paperStyle");
+    expect(testimonials).not.toContain("backgroundImage:");
+    expect(testimonials).not.toContain("before:[clip-path:polygon");
+    expect(testimonials).not.toContain("Marquee");
+  });
 });
 
 describe("footer brand invariant", () => {

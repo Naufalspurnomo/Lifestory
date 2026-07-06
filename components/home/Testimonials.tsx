@@ -3,7 +3,6 @@
 import { Container } from "../ui/Container";
 import { Reveal } from "../ui/Reveal";
 import { Marquee } from "../ui/Marquee";
-import { useMotionGuard } from "../../lib/hooks/useMotionGuard";
 
 type Testimonial = {
   quote: string;
@@ -22,23 +21,11 @@ type Props = {
   };
 };
 
-const paperTones = ["#fdfbf6", "#faf6ed", "#f5efe1"];
-
-function getStackGapClass(index: number, total: number) {
-  if (index >= total - 1) return "";
-
-  return index === total - 2
-    ? "mb-[5vh] sm:mb-[6vh] lg:mb-[5vh] xl:mb-[6vh]"
-    : "mb-[7vh] sm:mb-[8vh] lg:mb-[7vh] xl:mb-[8vh]";
-}
-
 export function Testimonials({ copy }: Props) {
-  const { isCoarsePointer } = useMotionGuard();
-
   return (
     <section className="relative overflow-visible border-y border-cream-300 bg-cream-100 py-[clamp(5rem,8vw,8rem)]">
       <Container size="xl">
-        <div className="relative flex flex-col items-start gap-12 lg:flex-row lg:gap-24">
+        <div className="relative flex flex-col items-start gap-14 lg:flex-row lg:gap-24">
           <div className="z-10 w-full shrink-0 lg:sticky lg:top-32 lg:w-[31%]">
             <Reveal>
               <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
@@ -55,72 +42,99 @@ export function Testimonials({ copy }: Props) {
           </div>
 
           <div
-            className="isolate flex w-full flex-col gap-0 overflow-visible pb-16 sm:pb-20 lg:w-[69%] lg:pb-20"
+            data-voice-folio
+            className="relative w-full overflow-visible lg:w-[69%]"
           >
+            <div
+              aria-hidden
+              className="absolute left-0 top-2 hidden h-[calc(100%-1rem)] w-px bg-ink-900/15 sm:block"
+            />
             {copy.items.map((testimonial, index) => (
               <article
                 key={testimonial.author}
-                className="relative overflow-visible lg:sticky"
-                style={{
-                  top: `calc(5rem + ${index * 0.45}rem)`,
-                  zIndex: 20 + index,
-                }}
+                data-voice-entry
+                className={`relative grid gap-5 border-t border-ink-900/15 pt-7 sm:grid-cols-[4.5rem_1fr] sm:gap-8 sm:border-t-0 sm:pl-8 ${
+                  index === 0
+                    ? "pb-12 sm:pb-16 lg:pb-20"
+                    : "pb-10 sm:ml-10 sm:pb-12 lg:ml-[clamp(2rem,5vw,5.5rem)]"
+                }`}
               >
-                <div
-                  className={`relative min-h-[340px] w-full border border-brand-200/80 px-6 py-7 text-ink-900 shadow-[0_16px_34px_rgba(63,52,45,0.12)] sm:min-h-[360px] sm:px-10 sm:py-10 md:min-h-[400px] md:px-14 md:py-12 ${
-                    isCoarsePointer
-                      ? index < copy.items.length - 1
-                        ? "mb-5"
-                        : ""
-                      : getStackGapClass(index, copy.items.length)
-                  }`}
-                  style={{
-                    backgroundColor: paperTones[index % paperTones.length],
-                    transform: isCoarsePointer
-                      ? "none"
-                      : `translateY(${index * 3}px) scale(${1 - index * 0.008})`,
-                    transformOrigin: "top center",
-                  }}
-                >
-                  <div className="flex h-full min-h-[260px] flex-col justify-between border-t border-ink-900/70 pt-7 sm:min-h-[280px] sm:pt-8 md:min-h-[305px] md:pt-10">
-                    <blockquote className="max-w-[23ch] font-serif text-[1.45rem] font-light leading-[1.28] tracking-normal text-ink-900 sm:text-[1.8rem] md:text-[2.25rem]">
-                      {testimonial.quote}
-                    </blockquote>
-
-                    <footer className="mt-12 flex items-end justify-between gap-6 border-t border-ink-900/15 pt-5">
-                      <div>
-                        <p className="text-sm font-semibold text-ink-900">
-                          {testimonial.author}
-                        </p>
-                        <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700">
-                          {testimonial.role}
-                        </p>
-                      </div>
-                      <span className="font-serif text-sm italic text-ink-400">
-                        Lifestory
-                      </span>
-                    </footer>
+                <div className="flex items-start gap-4 sm:block">
+                  <span
+                    aria-hidden
+                    className={`mt-1 block h-2 w-2 shrink-0 rounded-full ${
+                      index === 0 ? "bg-brand-700" : "bg-ink-900/25"
+                    } sm:absolute sm:left-[-3px] sm:top-8`}
+                  />
+                  <div
+                    className={`font-serif italic tracking-normal ${
+                      index === 0
+                        ? "text-4xl text-brand-700 sm:text-5xl"
+                        : "text-2xl text-ink-300 sm:text-3xl"
+                    }`}
+                  >
+                    {String(index + 1).padStart(2, "0")}
                   </div>
+                </div>
+
+                <div
+                  className={`min-w-0 ${
+                    index === 0 ? "max-w-4xl" : "max-w-3xl"
+                  }`}
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-700">
+                    {testimonial.role}
+                  </p>
+
+                  <blockquote
+                    className={`mt-5 font-serif font-light tracking-normal text-ink-900 ${
+                      index === 0
+                        ? "max-w-[26ch] text-[1.85rem] leading-[1.16] sm:text-[2.35rem] sm:leading-[1.12] lg:text-[2.8rem]"
+                        : "max-w-[34ch] text-[1.35rem] leading-[1.32] sm:text-[1.55rem] lg:text-[1.75rem]"
+                    }`}
+                  >
+                    {testimonial.quote}
+                  </blockquote>
+
+                  <footer className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-ink-900/12 pt-4">
+                    <p className="text-sm font-semibold text-ink-900">
+                      {testimonial.author}
+                    </p>
+                    <span
+                      aria-hidden
+                      className="hidden h-px w-8 bg-ink-900/20 sm:block"
+                    />
+                    <span className="font-serif text-sm italic tracking-normal text-ink-500">
+                      Lifestory
+                    </span>
+                  </footer>
                 </div>
               </article>
             ))}
           </div>
         </div>
 
-        <Reveal delay={0.2} className="mt-16 border-t border-cream-300 pt-10 md:mt-24 md:pt-12">
-          <p className="mb-7 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-ink-500">
+        <Reveal
+          delay={0.2}
+          className="mt-10 border-t border-cream-300 pt-9 md:mt-16 md:pt-11 flex flex-col items-center overflow-hidden"
+        >
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-ink-500 text-center mb-8">
             {copy.pressLabel}
           </p>
-          <Marquee className="[mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
-            {copy.pressLogos.map((logo, index) => (
-              <span
-                key={`${logo}-${index}`}
-                className="px-8 font-serif text-xl italic tracking-normal text-ink-500 md:text-2xl"
-              >
-                {logo}
-              </span>
-            ))}
-          </Marquee>
+          <div className="w-full relative max-w-[100vw]">
+            <Marquee pauseOnHover={false} className="w-full">
+              {copy.pressLogos.map((logo, index) => (
+                <div key={`${logo}-${index}`} className="flex items-center gap-12">
+                  <span className="font-serif text-2xl italic tracking-normal text-ink-600 md:text-3xl whitespace-nowrap">
+                    {logo}
+                  </span>
+                  <span aria-hidden className="text-base text-ink-300/50 md:text-lg">
+                    /
+                  </span>
+                </div>
+              ))}
+            </Marquee>
+          </div>
         </Reveal>
       </Container>
     </section>
