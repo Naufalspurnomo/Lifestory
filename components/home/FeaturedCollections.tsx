@@ -6,6 +6,8 @@ import { ArrowRight } from "lucide-react";
 import { Container } from "../ui/Container";
 import { Reveal } from "../ui/Reveal";
 import { galleryItems } from "../../lib/content/galleryItems";
+import { getGalleryLocalizedMeta } from "../../lib/content/galleryLocalizedMeta";
+import { useLanguage } from "../providers/LanguageProvider";
 
 type Props = {
   copy: {
@@ -17,8 +19,10 @@ type Props = {
 };
 
 export function FeaturedCollections({ copy }: Props) {
+  const { locale } = useLanguage();
   const leadBook = galleryItems[0];
   const archiveBooks = galleryItems.slice(1);
+  const leadMeta = getGalleryLocalizedMeta(leadBook.id, locale);
 
   return (
     <section className="relative overflow-hidden bg-cream-100 section-y-md">
@@ -68,17 +72,17 @@ export function FeaturedCollections({ copy }: Props) {
                       {leadBook.title}
                     </h3>
                     <p className="mt-4 text-sm font-semibold uppercase text-cream-200">
-                      {leadBook.subtitle}
+                      {leadMeta?.subtitle ?? leadBook.subtitle}
                     </p>
                   </div>
 
                   <div className="space-y-6">
                     <p className="max-w-md text-base leading-relaxed text-cream-100/80">
-                      {leadBook.summary}
+                      {leadMeta?.summary ?? leadBook.summary}
                     </p>
                     <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-cream-50/15 pt-5 text-sm text-cream-100/75">
-                      <span>{leadBook.era}</span>
-                      <span>{leadBook.palette}</span>
+                      <span>{leadMeta?.era ?? leadBook.era}</span>
+                      <span>{leadMeta?.palette ?? leadBook.palette}</span>
                     </div>
                     <p className="inline-flex items-center gap-2 text-sm font-semibold text-brand-300 transition duration-300 group-hover:translate-x-1">
                       {copy.viewMore}
@@ -91,46 +95,50 @@ export function FeaturedCollections({ copy }: Props) {
           </Reveal>
 
           <div className="border-y border-cream-300">
-            {archiveBooks.map((book, index) => (
-              <Reveal
-                key={book.id}
-                className="border-b border-cream-300 last:border-b-0"
-                delay={(index + 1) * 0.05}
-                y={16}
-              >
-                <Link
-                  href={`/gallery?item=${book.id}`}
-                  aria-label={`Open ${book.title} in gallery`}
-                  className="group grid gap-5 py-6 transition hover:bg-cream-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-4 focus-visible:ring-offset-cream-100 sm:grid-cols-[128px_1fr]"
-                >
-                  <div className="relative aspect-[4/5] w-full overflow-hidden rounded-card border border-cream-300 bg-cream-50 sm:w-32">
-                    <Image
-                      src={book.src}
-                      alt={book.alt}
-                      fill
-                      sizes="(max-width: 640px) 100vw, 128px"
-                      className="object-cover transition duration-700 ease-smooth lg:group-hover:scale-[1.05]"
-                    />
-                  </div>
+            {archiveBooks.map((book, index) => {
+              const bookMeta = getGalleryLocalizedMeta(book.id, locale);
 
-                  <div className="min-w-0 self-center pr-2">
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold uppercase text-brand-700">
-                      <span>{String(index + 2).padStart(2, "0")} / 04</span>
-                      <span>{book.era}</span>
+              return (
+                <Reveal
+                  key={book.id}
+                  className="border-b border-cream-300 last:border-b-0"
+                  delay={(index + 1) * 0.05}
+                  y={16}
+                >
+                  <Link
+                    href={`/gallery?item=${book.id}`}
+                    aria-label={`Open ${book.title} in gallery`}
+                    className="group grid gap-5 py-6 transition hover:bg-cream-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-4 focus-visible:ring-offset-cream-100 sm:grid-cols-[128px_1fr]"
+                  >
+                    <div className="relative aspect-[4/5] w-full overflow-hidden rounded-card border border-cream-300 bg-cream-50 sm:w-32">
+                      <Image
+                        src={book.src}
+                        alt={book.alt}
+                        fill
+                        sizes="(max-width: 640px) 100vw, 128px"
+                        className="object-cover transition duration-700 ease-smooth lg:group-hover:scale-[1.05]"
+                      />
                     </div>
-                    <h3 className="mt-3 break-words font-serif text-2xl leading-tight text-ink-900 transition group-hover:text-brand-700 sm:text-3xl">
-                      {book.title}
-                    </h3>
-                    <p className="mt-2 text-sm font-semibold uppercase text-ink-500">
-                      {book.subtitle}
-                    </p>
-                    <p className="mt-4 text-sm leading-relaxed text-ink-600">
-                      {book.summary}
-                    </p>
-                  </div>
-                </Link>
-              </Reveal>
-            ))}
+
+                    <div className="min-w-0 self-center pr-2">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold uppercase text-brand-700">
+                        <span>{String(index + 2).padStart(2, "0")} / 04</span>
+                        <span>{bookMeta?.era ?? book.era}</span>
+                      </div>
+                      <h3 className="mt-3 break-words font-serif text-2xl leading-tight text-ink-900 transition group-hover:text-brand-700 sm:text-3xl">
+                        {book.title}
+                      </h3>
+                      <p className="mt-2 text-sm font-semibold uppercase text-ink-500">
+                        {bookMeta?.subtitle ?? book.subtitle}
+                      </p>
+                      <p className="mt-4 text-sm leading-relaxed text-ink-600">
+                        {bookMeta?.summary ?? book.summary}
+                      </p>
+                    </div>
+                  </Link>
+                </Reveal>
+              );
+            })}
           </div>
         </div>
       </Container>

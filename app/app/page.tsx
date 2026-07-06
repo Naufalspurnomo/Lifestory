@@ -208,6 +208,19 @@ export default function AppHome() {
   const [isTomeOpen, setIsTomeOpen] = useState(false);
   const [isVaultOpen, setIsVaultOpen] = useState(false);
 
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("panel") !== "requests") return;
+    setShowAccessInbox(true);
+
+    url.searchParams.delete("panel");
+    window.history.replaceState(
+      null,
+      "",
+      `${url.pathname}${url.search}${url.hash}`
+    );
+  }, []);
+
   const storiesList = useMemo(() => {
     if (!currentTree) return [];
     return currentTree.nodes

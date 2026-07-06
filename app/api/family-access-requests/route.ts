@@ -5,6 +5,7 @@ import {
   listFamilyAccessRequests,
   requestFamilyAccess,
 } from "../../../lib/family-identity";
+import { sendFamilyAccessRequestEmail } from "../../../lib/email";
 import { applyRateLimit, rateLimitConfigs } from "../../../lib/rate-limit";
 import { jsonBodyLimits, parseJsonBody } from "../../../lib/request-body";
 import {
@@ -69,7 +70,30 @@ export async function POST(request: Request) {
       treeId: validation.data.treeId,
       requestedRole: validation.data.requestedRole,
     });
-    return NextResponse.json(result, { status: 201 });
+    if (result.notification) {
+      const emailResult = await sendFamilyAccessRequestEmail({
+        to: result.notification.ownerEmail,
+        ownerName: result.notification.ownerName,
+        requesterName: result.notification.requesterName,
+        requesterEmail: result.notification.requesterEmail,
+        treeName: result.notification.treeName,
+        appUrl: new URL(request.url).origin,
+      });
+
+      if (!emailResult.ok) {
+        console.warn(
+          "[family-access] Request notification email was not sent",
+          {
+            reason: emailResult.skipped
+              ? emailResult.reason
+              : emailResult.error,
+          }
+        );
+      }
+    }
+
+    const { notification, ...response } = result;
+    return NextResponse.json(response, { status: 201 });
   } catch (error) {
     if (error instanceof FamilyIdentityError) {
       return NextResponse.json(

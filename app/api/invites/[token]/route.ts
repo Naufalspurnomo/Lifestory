@@ -26,7 +26,6 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   try {
-    await deleteExpiredTreeInvites();
     const invite = await getTreeInviteByToken(token);
 
     if (!invite) {
@@ -34,6 +33,9 @@ export async function GET(request: Request, { params }: Params) {
     }
 
     if (invite.expiresAt.getTime() < Date.now()) {
+      await deleteExpiredTreeInvites().catch((cleanupError) => {
+        console.error("Error deleting expired invites:", cleanupError);
+      });
       return NextResponse.json({ error: "Invite has expired" }, { status: 410 });
     }
 

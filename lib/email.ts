@@ -17,6 +17,15 @@ type ContactInquiryEmailInput = {
   consentPolicyVersion?: string;
 };
 
+type FamilyAccessRequestEmailInput = {
+  to: string;
+  ownerName: string;
+  requesterName: string;
+  requesterEmail: string;
+  treeName: string;
+  appUrl: string;
+};
+
 type EmailResult =
   | { ok: true; skipped?: false }
   | {
@@ -158,6 +167,60 @@ export async function sendPasswordChangedEmail({
   `;
 
   return sendEmail({ to, subject, html, text });
+}
+
+export async function sendFamilyAccessRequestEmail({
+  to,
+  ownerName,
+  requesterName,
+  requesterEmail,
+  treeName,
+  appUrl,
+}: FamilyAccessRequestEmailInput): Promise<EmailResult> {
+  const loginUrl = new URL("/auth/login", appUrl);
+  loginUrl.searchParams.set("next", "/app?panel=requests");
+  const reviewUrl = loginUrl.toString();
+  const safeOwnerName = escapeHtml(ownerName);
+  const safeRequesterName = escapeHtml(requesterName);
+  const safeRequesterEmail = escapeHtml(requesterEmail);
+  const safeTreeName = escapeHtml(treeName);
+  const safeReviewUrl = escapeHtml(reviewUrl);
+  const subject = "Request akses baru ke pohon Lifestory Anda";
+  const text = [
+    `Halo ${ownerName},`,
+    "",
+    `${requesterName} (${requesterEmail}) meminta akses ke pohon "${treeName}" di Lifestory.`,
+    "",
+    `Review request: ${reviewUrl}`,
+    "",
+    "Request ini belum disetujui. Buka Lifestory untuk melihat detail keluarga sebelum menerima atau menolak.",
+  ].join("\n");
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#40342c">
+      <h1 style="font-size:22px;margin:0 0 16px">Request akses baru</h1>
+      <p>Halo ${safeOwnerName},</p>
+      <p>
+        <strong>${safeRequesterName}</strong> (${safeRequesterEmail}) meminta akses ke pohon
+        <strong>${safeTreeName}</strong> di Lifestory.
+      </p>
+      <p>
+        <a href="${safeReviewUrl}" style="display:inline-block;background:#9b6b18;color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:700">
+          Review request
+        </a>
+      </p>
+      <p style="font-size:14px;color:#73685f">Request ini belum disetujui. Buka Lifestory untuk melihat detail keluarga sebelum menerima atau menolak.</p>
+      <p style="font-size:14px;color:#73685f">Jika tombol tidak bisa dibuka, salin tautan ini:</p>
+      <p style="font-size:13px;word-break:break-all;color:#73685f">${safeReviewUrl}</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text,
+    replyTo: requesterEmail,
+  });
 }
 
 export async function sendContactInquiryEmail({

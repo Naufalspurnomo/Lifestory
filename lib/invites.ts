@@ -96,25 +96,30 @@ export async function acceptTreeInvite(
     if (invite.expiresAt.getTime() < Date.now()) {
       throw new TreeInviteError("Invite has expired", 410);
     }
+    if (invite.tree.ownerId === userId) {
+      return {
+        treeId: invite.treeId,
+        treeName: invite.tree.name,
+        role: "owner",
+      };
+    }
     if (invite.acceptedAt && invite.acceptedById !== userId) {
       throw new TreeInviteError("Invite has already been used", 409);
     }
 
-    if (invite.tree.ownerId !== userId) {
-      await tx.treeMember.upsert({
-        where: {
-          treeId_userId: { treeId: invite.treeId, userId },
-        },
-        create: {
-          treeId: invite.treeId,
-          userId,
-          role: invite.role,
-        },
-        update: {
-          role: invite.role,
-        },
-      });
-    }
+    await tx.treeMember.upsert({
+      where: {
+        treeId_userId: { treeId: invite.treeId, userId },
+      },
+      create: {
+        treeId: invite.treeId,
+        userId,
+        role: invite.role,
+      },
+      update: {
+        role: invite.role,
+      },
+    });
 
     if (!invite.acceptedAt) {
       const claimed = await tx.treeInvite.updateMany({

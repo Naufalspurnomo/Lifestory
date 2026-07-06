@@ -1,0 +1,18 @@
+---
+pid: 11824
+cwd: "C:\Naufal\Lifestory"
+command: "cmd /c \"cd /d C:\\Naufal\\Lifestory && npx vitest run tests/landing-ui-invariants.test.ts\""
+started_at: 2026-07-06T18:44:46.809Z
+running_for_ms: 8065012  
+---
+The CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.
+
+ RUN  v2.1.8 C:/Naufal/Lifestory
+
+ ✓ tests/landing-ui-invariants.test.ts (120 tests) 49ms
+
+ Test Files  1 passed (1)
+      Tests  120 passed (120)
+   Start at  01:45:09
+   Duration  1.78s (transform 84ms, setup 0ms, collect 100ms, tests 49ms, environment 0ms, prepare 1.02s)
+

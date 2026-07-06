@@ -89,6 +89,14 @@ export type SafeFamilyCandidate = {
   requestStatus: "none" | "pending" | "approved" | "rejected";
 };
 
+type FamilyAccessRequestNotification = {
+  ownerEmail: string;
+  ownerName: string;
+  requesterName: string;
+  requesterEmail: string;
+  treeName: string;
+};
+
 export class FamilyIdentityError extends Error {
   constructor(
     message: string,
@@ -575,6 +583,10 @@ function requestSummary(input: DiscoveryProfileInput) {
   };
 }
 
+function normalizeAccessRole(role: string | null | undefined): "editor" | "viewer" {
+  return role === "viewer" ? "viewer" : "editor";
+}
+
 async function readTreeNodesForIdentity(
   tx: Prisma.TransactionClient,
   treeId: string
@@ -896,7 +908,11 @@ export async function requestFamilyAccess(input: {
   familyIdentityId: string;
   treeId: string;
   requestedRole?: "editor" | "viewer";
-}) {
+}): Promise<{
+  id: string;
+  status: string;
+  notification?: FamilyAccessRequestNotification;
+}> {
   const profile = await loadDiscoveryProfile(input.userId);
   if (!profile) {
     throw new FamilyIdentityError("Isi profil pencocokan keluarga terlebih dahulu");
@@ -922,31 +938,78 @@ export async function requestFamilyAccess(input: {
   });
   if (existingApproved) return existingApproved;
 
-  return prisma.familyAccessRequest.upsert({
-    where: {
-      treeId_requesterId_status: {
-        treeId: input.treeId,
-        requesterId: input.userId,
-        status: "pending",
-      },
-    },
-    create: {
-      familyIdentityId: input.familyIdentityId,
+  const requestedRole = input.requestedRole ?? "editor";
+  const pendingWhere = {
+    treeId_requesterId_status: {
       treeId: input.treeId,
       requesterId: input.userId,
-      requestedRole: input.requestedRole ?? "editor",
-      confidence: candidate.confidence,
-      matchReasons: candidate.matchReasons,
-      requesterSummary: requestSummary(profile),
+      status: "pending",
     },
-    update: {
-      requestedRole: input.requestedRole ?? "editor",
-      confidence: candidate.confidence,
-      matchReasons: candidate.matchReasons,
-      requesterSummary: requestSummary(profile),
-    },
-    select: { id: true, status: true },
+  };
+  const pendingUpdate = {
+    requestedRole,
+    confidence: candidate.confidence,
+    matchReasons: candidate.matchReasons,
+    requesterSummary: requestSummary(profile),
+  };
+
+  const existingPending = await prisma.familyAccessRequest.findUnique({
+    where: pendingWhere,
+    select: { id: true },
   });
+  if (existingPending) {
+    return prisma.familyAccessRequest.update({
+      where: { id: existingPending.id },
+      data: pendingUpdate,
+      select: { id: true, status: true },
+    });
+  }
+
+  try {
+    const created = await prisma.familyAccessRequest.create({
+      data: {
+        familyIdentityId: input.familyIdentityId,
+        treeId: input.treeId,
+        requesterId: input.userId,
+        ...pendingUpdate,
+      },
+      select: {
+        id: true,
+        status: true,
+        tree: {
+          select: {
+            name: true,
+            owner: { select: { name: true, email: true } },
+          },
+        },
+        requester: { select: { name: true, email: true } },
+      },
+    });
+
+    return {
+      id: created.id,
+      status: created.status,
+      notification: {
+        ownerEmail: created.tree.owner.email,
+        ownerName: created.tree.owner.name,
+        requesterName: created.requester.name,
+        requesterEmail: created.requester.email,
+        treeName: created.tree.name,
+      },
+    };
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return prisma.familyAccessRequest.update({
+        where: pendingWhere,
+        data: pendingUpdate,
+        select: { id: true, status: true },
+      });
+    }
+    throw error;
+  }
 }
 
 export async function listFamilyAccessRequests(userId: string) {
@@ -1029,7 +1092,27 @@ export async function reviewFamilyAccessRequest(input: {
       return { id: request.id, status: request.status, treeId: request.treeId };
     }
 
-    const role = input.role ?? (request.requestedRole as "editor" | "viewer");
+    const role = normalizeAccessRole(input.role ?? request.requestedRole);
+    const reviewedAt = new Date();
+    const claimed = await tx.familyAccessRequest.updateMany({
+      where: { id: request.id, status: "pending" },
+      data: {
+        status: input.decision,
+        requestedRole: role,
+        reviewedById: input.ownerId,
+        reviewedAt,
+      },
+    });
+
+    if (claimed.count !== 1) {
+      const current = await tx.familyAccessRequest.findUnique({
+        where: { id: request.id },
+        select: { id: true, status: true, treeId: true },
+      });
+      if (current) return current;
+      throw new FamilyIdentityError("Request tidak ditemukan", 404);
+    }
+
     if (input.decision === "approved") {
       await tx.treeMember.upsert({
         where: {
@@ -1047,17 +1130,7 @@ export async function reviewFamilyAccessRequest(input: {
       });
     }
 
-    const updated = await tx.familyAccessRequest.update({
-      where: { id: request.id },
-      data: {
-        status: input.decision,
-        requestedRole: role,
-        reviewedById: input.ownerId,
-        reviewedAt: new Date(),
-      },
-      select: { id: true, status: true, treeId: true },
-    });
-    return updated;
+    return { id: request.id, status: input.decision, treeId: request.treeId };
   });
 }
 

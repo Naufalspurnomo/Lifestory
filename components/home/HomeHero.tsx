@@ -37,6 +37,23 @@ export function HomeHero({ isId, copy, primaryCtaHref, secondaryCtaHref }: Props
   const shouldAnimateHeroScroll = canRunHeroScroll && !shouldReduceScrollMotion;
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
   const headlineFocus = copy.headlineRotators[0] ?? "";
+  const archiveStageCopy = isId
+    ? {
+        label: "01 / Bahan keluarga",
+        title: "Ruang keluarga berubah menjadi arsip.",
+        body:
+          "Foto pembuka tidak dibiarkan sendirian. Ia diberi nama, tahun, suara wawancara, dan arah visual sebelum menjadi buku serta film keluarga.",
+        entries: ["Wawancara dibuka", "Album ditata", "Naskah mulai disusun"],
+        caption: "Foto keluarga sebagai bahan pertama untuk naskah, galeri, dan film.",
+      }
+    : {
+        label: "01 / Family material",
+        title: "The living room becomes an archive.",
+        body:
+          "The opening photograph is not left as decoration. It is paired with names, years, interview notes, and a visual direction before becoming a book and family film.",
+        entries: ["Interview opened", "Album organized", "Manuscript started"],
+        caption: "A family photograph becomes the first material for the manuscript, gallery, and film.",
+      };
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1024px) and (hover: hover) and (pointer: fine)");
@@ -52,27 +69,27 @@ export function HomeHero({ isId, copy, primaryCtaHref, secondaryCtaHref }: Props
 
   const photoFrameWidth = useTransform(scrollYProgress, [0, 0.72], [
     "65vw",
-    shouldAnimateHeroScroll ? "42vw" : "65vw",
+    shouldAnimateHeroScroll ? "46vw" : "65vw",
   ]);
   const photoFrameHeight = useTransform(scrollYProgress, [0, 0.72], [
     "100vh",
-    shouldAnimateHeroScroll ? "58vh" : "100vh",
+    shouldAnimateHeroScroll ? "60vh" : "100vh",
   ]);
   const photoFrameTop = useTransform(scrollYProgress, [0, 0.72], [
     "0vh",
-    shouldAnimateHeroScroll ? "20vh" : "0vh",
+    shouldAnimateHeroScroll ? "18vh" : "0vh",
   ]);
   const photoFrameRight = useTransform(scrollYProgress, [0, 0.72], [
     "0vw",
-    shouldAnimateHeroScroll ? "7vw" : "0vw",
+    shouldAnimateHeroScroll ? "6vw" : "0vw",
   ]);
   const photoFramePadding = useTransform(scrollYProgress, [0, 0.72], [
     "0px",
-    shouldAnimateHeroScroll ? "14px" : "0px",
+    shouldAnimateHeroScroll ? "16px" : "0px",
   ]);
   const photoFrameShadow = useTransform(scrollYProgress, [0, 0.72], [
     "0 0 0 rgba(34,24,15,0)",
-    shouldAnimateHeroScroll ? "0 28px 70px rgba(34,24,15,0.24)" : "0 0 0 rgba(34,24,15,0)",
+    shouldAnimateHeroScroll ? "0 32px 80px rgba(34,24,15,0.22)" : "0 0 0 rgba(34,24,15,0)",
   ]);
   const imageY = useTransform(scrollYProgress, [0, 1], [0, shouldAnimateHeroScroll ? 30 : 0]);
   const imageScale = useTransform(scrollYProgress, [0, 0.72], [1, shouldAnimateHeroScroll ? 0.98 : 1]);
@@ -89,7 +106,22 @@ export function HomeHero({ isId, copy, primaryCtaHref, secondaryCtaHref }: Props
     0,
     shouldAnimateHeroScroll ? -14 : 0,
   ]);
-
+  const archiveBandOpacity = useTransform(scrollYProgress, [0.36, 0.72], [
+    0,
+    shouldAnimateHeroScroll ? 1 : 0,
+  ]);
+  const archiveStageOpacity = useTransform(scrollYProgress, [0.42, 0.72], [
+    0,
+    shouldAnimateHeroScroll ? 1 : 0,
+  ]);
+  const archiveStageY = useTransform(scrollYProgress, [0.42, 0.72], [
+    shouldAnimateHeroScroll ? 24 : 0,
+    0,
+  ]);
+  const photoCaptionOpacity = useTransform(scrollYProgress, [0.54, 0.72], [
+    0,
+    shouldAnimateHeroScroll ? 1 : 0,
+  ]);
 
   return (
     <section
@@ -98,6 +130,12 @@ export function HomeHero({ isId, copy, primaryCtaHref, secondaryCtaHref }: Props
       className="relative w-full bg-cream-50 lg:h-[170svh] lg:min-h-[1080px]"
     >
       <div className="relative min-h-[100svh] w-full overflow-hidden bg-cream-50 lg:sticky lg:top-0 lg:h-[100svh] lg:min-h-[640px]">
+        <motion.div
+          data-hero-archive-band
+          style={{ opacity: archiveBandOpacity }}
+          className="pointer-events-none absolute inset-y-0 left-0 z-0 hidden w-[52vw] border-r border-cream-300/70 bg-cream-100/90 lg:block"
+        />
+
         {/* 1. BACKGROUND IMAGE WITH GRADIENT FADE */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           {/* MOBILE IMAGE (Top Half) */}
@@ -147,10 +185,58 @@ export function HomeHero({ isId, copy, primaryCtaHref, secondaryCtaHref }: Props
                   style={{ opacity: imageFadeOpacity }}
                   className="absolute inset-0 bg-gradient-to-r from-cream-50 via-cream-50/10 to-transparent"
                 />
+                <motion.div
+                  data-hero-photo-caption
+                  style={{ opacity: photoCaptionOpacity }}
+                  className="absolute bottom-4 left-4 right-4 z-20 flex items-end justify-between gap-6 bg-cream-50/95 px-4 py-3 text-ink-700 shadow-soft"
+                >
+                  <p className="max-w-[28rem] text-[0.72rem] leading-[1.55] text-ink-600">
+                    {archiveStageCopy.caption}
+                  </p>
+                  <span className="shrink-0 font-serif text-[1.35rem] leading-none text-brand-700">
+                    01
+                  </span>
+                </motion.div>
               </div>
             </motion.div>
           </div>
         </div>
+
+        <motion.div
+          data-hero-archive-stage
+          aria-hidden={!shouldAnimateHeroScroll}
+          style={{ opacity: archiveStageOpacity, y: archiveStageY }}
+          className="pointer-events-none absolute inset-0 z-10 hidden lg:block"
+        >
+          <div className="relative mx-auto h-full w-full max-w-[1440px] px-20 xl:px-24">
+            <div className="absolute left-20 top-[22vh] max-w-[24rem] xl:left-24">
+              <p className="text-[0.72rem] font-semibold uppercase text-brand-700">
+                {archiveStageCopy.label}
+              </p>
+              <h2 className="mt-5 max-w-[22rem] font-serif text-[2.35rem] font-light leading-[1.05] text-ink-900 xl:text-[2.65rem]">
+                {archiveStageCopy.title}
+              </h2>
+              <p className="mt-5 max-w-[22rem] text-[0.98rem] leading-[1.7] text-ink-600">
+                {archiveStageCopy.body}
+              </p>
+              <ul className="mt-8 space-y-3 border-t border-cream-400/80 pt-5">
+                {archiveStageCopy.entries.map((entry, index) => (
+                  <li
+                    key={entry}
+                    className="grid grid-cols-[2.6rem_1fr] items-baseline gap-4 text-ink-700"
+                  >
+                    <span className="font-serif text-[1.15rem] text-ink-300">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className="text-[0.82rem] font-semibold uppercase text-ink-600">
+                      {entry}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </motion.div>
 
         <div className="relative z-20 mx-auto flex min-h-[100svh] w-full max-w-[1440px] flex-col px-6 pt-[45svh] pb-12 md:px-12 lg:h-full lg:min-h-0 lg:flex-row lg:items-center lg:justify-start lg:px-20 lg:pt-8 lg:pb-10 xl:px-24 xl:pt-10 xl:pb-12">
           

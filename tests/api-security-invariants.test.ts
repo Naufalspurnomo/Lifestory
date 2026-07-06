@@ -69,6 +69,82 @@ describe("tree mutation API security invariants", () => {
   );
 });
 
+describe("invite API invariants", () => {
+  it("does not let the tree owner consume their own invite link", () => {
+    const source = readSource("lib/invites.ts");
+    const section = source.slice(
+      source.indexOf("export async function acceptTreeInvite"),
+      source.indexOf("export async function deleteExpiredTreeInvites")
+    );
+
+    expect(section).toContain("invite.tree.ownerId === userId");
+    expect(section).toContain('role: "owner"');
+    expectBefore(
+      section,
+      "invite.tree.ownerId === userId",
+      "tx.treeMember.upsert"
+    );
+    expectBefore(
+      section,
+      "invite.tree.ownerId === userId",
+      "tx.treeInvite.updateMany"
+    );
+  });
+
+  it("checks an invite token before deleting expired invite rows", () => {
+    const section = handlerSection(
+      readSource("app/api/invites/[token]/route.ts"),
+      "export async function GET"
+    );
+
+    expect(section).toContain("getTreeInviteByToken(token)");
+    expect(section).toContain("deleteExpiredTreeInvites");
+    expect(section).toContain("Invite has expired");
+    expect(section).toContain("{ status: 410 }");
+    expectBefore(
+      section,
+      "getTreeInviteByToken(token)",
+      "deleteExpiredTreeInvites"
+    );
+    expectBefore(
+      section,
+      "invite.expiresAt.getTime() < Date.now()",
+      "deleteExpiredTreeInvites"
+    );
+  });
+
+  it("builds family access request email links through login to the request inbox", () => {
+    const source = readSource("lib/email.ts");
+    const section = source.slice(
+      source.indexOf("export async function sendFamilyAccessRequestEmail"),
+      source.indexOf("export async function sendContactInquiryEmail")
+    );
+
+    expect(section).toContain("new URL(\"/auth/login\", appUrl)");
+    expect(section).toContain(
+      "loginUrl.searchParams.set(\"next\", \"/app?panel=requests\")"
+    );
+    expect(section).toContain("Request akses baru ke pohon Lifestory Anda");
+    expect(section).toContain("Review request");
+    expect(section).toContain("escapeHtml(reviewUrl)");
+    expect(section).toContain("replyTo: requesterEmail");
+  });
+
+  it("opens the family access inbox from /app?panel=requests", () => {
+    const source = readSource("app/app/page.tsx");
+
+    expect(source).toContain('url.searchParams.get("panel") !== "requests"');
+    expect(source).toContain("setShowAccessInbox(true)");
+    expect(source).toContain('url.searchParams.delete("panel")');
+    expect(source).toContain("window.history.replaceState");
+    expectBefore(
+      source,
+      'url.searchParams.get("panel") !== "requests"',
+      "setShowAccessInbox(true)"
+    );
+  });
+});
+
 describe("public auth and gallery hardening invariants", () => {
   it("keeps registration throttled to five attempts per IP per hour", () => {
     const source = readSource("lib/rate-limit.ts");

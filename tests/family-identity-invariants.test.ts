@@ -210,6 +210,60 @@ describe("family identity API invariants", () => {
     expect(candidateSection).toContain("maskedOwnerName");
   });
 
+  it("notifies the tree owner only after a new access request is persisted", () => {
+    const domainSource = readSource("lib/family-identity.ts");
+    const requestSection = domainSource.slice(
+      domainSource.indexOf("export async function requestFamilyAccess"),
+      domainSource.indexOf("export async function listFamilyAccessRequests")
+    );
+    const routeSection = handlerSection(
+      readSource("app/api/family-access-requests/route.ts"),
+      "export async function POST"
+    );
+
+    expect(requestSection).toContain("prisma.familyAccessRequest.create");
+    expect(requestSection).toContain("notification:");
+    expect(requestSection).toContain("ownerEmail");
+    expect(requestSection).toContain("existingPending");
+    expectBefore(
+      requestSection,
+      "const existingPending",
+      "prisma.familyAccessRequest.create"
+    );
+    expect(routeSection).toContain("sendFamilyAccessRequestEmail");
+    expect(routeSection).toContain(
+      "[family-access] Request notification email was not sent"
+    );
+    expect(routeSection).toContain("const { notification, ...response } = result");
+    expectBefore(
+      routeSection,
+      "const result = await requestFamilyAccess",
+      "sendFamilyAccessRequestEmail"
+    );
+    expectBefore(
+      routeSection,
+      "sendFamilyAccessRequestEmail",
+      "const { notification, ...response } = result"
+    );
+  });
+
+  it("claims a pending access request before granting tree membership", () => {
+    const source = readSource("lib/family-identity.ts");
+    const reviewSection = source.slice(
+      source.indexOf("export async function reviewFamilyAccessRequest"),
+      source.indexOf("export async function createFamilyEvidence")
+    );
+
+    expect(reviewSection).toContain("tx.familyAccessRequest.updateMany");
+    expect(reviewSection).toContain('where: { id: request.id, status: "pending" }');
+    expect(reviewSection).toContain("claimed.count !== 1");
+    expectBefore(
+      reviewSection,
+      "tx.familyAccessRequest.updateMany",
+      "tx.treeMember.upsert"
+    );
+  });
+
   it("hashes document evidence before persistence", () => {
     const source = readSource("lib/family-identity.ts");
     const evidenceSection = source.slice(source.indexOf("export async function createFamilyEvidence"));

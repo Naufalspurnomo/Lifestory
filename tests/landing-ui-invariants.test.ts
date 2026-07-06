@@ -35,13 +35,15 @@ describe("landing hero interaction invariants", () => {
   it("zooms the opening hero photo into a desktop photo frame on scroll", () => {
     expect(homeHero).toContain("data-hero-scroll-section");
     expect(homeHero).toContain("data-hero-photo-frame");
+    expect(homeHero).toContain("data-hero-archive-stage");
+    expect(homeHero).toContain("data-hero-photo-caption");
     expect(homeHero).toContain("data-hero-copy");
     expect(homeHero).toContain('offset: ["start start", "end end"]');
     expect(homeHero).toContain("(min-width: 1024px) and (hover: hover) and (pointer: fine)");
     expect(homeHero).toContain("lg:h-[170svh]");
-    expect(homeHero).toContain('shouldAnimateHeroScroll ? "42vw" : "65vw"');
-    expect(homeHero).toContain('shouldAnimateHeroScroll ? "58vh" : "100vh"');
-    expect(homeHero).toContain('shouldAnimateHeroScroll ? "14px" : "0px"');
+    expect(homeHero).toContain('shouldAnimateHeroScroll ? "46vw" : "65vw"');
+    expect(homeHero).toContain('shouldAnimateHeroScroll ? "60vh" : "100vh"');
+    expect(homeHero).toContain('shouldAnimateHeroScroll ? "16px" : "0px"');
     expect(homeHero).not.toContain("data-hero-memory-frame");
     expect(homeHero).not.toContain("data-hero-scrollytelling-copy");
     expect(homeHero).not.toMatch(/phone|iphone|device mockup/i);

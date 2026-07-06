@@ -2,7 +2,6 @@
 
 import { Container } from "../ui/Container";
 import { Reveal } from "../ui/Reveal";
-import { Marquee } from "../ui/Marquee";
 
 type Testimonial = {
   quote: string;
@@ -121,20 +120,16 @@ export function Testimonials({ copy }: Props) {
           <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-ink-500 text-center mb-8">
             {copy.pressLabel}
           </p>
-          <div className="w-full relative max-w-[100vw]">
-            <Marquee pauseOnHover={false} className="w-full">
-              {copy.pressLogos.map((logo, index) => (
-                <div key={`${logo}-${index}`} className="flex items-center gap-12">
-                  <span className="font-serif text-2xl italic tracking-normal text-ink-600 md:text-3xl whitespace-nowrap">
-                    {logo}
-                  </span>
-                  <span aria-hidden className="text-base text-ink-300/50 md:text-lg">
-                    /
-                  </span>
-                </div>
-              ))}
-            </Marquee>
-          </div>
+          <ul className="flex max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-4">
+            {copy.pressLogos.map((city) => (
+              <li
+                key={city}
+                className="font-serif text-2xl italic tracking-normal text-ink-600 md:text-3xl"
+              >
+                {city}
+              </li>
+            ))}
+          </ul>
         </Reveal>
       </Container>
     </section>

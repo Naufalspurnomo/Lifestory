@@ -446,7 +446,7 @@ export const familyAccessRequestCreateSchema = z.object({
 
 export const familyAccessRequestReviewSchema = z.object({
   decision: z.enum(["approved", "rejected"]),
-  role: z.enum(["editor", "viewer"]).optional().default("editor"),
+  role: z.enum(["editor", "viewer"]).optional(),
 });
 
 export const familyEvidenceCreateSchema = z
