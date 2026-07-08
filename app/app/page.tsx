@@ -18,7 +18,6 @@ import ConflictResolutionModal from "../../components/tree/ConflictResolutionMod
 import SearchBar from "../../components/tree/SearchBar";
 import TimelineView from "../../components/tree/TimelineView";
 import SyncStatusIndicator from "../../components/tree/SyncStatusIndicator";
-import { LanguageToggle } from "../../components/site/LanguageToggle";
 import { useTreeState } from "../../lib/hooks/useTreeState";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 import { downloadTreeJson } from "../../lib/sync/ExportManager";
@@ -34,6 +33,7 @@ import {
   History,
   ImageIcon,
   Layers3,
+  PanelRightOpen,
   Upload,
   UserPlus,
   ShieldCheck,
@@ -99,6 +99,7 @@ export default function AppHome() {
           import: "Import",
           export: "Ekspor",
           exportPdf: "PDF",
+          openDetail: "Detail",
           addMemberTitle: "Tambah anggota keluarga",
           statGenerations: "Generasi",
           statMembers: "Anggota Keluarga",
@@ -146,6 +147,7 @@ export default function AppHome() {
           import: "Import",
           export: "Export",
           exportPdf: "PDF",
+          openDetail: "Detail",
           addMemberTitle: "Add family member",
           statGenerations: "Generations",
           statMembers: "Family Members",
@@ -192,6 +194,7 @@ export default function AppHome() {
   }, [importNodes]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detailNodeId, setDetailNodeId] = useState<string | null>(null);
   const [showNodeEditor, setShowNodeEditor] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showAccessInbox, setShowAccessInbox] = useState(false);
@@ -256,9 +259,39 @@ export default function AppHome() {
         deleteNode(nodeId);
         showNotification(copy.notifDeleted(node.label));
         setSelectedId(null);
+        setDetailNodeId(null);
       }
     },
     [getNode, deleteNode, showNotification, copy]
+  );
+
+  const handleOpenNodeDetail = useCallback((nodeId: string) => {
+    setSelectedId(nodeId);
+    setDetailNodeId(nodeId);
+  }, []);
+
+  const handleSearchSelect = useCallback((nodeId: string) => {
+    setSelectedId(nodeId);
+    setDetailNodeId(null);
+  }, []);
+
+  const handleCanvasSelect = useCallback(
+    (nodeId: string | null, meta?: { pointerType?: string }) => {
+      setSelectedId(nodeId);
+
+      if (!nodeId) {
+        setDetailNodeId(null);
+        return;
+      }
+
+      if (meta?.pointerType === "touch") {
+        setDetailNodeId(null);
+        return;
+      }
+
+      setDetailNodeId(nodeId);
+    },
+    []
   );
 
   // P3: Keyboard shortcuts: Ctrl+Z (undo), Ctrl+Y / Ctrl+Shift+Z (redo),
@@ -279,6 +312,7 @@ export default function AppHome() {
         if (canRedo) redo();
       } else if (e.key === "Escape") {
         setSelectedId(null);
+        setDetailNodeId(null);
         setShowNodeEditor(false);
       } else if (e.key === "Delete" && selectedId) {
         const node = getNode(selectedId);
@@ -321,6 +355,7 @@ export default function AppHome() {
     setAddParentId(parentId);
     setEditingNode(null);
     setSelectedId(null);
+    setDetailNodeId(null);
     setShowNodeEditor(true);
   };
 
@@ -424,11 +459,13 @@ export default function AppHome() {
   const handleEditNode = (node: FamilyNode) => {
     setEditingNode(node);
     setShowNodeEditor(true);
-    setSelectedId(null);
+    setSelectedId(node.id);
+    setDetailNodeId(null);
   };
 
 
-  const selectedNode = selectedId ? getNode(selectedId) : null;
+  const focusedNode = selectedId ? getNode(selectedId) : null;
+  const detailNode = detailNodeId ? getNode(detailNodeId) : null;
   const showTree = Boolean(currentTree);
   const coParentOptions = useMemo(() => {
     if (!currentTree || !addParentId || addType !== "child" || editingNode) {
@@ -580,7 +617,7 @@ export default function AppHome() {
         <>
           {/* HUD HEADER */}
           <header
-            className="fixed top-0 left-0 right-0 z-40 flex h-[150px] flex-col justify-center gap-1.5 border-b border-cream-300 bg-cream-50/90 px-3 py-2 text-ink-800 shadow-[0_1px_0_rgba(255,255,255,0.65),0_10px_30px_-18px_rgba(59,43,24,0.4)] backdrop-blur-xl sm:h-[108px] sm:px-4 lg:h-16 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-6 xl:px-8"
+            className="fixed top-0 left-0 right-0 z-40 flex h-[144px] flex-col justify-center gap-1.5 border-b border-cream-300 bg-cream-50/90 px-3 py-2 text-ink-800 shadow-[0_1px_0_rgba(255,255,255,0.65),0_10px_30px_-18px_rgba(59,43,24,0.4)] backdrop-blur-xl sm:h-[108px] sm:px-4 lg:h-16 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-6 xl:px-8"
           >
             {/* Left: family tree context */}
             <div className="flex w-full min-w-0 items-center justify-between gap-3 lg:w-auto lg:shrink-0">
@@ -643,7 +680,7 @@ export default function AppHome() {
             {/* Mobile/tablet controls */}
             <div className="flex w-full min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center lg:hidden">
               <div className="min-w-0 flex-1">
-                <SearchBar nodes={currentTree!.nodes} onSelect={setSelectedId} />
+                <SearchBar nodes={currentTree!.nodes} onSelect={handleSearchSelect} />
               </div>
               <div className="flex w-full flex-nowrap items-center gap-1.5 pb-0.5 sm:w-auto">
                 <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-cream-400 bg-cream-200 p-1">
@@ -676,12 +713,12 @@ export default function AppHome() {
                   return (
                     <details key={group.label} className="group relative inline-flex shrink-0">
                       <summary
-                        className="inline-flex h-9 w-9 cursor-pointer list-none items-center justify-center gap-1.5 rounded-full border border-cream-400 bg-cream-200 px-0 text-[11px] font-bold text-ink-600 transition hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm min-[380px]:w-auto min-[380px]:px-3 [&::-webkit-details-marker]:hidden"
+                        className="inline-flex h-9 w-9 cursor-pointer list-none items-center justify-center gap-1.5 rounded-full border border-cream-400 bg-cream-200 px-0 text-[11px] font-bold text-ink-600 transition hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm sm:w-auto sm:px-3 [&::-webkit-details-marker]:hidden"
                         title={group.label}
                         aria-label={group.label}
                       >
                         <GroupIcon className="h-[15px] w-[15px]" />
-                        <span className="hidden min-[380px]:inline">{group.label}</span>
+                        <span className="hidden sm:inline">{group.label}</span>
                       </summary>
                       <div className={`absolute top-11 z-50 min-w-40 rounded-xl border border-cream-300 bg-cream-50 p-1.5 shadow-xl shadow-ink-900/10 ${
                         groupIndex === actionGroups.length - 1 ? "right-0" : "left-0"
@@ -706,17 +743,13 @@ export default function AppHome() {
                     </details>
                   );
                 })}
-                <LanguageToggle
-                  compact
-                  className="hidden shrink-0 border-cream-400 bg-cream-50 shadow-sm min-[430px]:inline-flex"
-                />
               </div>
             </div>
 
             {/* Center (desktop): Search & view mode */}
             <div className="hidden items-center gap-3 lg:flex">
               <div className="w-64 lg:w-72">
-                <SearchBar nodes={currentTree!.nodes} onSelect={setSelectedId} />
+                <SearchBar nodes={currentTree!.nodes} onSelect={handleSearchSelect} />
               </div>
               <div className="inline-flex items-center gap-1 rounded-full border border-cream-400 bg-cream-200 p-1">
                 <span className="pl-3 pr-1 text-[9px] font-black uppercase tracking-[0.14em] text-ink-500">
@@ -786,11 +819,6 @@ export default function AppHome() {
                   );
                 })}
               </div>
-              <LanguageToggle
-                compact
-                className="border-cream-400 bg-cream-50 shadow-sm"
-              />
-
               {/* User profile */}
               <div className="flex items-center gap-2 rounded-full border border-cream-300 bg-cream-50 px-1.5 py-1.5">
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-cream-50 ring-1 ring-inset ring-cream-50/20">
@@ -806,7 +834,7 @@ export default function AppHome() {
             </div>
           </header>
 
-          <div className="fixed right-3 top-[158px] z-50 sm:right-4 sm:top-[116px] lg:top-20 xl:hidden">
+          <div className="fixed right-3 top-[152px] z-50 sm:right-4 sm:top-[116px] lg:top-20 xl:hidden">
             <SyncStatusIndicator
               status={syncStatusInfo}
               onRetry={() => {
@@ -816,7 +844,7 @@ export default function AppHome() {
           </div>
 
           {/* MAIN CANVAS */}
-          <main className="flex-1 w-full h-full relative overflow-hidden mt-[150px] sm:mt-[108px] lg:mt-16">
+          <main className="flex-1 w-full h-full relative overflow-hidden mt-[144px] sm:mt-[108px] lg:mt-16">
             {viewMode === "tree" ? (
               <CanvasErrorBoundary
                 fallbackMessage={locale === "id" ? "Terjadi kesalahan pada canvas" : "Canvas rendering error"}
@@ -825,7 +853,7 @@ export default function AppHome() {
                   layout={layoutGraph}
                   graph={currentTree!.graph}
                   selectedId={selectedId}
-                  onSelectNode={setSelectedId}
+                  onSelectNode={handleCanvasSelect}
                   onAddNode={handleAddNode}
                   onReorderSiblings={handleReorderSiblings}
                 />
@@ -834,9 +862,24 @@ export default function AppHome() {
               <div className="h-full overflow-y-auto bg-[#FAF7F0] p-3 sm:p-5 lg:p-8">
                 <TimelineView
                   nodes={currentTree!.nodes}
-                  onSelectNode={(node) => setSelectedId(node.id)}
+                  onSelectNode={(node) => handleOpenNodeDetail(node.id)}
                 />
               </div>
+            )}
+
+            {viewMode === "tree" && focusedNode && !detailNode && !showNodeEditor && (
+              <button
+                type="button"
+                onClick={() => handleOpenNodeDetail(focusedNode.id)}
+                className="absolute bottom-16 left-3 z-30 inline-flex max-w-[calc(100vw-12.5rem)] items-center gap-2 rounded-full border border-brand-700/30 bg-[#fffaf0]/95 px-3 py-2 text-left text-xs font-bold text-ink-800 shadow-[0_12px_28px_-20px_rgba(45,33,22,0.7),0_1px_0_rgba(255,255,255,0.82)_inset] backdrop-blur-md transition hover:border-brand-700 hover:bg-white sm:bottom-20 sm:left-4 sm:max-w-xs lg:hidden"
+                aria-label={`${copy.openDetail}: ${focusedNode.label}`}
+              >
+                <PanelRightOpen className="h-4 w-4 shrink-0 text-brand-700" />
+                <span className="min-w-0 truncate">{focusedNode.label}</span>
+                <span className="shrink-0 rounded-full bg-brand-700 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white">
+                  {copy.openDetail}
+                </span>
+              </button>
             )}
 
             {/* FLOATING ACTION DRAWERS AT BOTTOM LEFT */}
@@ -847,13 +890,13 @@ export default function AppHome() {
                     setIsVaultOpen(!isVaultOpen);
                     setIsTomeOpen(false);
                   }}
-                  className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+                  className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-bold transition-all sm:gap-2 sm:px-4 ${
                     isVaultOpen ? "bg-[#82693c] text-white shadow-md" : "text-[#5a4d42] hover:bg-white hover:shadow-sm"
                   }`}
                 >
                   <ImageIcon className="h-4 w-4" />
                   <span className="hidden sm:inline">{locale === "id" ? "Galeri" : "Gallery"}</span>
-                  <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-black ${
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-black sm:ml-1 ${
                     isVaultOpen ? "bg-white/20 text-white" : "bg-[#82693c]/10 text-[#82693c]"
                   }`}>
                     {relicsCount}
@@ -865,14 +908,14 @@ export default function AppHome() {
                     setIsTomeOpen(!isTomeOpen);
                     setIsVaultOpen(false);
                   }}
-                  className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+                  className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-bold transition-all sm:gap-2 sm:px-4 ${
                     isTomeOpen ? "bg-[#82693c] text-white shadow-md" : "text-[#5a4d42] hover:bg-white hover:shadow-sm"
                   }`}
                   title={locale === "id" ? "Buka Cerita Keluarga" : "Open Family Stories"}
                 >
                   <BookOpen className="h-4 w-4" />
                   <span className="hidden sm:inline">{locale === "id" ? "Cerita" : "Stories"}</span>
-                  <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-black ${
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-black sm:ml-1 ${
                     isTomeOpen ? "bg-white/20 text-white" : "bg-[#82693c]/10 text-[#82693c]"
                   }`}>
                     {storiesCount}
@@ -884,7 +927,7 @@ export default function AppHome() {
 
           {/* TOME OF CHRONICLES (SLIDE OUT DRAWER - RIGHT) */}
           <div
-            className={`fixed top-[150px] right-0 bottom-0 w-full border-l border-cream-400 shadow-[-8px_0_24px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-cream-50 sm:top-[108px] sm:w-96 md:w-[420px] lg:top-16 ${
+            className={`fixed top-[144px] right-0 bottom-0 w-full border-l border-cream-400 shadow-[-8px_0_24px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-cream-50 sm:top-[108px] sm:w-96 md:w-[420px] lg:top-16 ${
               isTomeOpen ? "translate-x-0" : "translate-x-full"
             }`}
           >
@@ -916,7 +959,8 @@ export default function AppHome() {
                   <div
                     key={node.id}
                     onClick={() => {
-                      setSelectedId(node.id);
+                      setIsTomeOpen(false);
+                      handleOpenNodeDetail(node.id);
                     }}
                     className="cursor-pointer overflow-hidden rounded-xl border border-[#dccfb3] bg-white p-4 transition-all hover:border-[#b08e51] hover:shadow-[0_4px_16px_rgba(59,43,24,0.08)] hover:-translate-y-1"
                   >
@@ -983,7 +1027,8 @@ export default function AppHome() {
                   <div
                     key={`${item.ownerId}-${index}`}
                     onClick={() => {
-                      setSelectedId(item.ownerId);
+                      setIsVaultOpen(false);
+                      handleOpenNodeDetail(item.ownerId);
                     }}
                     className="flex-none w-44 h-36 bg-[#faf6ed] rounded-xl border border-[#dccfb3] overflow-hidden relative group cursor-pointer transition-all hover:border-[#b08e51] hover:shadow-md"
                   >
@@ -1053,15 +1098,15 @@ export default function AppHome() {
           </div>
 
           <AnimatePresence initial={false}>
-            {selectedNode && (
+            {detailNode && (
               <BioModal
-                key={selectedNode.id}
-                node={selectedNode}
-                onClose={() => setSelectedId(null)}
-                onEdit={() => handleEditNode(selectedNode)}
-                onDelete={() => handleDeleteNode(selectedNode.id)}
+                key={detailNode.id}
+                node={detailNode}
+                onClose={() => setDetailNodeId(null)}
+                onEdit={() => handleEditNode(detailNode)}
+                onDelete={() => handleDeleteNode(detailNode.id)}
                 onAddRelative={(type) => {
-                  handleAddNode(selectedNode.id, type);
+                  handleAddNode(detailNode.id, type);
                 }}
               />
             )}

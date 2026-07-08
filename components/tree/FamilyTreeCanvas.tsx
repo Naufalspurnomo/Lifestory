@@ -27,7 +27,7 @@ type Props = {
   layout: LayoutGraph;
   graph?: FamilyGraph;
   selectedId: string | null;
-  onSelectNode: (id: string | null) => void;
+  onSelectNode: (id: string | null, meta?: { pointerType?: string }) => void;
   onAddNode: (
     parentId: string,
     type: "parent" | "partner" | "child" | "sibling"
@@ -89,7 +89,7 @@ const MIN_SCALE = 0.045;
 const MAX_SCALE = 4;
 const FIT_PADDING = 96;
 const MINIMAP_DESKTOP = { width: 188, height: 118 };
-const MINIMAP_MOBILE = { width: 148, height: 94 };
+const MINIMAP_MOBILE = { width: 172, height: 100 };
 const CANVAS_TOOLBAR_SAFE_TOP_DESKTOP = 86;
 const CANVAS_TOOLBAR_SAFE_TOP_MOBILE = 92;
 const CANVAS_TOOLBAR_SAFE_TOP_MOBILE_RADIAL = 132;
@@ -2204,7 +2204,7 @@ export default function FamilyTreeCanvas({
       }
 
       const node = findNodeAt(event.clientX, event.clientY);
-      onSelectNode(node ? node.id : null);
+      onSelectNode(node ? node.id : null, { pointerType: lastPointerTypeRef.current });
     }
   };
 
@@ -2567,7 +2567,7 @@ export default function FamilyTreeCanvas({
           >
             <div className="absolute left-2.5 right-2.5 top-1.5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-brand-700">
               <MapIcon className="h-3 w-3 shrink-0" />
-              <span className="truncate">{copy.minimap} / {modeLabel}</span>
+              <span className="truncate">{copy.minimap}<span className="hidden min-[380px]:inline"> / {modeLabel}</span></span>
             </div>
             {nodes.map((node) => {
               if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return null;
