@@ -580,7 +580,7 @@ export default function AppHome() {
         <>
           {/* HUD HEADER */}
           <header
-            className="fixed top-0 left-0 right-0 z-40 flex h-[164px] flex-col justify-center gap-2 border-b border-cream-300 bg-cream-50/90 px-3 py-2 text-ink-800 shadow-[0_1px_0_rgba(255,255,255,0.65),0_10px_30px_-18px_rgba(59,43,24,0.4)] backdrop-blur-xl sm:h-[112px] sm:px-4 lg:h-16 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-6 xl:px-8"
+            className="fixed top-0 left-0 right-0 z-40 flex h-[150px] flex-col justify-center gap-1.5 border-b border-cream-300 bg-cream-50/90 px-3 py-2 text-ink-800 shadow-[0_1px_0_rgba(255,255,255,0.65),0_10px_30px_-18px_rgba(59,43,24,0.4)] backdrop-blur-xl sm:h-[108px] sm:px-4 lg:h-16 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-6 xl:px-8"
           >
             {/* Left: family tree context */}
             <div className="flex w-full min-w-0 items-center justify-between gap-3 lg:w-auto lg:shrink-0">
@@ -641,18 +641,18 @@ export default function AppHome() {
             </div>
 
             {/* Mobile/tablet controls */}
-            <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center lg:hidden">
+            <div className="flex w-full min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center lg:hidden">
               <div className="min-w-0 flex-1">
                 <SearchBar nodes={currentTree!.nodes} onSelect={setSelectedId} />
               </div>
-              <div className="flex w-full flex-wrap items-center gap-2 pb-0.5">
+              <div className="flex w-full flex-nowrap items-center gap-1.5 pb-0.5 sm:w-auto">
                 <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-cream-400 bg-cream-200 p-1">
                   <span className="hidden pl-2 pr-1 text-[9px] font-black uppercase tracking-[0.14em] text-ink-500 sm:inline">
                     {copy.mode}
                   </span>
                   <button
                     onClick={() => setViewMode("tree")}
-                    className={`h-8 flex-1 rounded-full px-3 text-[11px] font-bold uppercase tracking-wide transition-all sm:flex-none ${
+                    className={`h-8 flex-1 rounded-full px-2.5 text-[10px] font-bold uppercase tracking-wide transition-all min-[380px]:px-3 min-[380px]:text-[11px] sm:flex-none ${
                       viewMode === "tree"
                         ? "bg-brand-700 text-white shadow-[0_2px_8px_-1px_rgba(130,105,60,0.45)]"
                         : "text-ink-500 hover:bg-cream-300/70 hover:text-ink-800"
@@ -662,7 +662,7 @@ export default function AppHome() {
                   </button>
                   <button
                     onClick={() => setViewMode("timeline")}
-                    className={`h-8 flex-1 rounded-full px-3 text-[11px] font-bold uppercase tracking-wide transition-all sm:flex-none ${
+                    className={`h-8 flex-1 rounded-full px-2.5 text-[10px] font-bold uppercase tracking-wide transition-all min-[380px]:px-3 min-[380px]:text-[11px] sm:flex-none ${
                       viewMode === "timeline"
                         ? "bg-brand-700 text-white shadow-[0_2px_8px_-1px_rgba(130,105,60,0.45)]"
                         : "text-ink-500 hover:bg-cream-300/70 hover:text-ink-800"
@@ -671,15 +671,21 @@ export default function AppHome() {
                     {copy.viewTimeline}
                   </button>
                 </div>
-                {actionGroups.map((group) => {
+                {actionGroups.map((group, groupIndex) => {
                   const GroupIcon = group.Icon;
                   return (
                     <details key={group.label} className="group relative inline-flex shrink-0">
-                      <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-1.5 rounded-full border border-cream-400 bg-cream-200 px-3 text-[11px] font-bold text-ink-600 transition hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm [&::-webkit-details-marker]:hidden">
+                      <summary
+                        className="inline-flex h-9 w-9 cursor-pointer list-none items-center justify-center gap-1.5 rounded-full border border-cream-400 bg-cream-200 px-0 text-[11px] font-bold text-ink-600 transition hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm min-[380px]:w-auto min-[380px]:px-3 [&::-webkit-details-marker]:hidden"
+                        title={group.label}
+                        aria-label={group.label}
+                      >
                         <GroupIcon className="h-[15px] w-[15px]" />
-                        {group.label}
+                        <span className="hidden min-[380px]:inline">{group.label}</span>
                       </summary>
-                      <div className="absolute left-0 top-11 z-50 min-w-40 rounded-xl border border-cream-300 bg-cream-50 p-1.5 shadow-xl shadow-ink-900/10">
+                      <div className={`absolute top-11 z-50 min-w-40 rounded-xl border border-cream-300 bg-cream-50 p-1.5 shadow-xl shadow-ink-900/10 ${
+                        groupIndex === actionGroups.length - 1 ? "right-0" : "left-0"
+                      }`}>
                         {group.actions.map((btn) => {
                           const Icon = btn.Icon;
                           return (
@@ -702,7 +708,7 @@ export default function AppHome() {
                 })}
                 <LanguageToggle
                   compact
-                  className="shrink-0 border-cream-400 bg-cream-50 shadow-sm"
+                  className="hidden shrink-0 border-cream-400 bg-cream-50 shadow-sm min-[430px]:inline-flex"
                 />
               </div>
             </div>
@@ -800,7 +806,7 @@ export default function AppHome() {
             </div>
           </header>
 
-          <div className="fixed right-3 top-[172px] z-50 sm:right-4 sm:top-[120px] lg:top-20 xl:hidden">
+          <div className="fixed right-3 top-[158px] z-50 sm:right-4 sm:top-[116px] lg:top-20 xl:hidden">
             <SyncStatusIndicator
               status={syncStatusInfo}
               onRetry={() => {
@@ -810,7 +816,7 @@ export default function AppHome() {
           </div>
 
           {/* MAIN CANVAS */}
-          <main className="flex-1 w-full h-full relative overflow-hidden mt-[164px] sm:mt-[112px] lg:mt-16">
+          <main className="flex-1 w-full h-full relative overflow-hidden mt-[150px] sm:mt-[108px] lg:mt-16">
             {viewMode === "tree" ? (
               <CanvasErrorBoundary
                 fallbackMessage={locale === "id" ? "Terjadi kesalahan pada canvas" : "Canvas rendering error"}
@@ -878,7 +884,7 @@ export default function AppHome() {
 
           {/* TOME OF CHRONICLES (SLIDE OUT DRAWER - RIGHT) */}
           <div
-            className={`fixed top-[164px] right-0 bottom-0 w-full border-l border-cream-400 shadow-[-8px_0_24px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-cream-50 sm:top-[112px] sm:w-96 md:w-[420px] lg:top-16 ${
+            className={`fixed top-[150px] right-0 bottom-0 w-full border-l border-cream-400 shadow-[-8px_0_24px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-cream-50 sm:top-[108px] sm:w-96 md:w-[420px] lg:top-16 ${
               isTomeOpen ? "translate-x-0" : "translate-x-full"
             }`}
           >

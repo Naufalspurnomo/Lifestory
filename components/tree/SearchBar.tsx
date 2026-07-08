@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Search, X } from "lucide-react";
 import { FamilyNode } from "../../lib/types/tree";
 import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import { useLanguage } from "../providers/LanguageProvider";
@@ -46,21 +47,9 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
           }}
           onFocus={() => setIsOpen(true)}
           placeholder={copy.placeholder}
-          className="w-full rounded-xl border border-warm-200 bg-white/80 py-2.5 pl-10 pr-4 text-sm text-warmText shadow-sm outline-none transition-all placeholder:text-warmMuted backdrop-blur focus:border-gold-500 focus:ring-2 focus:ring-gold-100"
+          className="h-10 w-full rounded-xl border border-cream-300 bg-cream-50/90 pl-10 pr-10 text-sm font-semibold text-ink-800 shadow-sm outline-none transition-all placeholder:text-ink-500 backdrop-blur focus:border-brand-700 focus:ring-2 focus:ring-brand-100"
         />
-        <svg
-          className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-warmMuted"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
 
         {query && (
           <button
@@ -68,19 +57,19 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
               setQuery("");
               setIsOpen(false);
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-warmMuted/50 hover:text-warmMuted"
+            className="absolute right-2.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-ink-500 transition hover:bg-cream-200 hover:text-ink-800"
             aria-label="clear search"
             type="button"
           >
-            x
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
 
       {isOpen && query && (
-        <div className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-warm-200 bg-white shadow-xl animate-[fadeIn_0.2s]">
+        <div className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-cream-300 bg-cream-50 shadow-xl animate-[fadeIn_0.2s]">
           {filteredNodes.length > 0 ? (
-            <div className="max-h-60 overflow-y-auto py-2">
+            <div className="max-h-[min(18rem,calc(100dvh-12rem))] overflow-y-auto py-2">
               {filteredNodes.map((node) => {
                 const displayImageUrl = node.imageUrl
                   ? resolveDisplayMediaUrl(node.imageUrl)
@@ -94,10 +83,10 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
                       setIsOpen(false);
                       setQuery("");
                     }}
-                    className="flex w-full items-center gap-3 border-b border-warm-100 px-4 py-3 text-left transition-colors last:border-0 hover:bg-warm-100"
+                    className="flex w-full items-center gap-3 border-b border-cream-200 px-4 py-3 text-left transition-colors last:border-0 hover:bg-cream-200"
                     type="button"
                   >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-warm-100 text-xs font-bold text-warmMuted">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-cream-200 text-xs font-bold text-ink-500">
                       {displayImageUrl ? (
                         <img
                           src={displayImageUrl}
@@ -109,10 +98,10 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
                       )}
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-warmText">
+                      <div className="text-sm font-bold text-ink-800">
                         {node.label}
                       </div>
-                      <div className="text-xs text-warmMuted">
+                      <div className="text-xs text-ink-500">
                         {copy.generation} {node.generation} - {node.year || "?"}
                       </div>
                     </div>
@@ -121,7 +110,7 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
               })}
             </div>
           ) : (
-            <div className="p-4 text-center text-sm text-warmMuted">
+            <div className="p-4 text-center text-sm font-semibold text-ink-500">
               {copy.notFound(query)}
             </div>
           )}

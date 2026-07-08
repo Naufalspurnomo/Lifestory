@@ -5,6 +5,7 @@ import {
   Crosshair,
   Eye,
   Layers3,
+  Map as MapIcon,
   Maximize2,
   Minus,
   Plus,
@@ -90,8 +91,14 @@ const FIT_PADDING = 96;
 const MINIMAP_DESKTOP = { width: 188, height: 118 };
 const MINIMAP_MOBILE = { width: 148, height: 94 };
 const CANVAS_TOOLBAR_SAFE_TOP_DESKTOP = 86;
-const CANVAS_TOOLBAR_SAFE_TOP_MOBILE = 112;
-const CANVAS_TOOLBAR_SAFE_TOP_MOBILE_RADIAL = 160;
+const CANVAS_TOOLBAR_SAFE_TOP_MOBILE = 92;
+const CANVAS_TOOLBAR_SAFE_TOP_MOBILE_RADIAL = 132;
+const TOUCH_TAP_MAX_DISTANCE = 7;
+const MOUSE_TAP_MAX_DISTANCE = 5;
+const TOUCH_PAN_INTENT_DISTANCE = 10;
+const MOUSE_PAN_INTENT_DISTANCE = 5;
+const TOUCH_REORDER_INTENT_DISTANCE = 18;
+const MOUSE_REORDER_INTENT_DISTANCE = 8;
 const FAN_INNER_RADIUS = 82;
 const FAN_RING_WIDTH = 82;
 const FAN_RING_GAP = 4;
@@ -879,6 +886,7 @@ export default function FamilyTreeCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const minimapPointerRef = useRef<number | null>(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const dragDistanceRef = useRef(0);
   const pendingBranchDragRef = useRef<{
@@ -929,6 +937,7 @@ export default function FamilyTreeCanvas({
             selected: "Dipilih",
             people: "orang",
             generations: "generasi",
+            minimap: "Peta",
             overview: "Overview",
             compact: "Ringkas",
             detailed: "Detail",
@@ -960,6 +969,7 @@ export default function FamilyTreeCanvas({
             selected: "Selected",
             people: "people",
             generations: "generations",
+            minimap: "Map",
             overview: "Overview",
             compact: "Compact",
             detailed: "Detail",
@@ -1167,12 +1177,37 @@ export default function FamilyTreeCanvas({
   }, [height, nodes.length, treeProjectionMode, width]);
 
   useEffect(() => {
-    if (initializedRef.current || nodes.length === 0 || !wrapperSize.width) {
+    if (
+      initializedRef.current ||
+      nodes.length === 0 ||
+      !wrapperSize.width ||
+      !wrapperSize.height
+    ) {
       return;
     }
-    setTransform(calculateFitTransform());
+    const focus = owner || nodes.find((node) => node.line === "self") || nodes[0];
+    if (wrapperSize.width < 640 && treeProjectionMode !== "fan" && focus) {
+      const fit = calculateFitTransform(0.92);
+      const nextScale = clamp(Math.max(fit.k, 0.72), MIN_SCALE, 0.92);
+      const usableHeight = Math.max(1, wrapperSize.height - toolbarSafeTop);
+      setTransform({
+        x: wrapperSize.width / 2 - (focus.x || 0) * nextScale,
+        y: toolbarSafeTop + usableHeight / 2 - (focus.y || 0) * nextScale,
+        k: nextScale,
+      });
+    } else {
+      setTransform(calculateFitTransform());
+    }
     initializedRef.current = true;
-  }, [calculateFitTransform, nodes.length, wrapperSize.width]);
+  }, [
+    calculateFitTransform,
+    nodes,
+    owner,
+    toolbarSafeTop,
+    treeProjectionMode,
+    wrapperSize.height,
+    wrapperSize.width,
+  ]);
 
   useEffect(() => {
     let loadedCount = 0;
@@ -2056,10 +2091,17 @@ export default function FamilyTreeCanvas({
       const dy = event.clientY - pendingBranch.startY;
       const distance = Math.hypot(dx, dy);
       dragDistanceRef.current = Math.max(dragDistanceRef.current, distance);
-      const threshold = event.pointerType === "touch" ? 12 : 6;
+      const panThreshold =
+        event.pointerType === "touch"
+          ? TOUCH_PAN_INTENT_DISTANCE
+          : MOUSE_PAN_INTENT_DISTANCE;
+      const reorderThreshold =
+        event.pointerType === "touch"
+          ? TOUCH_REORDER_INTENT_DISTANCE
+          : MOUSE_REORDER_INTENT_DISTANCE;
       const horizontalIntent = Math.abs(dx) >= Math.abs(dy) * 1.15;
 
-      if (!branchDrag && distance >= threshold && !horizontalIntent) {
+      if (!branchDrag && distance >= panThreshold && !horizontalIntent) {
         pendingBranchDragRef.current = null;
         setIsDragging(true);
         scheduleTransform((previous) => ({
@@ -2072,7 +2114,7 @@ export default function FamilyTreeCanvas({
         return;
       }
 
-      if (branchDrag || (distance >= threshold && horizontalIntent)) {
+      if (branchDrag || (distance >= reorderThreshold && horizontalIntent)) {
         const nextBranchDrag = buildBranchDragState(
           pendingBranch.sourceNodeId,
           event.clientX,
@@ -2141,12 +2183,13 @@ export default function FamilyTreeCanvas({
           completedBranchDrag.orderedBranchIds
         );
       }
-      onSelectNode(completedBranchDrag.sourceNodeId);
       return;
     }
 
-    // S4: Adaptive threshold: 12px for touch, 6px for mouse.
-    const clickThreshold = lastPointerTypeRef.current === "touch" ? 12 : 6;
+    const clickThreshold =
+      lastPointerTypeRef.current === "touch"
+        ? TOUCH_TAP_MAX_DISTANCE
+        : MOUSE_TAP_MAX_DISTANCE;
     if (
       (wasDragging || pendingBranch?.pointerId === event.pointerId) &&
       dragDistanceRef.current < clickThreshold
@@ -2195,18 +2238,56 @@ export default function FamilyTreeCanvas({
     wrapperSize.width,
   ]);
 
-  const jumpMinimap = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!minimap || !wrapperSize.width || !wrapperSize.height) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    const worldX = (x - minimap.offsetX) / minimap.scale;
-    const worldY = (y - minimap.offsetY) / minimap.scale;
-    setTransform((previous) => ({
-      ...previous,
-      x: wrapperSize.width / 2 - worldX * previous.k,
-      y: wrapperSize.height / 2 - worldY * previous.k,
-    }));
+  const jumpToMinimapPoint = useCallback(
+    (clientX: number, clientY: number, target: HTMLDivElement) => {
+      if (!minimap || !wrapperSize.width || !wrapperSize.height) return;
+      const rect = target.getBoundingClientRect();
+      const mapLeft = minimap.offsetX;
+      const mapTop = minimap.offsetY;
+      const mapRight = minimap.offsetX + width * minimap.scale;
+      const mapBottom = minimap.offsetY + height * minimap.scale;
+      const x = clamp(clientX - rect.left, mapLeft, mapRight);
+      const y = clamp(clientY - rect.top, mapTop, mapBottom);
+      const worldX = (x - minimap.offsetX) / minimap.scale;
+      const worldY = (y - minimap.offsetY) / minimap.scale;
+      const usableHeight = Math.max(1, wrapperSize.height - toolbarSafeTop);
+      const viewportCenterY = toolbarSafeTop + usableHeight / 2;
+
+      setTransform((previous) => ({
+        ...previous,
+        x: wrapperSize.width / 2 - worldX * previous.k,
+        y: viewportCenterY - worldY * previous.k,
+      }));
+    },
+    [
+      height,
+      minimap,
+      toolbarSafeTop,
+      width,
+      wrapperSize.height,
+      wrapperSize.width,
+    ]
+  );
+
+  const handleMinimapPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    minimapPointerRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    jumpToMinimapPoint(event.clientX, event.clientY, event.currentTarget);
+  };
+
+  const handleMinimapPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    if (minimapPointerRef.current !== event.pointerId) return;
+    jumpToMinimapPoint(event.clientX, event.clientY, event.currentTarget);
+  };
+
+  const endMinimapPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    if (minimapPointerRef.current === event.pointerId) {
+      minimapPointerRef.current = null;
+    }
   };
 
   const modeLabel =
@@ -2464,16 +2545,29 @@ export default function FamilyTreeCanvas({
 
         {minimap && (
           <div
-            className="rounded-xl border border-cream-400 p-2.5 shadow-sm bg-white/70 backdrop-blur-md relative cursor-pointer hover:bg-white/90 transition-colors"
-            style={{ width: minimapSize.width, height: minimapSize.height }}
-            onClick={jumpMinimap}
+            className="relative cursor-grab rounded-2xl border border-[#b99f70] bg-[#fffaf0]/90 p-2.5 shadow-[0_12px_28px_-20px_rgba(45,33,22,0.7),0_1px_0_rgba(255,255,255,0.82)_inset] backdrop-blur-md transition-colors hover:bg-[#fffaf0] active:cursor-grabbing"
+            style={{
+              width: minimapSize.width,
+              height: minimapSize.height,
+              touchAction: "none",
+            }}
+            onPointerDown={handleMinimapPointerDown}
+            onPointerMove={handleMinimapPointerMove}
+            onPointerUp={endMinimapPointer}
+            onPointerCancel={endMinimapPointer}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              event.preventDefault();
+              setTransform(calculateFitTransform());
+            }}
             role="button"
             tabIndex={0}
             title={copy.hint}
-            aria-label={copy.hint}
+            aria-label={copy.minimap}
           >
-            <div className="absolute left-2.5 top-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-brand-700">
-              {modeLabel}
+            <div className="absolute left-2.5 right-2.5 top-1.5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-brand-700">
+              <MapIcon className="h-3 w-3 shrink-0" />
+              <span className="truncate">{copy.minimap} / {modeLabel}</span>
             </div>
             {nodes.map((node) => {
               if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return null;
@@ -2483,12 +2577,12 @@ export default function FamilyTreeCanvas({
               return (
                 <span
                   key={node.id}
-                  className="absolute rounded-[2px] shadow-sm"
+                  className="absolute rounded-full shadow-[0_0_0_1px_rgba(255,250,240,0.82)]"
                   style={{
                     left: minimap.offsetX + (node.x || 0) * minimap.scale,
                     top: minimap.offsetY + (node.y || 0) * minimap.scale,
-                    width: isSelected ? 6 : 4,
-                    height: isSelected ? 6 : 4,
+                    width: isSelected ? 7 : 4,
+                    height: isSelected ? 7 : 4,
                     backgroundColor: isSelected ? "#1d1610" : genColor,
                     transform: "translate(-50%, -50%)",
                   }}
@@ -2496,7 +2590,7 @@ export default function FamilyTreeCanvas({
               );
             })}
             <div
-              className="absolute rounded border border-brand-700 bg-brand-700/10"
+              className="absolute rounded-md border border-brand-700 bg-brand-700/10 shadow-[0_0_0_2px_rgba(255,250,240,0.88),0_0_0_4px_rgba(130,105,60,0.26)]"
               style={{
                 left: clamp(minimap.viewport.x, 0, minimapSize.width),
                 top: clamp(minimap.viewport.y, 0, minimapSize.height),
