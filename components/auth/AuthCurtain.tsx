@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLanguage } from "../providers/LanguageProvider";
 import { Button } from "../ui/Button";
 import { AuthField } from "./AuthField";
@@ -26,7 +26,7 @@ export function AuthCurtain({
   next?: string;
 }) {
   const router = useRouter();
-  const { status: sessionStatus, update } = useSession();
+  const { status: sessionStatus } = useSession();
   const { locale } = useLanguage();
   const reduce = useReducedMotion();
 
@@ -37,17 +37,22 @@ export function AuthCurtain({
   const [registerError, setRegisterError] = useState<string | null>(null);
 
   const safeNext = getSafeNextPath(next);
+  const redirectToSafeNext = useCallback(() => {
+    router.replace(safeNext);
+    const fallback = window.setTimeout(() => {
+      const target = new URL(safeNext, window.location.origin);
+      if (window.location.pathname !== target.pathname) {
+        window.location.assign(safeNext);
+      }
+    }, 700);
+    return () => window.clearTimeout(fallback);
+  }, [router, safeNext]);
 
   useEffect(() => {
     if (sessionStatus === "authenticated") {
-      router.replace(safeNext);
-      router.refresh();
-      const fallback = window.setTimeout(() => {
-        if (window.location.pathname !== safeNext) window.location.assign(safeNext);
-      }, 350);
-      return () => window.clearTimeout(fallback);
+      return redirectToSafeNext();
     }
-  }, [router, sessionStatus, safeNext]);
+  }, [redirectToSafeNext, sessionStatus]);
 
   const t = copyFor(locale);
 
@@ -60,7 +65,12 @@ export function AuthCurtain({
     const email = String(data.get("email") || "");
     const password = String(data.get("password") || "");
 
-    const res = await signIn("credentials", { redirect: false, email, password });
+    const res = await signIn("credentials", {
+      redirect: false,
+      callbackUrl: safeNext,
+      email,
+      password,
+    });
 
     if (res?.error) {
       if (res.error.includes("RATE_LIMITED")) setLoginError(t.login.rateLimited);
@@ -71,12 +81,7 @@ export function AuthCurtain({
       return;
     }
     setLoginStatus("success");
-    await update().catch(() => null);
-    router.replace(safeNext);
-    router.refresh();
-    window.setTimeout(() => {
-      if (window.location.pathname !== safeNext) window.location.assign(safeNext);
-    }, 350);
+    redirectToSafeNext();
   }
 
   async function handleRegister(

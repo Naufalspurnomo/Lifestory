@@ -127,13 +127,17 @@ export async function checkRateLimit(
     return { limited: false, bucket };
   });
 
-  // Keep the table bounded without adding cleanup work to every auth request.
+  // Keep the table bounded without making unlucky auth requests wait on cleanup.
   if (Math.random() < 0.01) {
-    await prisma.rateLimitBucket.deleteMany({
-      where: {
-        resetAt: { lt: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
-      },
-    });
+    void prisma.rateLimitBucket
+      .deleteMany({
+        where: {
+          resetAt: { lt: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+        },
+      })
+      .catch((error) => {
+        console.warn("[rate-limit] Failed to clean old buckets", error);
+      });
   }
 
   if (!result.limited) return null;

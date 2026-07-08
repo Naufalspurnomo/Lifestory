@@ -167,6 +167,19 @@ describe("public auth and gallery hardening invariants", () => {
     expectBefore(section, "prisma.user.findUnique", "prisma.user.create");
   });
 
+  it("redirects after successful credential login without extra session refresh work", () => {
+    const source = readSource("components/auth/AuthCurtain.tsx");
+    const section = source.slice(
+      source.indexOf("async function handleLogin"),
+      source.indexOf("async function handleRegister")
+    );
+
+    expect(section).toContain("callbackUrl: safeNext");
+    expect(section).toContain("redirectToSafeNext()");
+    expect(section).not.toContain("await update");
+    expect(section).not.toContain("router.refresh");
+  });
+
   it("uses the same public PDF error for missing and unavailable catalog entries", () => {
     const source = readSource("app/api/gallery-pdf/[slug]/route.ts");
 

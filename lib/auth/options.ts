@@ -51,18 +51,25 @@ export const authOptions: NextAuthOptions = {
           throw new Error("RATE_LIMITED");
         }
 
-        const emailRateLimitError = await checkRateLimit(
-          email,
-          "auth-login-email",
-          rateLimitConfigs.login
-        );
+        const [emailRateLimitError, user] = await Promise.all([
+          checkRateLimit(email, "auth-login-email", rateLimitConfigs.login),
+          prisma.user.findUnique({
+            where: { email },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              passwordHash: true,
+              role: true,
+              subscriptionActive: true,
+              status: true,
+              sessionVersion: true,
+            },
+          }),
+        ]);
         if (emailRateLimitError) {
           throw new Error("RATE_LIMITED");
         }
-
-        const user = await prisma.user.findUnique({
-          where: { email },
-        });
 
         // Keep invalid users on the same bcrypt path to reduce account
         // enumeration through login response timing.
