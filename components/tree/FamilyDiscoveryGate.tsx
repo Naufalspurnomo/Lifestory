@@ -3,12 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  ArrowLeft,
   ArrowRight,
+  CalendarDays,
   CheckCircle2,
   Loader2,
   Search,
   ShieldCheck,
   UserPlus,
+  UserRound,
   Users,
 } from "lucide-react";
 import { Button } from "../ui/Button";
@@ -28,7 +31,7 @@ type Candidate = {
 
 type Props = {
   userName: string;
-  onStart: () => void | Promise<void>;
+  onStart: (initialMember: { label: string; year: number | null }) => Promise<boolean>;
 };
 
 function readError(payload: unknown, fallback: string): string {
@@ -55,6 +58,9 @@ export default function FamilyDiscoveryGate({ userName, onStart }: Props) {
   const [loading, setLoading] = useState(false);
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [starting, setStarting] = useState(false);
+  const [stage, setStage] = useState<"discovery" | "first-member">("discovery");
+  const [firstMemberName, setFirstMemberName] = useState(userName);
+  const [firstMemberYear, setFirstMemberYear] = useState("");
   const [requestingId, setRequestingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -97,6 +103,19 @@ export default function FamilyDiscoveryGate({ userName, onStart }: Props) {
             failedSearch:
               "Pencarian keluarga belum bisa diproses. Coba lagi atau buat pohon baru.",
             failedRequest: "Request akses belum terkirim.",
+            firstMemberLabel: "Anggota pertama",
+            firstMemberTitle: "Mulai dari satu catatan keluarga",
+            firstMemberSubtitle:
+              "Simpan data inti Anda terlebih dahulu. Setelah itu, pohon keluarga akan dibuat dari catatan ini.",
+            firstMemberName: "Nama lengkap",
+            firstMemberNamePlaceholder: "Nama anggota pertama",
+            firstMemberYear: "Tahun lahir",
+            firstMemberYearHint: "Opsional",
+            createFirstMember: "Simpan dan buat pohon",
+            creatingFirstMember: "Menyimpan pohon...",
+            backToDiscovery: "Kembali ke verifikasi",
+            failedStart:
+              "Pohon belum bisa dibuat. Periksa koneksi lalu coba lagi.",
           }
         : {
             badge: "Family verification",
@@ -131,6 +150,19 @@ export default function FamilyDiscoveryGate({ userName, onStart }: Props) {
             failedSearch:
               "Family discovery could not run. Try again or create a new tree.",
             failedRequest: "Access request was not sent.",
+            firstMemberLabel: "First family record",
+            firstMemberTitle: "Begin with one family record",
+            firstMemberSubtitle:
+              "Save your core details first. Your family tree will be created from this record.",
+            firstMemberName: "Full name",
+            firstMemberNamePlaceholder: "First family member's name",
+            firstMemberYear: "Birth year",
+            firstMemberYearHint: "Optional",
+            createFirstMember: "Save and create tree",
+            creatingFirstMember: "Saving tree...",
+            backToDiscovery: "Back to verification",
+            failedStart:
+              "The tree could not be created. Check your connection and try again.",
           },
     [locale]
   );
@@ -235,13 +267,126 @@ export default function FamilyDiscoveryGate({ userName, onStart }: Props) {
     }
   }
 
-  async function startNewTree() {
+  function startNewTree() {
+    setError(null);
+    setFirstMemberName(personName.trim() || userName);
+    setFirstMemberYear(birthYear);
+    setStage("first-member");
+  }
+
+  async function submitFirstMember(event: React.FormEvent) {
+    event.preventDefault();
     setStarting(true);
+    setError(null);
     try {
-      await onStart();
+      const parsedYear = firstMemberYear.trim()
+        ? Number(firstMemberYear)
+        : null;
+      const created = await onStart({
+        label: firstMemberName.trim(),
+        year: parsedYear,
+      });
+      if (!created) setError(copy.failedStart);
+    } catch {
+      setError(copy.failedStart);
     } finally {
       setStarting(false);
     }
+  }
+
+  if (stage === "first-member") {
+    return (
+      <div className="min-h-screen bg-[#faf6ed] px-4 py-8 text-[#3f342d] sm:px-6 lg:px-8">
+        <main className="mx-auto max-w-xl">
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              setStage("discovery");
+            }}
+            className="mb-6 inline-flex items-center gap-2 rounded-lg px-1 py-2 text-sm font-bold text-[#5a4d42] transition hover:text-[#3f342d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#82693c] focus-visible:ring-offset-2 focus-visible:ring-offset-[#faf6ed]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {copy.backToDiscovery}
+          </button>
+
+          <section className="border border-[#dccfb3] bg-[#fdfbf6] p-5 shadow-[0_18px_36px_rgba(59,43,24,0.08)] sm:p-7">
+            <div className="mb-7 flex items-start gap-3">
+              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#dccfb3] bg-[#f5efe1] text-[#82693c]">
+                <UserRound className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#82693c]">
+                  {copy.firstMemberLabel}
+                </p>
+                <h1 className="mt-1 font-serif text-3xl leading-tight text-[#3f342d] sm:text-4xl">
+                  {copy.firstMemberTitle}
+                </h1>
+                <p className="mt-2 max-w-lg text-sm leading-6 text-[#73685f]">
+                  {copy.firstMemberSubtitle}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={submitFirstMember} className="space-y-5">
+              <label className="block space-y-2">
+                <span className="text-xs font-bold uppercase tracking-wide text-[#6c5c4d]">
+                  {copy.firstMemberName}
+                </span>
+                <input
+                  required
+                  value={firstMemberName}
+                  onChange={(event) => setFirstMemberName(event.target.value)}
+                  placeholder={copy.firstMemberNamePlaceholder}
+                  className="h-12 w-full rounded-xl border border-[#d9c9ad] bg-white px-3 text-sm font-medium text-[#3f342d] outline-none transition placeholder:text-[#9c8e7e] focus:border-[#82693c] focus:ring-2 focus:ring-[#82693c]/15"
+                />
+              </label>
+
+              <label className="block space-y-2">
+                <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#6c5c4d]">
+                  <CalendarDays className="h-3.5 w-3.5 text-[#82693c]" />
+                  {copy.firstMemberYear}
+                  <span className="font-semibold normal-case tracking-normal text-[#9c8e7e]">
+                    {copy.firstMemberYearHint}
+                  </span>
+                </span>
+                <input
+                  inputMode="numeric"
+                  value={firstMemberYear}
+                  onChange={(event) =>
+                    setFirstMemberYear(
+                      event.target.value.replace(/\D/g, "").slice(0, 4)
+                    )
+                  }
+                  placeholder="1990"
+                  className="h-12 w-full rounded-xl border border-[#d9c9ad] bg-white px-3 text-sm font-medium text-[#3f342d] outline-none transition placeholder:text-[#9c8e7e] focus:border-[#82693c] focus:ring-2 focus:ring-[#82693c]/15"
+                />
+              </label>
+
+              {error && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                block
+                loading={starting}
+                disabled={!firstMemberName.trim() || starting}
+                iconRight={<ArrowRight className="h-4 w-4" />}
+              >
+                {starting ? copy.creatingFirstMember : copy.createFirstMember}
+              </Button>
+            </form>
+          </section>
+        </main>
+      </div>
+    );
   }
 
   return (

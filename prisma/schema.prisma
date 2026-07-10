@@ -27,6 +27,8 @@ model User {
   consentUserAgent     String?
   consentPolicyVersion String?
   sessionVersion       Int       @default(1)
+  firstTreeWelcomeTreeId      String?
+  firstTreeWelcomeDismissedAt DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 

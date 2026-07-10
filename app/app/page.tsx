@@ -7,6 +7,9 @@ import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
 
 import FamilyTreeCanvas from "../../components/tree/FamilyTreeCanvas";
+import FirstTreeWelcome, {
+  type FirstTreeRelationship,
+} from "../../components/tree/FirstTreeWelcome";
 import CanvasErrorBoundary from "../../components/tree/CanvasErrorBoundary";
 import NodeEditor from "../../components/tree/NodeEditor";
 import BioModal from "../../components/tree/BioModal";
@@ -60,9 +63,6 @@ export default function AppHome() {
       locale === "id"
         ? {
           fallbackUser: "Pengguna",
-          notifTreeCreated: "Pohon keluarga dibuat! Anda adalah simpul pertama.",
-          notifTreeCreateFailed:
-            "Pohon belum dibuat di server. Periksa koneksi lalu coba lagi.",
           notifProfileUpdated: "Profil diperbarui",
           notifSiblingOrderUpdated: "Urutan saudara berhasil dirapikan.",
           notifAutoParentCreated: "Orang tua placeholder dibuat otomatis.",
@@ -108,9 +108,6 @@ export default function AppHome() {
         }
         : {
           fallbackUser: "User",
-          notifTreeCreated: "Family tree created! You are the first node.",
-          notifTreeCreateFailed:
-            "The tree was not created on the server. Check your connection and try again.",
           notifProfileUpdated: "Profile updated",
           notifSiblingOrderUpdated: "Sibling order updated.",
           notifAutoParentCreated: "Placeholder parents created automatically.",
@@ -169,9 +166,11 @@ export default function AppHome() {
     userTree,
     treeSummaries,
     currentTree,
+    firstTreeWelcomeTreeId,
     selectTree,
     layoutGraph,
     createTree,
+    dismissFirstTreeWelcome,
     addNode,
     updateNode,
     updateNodes,
@@ -206,6 +205,8 @@ export default function AppHome() {
   const [editingNode, setEditingNode] = useState<FamilyNode | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const [hasCreatedTree, setHasCreatedTree] = useState(false);
+  const [firstTreeWelcomeError, setFirstTreeWelcomeError] = useState<string | null>(null);
+  const [isFirstTreeWelcomeSubmitting, setIsFirstTreeWelcomeSubmitting] = useState(false);
   const [viewMode, setViewMode] = useState<"tree" | "timeline">("tree");
 
   const [isTomeOpen, setIsTomeOpen] = useState(false);
@@ -326,20 +327,16 @@ export default function AppHome() {
   }, [canUndo, canRedo, undo, redo, selectedId, getNode, handleDeleteNode]);
 
 
-  const handleStartTree = useCallback(async () => {
-    const result = await createTree();
+  const handleStartTree = useCallback(async (initialMember: { label: string; year: number | null }) => {
+    const result = await createTree(initialMember);
     if (result) {
       setHasCreatedTree(true);
-      showNotification(copy.notifTreeCreated);
-    } else {
-      showNotification(copy.notifTreeCreateFailed);
+      setSelectedId(result.tree.nodes[0]?.id ?? null);
+      setFirstTreeWelcomeError(null);
+      return true;
     }
-  }, [
-    copy.notifTreeCreated,
-    copy.notifTreeCreateFailed,
-    createTree,
-    showNotification,
-  ]);
+    return false;
+  }, [createTree]);
 
   useEffect(() => {
     if (userTree) {
@@ -358,6 +355,35 @@ export default function AppHome() {
     setDetailNodeId(null);
     setShowNodeEditor(true);
   };
+
+  const handleDismissFirstTreeWelcome = useCallback(async () => {
+    if (!currentTree) return false;
+    setIsFirstTreeWelcomeSubmitting(true);
+    setFirstTreeWelcomeError(null);
+    try {
+      await dismissFirstTreeWelcome(currentTree.id);
+      return true;
+    } catch {
+      setFirstTreeWelcomeError(
+        locale === "id"
+          ? "Welcome belum bisa ditutup. Periksa koneksi lalu coba lagi."
+          : "The welcome could not be dismissed. Check your connection and try again."
+      );
+      return false;
+    } finally {
+      setIsFirstTreeWelcomeSubmitting(false);
+    }
+  }, [currentTree, dismissFirstTreeWelcome, locale]);
+
+  const handleWelcomeRelationship = useCallback(
+    async (relationship: FirstTreeRelationship) => {
+      const rootNode = currentTree?.nodes[0];
+      if (!rootNode) return;
+      const dismissed = await handleDismissFirstTreeWelcome();
+      if (dismissed) handleAddNode(rootNode.id, relationship);
+    },
+    [currentTree, handleDismissFirstTreeWelcome]
+  );
 
   const handleReorderSiblings = useCallback(
     (sourceNodeId: string, orderedBranchIds: string[]) => {
@@ -467,6 +493,16 @@ export default function AppHome() {
   const focusedNode = selectedId ? getNode(selectedId) : null;
   const detailNode = detailNodeId ? getNode(detailNodeId) : null;
   const showTree = Boolean(currentTree);
+  const isFirstTreeWelcomeOpen = Boolean(
+    viewMode === "tree" &&
+      currentTree &&
+      currentTree.ownerId === userId &&
+      currentTree.nodes.length === 1 &&
+      firstTreeWelcomeTreeId === currentTree.id
+  );
+  const firstTreeWelcomeRoot = isFirstTreeWelcomeOpen
+    ? currentTree?.nodes[0] ?? null
+    : null;
   const coParentOptions = useMemo(() => {
     if (!currentTree || !addParentId || addType !== "child" || editingNode) {
       return [];
@@ -856,6 +892,7 @@ export default function AppHome() {
                   onSelectNode={handleCanvasSelect}
                   onAddNode={handleAddNode}
                   onReorderSiblings={handleReorderSiblings}
+                  suppressBottomControls={isFirstTreeWelcomeOpen}
                 />
               </CanvasErrorBoundary>
             ) : (
@@ -867,7 +904,24 @@ export default function AppHome() {
               </div>
             )}
 
-            {viewMode === "tree" && focusedNode && !detailNode && !showNodeEditor && (
+            <AnimatePresence>
+              {viewMode === "tree" && firstTreeWelcomeRoot && (
+                <FirstTreeWelcome
+                  key={firstTreeWelcomeRoot.id}
+                  rootName={firstTreeWelcomeRoot.label}
+                  isSubmitting={isFirstTreeWelcomeSubmitting}
+                  error={firstTreeWelcomeError}
+                  onDismiss={() => {
+                    void handleDismissFirstTreeWelcome();
+                  }}
+                  onChooseRelationship={(relationship) => {
+                    void handleWelcomeRelationship(relationship);
+                  }}
+                />
+              )}
+            </AnimatePresence>
+
+            {viewMode === "tree" && focusedNode && !detailNode && !showNodeEditor && !isFirstTreeWelcomeOpen && (
               <button
                 type="button"
                 onClick={() => handleOpenNodeDetail(focusedNode.id)}
@@ -883,7 +937,7 @@ export default function AppHome() {
             )}
 
             {/* FLOATING ACTION DRAWERS AT BOTTOM LEFT */}
-            <div className="absolute bottom-3 left-3 z-30 flex items-center gap-2 pointer-events-auto select-none sm:bottom-4 sm:left-4 lg:bottom-6 lg:left-6">
+            <div className={`absolute bottom-3 left-3 z-30 items-center gap-2 pointer-events-auto select-none sm:bottom-4 sm:left-4 lg:bottom-6 lg:left-6 ${isFirstTreeWelcomeOpen ? "hidden sm:flex" : "flex"}`}>
               <div className="flex items-center bg-white/70 backdrop-blur-md rounded-xl border border-[#dccfb3] p-1 shadow-sm">
                 <button
                   onClick={() => {

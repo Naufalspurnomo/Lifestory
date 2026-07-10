@@ -14,6 +14,20 @@ export type TreeSummary = {
   updatedAt: string;
 };
 
+export type TreeOnboardingStatus = {
+  firstTreeWelcomeTreeId: string | null;
+};
+
+export type TreeListResult = {
+  trees: TreeSummary[];
+  onboarding: TreeOnboardingStatus;
+};
+
+export type TreeCreateApiResult = {
+  tree: TreeData;
+  onboarding: TreeOnboardingStatus;
+};
+
 export class TreeApiError extends Error {
   constructor(message: string, public readonly status: number) {
     super(message);
@@ -84,7 +98,7 @@ async function expectOk(response: Response): Promise<void> {
 
 export async function listTrees(
   fetchImpl: typeof fetch = fetch
-): Promise<TreeSummary[]> {
+): Promise<TreeListResult> {
   const res = await fetchWithTimeout(
     fetchImpl,
     "/api/trees",
@@ -92,8 +106,14 @@ export async function listTrees(
     15_000
   );
   await expectOk(res);
-  const body = (await res.json()) as { trees: TreeSummary[] };
-  return body.trees ?? [];
+  const body = (await res.json()) as Partial<TreeListResult>;
+  return {
+    trees: body.trees ?? [],
+    onboarding: {
+      firstTreeWelcomeTreeId:
+        body.onboarding?.firstTreeWelcomeTreeId ?? null,
+    },
+  };
 }
 
 export async function loadTree(
@@ -133,7 +153,7 @@ export async function createTreeApi(
   name: string,
   optionsOrFetch: { id?: string; nodes?: FamilyNode[] } | typeof fetch = {},
   fetchImpl: typeof fetch = fetch
-): Promise<TreeData> {
+): Promise<TreeCreateApiResult> {
   const options =
     typeof optionsOrFetch === "function" ? {} : optionsOrFetch;
   const request = typeof optionsOrFetch === "function" ? optionsOrFetch : fetchImpl;
@@ -148,8 +168,30 @@ export async function createTreeApi(
     30_000
   );
   await expectOk(res);
-  const body = (await res.json()) as { tree: TreeData };
-  return body.tree;
+  const body = (await res.json()) as Partial<TreeCreateApiResult>;
+  if (!body.tree) {
+    throw new TreeApiError("Invalid tree creation response", 500);
+  }
+  return {
+    tree: body.tree,
+    onboarding: {
+      firstTreeWelcomeTreeId:
+        body.onboarding?.firstTreeWelcomeTreeId ?? null,
+    },
+  };
+}
+
+export async function dismissFirstTreeWelcomeApi(
+  treeId: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<void> {
+  const res = await fetchWithTimeout(
+    fetchImpl,
+    `/api/trees/${encodeURIComponent(treeId)}/first-tree-welcome`,
+    { method: "POST" },
+    15_000
+  );
+  await expectOk(res);
 }
 
 export async function saveTreeNodes(

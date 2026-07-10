@@ -37,6 +37,11 @@ export class InvalidTreeGraphError extends Error {
   }
 }
 
+export type TreeCreateResult = {
+  tree: TreeData;
+  firstTreeWelcomeTreeId: string | null;
+};
+
 export function assertTreeGraphValid(nodes: FamilyNode[]): void {
   const shape = nonEmptyFamilyTreeNodesSchema.safeParse(nodes);
   if (!shape.success) {
@@ -310,6 +315,67 @@ export async function listTreesForUser(userId: string) {
   );
 }
 
+export async function getFirstTreeWelcomeTreeIdForUser(
+  userId: string
+): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      firstTreeWelcomeTreeId: true,
+      firstTreeWelcomeDismissedAt: true,
+    },
+  });
+
+  const treeId = user?.firstTreeWelcomeTreeId;
+  if (!treeId || user.firstTreeWelcomeDismissedAt) return null;
+
+  const tree = await prisma.tree.findUnique({
+    where: { id: treeId },
+    select: {
+      ownerId: true,
+      deletedAt: true,
+      _count: { select: { nodes: true, memberships: true } },
+    },
+  });
+
+  if (
+    !tree ||
+    tree.deletedAt ||
+    tree.ownerId !== userId ||
+    tree._count.nodes !== 1 ||
+    tree._count.memberships !== 0
+  ) {
+    return null;
+  }
+
+  return treeId;
+}
+
+export async function dismissFirstTreeWelcome(
+  treeId: string,
+  userId: string
+): Promise<void> {
+  const tree = await prisma.tree.findUnique({
+    where: { id: treeId },
+    select: { ownerId: true, deletedAt: true },
+  });
+
+  if (!tree) throw new TreeAccessError("Tree not found", 404);
+  if (tree.deletedAt) throw new TreeAccessError("Tree not found", 404);
+  if (tree.ownerId !== userId) {
+    throw new TreeAccessError("Only the owner can dismiss this welcome");
+  }
+
+  await prisma.user.updateMany({
+    where: {
+      id: userId,
+      firstTreeWelcomeTreeId: treeId,
+      firstTreeWelcomeDismissedAt: null,
+    },
+    data: { firstTreeWelcomeDismissedAt: new Date() },
+  });
+}
+
 export async function getTreeForUser(
   treeId: string,
   userId: string
@@ -392,18 +458,30 @@ export async function createTreeForUser(
   name: string,
   nodes: FamilyNode[],
   requestedId?: string
-): Promise<TreeData> {
-  const existingOwnedTrees = await prisma.tree.findMany({
-    where: { ownerId: userId, deletedAt: null },
-    select: { id: true, updatedAt: true, _count: { select: { nodes: true } } },
-  });
+): Promise<TreeCreateResult> {
+  const [existingOwnedTrees, ownedTreeHistoryCount, membershipHistoryCount] =
+    await Promise.all([
+      prisma.tree.findMany({
+        where: { ownerId: userId, deletedAt: null },
+        select: {
+          id: true,
+          updatedAt: true,
+          _count: { select: { nodes: true } },
+        },
+      }),
+      prisma.tree.count({ where: { ownerId: userId } }),
+      prisma.treeMember.count({ where: { userId } }),
+    ]);
   const canonicalOwnedTree = existingOwnedTrees.sort(
     (a, b) =>
       b._count.nodes - a._count.nodes ||
       b.updatedAt.getTime() - a.updatedAt.getTime()
   )[0];
   if (canonicalOwnedTree) {
-    return getTreeForUser(canonicalOwnedTree.id, userId);
+    return {
+      tree: await getTreeForUser(canonicalOwnedTree.id, userId),
+      firstTreeWelcomeTreeId: await getFirstTreeWelcomeTreeIdForUser(userId),
+    };
   }
 
   if (requestedId) {
@@ -418,10 +496,15 @@ export async function createTreeForUser(
       if (existing.ownerId !== userId) {
         throw new TreeAccessError("Tree ID is already in use");
       }
-      return getTreeForUser(requestedId, userId);
+      return {
+        tree: await getTreeForUser(requestedId, userId),
+        firstTreeWelcomeTreeId: await getFirstTreeWelcomeTreeIdForUser(userId),
+      };
     }
   }
 
+  const eligibleForFirstTreeWelcome =
+    ownedTreeHistoryCount === 0 && membershipHistoryCount === 0;
   let tree;
   try {
     tree = await prisma.$transaction(
@@ -436,6 +519,16 @@ export async function createTreeForUser(
         const snapshot = await writeGraph(tx, created.id, nodes);
         await createSnapshot(tx, created.id, created.version, snapshot);
         await syncFamilyIdentityForTreeTx(tx, created.id);
+        if (eligibleForFirstTreeWelcome) {
+          await tx.user.updateMany({
+            where: {
+              id: userId,
+              firstTreeWelcomeTreeId: null,
+              firstTreeWelcomeDismissedAt: null,
+            },
+            data: { firstTreeWelcomeTreeId: created.id },
+          });
+        }
         return created;
       },
       TREE_WRITE_TRANSACTION_OPTIONS
@@ -446,19 +539,25 @@ export async function createTreeForUser(
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
-      return getTreeForUser(requestedId, userId);
+      return {
+        tree: await getTreeForUser(requestedId, userId),
+        firstTreeWelcomeTreeId: await getFirstTreeWelcomeTreeIdForUser(userId),
+      };
     }
     throw error;
   }
 
   return {
-    id: tree.id,
-    name: tree.name,
-    ownerId: tree.ownerId,
-    version: tree.version,
-    nodes,
-    createdAt: tree.createdAt.toISOString(),
-    updatedAt: tree.updatedAt.toISOString(),
+    tree: {
+      id: tree.id,
+      name: tree.name,
+      ownerId: tree.ownerId,
+      version: tree.version,
+      nodes,
+      createdAt: tree.createdAt.toISOString(),
+      updatedAt: tree.updatedAt.toISOString(),
+    },
+    firstTreeWelcomeTreeId: await getFirstTreeWelcomeTreeIdForUser(userId),
   };
 }
 

@@ -19,6 +19,7 @@ import {
   createTreeApi,
   choosePrimaryTree,
   collapseLegacyDuplicateTrees,
+  dismissFirstTreeWelcomeApi,
   listTrees,
   loadTree,
   pullTreeChanges,
@@ -32,6 +33,16 @@ import type { Mutation } from "../sync/types";
 const MAX_HISTORY = 50;
 const ACTIVE_TREE_KEY_PREFIX = "lifestory_active_tree:";
 const LOCAL_DRAFT_KEY_PREFIX = "lifestory_local_draft:";
+
+export type InitialMemberInput = {
+  label: string;
+  year: number | null;
+};
+
+export type CreatedTreeResult = {
+  tree: TreeData;
+  firstTreeWelcomeTreeId: string | null;
+};
 
 // ---------- helpers ----------
 const uniq = (a: string[]) => Array.from(new Set((a || []).filter(Boolean)));
@@ -343,6 +354,9 @@ export function useTreeState(userId: string, userName: string) {
   const [trees, setTrees] = useState<TreeData[]>([]);
   const [treeSummaries, setTreeSummaries] = useState<TreeSummary[]>([]);
   const [currentTreeId, setCurrentTreeId] = useState<string | null>(null);
+  const [firstTreeWelcomeTreeId, setFirstTreeWelcomeTreeId] = useState<
+    string | null
+  >(null);
   const [history, setHistory] = useState<TreeHistory>({
     past: [],
     present: [],
@@ -494,10 +508,14 @@ export function useTreeState(userId: string, userName: string) {
       if (!userId) return;
       setLoadStatus("loading");
       try {
-        const summaries = await listTrees();
+        const listed = await listTrees();
+        const summaries = listed.trees;
         if (cancelled) return;
         const visibleSummaries = collapseLegacyDuplicateTrees(summaries);
         setTreeSummaries(visibleSummaries);
+        setFirstTreeWelcomeTreeId(
+          listed.onboarding.firstTreeWelcomeTreeId
+        );
 
         if (summaries.length === 0) {
           // Recover drafts created by the older local-first flow. The server
@@ -507,11 +525,15 @@ export function useTreeState(userId: string, userName: string) {
           );
           if (localDraft) {
             try {
-              const recovered = await createTreeApi(localDraft.name, {
+              const recoveredResult = await createTreeApi(localDraft.name, {
                 id: localDraft.id,
                 nodes: localDraft.nodes,
               });
+              const recovered = recoveredResult.tree;
               if (cancelled) return;
+              setFirstTreeWelcomeTreeId(
+                recoveredResult.onboarding.firstTreeWelcomeTreeId
+              );
               setTrees((prev) => [
                 ...prev.filter((tree) => tree.id !== recovered.id),
                 recovered,
@@ -778,16 +800,17 @@ export function useTreeState(userId: string, userName: string) {
   );
 
   // Create initial tree
-  const createTree = useCallback(async () => {
+  const createTree = useCallback(async (initialMember: InitialMemberInput) => {
     if (createInFlightRef.current) return null;
 
     const now = new Date().toISOString();
     const treeId = createClientId("tree");
+    const memberName = initialMember.label.trim() || userName;
     const rootNode: FamilyNode = sanitizeGraph([
       {
         id: createClientId("node"),
-        label: userName,
-        year: null,
+        label: memberName,
+        year: initialMember.year,
         deathYear: null,
         parentIds: [],
         parentId: null,
@@ -802,7 +825,7 @@ export function useTreeState(userId: string, userName: string) {
 
     const newTree: TreeData = {
       id: treeId,
-      name: `Keluarga ${userName.split(" ")[0]}`,
+      name: `Keluarga ${memberName.split(" ")[0]}`,
       ownerId: userId,
       nodes: [rootNode],
       createdAt: now,
@@ -812,10 +835,11 @@ export function useTreeState(userId: string, userName: string) {
     createInFlightRef.current = true;
     setLoadStatus("saving");
     try {
-      const created = await createTreeApi(newTree.name, {
+      const createdResult = await createTreeApi(newTree.name, {
         id: newTree.id,
         nodes: newTree.nodes,
       });
+      const created = createdResult.tree;
       setTrees((prev) => [
         ...prev.filter((tree) => tree.id !== created.id),
         created,
@@ -836,9 +860,16 @@ export function useTreeState(userId: string, userName: string) {
       ]);
       setHistory({ past: [], present: created.nodes, future: [] });
       await setLastSyncedVersion(created.id, created.version ?? 1);
+      setFirstTreeWelcomeTreeId(
+        createdResult.onboarding.firstTreeWelcomeTreeId
+      );
       setLoadStatus("idle");
       setSaveError(null);
-      return created;
+      return {
+        tree: created,
+        firstTreeWelcomeTreeId:
+          createdResult.onboarding.firstTreeWelcomeTreeId,
+      } satisfies CreatedTreeResult;
     } catch (error) {
       setLoadStatus("offline");
       setSaveError(
@@ -851,6 +882,13 @@ export function useTreeState(userId: string, userName: string) {
       createInFlightRef.current = false;
     }
   }, [setLastSyncedVersion, userId, userName]);
+
+  const dismissFirstTreeWelcome = useCallback(async (treeId: string) => {
+    await dismissFirstTreeWelcomeApi(treeId);
+    setFirstTreeWelcomeTreeId((current) =>
+      current === treeId ? null : current
+    );
+  }, []);
 
   // Add node (fixed relationships)
   const addNode = useCallback(
@@ -1161,6 +1199,7 @@ export function useTreeState(userId: string, userName: string) {
     currentTree,
     userTree,
     currentTreeId,
+    firstTreeWelcomeTreeId,
     selectTree,
     layoutGraph,
     history,
@@ -1175,6 +1214,7 @@ export function useTreeState(userId: string, userName: string) {
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,
     createTree,
+    dismissFirstTreeWelcome,
     addNode,
     updateNode,
     updateNodes,

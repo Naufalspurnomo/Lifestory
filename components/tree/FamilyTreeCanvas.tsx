@@ -33,6 +33,7 @@ type Props = {
     type: "parent" | "partner" | "child" | "sibling"
   ) => void;
   onReorderSiblings: (sourceNodeId: string, orderedBranchIds: string[]) => void;
+  suppressBottomControls?: boolean;
 };
 
 type Transform = {
@@ -881,6 +882,7 @@ export default function FamilyTreeCanvas({
   onSelectNode,
   onAddNode,
   onReorderSiblings,
+  suppressBottomControls = false,
 }: Props) {
   const { locale } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -2520,7 +2522,7 @@ export default function FamilyTreeCanvas({
         })}
       </div>
 
-      <div className="absolute bottom-3 right-3 flex flex-col items-end gap-3 select-none sm:bottom-4 sm:right-4 lg:bottom-6 lg:right-6" onPointerDown={(event) => event.stopPropagation()}>
+      <div className={`absolute bottom-3 right-3 ${suppressBottomControls ? "hidden sm:flex" : "flex"} flex-col items-end gap-3 select-none sm:bottom-4 sm:right-4 lg:bottom-6 lg:right-6`} onPointerDown={(event) => event.stopPropagation()}>
         <div className="flex flex-col overflow-hidden rounded-xl border border-cream-400 p-1 shadow-sm bg-white/70 backdrop-blur-md">
           <button
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-700 hover:bg-white hover:shadow-sm transition"

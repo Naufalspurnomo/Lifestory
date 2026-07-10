@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { requireActiveSubscriber, requireUser } from "../../../lib/auth-helpers";
 import {
   createTreeForUser,
+  getFirstTreeWelcomeTreeIdForUser,
   InvalidTreeGraphError,
   listTreesForUser,
 } from "../../../lib/tree/repository";
@@ -31,8 +32,14 @@ export async function GET() {
   const userId = authResult.session.user.id;
 
   try {
-    const trees = await listTreesForUser(userId);
-    return NextResponse.json({ trees });
+    const [trees, firstTreeWelcomeTreeId] = await Promise.all([
+      listTreesForUser(userId),
+      getFirstTreeWelcomeTreeIdForUser(userId),
+    ]);
+    return NextResponse.json({
+      trees,
+      onboarding: { firstTreeWelcomeTreeId },
+    });
   } catch (error) {
     if (error instanceof InvalidTreeGraphError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
@@ -75,13 +82,19 @@ export async function POST(request: Request) {
   }
 
   try {
-    const tree = await createTreeForUser(
+    const result = await createTreeForUser(
       userId,
       validation.data.name,
       validation.data.nodes as FamilyNode[],
       validation.data.id
     );
-    return NextResponse.json({ tree }, { status: 201 });
+    return NextResponse.json(
+      {
+        tree: result.tree,
+        onboarding: { firstTreeWelcomeTreeId: result.firstTreeWelcomeTreeId },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (isMissingTableError(error)) {
       return NextResponse.json(
