@@ -58,9 +58,14 @@ describe("home archive continuation direction", () => {
     expect(statsStrip).toContain("data-archive-proof");
     expect(statsStrip).toContain("data-archive-record");
     expect(statsStrip).toContain("border-y border-cream-50/14");
+    expect(statsStrip).toContain("aspect-[2/3]");
+    expect(statsStrip).toContain("AnimatePresence");
+    expect(statsStrip).toContain('layoutId="archive-active-mark"');
     expect(statsStrip).not.toContain("radial-gradient");
     expect(statsStrip).not.toContain("rounded-full border border-white/20");
     expect(statsStrip).not.toContain("lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.62fr)]");
+    expect(statsStrip).not.toContain('window.addEventListener("keydown"');
+    expect(statsStrip).not.toContain("grid-cols-[minmax(5.75rem,6.75rem)");
   });
 });
 
