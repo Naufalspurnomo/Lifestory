@@ -13,6 +13,7 @@ import {
 } from "../../../lib/validations";
 import { prisma } from "../../../lib/db";
 import { CONSENT_POLICY_VERSION } from "../../../lib/legal/consent";
+import { verifyTurnstileToken } from "../../../lib/turnstile";
 
 function readUserAgent(request: Request): string | null {
   const value = request.headers.get("user-agent");
@@ -44,6 +45,10 @@ export async function POST(request: Request) {
 
   const consentAcceptedAt = new Date();
   const consentIp = getClientIdentifier(request);
+  const turnstile = await verifyTurnstileToken(validation.data.turnstileToken, consentIp);
+  if (!turnstile.ok) {
+    return NextResponse.json({ error: "Bot verification failed" }, { status: 400 });
+  }
   const consentUserAgent = readUserAgent(request);
   const consentPolicyVersion = CONSENT_POLICY_VERSION;
 

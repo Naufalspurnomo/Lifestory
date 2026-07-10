@@ -42,6 +42,30 @@ export type TreeCreateResult = {
   firstTreeWelcomeTreeId: string | null;
 };
 
+export type TreeRole = "owner" | "editor" | "viewer";
+
+export type TreeAccessContext = {
+  myRole: TreeRole;
+  entitlement: {
+    tier: string;
+    maxPeople: number;
+    maxVerifiedMembers: number;
+    storageQuotaBytes: number;
+    contributionLinksPerMonth: number;
+    snapshotLimit: number;
+    studioVideoAllowed: boolean;
+  };
+  capabilities: {
+    canEdit: boolean;
+    canInvite: boolean;
+    canManageMembers: boolean;
+    canDelete: boolean;
+    canRestore: boolean;
+    canExport: boolean;
+    canContribute: boolean;
+  };
+};
+
 export function assertTreeGraphValid(nodes: FamilyNode[]): void {
   const shape = nonEmptyFamilyTreeNodesSchema.safeParse(nodes);
   if (!shape.success) {
@@ -55,6 +79,12 @@ export function assertTreeGraphValid(nodes: FamilyNode[]): void {
     throw new InvalidTreeGraphError(
       integrity.errors.map((error) => error.details).join("; ")
     );
+  }
+}
+
+function assertPeopleLimit(nodes: FamilyNode[], maxPeople: number): void {
+  if (nodes.length > maxPeople) {
+    throw new InvalidTreeGraphError(`Tree exceeds the ${maxPeople} person limit`);
   }
 }
 
@@ -88,6 +118,62 @@ async function assertMembership(
   if (writable && !isOwner && membership?.role !== "editor") {
     throw new TreeAccessError("Read-only access");
   }
+}
+
+export async function getTreeAccessContext(
+  treeId: string,
+  userId: string
+): Promise<TreeAccessContext> {
+  const tree = await prisma.tree.findFirst({
+    where: { id: treeId, deletedAt: null },
+    select: {
+      ownerId: true,
+      memberships: { where: { userId }, select: { role: true } },
+      entitlement: true,
+    },
+  });
+  if (!tree) throw new TreeAccessError("Tree not found", 404);
+  const myRole: TreeRole =
+    tree.ownerId === userId
+      ? "owner"
+      : tree.memberships[0]?.role === "editor"
+        ? "editor"
+        : tree.memberships[0]?.role === "viewer"
+          ? "viewer"
+          : (() => {
+              throw new TreeAccessError("Not a member of this tree");
+            })();
+
+  const raw = tree.entitlement ?? {
+    tier: "FREE",
+    maxPeople: 500,
+    maxVerifiedMembers: 50,
+    storageQuotaBytes: 262144000n,
+    contributionLinksPerMonth: 20,
+    snapshotLimit: 30,
+    studioVideoAllowed: false,
+  };
+  return {
+    myRole,
+    entitlement: {
+      tier: raw.tier,
+      maxPeople: raw.maxPeople,
+      maxVerifiedMembers: raw.maxVerifiedMembers,
+      storageQuotaBytes: Number(raw.storageQuotaBytes),
+      contributionLinksPerMonth: raw.contributionLinksPerMonth,
+      snapshotLimit: raw.snapshotLimit,
+      studioVideoAllowed: raw.studioVideoAllowed,
+    },
+    capabilities: {
+      canEdit: myRole === "owner" || myRole === "editor",
+      canInvite: myRole === "owner",
+      canManageMembers: myRole === "owner",
+      canDelete: myRole === "owner",
+      canRestore: myRole === "owner" || myRole === "editor",
+      canExport: true,
+      canContribute: true,
+    },
+  };
 }
 
 export async function assertTreeWritable(
@@ -304,14 +390,47 @@ export async function listTreesForUser(userId: string) {
       version: true,
       createdAt: true,
       updatedAt: true,
+      memberships: { where: { userId }, select: { role: true } },
+      entitlement: true,
       _count: { select: { nodes: true } },
     },
     orderBy: { updatedAt: "desc" },
   }).then((trees) =>
-    trees.map(({ _count, ...tree }) => ({
-      ...tree,
-      nodeCount: _count.nodes,
-    }))
+    trees.map(({ _count, memberships, entitlement, ...tree }) => {
+      const myRole = tree.ownerId === userId ? "owner" : memberships[0]?.role ?? "viewer";
+      const raw = entitlement ?? {
+        tier: "FREE",
+        maxPeople: 500,
+        maxVerifiedMembers: 50,
+        storageQuotaBytes: 262144000n,
+        contributionLinksPerMonth: 20,
+        snapshotLimit: 30,
+        studioVideoAllowed: false,
+      };
+      return {
+        ...tree,
+        nodeCount: _count.nodes,
+        myRole,
+        entitlement: {
+          tier: raw.tier,
+          maxPeople: raw.maxPeople,
+          maxVerifiedMembers: raw.maxVerifiedMembers,
+          storageQuotaBytes: Number(raw.storageQuotaBytes),
+          contributionLinksPerMonth: raw.contributionLinksPerMonth,
+          snapshotLimit: raw.snapshotLimit,
+          studioVideoAllowed: raw.studioVideoAllowed,
+        },
+        capabilities: {
+          canEdit: myRole === "owner" || myRole === "editor",
+          canInvite: myRole === "owner",
+          canManageMembers: myRole === "owner",
+          canDelete: myRole === "owner",
+          canRestore: myRole === "owner" || myRole === "editor",
+          canExport: true,
+          canContribute: true,
+        },
+      };
+    })
   );
 }
 
@@ -459,6 +578,7 @@ export async function createTreeForUser(
   nodes: FamilyNode[],
   requestedId?: string
 ): Promise<TreeCreateResult> {
+  assertPeopleLimit(nodes, 500);
   const [existingOwnedTrees, ownedTreeHistoryCount, membershipHistoryCount] =
     await Promise.all([
       prisma.tree.findMany({
@@ -518,6 +638,7 @@ export async function createTreeForUser(
         });
         const snapshot = await writeGraph(tx, created.id, nodes);
         await createSnapshot(tx, created.id, created.version, snapshot);
+        await tx.treeEntitlement.create({ data: { treeId: created.id } });
         await syncFamilyIdentityForTreeTx(tx, created.id);
         if (eligibleForFirstTreeWelcome) {
           await tx.user.updateMany({
@@ -568,6 +689,8 @@ export async function replaceTreeNodes(
   nodes: FamilyNode[]
 ): Promise<{ newVersion: number }> {
   await assertMembership(treeId, userId, true);
+  const access = await getTreeAccessContext(treeId, userId);
+  assertPeopleLimit(nodes, access.entitlement.maxPeople);
 
   return prisma.$transaction(
     async (tx) => {
@@ -648,6 +771,7 @@ export async function applyTreeMutations(
   duplicate: boolean;
 }> {
   await assertMembership(treeId, userId, true);
+  const access = await getTreeAccessContext(treeId, userId);
 
   return prisma.$transaction(
     async (tx) => {
@@ -731,12 +855,9 @@ export async function applyTreeMutations(
       });
 
       const ordered = [...mutations].sort((a, b) => a.seqNo - b.seqNo);
-      const snapshot = await writeMutatedGraph(
-        tx,
-        treeId,
-        currentDbNodes,
-        applyNodeMutations(currentNodes, ordered)
-      );
+      const nextNodes = applyNodeMutations(currentNodes, ordered);
+      assertPeopleLimit(nextNodes, access.entitlement.maxPeople);
+      const snapshot = await writeMutatedGraph(tx, treeId, currentDbNodes, nextNodes);
       const newVersion = clientVersion + 1;
       const acknowledgedSeqNos = ordered.map((mutation) => mutation.seqNo);
       await tx.treeSyncReceipt.create({

@@ -8,6 +8,12 @@ type PasswordChangedEmailInput = {
   to: string;
 };
 
+type EmailVerificationInput = {
+  to: string;
+  verificationUrl: string;
+  expiresInMinutes: number;
+};
+
 type ContactInquiryEmailInput = {
   name: string;
   email: string;
@@ -166,6 +172,32 @@ export async function sendPasswordChangedEmail({
     </div>
   `;
 
+  return sendEmail({ to, subject, html, text });
+}
+
+export async function sendEmailVerificationEmail({
+  to,
+  verificationUrl,
+  expiresInMinutes,
+}: EmailVerificationInput): Promise<EmailResult> {
+  const safeUrl = escapeHtml(verificationUrl);
+  const subject = "Verifikasi email Lifestory Anda";
+  const text = [
+    "Selamat datang di Lifestory.",
+    "",
+    `Verifikasi email Anda di sini: ${verificationUrl}`,
+    "",
+    `Tautan ini berlaku ${expiresInMinutes} menit.`,
+  ].join("\n");
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#40342c">
+      <h1 style="font-size:22px;margin:0 0 16px">Verifikasi email Lifestory</h1>
+      <p>Gunakan tautan ini untuk membuka arsip keluarga gratis Anda.</p>
+      <p><a href="${safeUrl}" style="display:inline-block;background:#82693c;color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:700">Verifikasi email</a></p>
+      <p style="font-size:14px;color:#73685f">Tautan ini berlaku ${expiresInMinutes} menit.</p>
+      <p style="font-size:13px;word-break:break-all;color:#73685f">${safeUrl}</p>
+    </div>
+  `;
   return sendEmail({ to, subject, html, text });
 }
 

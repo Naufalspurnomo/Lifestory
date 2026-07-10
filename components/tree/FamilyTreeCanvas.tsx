@@ -34,6 +34,15 @@ type Props = {
   ) => void;
   onReorderSiblings: (sourceNodeId: string, orderedBranchIds: string[]) => void;
   suppressBottomControls?: boolean;
+  readOnly?: boolean;
+  viewportInsets?: Partial<ViewportInsets>;
+};
+
+export type ViewportInsets = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
 };
 
 type Transform = {
@@ -320,40 +329,6 @@ function traceNodeShape(
   traceRoundedRect(ctx, x - w / 2, y - h / 2, w, h, r);
 }
 
-function drawCrown(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
-  const w = r * 1.9;
-  const h = r * 1.2;
-  const left = cx - w / 2;
-  const right = cx + w / 2;
-  const top = cy - h / 2;
-  const bottom = cy + h / 2;
-  const dip = cy - h * 0.06;
-
-  ctx.save();
-  ctx.shadowColor = "rgba(44,30,22,0.3)";
-  ctx.shadowBlur = 4;
-  ctx.shadowOffsetY = 1.2;
-  ctx.beginPath();
-  ctx.moveTo(left, bottom);
-  ctx.lineTo(left, top + h * 0.28);
-  ctx.lineTo(cx - w * 0.24, dip);
-  ctx.lineTo(cx, top);
-  ctx.lineTo(cx + w * 0.24, dip);
-  ctx.lineTo(right, top + h * 0.28);
-  ctx.lineTo(right, bottom);
-  ctx.closePath();
-  const grad = ctx.createLinearGradient(left, top, right, bottom);
-  grad.addColorStop(0, "#9c8052");
-  grad.addColorStop(1, "#6f5630");
-  ctx.fillStyle = grad;
-  ctx.fill();
-  ctx.shadowColor = "transparent";
-  ctx.lineWidth = 1.1;
-  ctx.strokeStyle = "rgba(255,250,240,0.85)";
-  ctx.stroke();
-  ctx.restore();
-}
-
 function drawOrnateCardFrame(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -366,10 +341,10 @@ function drawOrnateCardFrame(
   transformScale: number
 ) {
   const safeScale = Math.max(transformScale, 0.45);
-  const innerInset = 7;
-  const outerInset = 2;
-  const innerRadius = Math.max(4, radius - 4);
-  const frameStroke = active ? 2.1 : 1.1;
+  const innerInset = 4;
+  const outerInset = 1;
+  const innerRadius = Math.max(4, radius - 2);
+  const frameStroke = active ? 2.1 : 0.9;
 
   ctx.save();
   ctx.shadowColor = active ? "rgba(44,30,22,0.32)" : "rgba(44,30,22,0.18)";
@@ -402,47 +377,6 @@ function drawOrnateCardFrame(
   ctx.stroke();
   ctx.restore();
 
-  const cornerSize = Math.max(10, 14 / safeScale);
-  const cornerOffsetX = width / 2 - 16 / safeScale;
-  const cornerOffsetY = height / 2 - 16 / safeScale;
-
-  ctx.save();
-  ctx.strokeStyle = "rgba(130,105,60,0.26)";
-  ctx.fillStyle = "rgba(255,250,240,0.9)";
-  ctx.lineWidth = 1 / safeScale;
-
-  const corners = [
-    [x - cornerOffsetX, y - cornerOffsetY, 1, 1],
-    [x + cornerOffsetX, y - cornerOffsetY, -1, 1],
-    [x - cornerOffsetX, y + cornerOffsetY, 1, -1],
-    [x + cornerOffsetX, y + cornerOffsetY, -1, -1],
-  ] as const;
-
-  for (const [cx, cy, dirX, dirY] of corners) {
-    ctx.beginPath();
-    ctx.moveTo(cx, cy + dirY * (cornerSize * 0.22));
-    ctx.lineTo(cx + dirX * (cornerSize * 0.62), cy);
-    ctx.lineTo(cx, cy + dirY * (cornerSize * 0.62));
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, cornerSize * 0.18, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  ctx.save();
-  const topLineY = y - height / 2 + 18 / safeScale;
-  const topLineW = Math.min(width * 0.42, 42);
-  const topLineGrad = ctx.createLinearGradient(x - topLineW / 2, 0, x + topLineW / 2, 0);
-  topLineGrad.addColorStop(0, "rgba(255,255,255,0)");
-  topLineGrad.addColorStop(0.5, accentColor);
-  topLineGrad.addColorStop(1, "rgba(255,255,255,0)");
-  traceRoundedRect(ctx, x - topLineW / 2, topLineY - 1.5, topLineW, 3, 1.5);
-  ctx.fillStyle = topLineGrad;
-  ctx.fill();
-  ctx.restore();
 }
 
 function getQuickAddButtons(
@@ -479,6 +413,23 @@ function getRenderMode(scale: number, densityMode: DensityMode): RenderMode {
   if (scale < 0.48) return "overview";
   if (scale < 0.82) return "compact";
   return "detail";
+}
+
+function generationLabel(relativeGeneration: number, locale: string): string {
+  if (relativeGeneration === 0) return locale === "id" ? "Anda" : "You";
+  if (relativeGeneration === -1) return locale === "id" ? "Generasi orang tua" : "Parents' generation";
+  if (relativeGeneration === 1) return locale === "id" ? "Anak" : "Child";
+  if (relativeGeneration < -1) {
+    return locale === "id"
+      ? `${Math.abs(relativeGeneration)} generasi di atas`
+      : `${Math.abs(relativeGeneration)} generations above`;
+  }
+  if (relativeGeneration > 1) {
+    return locale === "id"
+      ? `${relativeGeneration} generasi di bawah`
+      : `${relativeGeneration} generations below`;
+  }
+  return locale === "id" ? "Generasi keluarga" : "Family generation";
 }
 
 function projectLandscapeLayout(layout: LayoutGraph): LayoutGraph {
@@ -883,6 +834,8 @@ export default function FamilyTreeCanvas({
   onAddNode,
   onReorderSiblings,
   suppressBottomControls = false,
+  readOnly = false,
+  viewportInsets,
 }: Props) {
   const { locale } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -1078,7 +1031,19 @@ export default function FamilyTreeCanvas({
     treeProjectionMode,
   ]);
   const visualFocusContext = focusContext || generationFocusContext;
-  const renderMode = getRenderMode(transform.k, densityMode);
+  const desiredRenderMode = getRenderMode(transform.k, densityMode);
+  const [renderMode, setRenderMode] = useState<RenderMode>(desiredRenderMode);
+  useEffect(() => {
+    if (desiredRenderMode === renderMode) return;
+    const timeout = window.setTimeout(() => setRenderMode(desiredRenderMode), 70);
+    return () => window.clearTimeout(timeout);
+  }, [desiredRenderMode, renderMode]);
+  const insets: ViewportInsets = {
+    top: viewportInsets?.top ?? 0,
+    right: viewportInsets?.right ?? 0,
+    bottom: viewportInsets?.bottom ?? 0,
+    left: viewportInsets?.left ?? 0,
+  };
   const minimapSize =
     wrapperSize.width < 480 ? MINIMAP_MOBILE : MINIMAP_DESKTOP;
   const toolbarSafeTop =
@@ -1115,21 +1080,22 @@ export default function FamilyTreeCanvas({
         return { x: 0, y: 0, k: 1 };
       }
 
-      const scaleX = (wrapperSize.width - FIT_PADDING) / width;
+      const usableWidth = Math.max(1, wrapperSize.width - insets.left - insets.right);
       const usableHeight = Math.max(
         1,
-        wrapperSize.height - toolbarSafeTop
+        wrapperSize.height - toolbarSafeTop - insets.top - insets.bottom
       );
+      const scaleX = (usableWidth - FIT_PADDING) / width;
       const scaleY = (usableHeight - FIT_PADDING) / height;
       const scale = clamp(Math.min(scaleX, scaleY), MIN_SCALE, maxScale);
 
       return {
-        x: (wrapperSize.width - width * scale) / 2,
-        y: toolbarSafeTop + (usableHeight - height * scale) / 2,
+        x: insets.left + (usableWidth - width * scale) / 2,
+        y: insets.top + toolbarSafeTop + (usableHeight - height * scale) / 2,
         k: scale,
       };
     },
-    [height, toolbarSafeTop, width, wrapperSize.height, wrapperSize.width]
+    [height, insets.bottom, insets.left, insets.right, insets.top, toolbarSafeTop, width, wrapperSize.height, wrapperSize.width]
   );
 
   const focusNode = useCallback(
@@ -1138,11 +1104,12 @@ export default function FamilyTreeCanvas({
       if (!node || !wrapperSize.width || !wrapperSize.height) return;
 
       const nextScale = clamp(Math.max(transform.k, minScale), MIN_SCALE, MAX_SCALE);
-      const usableHeight = Math.max(1, wrapperSize.height - toolbarSafeTop);
+      const usableWidth = Math.max(1, wrapperSize.width - insets.left - insets.right);
+      const usableHeight = Math.max(1, wrapperSize.height - toolbarSafeTop - insets.top - insets.bottom);
       setTransform({
-        x: wrapperSize.width / 2 - (node.x || 0) * nextScale,
+        x: insets.left + usableWidth / 2 - (node.x || 0) * nextScale,
         y:
-          toolbarSafeTop +
+          insets.top + toolbarSafeTop +
           usableHeight / 2 -
           (node.y || 0) * nextScale,
         k: nextScale,
@@ -1150,6 +1117,10 @@ export default function FamilyTreeCanvas({
     },
     [
       nodes,
+      insets.bottom,
+      insets.left,
+      insets.right,
+      insets.top,
       toolbarSafeTop,
       transform.k,
       wrapperSize.height,
@@ -1191,10 +1162,11 @@ export default function FamilyTreeCanvas({
     if (wrapperSize.width < 640 && treeProjectionMode !== "fan" && focus) {
       const fit = calculateFitTransform(0.92);
       const nextScale = clamp(Math.max(fit.k, 0.72), MIN_SCALE, 0.92);
-      const usableHeight = Math.max(1, wrapperSize.height - toolbarSafeTop);
+      const usableWidth = Math.max(1, wrapperSize.width - insets.left - insets.right);
+      const usableHeight = Math.max(1, wrapperSize.height - toolbarSafeTop - insets.top - insets.bottom);
       setTransform({
-        x: wrapperSize.width / 2 - (focus.x || 0) * nextScale,
-        y: toolbarSafeTop + usableHeight / 2 - (focus.y || 0) * nextScale,
+        x: insets.left + usableWidth / 2 - (focus.x || 0) * nextScale,
+        y: insets.top + toolbarSafeTop + usableHeight / 2 - (focus.y || 0) * nextScale,
         k: nextScale,
       });
     } else {
@@ -1206,6 +1178,10 @@ export default function FamilyTreeCanvas({
     nodes,
     owner,
     toolbarSafeTop,
+    insets.bottom,
+    insets.left,
+    insets.right,
+    insets.top,
     treeProjectionMode,
     wrapperSize.height,
     wrapperSize.width,
@@ -1359,7 +1335,7 @@ export default function FamilyTreeCanvas({
 
   const findButtonAt = useCallback(
     (clientX: number, clientY: number) => {
-      if (!selectedId || renderMode === "overview" || treeProjectionMode === "fan") {
+      if (!selectedId || readOnly || wrapperSize.width < 640 || renderMode === "overview" || treeProjectionMode === "fan") {
         return null;
       }
       const point = getRelativePoint(clientX, clientY);
@@ -1396,10 +1372,12 @@ export default function FamilyTreeCanvas({
       getRelativePoint,
       nodes,
       renderMode,
+      readOnly,
       screenToWorld,
       selectedId,
       transform.k,
       treeProjectionMode,
+      wrapperSize.width,
     ]
   );
 
@@ -1783,7 +1761,7 @@ export default function FamilyTreeCanvas({
         ctx.textAlign = "center";
 
         if (renderMode === "detail") {
-          ctx.font = '700 13px "Playfair Display", serif';
+          ctx.font = '700 13px Inter, system-ui, sans-serif';
           ctx.fillStyle = "#3a2a18";
           ctx.textBaseline = "top";
           const labelLines = wrapLabel(ctx, node.label, maxTextW, 2);
@@ -1821,7 +1799,7 @@ export default function FamilyTreeCanvas({
             13,
             9 / Math.max(transform.k, 0.48)
           );
-          ctx.font = `700 ${compactFontSize}px "Playfair Display", serif`;
+          ctx.font = `700 ${Math.max(12, compactFontSize)}px Inter, system-ui, sans-serif`;
           ctx.fillStyle = "#3a2a18";
           ctx.textBaseline = "top";
           const labelLines = wrapLabel(ctx, node.label, maxTextW, 2);
@@ -1831,12 +1809,9 @@ export default function FamilyTreeCanvas({
         }
         ctx.restore();
 
-        if (renderMode === "detail" && node.line === "self") {
-          drawCrown(ctx, x + cardW / 2 - 20, y - cardH / 2 + 20, 10);
-        }
       }
 
-      if (isSelected && renderMode !== "overview") {
+      if (isSelected && renderMode !== "overview" && !readOnly && wrapperSize.width >= 640) {
         for (const button of getQuickAddButtons(node, metrics)) {
           const bx = button.x;
           const by = button.y;
@@ -1914,11 +1889,13 @@ export default function FamilyTreeCanvas({
     ownerGen,
     radialMode,
     renderMode,
+    readOnly,
     selectedId,
     transform,
     treeProjectionMode,
     visualFocusContext,
     visibleWorld,
+    wrapperSize.width,
   ]);
 
   useEffect(() => {
@@ -2041,6 +2018,8 @@ export default function FamilyTreeCanvas({
     const node = findNodeAt(event.clientX, event.clientY);
     if (
       node &&
+      !readOnly &&
+      wrapperSize.width >= 640 &&
       treeProjectionMode === "portrait" &&
       getSiblingBranchGroup(nodes, node.id)
     ) {
@@ -2150,6 +2129,8 @@ export default function FamilyTreeCanvas({
       setHoveredId(node?.id || null);
       if (canvasRef.current) {
         const reorderable =
+          !readOnly &&
+          wrapperSize.width >= 640 &&
           node &&
           treeProjectionMode === "portrait" &&
           getSiblingBranchGroup(nodes, node.id);
@@ -2252,18 +2233,23 @@ export default function FamilyTreeCanvas({
       const y = clamp(clientY - rect.top, mapTop, mapBottom);
       const worldX = (x - minimap.offsetX) / minimap.scale;
       const worldY = (y - minimap.offsetY) / minimap.scale;
-      const usableHeight = Math.max(1, wrapperSize.height - toolbarSafeTop);
-      const viewportCenterY = toolbarSafeTop + usableHeight / 2;
+      const usableWidth = Math.max(1, wrapperSize.width - insets.left - insets.right);
+      const usableHeight = Math.max(1, wrapperSize.height - toolbarSafeTop - insets.top - insets.bottom);
+      const viewportCenterY = insets.top + toolbarSafeTop + usableHeight / 2;
 
       setTransform((previous) => ({
         ...previous,
-        x: wrapperSize.width / 2 - worldX * previous.k,
+        x: insets.left + usableWidth / 2 - worldX * previous.k,
         y: viewportCenterY - worldY * previous.k,
       }));
     },
     [
       height,
       minimap,
+      insets.bottom,
+      insets.left,
+      insets.right,
+      insets.top,
       toolbarSafeTop,
       width,
       wrapperSize.height,
@@ -2307,7 +2293,7 @@ export default function FamilyTreeCanvas({
       className="relative h-full w-full select-none overflow-hidden bg-[#2c1e16]"
       style={{
         backgroundImage:
-          "linear-gradient(rgba(250,246,237,0.54), rgba(250,246,237,0.46)), url('/image/background-canvas.webp')",
+          "linear-gradient(rgba(250,246,237,0.78), rgba(250,246,237,0.70)), url('/image/background-canvas.webp')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -2494,10 +2480,8 @@ export default function FamilyTreeCanvas({
         {generationMarkers.map((marker) => {
           const top = marker.y * transform.k + transform.y;
           if (top < 84 || top > wrapperSize.height - 42) return null;
-          const displayGen = marker.generation - ownerGen + 1;
-          const label =
-            GEN_COLORS[displayGen]?.[locale === "id" ? "labelId" : "labelEn"] ||
-            `${locale === "id" ? "Generasi" : "Generation"} ${displayGen}`;
+          const relativeGeneration = marker.generation - ownerGen;
+          const label = generationLabel(relativeGeneration, locale);
           const isHighlighted = highlightedGeneration === marker.generation;
           return (
             <button

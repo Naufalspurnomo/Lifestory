@@ -2,7 +2,12 @@ import { z } from "zod";
 
 // ====== User Schemas ======
 
-export const userStatusSchema = z.enum(["active", "inactive", "suspended"]);
+export const userStatusSchema = z.enum([
+  "active",
+  "inactive",
+  "pending_email",
+  "suspended",
+]);
 
 export const updateUserStatusSchema = z
   .object({
@@ -62,6 +67,16 @@ export const registerSchema = z.object({
   consentAccepted: z.boolean().refine((value) => value === true, {
     message: "Consent is required",
   }),
+  turnstileToken: z.string().trim().max(2048).optional(),
+});
+
+export const verifyEmailSchema = z.object({
+  token: z.string().trim().min(32).max(256),
+});
+
+export const resendVerificationSchema = z.object({
+  email: z.string().trim().max(254).email("Invalid email format"),
+  turnstileToken: z.string().trim().max(2048).optional(),
 });
 
 export const forgotPasswordSchema = z.object({
@@ -84,6 +99,7 @@ export const contactInquirySchema = z.object({
   consentAccepted: z.boolean().refine((value) => value === true, {
     message: "Consent is required",
   }),
+  turnstileToken: z.string().trim().max(2048).optional(),
 });
 
 // ====== Family Tree Schemas ======
@@ -480,6 +496,52 @@ export const mediaUploadIntentSchema = z.object({
 export const mediaDeleteSchema = z.object({
   treeId: nodeIdSchema,
   storageKey: storageKeySchema,
+});
+
+const treePersonIdsSchema = z.array(nodeIdSchema).max(50).optional().default([]);
+
+export const storyCreateSchema = z.object({
+  title: z.string().trim().min(2).max(180),
+  body: z.string().trim().min(1).max(20_000),
+  approximateYear: z.number().int().min(0).max(9999).nullable().optional(),
+  location: z.string().trim().max(180).nullable().optional(),
+  status: z.enum(["draft", "review", "published"]).optional().default("draft"),
+  visibility: z.enum(["tree", "private", "selected"]).optional().default("tree"),
+  personIds: treePersonIdsSchema,
+});
+
+export const contributionRequestSchema = z.object({
+  prompt: z.string().trim().min(10).max(500),
+  targetPersonId: nodeIdSchema.nullable().optional(),
+});
+
+export const contributionSubmissionSchema = z.object({
+  kind: z.enum(["story", "person_fact", "relationship", "media_tag"]),
+  payload: z.record(z.unknown()),
+});
+
+export const proposalDecisionSchema = z.object({
+  decision: z.enum(["approved", "rejected"]),
+});
+
+export const mediaAssetCreateSchema = z.object({
+  personId: nodeIdSchema.nullable().optional(),
+  storageKey: storageKeySchema,
+  checksum: z.string().trim().min(32).max(128),
+  mimeType: z.enum(["image/avif", "image/gif", "image/jpeg", "image/png", "image/webp"]),
+  sizeBytes: z.number().int().positive().max(MAX_MEDIA_UPLOAD_BYTES),
+  caption: z.string().trim().max(500).nullable().optional(),
+  capturedAt: z.string().datetime().nullable().optional(),
+  visibility: z.enum(["tree", "private", "selected"]).optional().default("tree"),
+});
+
+export const studioLeadSchema = z.object({
+  treeId: nodeIdSchema.nullable().optional(),
+  packageInterest: z.enum(["jejak-hidup", "arsip-keluarga", "warisan-utuh"]),
+  milestone: z.string().trim().max(120).nullable().optional(),
+  consentAccepted: z.boolean().refine((value) => value === true, {
+    message: "Consent is required",
+  }),
 });
 
 // ====== Helper: Validate and parse ======

@@ -12,6 +12,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useLanguage } from "../../components/providers/LanguageProvider";
+import { TurnstileField } from "../../components/security/TurnstileField";
 import {
   CONTACT_EMAIL,
   CONTACT_WHATSAPP_NUMBER,
@@ -136,12 +137,13 @@ export default function ContactPage() {
     const name = String(formData.get("name") || "").trim();
     const email = String(formData.get("email") || "").trim();
     const message = String(formData.get("message") || "").trim();
+    const turnstileToken = String(formData.get("turnstileToken") || "") || undefined;
 
     try {
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, message, consentAccepted }),
+        body: JSON.stringify({ name, email, message, consentAccepted, turnstileToken }),
       });
 
       if (!response.ok) {
@@ -346,6 +348,10 @@ export default function ContactPage() {
               >
                 {copy.consentNote}
               </p>
+
+              <div className="mt-6">
+                <TurnstileField />
+              </div>
 
               {/* Submit + feedback */}
               <div className="mt-10 flex flex-wrap items-center gap-5">

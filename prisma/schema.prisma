@@ -14,36 +14,60 @@ datasource db {
 // ---------- Identity ----------
 
 model User {
-  id                   String    @id @default(cuid())
-  name                 String
-  email                String    @unique
-  phone                String?
-  passwordHash         String
-  role                 String    @default("user") // "admin" or "user"
-  subscriptionActive   Boolean   @default(false)
-  status               String    @default("inactive") // "active" | "inactive" | "suspended"
-  consentAcceptedAt    DateTime?
-  consentIp            String?
-  consentUserAgent     String?
-  consentPolicyVersion String?
-  sessionVersion       Int       @default(1)
+  id                          String    @id @default(cuid())
+  name                        String
+  email                       String    @unique
+  phone                       String?
+  passwordHash                String
+  role                        String    @default("user") // "admin" or "user"
+  subscriptionActive          Boolean   @default(false)
+  status                      String    @default("pending_email") // "pending_email" | "active" | "inactive" | "suspended"
+  emailVerifiedAt             DateTime?
+  consentAcceptedAt           DateTime?
+  consentIp                   String?
+  consentUserAgent            String?
+  consentPolicyVersion        String?
+  sessionVersion              Int       @default(1)
   firstTreeWelcomeTreeId      String?
   firstTreeWelcomeDismissedAt DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 
-  trees                         Tree[]                @relation("TreeOwner")
-  memberships                   TreeMember[]
-  createdTreeInvites            TreeInvite[]          @relation("TreeInviteCreator")
-  acceptedTreeInvites           TreeInvite[]          @relation("TreeInviteAcceptor")
-  familyDiscoveryProfile        FamilyDiscoveryProfile?
-  createdFamilyIdentities       FamilyIdentity[]      @relation("FamilyIdentityCreator")
-  familyAccessRequests          FamilyAccessRequest[] @relation("FamilyAccessRequester")
-  reviewedFamilyAccessRequests  FamilyAccessRequest[] @relation("FamilyAccessReviewer")
-  familyEvidence                FamilyEvidence[]
-  proposedFamilyMerges          FamilyMergeProposal[] @relation("FamilyMergeProposer")
-  reviewedFamilyMerges          FamilyMergeProposal[] @relation("FamilyMergeReviewer")
-  resetTokens                   PasswordResetToken[]
+  trees                        Tree[]                   @relation("TreeOwner")
+  memberships                  TreeMember[]
+  createdTreeInvites           TreeInvite[]             @relation("TreeInviteCreator")
+  acceptedTreeInvites          TreeInvite[]             @relation("TreeInviteAcceptor")
+  familyDiscoveryProfile       FamilyDiscoveryProfile?
+  createdFamilyIdentities      FamilyIdentity[]         @relation("FamilyIdentityCreator")
+  familyAccessRequests         FamilyAccessRequest[]    @relation("FamilyAccessRequester")
+  reviewedFamilyAccessRequests FamilyAccessRequest[]    @relation("FamilyAccessReviewer")
+  familyEvidence               FamilyEvidence[]
+  proposedFamilyMerges         FamilyMergeProposal[]    @relation("FamilyMergeProposer")
+  reviewedFamilyMerges         FamilyMergeProposal[]    @relation("FamilyMergeReviewer")
+  resetTokens                  PasswordResetToken[]
+  emailVerificationTokens      EmailVerificationToken[]
+  authoredStories              Story[]                  @relation("StoryAuthor")
+  uploadedMedia                MediaAsset[]             @relation("MediaUploader")
+  createdContributionRequests  ContributionRequest[]    @relation("ContributionRequester")
+  submittedProposals           ContributionProposal[]   @relation("ProposalSubmitter")
+  reviewedProposals            ContributionProposal[]   @relation("ProposalReviewer")
+  treeAuditEvents              TreeAuditEvent[]         @relation("TreeAuditActor")
+  studioLeads                  StudioLead[]
+  uploadedStudioDeliverables   StudioDeliverable[]      @relation("DeliverableUploader")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model PasswordResetToken {
@@ -92,14 +116,14 @@ model RateLimitBucket {
 // ---------- Family Tree (tenant) ----------
 
 model Tree {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   name             String
   ownerId          String
   familyIdentityId String?
-  version          Int      @default(1)
+  version          Int       @default(1)
   deletedAt        DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   owner                   User                   @relation("TreeOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   familyIdentity          FamilyIdentity?        @relation("TreeFamilyIdentity", fields: [familyIdentityId], references: [id], onDelete: SetNull)
@@ -113,6 +137,14 @@ model Tree {
   familyAccessRequests    FamilyAccessRequest[]
   familyMergeSources      FamilyMergeProposal[]  @relation("FamilyMergeSourceTree")
   familyMergeTargets      FamilyMergeProposal[]  @relation("FamilyMergeTargetTree")
+  entitlement             TreeEntitlement?
+  stories                 Story[]
+  mediaAssets             MediaAsset[]
+  contributionRequests    ContributionRequest[]
+  contributionProposals   ContributionProposal[]
+  auditEvents             TreeAuditEvent[]
+  studioLeads             StudioLead[]
+  studioDeliverables      StudioDeliverable[]
 
   @@index([ownerId])
   @@index([familyIdentityId])
@@ -120,23 +152,23 @@ model Tree {
 }
 
 model FamilyDiscoveryProfile {
-  id                       String   @id @default(cuid())
-  userId                   String   @unique
-  personName               String
-  birthYear                Int?
-  fatherName               String?
-  motherName               String?
-  paternalGrandfatherName  String?
-  paternalGrandmotherName  String?
-  maternalGrandfatherName  String?
-  maternalGrandmotherName  String?
-  hometown                 String?
-  siblingNames             Json     @default("[]")
-  profileHash              String
-  consentAcceptedAt        DateTime
-  retentionUntil           DateTime?
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  id                      String    @id @default(cuid())
+  userId                  String    @unique
+  personName              String
+  birthYear               Int?
+  fatherName              String?
+  motherName              String?
+  paternalGrandfatherName String?
+  paternalGrandmotherName String?
+  maternalGrandfatherName String?
+  maternalGrandmotherName String?
+  hometown                String?
+  siblingNames            Json      @default("[]")
+  profileHash             String
+  consentAcceptedAt       DateTime
+  retentionUntil          DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -147,13 +179,13 @@ model FamilyDiscoveryProfile {
 // A privacy-preserving real-family identity layer. One real family can own one
 // canonical tree and later reconcile duplicate trees through reviewed merges.
 model FamilyIdentity {
-  id                String   @id @default(cuid())
-  displayName       String
-  canonicalTreeId   String?  @unique
-  createdById       String
-  status            String   @default("active") // "active" | "archived"
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id              String   @id @default(cuid())
+  displayName     String
+  canonicalTreeId String?  @unique
+  createdById     String
+  status          String   @default("active") // "active" | "archived"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   canonicalTree  Tree?                 @relation("CanonicalFamilyTree", fields: [canonicalTreeId], references: [id], onDelete: SetNull)
   createdBy      User                  @relation("FamilyIdentityCreator", fields: [createdById], references: [id], onDelete: Restrict)
@@ -198,10 +230,10 @@ model FamilyAccessRequest {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  familyIdentity FamilyIdentity  @relation(fields: [familyIdentityId], references: [id], onDelete: Cascade)
-  tree           Tree            @relation(fields: [treeId], references: [id], onDelete: Cascade)
-  requester      User            @relation("FamilyAccessRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-  reviewedBy     User?           @relation("FamilyAccessReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  familyIdentity FamilyIdentity   @relation(fields: [familyIdentityId], references: [id], onDelete: Cascade)
+  tree           Tree             @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  requester      User             @relation("FamilyAccessRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  reviewedBy     User?            @relation("FamilyAccessReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   evidence       FamilyEvidence[]
 
   @@unique([treeId, requesterId, status])
@@ -224,9 +256,9 @@ model FamilyEvidence {
   metadata          Json      @default("{}")
   createdAt         DateTime  @default(now())
 
-  familyIdentity FamilyIdentity?     @relation(fields: [familyIdentityId], references: [id], onDelete: SetNull)
+  familyIdentity FamilyIdentity?      @relation(fields: [familyIdentityId], references: [id], onDelete: SetNull)
   accessRequest  FamilyAccessRequest? @relation(fields: [accessRequestId], references: [id], onDelete: SetNull)
-  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([familyIdentityId])
   @@index([accessRequestId])
@@ -325,38 +357,59 @@ model TreeInvite {
   @@index([expiresAt])
 }
 
+// Product access is intentionally tree-scoped. User.subscriptionActive remains
+// only as a compatibility field while legacy customers are migrated.
+model TreeEntitlement {
+  id                        String   @id @default(cuid())
+  treeId                    String   @unique
+  tier                      String   @default("FREE") // FREE | LEGACY_UNLIMITED | STUDIO
+  maxPeople                 Int      @default(500)
+  maxVerifiedMembers        Int      @default(50)
+  storageQuotaBytes         BigInt   @default(262144000)
+  contributionLinksPerMonth Int      @default(20)
+  snapshotLimit             Int      @default(30)
+  studioVideoAllowed        Boolean  @default(false)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  tree Tree @relation(fields: [treeId], references: [id], onDelete: Cascade)
+}
+
 // ---------- Family graph ----------
 
 model Node {
-  id                String   @id @default(cuid())
-  treeId            String
-  label             String
-  sex               String? // "M" | "F" | "X"
-  birthYear         Int?
-  deathYear         Int?
-  line              String   @default("default")
-  imageUrl          String?
-  imageStorageKey   String?
-  imageMimeType     String?
-  imageSizeBytes    Int?
-  description       String   @default("")
+  id               String   @id @default(cuid())
+  treeId           String
+  label            String
+  sex              String? // "M" | "F" | "X"
+  birthYear        Int?
+  deathYear        Int?
+  line             String   @default("default")
+  imageUrl         String?
+  imageStorageKey  String?
+  imageMimeType    String?
+  imageSizeBytes   Int?
+  description      String   @default("")
   // JSON blobs for rich content that doesn't need relational queries yet.
-  media             Json     @default("[]")
-  works             Json     @default("[]")
-  socialInstagram   String?
-  socialTiktok      String?
-  socialLinkedin    String?
-  generationCached  Int      @default(0)
-  siblingOrder      Int?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  media            Json     @default("[]")
+  works            Json     @default("[]")
+  socialInstagram  String?
+  socialTiktok     String?
+  socialLinkedin   String?
+  generationCached Int      @default(0)
+  siblingOrder     Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   tree Tree @relation(fields: [treeId], references: [id], onDelete: Cascade)
 
   // Relations (explicit) - computed by reading Edge rows, but we keep backrefs
   // for faster traversal in app code.
-  outgoingEdges Edge[] @relation("EdgeFrom")
-  incomingEdges Edge[] @relation("EdgeTo")
+  outgoingEdges        Edge[]                @relation("EdgeFrom")
+  incomingEdges        Edge[]                @relation("EdgeTo")
+  storyPeople          StoryPerson[]
+  mediaAssets          MediaAsset[]
+  contributionRequests ContributionRequest[]
 
   @@index([treeId])
 }
@@ -384,4 +437,179 @@ model Edge {
   @@index([treeId, kind])
   @@index([fromId])
   @@index([toId])
+}
+
+// ---------- Living family archive ----------
+
+model Story {
+  id              String    @id @default(cuid())
+  treeId          String
+  title           String
+  body            String
+  occurredAt      DateTime?
+  approximateYear Int?
+  location        String?
+  status          String    @default("draft") // draft | review | published
+  visibility      String    @default("tree") // tree | private | selected
+  authorId        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tree   Tree          @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  author User          @relation("StoryAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  people StoryPerson[]
+  assets StoryAsset[]
+
+  @@index([treeId, status, createdAt])
+  @@index([authorId])
+}
+
+model StoryPerson {
+  id       String @id @default(cuid())
+  storyId  String
+  personId String
+  role     String // subject | narrator | witness | mentioned
+
+  story  Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  person Node  @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, personId, role])
+  @@index([personId])
+}
+
+model MediaAsset {
+  id            String    @id @default(cuid())
+  treeId        String
+  personId      String?
+  kind          String    @default("image") // image | studio_video
+  storageKey    String
+  checksum      String
+  mimeType      String
+  sizeBytes     BigInt
+  caption       String?
+  capturedAt    DateTime?
+  uploaderId    String?
+  visibility    String    @default("tree") // tree | private | selected
+  consentStatus String    @default("unknown") // granted | unknown | revoked
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tree     Tree         @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  person   Node?        @relation(fields: [personId], references: [id], onDelete: SetNull)
+  uploader User?        @relation("MediaUploader", fields: [uploaderId], references: [id], onDelete: SetNull)
+  stories  StoryAsset[]
+
+  @@unique([treeId, storageKey])
+  @@index([treeId, createdAt])
+  @@index([personId])
+}
+
+model StoryAsset {
+  id           String @id @default(cuid())
+  storyId      String
+  mediaAssetId String
+  role         String @default("source") // source | illustration
+
+  story      Story      @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  mediaAsset MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, mediaAssetId, role])
+  @@index([mediaAssetId])
+}
+
+model ContributionRequest {
+  id             String    @id @default(cuid())
+  treeId         String
+  targetPersonId String?
+  createdById    String
+  prompt         String
+  tokenHash      String    @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  status         String    @default("open") // open | submitted | expired | revoked
+  createdAt      DateTime  @default(now())
+
+  tree         Tree                  @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  targetPerson Node?                 @relation(fields: [targetPersonId], references: [id], onDelete: SetNull)
+  createdBy    User                  @relation("ContributionRequester", fields: [createdById], references: [id], onDelete: Restrict)
+  proposal     ContributionProposal?
+
+  @@index([treeId, createdAt])
+  @@index([createdById])
+  @@index([expiresAt])
+}
+
+model ContributionProposal {
+  id            String    @id @default(cuid())
+  treeId        String
+  requestId     String?   @unique
+  submittedById String?
+  kind          String // story | person_fact | relationship | media_tag
+  payload       Json
+  status        String    @default("pending") // pending | approved | rejected
+  reviewedById  String?
+  reviewedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  tree        Tree                 @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  request     ContributionRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  submittedBy User?                @relation("ProposalSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+  reviewedBy  User?                @relation("ProposalReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([treeId, status, createdAt])
+  @@index([submittedById])
+}
+
+model TreeAuditEvent {
+  id         String   @id @default(cuid())
+  treeId     String
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  tree  Tree  @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  actor User? @relation("TreeAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([treeId, createdAt])
+  @@index([actorId])
+}
+
+model StudioLead {
+  id              String   @id @default(cuid())
+  userId          String
+  treeId          String?
+  packageInterest String
+  milestone       String?
+  consentAt       DateTime
+  status          String   @default("new") // new | contacted | qualified | won | lost
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tree Tree? @relation(fields: [treeId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([treeId, status])
+}
+
+model StudioDeliverable {
+  id           String   @id @default(cuid())
+  treeId       String
+  uploadedById String
+  kind         String // book_pdf | film | illustration
+  title        String
+  storageKey   String
+  checksum     String?
+  mimeType     String
+  sizeBytes    BigInt
+  createdAt    DateTime @default(now())
+
+  tree       Tree @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  uploadedBy User @relation("DeliverableUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@unique([treeId, storageKey])
+  @@index([treeId, createdAt])
 }

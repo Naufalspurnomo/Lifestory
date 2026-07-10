@@ -31,7 +31,7 @@ describe("tree mutation API security invariants", () => {
       file: "app/api/trees/route.ts",
       signature: "export async function POST",
       endpoint: "tree-create",
-      before: "requireActiveSubscriber",
+      before: "requireUser",
     },
     {
       file: "app/api/trees/[id]/route.ts",
@@ -154,7 +154,7 @@ describe("public auth and gallery hardening invariants", () => {
     );
   });
 
-  it("checks duplicate registration emails before hashing and inserting", () => {
+  it("checks duplicate registration emails before hashing and inserting verification records", () => {
     const section = handlerSection(
       readSource("app/api/auth/register/route.ts"),
       "export async function POST"
@@ -163,8 +163,11 @@ describe("public auth and gallery hardening invariants", () => {
     expect(section).toContain("prisma.user.findUnique");
     expect(section).toContain("where: { email }");
     expect(section).toContain('message: "Registration received"');
+    expect(section).toContain("tx.user.create");
+    expect(section).toContain("tx.emailVerificationToken.create");
     expectBefore(section, "prisma.user.findUnique", "hash(password");
-    expectBefore(section, "prisma.user.findUnique", "prisma.user.create");
+    expectBefore(section, "prisma.user.findUnique", "tx.user.create");
+    expectBefore(section, "tx.user.create", "tx.emailVerificationToken.create");
   });
 
   it("redirects after successful credential login without extra session refresh work", () => {

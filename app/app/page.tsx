@@ -4,27 +4,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { AnimatePresence } from "framer-motion";
 
 import FamilyTreeCanvas from "../../components/tree/FamilyTreeCanvas";
-import FirstTreeWelcome, {
-  type FirstTreeRelationship,
-} from "../../components/tree/FirstTreeWelcome";
+import type { FirstTreeRelationship } from "../../components/tree/FirstTreeWelcome";
 import CanvasErrorBoundary from "../../components/tree/CanvasErrorBoundary";
-import NodeEditor from "../../components/tree/NodeEditor";
-import BioModal from "../../components/tree/BioModal";
-import FamilyDiscoveryGate from "../../components/tree/FamilyDiscoveryGate";
-import FamilyAccessInbox from "../../components/tree/FamilyAccessInbox";
-import InviteModal from "../../components/tree/InviteModal";
-import ImportModal from "../../components/tree/ImportModal";
-import ConflictResolutionModal from "../../components/tree/ConflictResolutionModal";
 import SearchBar from "../../components/tree/SearchBar";
-import TimelineView from "../../components/tree/TimelineView";
+import FamilyMemberList from "../../components/tree/FamilyMemberList";
 import SyncStatusIndicator from "../../components/tree/SyncStatusIndicator";
 import { useTreeState } from "../../lib/hooks/useTreeState";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 import { downloadTreeJson } from "../../lib/sync/ExportManager";
-import { downloadTreePdf } from "../../lib/export/treePdf";
 import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
 import { getSiblingOrderUpdates } from "../../lib/tree/siblingOrder";
 import {
@@ -45,6 +36,16 @@ import {
 
 import type { FamilyNode } from "../../lib/types/tree";
 import type { MediaItem } from "../../lib/types/tree";
+
+const FirstTreeWelcome = dynamic(() => import("../../components/tree/FirstTreeWelcome"));
+const NodeEditor = dynamic(() => import("../../components/tree/NodeEditor"));
+const BioModal = dynamic(() => import("../../components/tree/BioModal"));
+const FamilyDiscoveryGate = dynamic(() => import("../../components/tree/FamilyDiscoveryGate"));
+const FamilyAccessInbox = dynamic(() => import("../../components/tree/FamilyAccessInbox"));
+const InviteModal = dynamic(() => import("../../components/tree/InviteModal"));
+const ImportModal = dynamic(() => import("../../components/tree/ImportModal"));
+const ConflictResolutionModal = dynamic(() => import("../../components/tree/ConflictResolutionModal"));
+const TimelineView = dynamic(() => import("../../components/tree/TimelineView"));
 
 type GalleryEntry = MediaItem & {
   ownerId: string;
@@ -87,10 +88,10 @@ export default function AppHome() {
           pageDescription:
             "Visualisasikan sejarah keluarga Anda, simpan cerita, dan wariskan memori untuk generasi mendatang.",
           viewTree: "Pohon",
-          viewTimeline: "Linimasa",
+          viewTimeline: "Cerita",
           mode: "Mode",
           manage: "Kelola",
-          archive: "Arsip",
+          archive: "Unduh",
           filterAll: "Semua",
           filterCore: "Keluarga Inti",
           comingSoon: "Segera Hadir",
@@ -103,7 +104,6 @@ export default function AppHome() {
           addMemberTitle: "Tambah anggota keluarga",
           statGenerations: "Generasi",
           statMembers: "Anggota Keluarga",
-          statLines: "Garis Keluarga",
           statEarliest: "Catatan Terawal",
         }
         : {
@@ -132,10 +132,10 @@ export default function AppHome() {
           pageDescription:
             "Visualize your family history, preserve stories, and pass memory to future generations.",
           viewTree: "Tree",
-          viewTimeline: "Timeline",
+          viewTimeline: "Stories",
           mode: "Mode",
           manage: "Manage",
-          archive: "Archive",
+          archive: "Download",
           filterAll: "All",
           filterCore: "Core Family",
           comingSoon: "Coming Soon",
@@ -148,7 +148,6 @@ export default function AppHome() {
           addMemberTitle: "Add family member",
           statGenerations: "Generations",
           statMembers: "Family Members",
-          statLines: "Family Lines",
           statEarliest: "Earliest Record",
         },
     [locale]
@@ -187,6 +186,18 @@ export default function AppHome() {
     canUndo,
     canRedo,
   } = useTreeState(userId, userName);
+
+  const currentTreeSummary = treeSummaries.find((tree) => tree.id === currentTree?.id);
+  const treeCapabilities = currentTreeSummary?.capabilities ?? {
+    canEdit: true,
+    canInvite: true,
+    canManageMembers: true,
+    canDelete: true,
+    canRestore: true,
+    canExport: true,
+    canContribute: true,
+  };
+  const treeReadOnly = !treeCapabilities.canEdit;
 
   useEffect(() => {
     (window as any).importNodes = importNodes;
@@ -344,17 +355,21 @@ export default function AppHome() {
     }
   }, [userTree]);
 
-  const handleAddNode = (
+  const handleAddNode = useCallback((
     parentId: string,
     type: "parent" | "partner" | "child" | "sibling"
   ) => {
+    if (treeReadOnly) {
+      showNotification(locale === "id" ? "Akses Anda hanya untuk melihat." : "Your access is view-only.");
+      return;
+    }
     setAddType(type);
     setAddParentId(parentId);
     setEditingNode(null);
     setSelectedId(null);
     setDetailNodeId(null);
     setShowNodeEditor(true);
-  };
+  }, [locale, showNotification, treeReadOnly]);
 
   const handleDismissFirstTreeWelcome = useCallback(async () => {
     if (!currentTree) return false;
@@ -382,12 +397,12 @@ export default function AppHome() {
       const dismissed = await handleDismissFirstTreeWelcome();
       if (dismissed) handleAddNode(rootNode.id, relationship);
     },
-    [currentTree, handleDismissFirstTreeWelcome]
+    [currentTree, handleAddNode, handleDismissFirstTreeWelcome]
   );
 
   const handleReorderSiblings = useCallback(
     (sourceNodeId: string, orderedBranchIds: string[]) => {
-      if (!currentTree) return;
+      if (!currentTree || treeReadOnly) return;
       const updates = getSiblingOrderUpdates(
         currentTree.nodes,
         sourceNodeId,
@@ -397,7 +412,7 @@ export default function AppHome() {
       updateNodes(updates);
       showNotification(copy.notifSiblingOrderUpdated);
     },
-    [copy.notifSiblingOrderUpdated, currentTree, showNotification, updateNodes]
+    [copy.notifSiblingOrderUpdated, currentTree, showNotification, treeReadOnly, updateNodes]
   );
 
   const handleSaveNode = (
@@ -483,6 +498,7 @@ export default function AppHome() {
   };
 
   const handleEditNode = (node: FamilyNode) => {
+    if (treeReadOnly) return;
     setEditingNode(node);
     setShowNodeEditor(true);
     setSelectedId(node.id);
@@ -540,6 +556,7 @@ export default function AppHome() {
     }
 
     try {
+      const { downloadTreePdf } = await import("../../lib/export/treePdf");
       await downloadTreePdf(currentTree, locale);
       showNotification(copy.notifPdfExported(currentTree.nodes.length));
     } catch (error) {
@@ -549,21 +566,21 @@ export default function AppHome() {
   }, [copy, currentTree, locale, showNotification]);
 
   const treeActions = [
-    {
+    ...(treeCapabilities.canManageMembers ? [{
       label: copy.requests,
       onClick: () => setShowAccessInbox(true),
       Icon: ShieldCheck,
-    },
-    {
+    }] : []),
+    ...(treeCapabilities.canInvite ? [{
       label: copy.invite,
       onClick: () => setShowInviteModal(true),
       Icon: UserPlus,
-    },
-    {
+    }] : []),
+    ...(treeCapabilities.canEdit ? [{
       label: copy.import,
       onClick: () => setShowImportModal(true),
       Icon: Upload,
-    },
+    }] : []),
     {
       label: copy.export,
       onClick: handleExportTree,
@@ -592,15 +609,12 @@ export default function AppHome() {
   const stats = {
     generations: 0,
     members: currentTree?.nodes.length || 0,
-    lines: 0,
     earliestRecord: new Date().getFullYear(),
   };
 
   if (currentTree) {
     const generationSet = new Set(currentTree.nodes.map((n) => n.generation));
     stats.generations = generationSet.size;
-    const lines = new Set(currentTree.nodes.map((n) => n.line));
-    stats.lines = lines.size;
     const years = currentTree.nodes
       .map((n) => n.year)
       .filter((y) => y !== null) as number[];
@@ -885,15 +899,29 @@ export default function AppHome() {
               <CanvasErrorBoundary
                 fallbackMessage={locale === "id" ? "Terjadi kesalahan pada canvas" : "Canvas rendering error"}
               >
-                <FamilyTreeCanvas
-                  layout={layoutGraph}
-                  graph={currentTree!.graph}
-                  selectedId={selectedId}
-                  onSelectNode={handleCanvasSelect}
-                  onAddNode={handleAddNode}
-                  onReorderSiblings={handleReorderSiblings}
-                  suppressBottomControls={isFirstTreeWelcomeOpen}
-                />
+                <>
+                  <FamilyTreeCanvas
+                    layout={layoutGraph}
+                    graph={currentTree!.graph}
+                    selectedId={selectedId}
+                    onSelectNode={handleCanvasSelect}
+                    onAddNode={handleAddNode}
+                    onReorderSiblings={handleReorderSiblings}
+                    suppressBottomControls={isFirstTreeWelcomeOpen}
+                    readOnly={treeReadOnly}
+                    viewportInsets={{
+                      top: 8,
+                      bottom: isTomeOpen || isVaultOpen ? 92 : 72,
+                      right: detailNode && (typeof window === "undefined" || window.innerWidth >= 768) ? 472 : 0,
+                    }}
+                  />
+                  <FamilyMemberList
+                    nodes={currentTree!.nodes}
+                    selectedId={selectedId}
+                    locale={locale}
+                    onSelect={handleSearchSelect}
+                  />
+                </>
               </CanvasErrorBoundary>
             ) : (
               <div className="h-full overflow-y-auto bg-[#FAF7F0] p-3 sm:p-5 lg:p-8">
@@ -979,7 +1007,7 @@ export default function AppHome() {
             </div>
           </main>
 
-          {/* TOME OF CHRONICLES (SLIDE OUT DRAWER - RIGHT) */}
+          {/* Family stories drawer */}
           <div
             className={`fixed top-[144px] right-0 bottom-0 w-full border-l border-cream-400 shadow-[-8px_0_24px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-cream-50 sm:top-[108px] sm:w-96 md:w-[420px] lg:top-16 ${
               isTomeOpen ? "translate-x-0" : "translate-x-full"
@@ -994,7 +1022,7 @@ export default function AppHome() {
                     {locale === "id" ? "Cerita Keluarga" : "Family Stories"}
                   </h3>
                   <p className="text-[10px] text-[#9c8e7e] font-medium italic">
-                    {locale === "id" ? "Kitab Hikayat Dinasti" : "Chronicles of the Dynasty"}
+                    {locale === "id" ? "Catatan yang terhubung ke anggota keluarga" : "Notes connected to family members"}
                   </p>
                 </div>
               </div>
@@ -1047,7 +1075,7 @@ export default function AppHome() {
             </div>
           </div>
 
-          {/* ROYAL VAULT (SLIDE UP DRAWER - BOTTOM) */}
+          {/* Family gallery drawer */}
           <div
             className={`fixed bottom-0 left-0 right-0 h-[38dvh] min-h-56 max-h-80 border-t border-[#dccfb3] shadow-[0_-4px_16px_rgba(59,43,24,0.1)] z-40 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col bg-[#fdfbf6] sm:h-64 ${
               isVaultOpen ? "translate-y-0" : "translate-y-full"
@@ -1062,7 +1090,7 @@ export default function AppHome() {
                     {locale === "id" ? "Galeri Keluarga" : "Family Gallery"}
                   </h3>
                   <p className="text-[10px] text-[#9c8e7e] font-medium italic">
-                    {locale === "id" ? "Gudang Pusaka Dinasti" : "Heritage Vault"}
+                    {locale === "id" ? "Foto dan arsip visual keluarga" : "Family photos and visual archive"}
                   </p>
                 </div>
               </div>
@@ -1137,13 +1165,6 @@ export default function AppHome() {
                 <span className="font-bold">{stats.generations}</span>
                 <span className="text-[#9c8e7e]">{locale === "id" ? "generasi" : "gen"}</span>
               </div>
-              <span className="text-[#dccfb3]">{"\u00b7"}</span>
-              <div className="flex items-center gap-1.5" title={copy.statLines}>
-                <GitBranch className="h-3.5 w-3.5 text-[#82693c]" />
-                <span className="font-bold">{stats.lines}</span>
-                <span className="text-[#9c8e7e]">{locale === "id" ? "cabang" : "branches"}</span>
-              </div>
-              <span className="text-[#dccfb3]">{"\u00b7"}</span>
               <div className="flex items-center gap-1.5" title={copy.statEarliest}>
                 <History className="h-3.5 w-3.5 text-[#82693c]" />
                 <span className="font-bold">{stats.earliestRecord}</span>
@@ -1162,12 +1183,13 @@ export default function AppHome() {
                 onAddRelative={(type) => {
                   handleAddNode(detailNode.id, type);
                 }}
+                readOnly={treeReadOnly}
               />
             )}
           </AnimatePresence>
 
           <NodeEditor
-            isOpen={showNodeEditor}
+            isOpen={showNodeEditor && !treeReadOnly}
             onClose={() => {
               setShowNodeEditor(false);
               setEditingNode(null);

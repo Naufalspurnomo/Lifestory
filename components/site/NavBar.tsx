@@ -6,7 +6,6 @@ import { signOut, useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
-  Crown,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -53,7 +52,7 @@ function buildCopy(locale: string) {
         startStory: "Mulai Cerita",
         adminDashboard: "Dashboard Admin",
         collections: "Koleksi",
-        activatePlan: "Aktifkan Paket",
+        studioPackages: "Paket Studio",
         familyTrees: "Pohon Keluarga",
         signOut: "Keluar",
         noEmail: "Email tidak tersedia",
@@ -72,7 +71,7 @@ function buildCopy(locale: string) {
         startStory: "Start Story",
         adminDashboard: "Admin Dashboard",
         collections: "Collections",
-        activatePlan: "Activate Plan",
+        studioPackages: "Studio Packages",
         familyTrees: "Family Trees",
         signOut: "Sign Out",
         noEmail: "No email",
@@ -162,7 +161,6 @@ function SessionAwareNavBar({
   const user = session?.user;
   const isLoggedIn = status === "authenticated";
   const isAdmin = user?.role === "admin";
-  const isSubscribed = Boolean(user?.subscriptionActive);
   const displayName = user?.name?.trim() || copy.accountMember;
   const displayEmail = user?.email || copy.noEmail;
   const userInitial = displayName.charAt(0).toUpperCase();
@@ -177,14 +175,11 @@ function SessionAwareNavBar({
     }
 
     return [
-      {
-        href: isSubscribed ? "/app" : "/subscribe",
-        label: isSubscribed ? copy.familyTrees : copy.activatePlan,
-        icon: isSubscribed ? TreePine : Crown,
-      },
+      { href: "/app", label: copy.familyTrees, icon: TreePine },
+      { href: "/subscribe", label: copy.studioPackages, icon: Sparkles },
       { href: "/gallery", label: copy.collections, icon: Sparkles },
     ];
-  }, [copy, isAdmin, isSubscribed]);
+  }, [copy, isAdmin]);
 
   useEffect(() => {
     setAccountOpen(false);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireActiveSubscriber } from "../../../../lib/auth-helpers";
+import { requireUser } from "../../../../lib/auth-helpers";
 import {
   FamilyIdentityError,
   getFamilyCandidatesForUser,
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   );
   if (rateLimitError) return rateLimitError;
 
-  const authResult = await requireActiveSubscriber();
+  const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
 
   try {

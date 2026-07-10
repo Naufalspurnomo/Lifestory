@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowDown,
@@ -40,6 +40,7 @@ interface BioModalProps {
   onEdit: () => void;
   onDelete: () => void;
   onAddRelative: (type: "parent" | "partner" | "child" | "sibling") => void;
+  readOnly?: boolean;
 }
 
 type Tab = "story" | "gallery" | "relations";
@@ -50,9 +51,11 @@ export default function BioModal({
   onEdit,
   onDelete,
   onAddRelative,
+  readOnly = false,
 }: BioModalProps) {
   const { locale } = useLanguage();
   const shouldReduceMotion = useReducedMotion();
+  const dialogRef = useRef<HTMLElement>(null);
   const [activeTab, setActiveTab] = useState<Tab>("story");
   const isDeceased = node.deathYear !== null;
   const instagramHandle = normalizeInstagramHandle(node.content?.instagram);
@@ -203,6 +206,15 @@ export default function BioModal({
     ? { duration: 0 }
     : { type: "spring" as const, stiffness: 420, damping: 38, mass: 0.9 };
 
+  useEffect(() => {
+    dialogRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   const tabs = [
     { id: "story" as const, label: copy.tabStory, icon: Book },
     { id: "gallery" as const, label: copy.tabGallery, icon: ImageIcon },
@@ -226,6 +238,11 @@ export default function BioModal({
         onClick={onClose}
       />
       <motion.aside
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="family-member-dialog-title"
+        tabIndex={-1}
         className="pointer-events-auto relative z-[1] flex h-full w-full max-w-[472px] flex-col bg-cream-50 bg-grain shadow-deep ring-1 ring-ink-900/10"
         initial={shouldReduceMotion ? false : { x: "100%", opacity: 0.94 }}
         animate={{ x: 0, opacity: 1 }}
@@ -284,7 +301,7 @@ export default function BioModal({
                 </>
               )}
             </div>
-            <h2 className="font-serif text-[28px] font-bold leading-[1.1] text-cream-50 [text-shadow:0_1px_18px_rgba(0,0,0,0.45)]">
+            <h2 id="family-member-dialog-title" className="font-serif text-[28px] font-bold leading-[1.1] text-cream-50 [text-shadow:0_1px_18px_rgba(0,0,0,0.45)]">
               {node.label}
             </h2>
           </div>
@@ -380,14 +397,14 @@ export default function BioModal({
                     <p className="mx-auto mt-3 max-w-xs text-sm leading-6 text-ink-500">
                       {copy.noStoryBody}
                     </p>
-                    <button
+                    {!readOnly && <button
                       type="button"
                       onClick={onEdit}
                       className="mt-6 inline-flex h-10 items-center gap-2 rounded-full bg-brand-700 px-5 text-sm font-bold text-white shadow-cta transition hover:bg-brand-800"
                     >
                       <Pencil className="h-4 w-4" />
                       {copy.writeStory}
-                    </button>
+                    </button>}
                   </div>
                 )}
 
@@ -444,14 +461,14 @@ export default function BioModal({
                     </p>
                   </div>
                 )}
-                <button
+                {!readOnly && <button
                   type="button"
                   onClick={onEdit}
                   className="inline-flex h-10 items-center gap-2 rounded-full border border-cream-400 bg-cream-50 px-4 text-sm font-bold text-brand-800 transition hover:border-brand-400 hover:bg-cream-100"
                 >
                   <Pencil className="h-4 w-4" />
                   {copy.manageArchive}
-                </button>
+                </button>}
               </div>
             )}
 
@@ -466,7 +483,7 @@ export default function BioModal({
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
-                  {relationActions.map((action) => {
+                  {!readOnly && relationActions.map((action) => {
                     const Icon = action.icon;
                     return (
                       <button
@@ -491,7 +508,7 @@ export default function BioModal({
                   })}
                 </div>
 
-                {node.line !== "self" && (
+                {!readOnly && node.line !== "self" && (
                   <button
                     type="button"
                     onClick={() => {
@@ -510,14 +527,14 @@ export default function BioModal({
           </div>
 
           <div className="border-t border-cream-300 bg-cream-100/90 px-6 py-4 backdrop-blur-md">
-            <button
+            {!readOnly && <button
               type="button"
               onClick={onEdit}
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand-700 text-sm font-bold text-white shadow-cta transition hover:bg-brand-800"
             >
               <Pencil className="h-4 w-4" />
               {copy.editProfile}
-            </button>
+            </button>}
           </div>
         </div>
       </motion.aside>

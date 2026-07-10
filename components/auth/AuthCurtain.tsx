@@ -12,6 +12,7 @@ import { AuthField } from "./AuthField";
 import { getRegistrationErrorMessage } from "../../lib/registration-errors";
 import { getSafeNextPath } from "../../lib/utils/navigation";
 import { registerConsentCopy } from "../../lib/legal/consent";
+import { TurnstileField } from "../security/TurnstileField";
 
 type Mode = "login" | "register";
 type Status = "idle" | "loading" | "success";
@@ -98,6 +99,7 @@ export function AuthCurtain({
       email: String(data.get("email") || "").trim(),
       phone: String(data.get("phone") || "").trim(),
       password: String(data.get("password") || ""),
+      turnstileToken: String(data.get("turnstileToken") || "") || undefined,
       consentAccepted,
     };
 
@@ -440,6 +442,8 @@ function RegisterForm({
           </span>
         </label>
 
+        <TurnstileField />
+
         {error && (
           <p role="alert" aria-live="polite" className="text-[0.85rem] leading-relaxed text-danger">
             {error}
@@ -484,17 +488,17 @@ function SuccessState({ locale, reduce }: { locale: string; reduce: boolean }) {
   const c =
     locale === "id"
       ? {
-          title: "Tempat Anda telah dicatat.",
+          title: "Cek email Anda.",
           desc:
-            "Data Anda sudah masuk. Tim kami akan menghubungi lewat WhatsApp untuk verifikasi dan mengaktifkan akun keluarga Anda.",
-          viewPlans: "Lihat paket langganan",
+            "Kami mengirim tautan verifikasi yang berlaku 30 menit. Setelah email terverifikasi, pohon keluarga gratis langsung bisa digunakan.",
+          signIn: "Sudah verifikasi? Masuk",
           backHome: "Kembali ke beranda",
         }
       : {
-          title: "Your place is recorded.",
+          title: "Check your email.",
           desc:
-            "Your details are in. Our team will reach you on WhatsApp to verify and activate your family's account.",
-          viewPlans: "View subscription plans",
+            "We sent a verification link that expires in 30 minutes. Once verified, your free family tree is ready to use.",
+          signIn: "Verified? Sign in",
           backHome: "Back to home",
         };
   return (
@@ -511,9 +515,9 @@ function SuccessState({ locale, reduce }: { locale: string; reduce: boolean }) {
         </h1>
         <p className="mt-4 max-w-[40ch] text-[0.95rem] leading-relaxed text-ink-600">{c.desc}</p>
         <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
-          <Link href="/subscribe" className="w-full sm:w-auto">
+          <Link href="/auth/login" className="w-full sm:w-auto">
             <Button block size="lg" className="h-12 rounded-pill">
-              {c.viewPlans}
+              {c.signIn}
             </Button>
           </Link>
           <Link href="/" className="w-full sm:w-auto">
@@ -552,7 +556,7 @@ function copyFor(locale: string) {
         invalid: "Email atau password salah.",
         rateLimited: "Terlalu banyak percobaan login. Coba lagi dalam 15 menit.",
         inactive:
-          "Akun Anda belum aktif. Silakan tunggu verifikasi admin atau hubungi tim Lifestory.",
+          "Email Anda belum diverifikasi. Cek inbox atau kirim ulang tautan verifikasi.",
         suspended: "Akun ini sedang ditangguhkan. Hubungi tim Lifestory untuk bantuan.",
       },
       register: {
@@ -572,7 +576,7 @@ function copyFor(locale: string) {
         consentNote: consent.note,
         cta: "Daftar Sekarang",
         verifyNote:
-          "Akun dibuat nonaktif dulu. Tim kami menghubungi via WhatsApp untuk verifikasi sebelum akun aktif.",
+          "Kami mengirim tautan verifikasi ke email Anda. Setelah itu pohon gratis langsung dapat digunakan.",
         networkError: "Terjadi kesalahan jaringan. Coba lagi.",
       },
       curtain: {
@@ -606,7 +610,7 @@ function copyFor(locale: string) {
       invalid: "Incorrect email or password.",
       rateLimited: "Too many login attempts. Please try again in 15 minutes.",
       inactive:
-        "Your account is not active yet. Please wait for admin verification or contact Lifestory.",
+        "Your email is not verified yet. Check your inbox or request a new verification link.",
       suspended: "This account is suspended. Please contact Lifestory for help.",
     },
     register: {
@@ -626,7 +630,7 @@ function copyFor(locale: string) {
       consentNote: consent.note,
       cta: "Create your archive",
       verifyNote:
-        "Your account starts inactive. Our team contacts you via WhatsApp to verify before it activates.",
+        "We will send a verification link to your email. After that, your free tree is ready to use.",
       networkError: "Network error. Please try again.",
     },
     curtain: {

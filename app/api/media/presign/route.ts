@@ -3,6 +3,7 @@ import { requireUser } from "../../../../lib/auth-helpers";
 import {
   assertTreeWritable,
   getTreeForUser,
+  getTreeAccessContext,
   TreeAccessError,
 } from "../../../../lib/tree/repository";
 import {
@@ -89,15 +90,18 @@ export async function POST(request: Request) {
 
     await assertTreeWritable(data.treeId, authResult.session.user.id);
     const tree = await getTreeForUser(data.treeId, authResult.session.user.id);
+    const access = await getTreeAccessContext(data.treeId, authResult.session.user.id);
+    const entitlementQuota = access.entitlement.storageQuotaBytes;
+    const effectiveQuota = Math.min(config.treeQuotaBytes, entitlementQuota);
     const usage = calculateTreeMediaUsage(tree.nodes);
 
-    if (usage.objectBytes + data.sizeBytes > config.treeQuotaBytes) {
+    if (usage.objectBytes + data.sizeBytes > effectiveQuota) {
       return NextResponse.json(
         {
           error: `Tree media quota exceeded. Used ${formatBytes(
             usage.objectBytes
-          )} of ${formatBytes(config.treeQuotaBytes)}.`,
-          quotaBytes: config.treeQuotaBytes,
+          )} of ${formatBytes(effectiveQuota)}.`,
+            quotaBytes: effectiveQuota,
           usedBytes: usage.objectBytes,
         },
         { status: 413 }
@@ -141,7 +145,7 @@ export async function POST(request: Request) {
       },
       quota: {
         usedBytes: usage.objectBytes,
-        quotaBytes: config.treeQuotaBytes,
+        quotaBytes: effectiveQuota,
       },
     });
   } catch (error) {

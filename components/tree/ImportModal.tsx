@@ -39,14 +39,14 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
           subtitlePreview: "Preview data yang akan diimport",
           subtitleImporting: "Mengimpor data...",
           downloadTemplate: "Download Template Excel",
-          invalidFileType: "File harus berformat Excel (.xlsx atau .xls)",
+          invalidFileType: "File harus berformat Excel (.xlsx)",
           emptyExcel: "File Excel kosong atau tidak ada data valid",
           readExcelFailed: "Gagal membaca file Excel",
           convertFailed: "Gagal mengonversi data",
           dropHere: "Lepaskan file di sini",
           dragDrop: "Drag & drop file Excel",
           clickToSelect: "atau klik untuk memilih file",
-          format: "Format: .xlsx, .xls",
+          format: "Format: .xlsx",
           guideTitle: "Petunjuk:",
           guideItems: [
             "Download template Excel terlebih dahulu",
@@ -73,14 +73,14 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
           subtitlePreview: "Preview data to be imported",
           subtitleImporting: "Importing data...",
           downloadTemplate: "Download Excel Template",
-          invalidFileType: "File must be an Excel format (.xlsx or .xls)",
+          invalidFileType: "File must be an Excel format (.xlsx)",
           emptyExcel: "Excel file is empty or contains no valid data",
           readExcelFailed: "Failed to read Excel file",
           convertFailed: "Failed to convert data",
           dropHere: "Drop file here",
           dragDrop: "Drag & drop Excel file",
           clickToSelect: "or click to choose a file",
-          format: "Format: .xlsx, .xls",
+          format: "Format: .xlsx",
           guideTitle: "Instructions:",
           guideItems: [
             "Download the Excel template first",
@@ -118,8 +118,8 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
 
   if (!isOpen) return null;
 
-  const handleDownloadTemplate = () => {
-    const blob = generateExcelTemplate(locale);
+  const handleDownloadTemplate = async () => {
+    const blob = await generateExcelTemplate(locale);
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -133,12 +133,10 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
   const handleFileChange = async (selectedFile: File) => {
     const validTypes = [
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "application/vnd.ms-excel",
     ];
     const isValidType =
       validTypes.includes(selectedFile.type) ||
-      selectedFile.name.endsWith(".xlsx") ||
-      selectedFile.name.endsWith(".xls");
+      selectedFile.name.endsWith(".xlsx");
 
     if (!isValidType) {
       setError(copy.invalidFileType);
@@ -234,7 +232,7 @@ export default function ImportModal({ isOpen, onClose, onImport }: Props) {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".xlsx,.xls"
+                  accept=".xlsx"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) handleFileChange(f);

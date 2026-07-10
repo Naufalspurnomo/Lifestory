@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireActiveSubscriber } from "../../../../lib/auth-helpers";
+import { requireUser } from "../../../../lib/auth-helpers";
 import {
   FamilyIdentityError,
   reviewFamilyAccessRequest,
@@ -24,7 +24,7 @@ export async function PATCH(request: Request, { params }: Params) {
   );
   if (rateLimitError) return rateLimitError;
 
-  const authResult = await requireActiveSubscriber();
+  const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
 
   const bodyResult = await parseJsonBody(request, jsonBodyLimits.tiny);

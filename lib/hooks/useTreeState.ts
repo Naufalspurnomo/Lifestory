@@ -34,6 +34,48 @@ const MAX_HISTORY = 50;
 const ACTIVE_TREE_KEY_PREFIX = "lifestory_active_tree:";
 const LOCAL_DRAFT_KEY_PREFIX = "lifestory_local_draft:";
 
+const FREE_ENTITLEMENT: TreeSummary["entitlement"] = {
+  tier: "FREE",
+  maxPeople: 500,
+  maxVerifiedMembers: 50,
+  storageQuotaBytes: 262_144_000,
+  contributionLinksPerMonth: 20,
+  snapshotLimit: 30,
+  studioVideoAllowed: false,
+};
+
+function capabilitiesForRole(role: TreeSummary["myRole"]): TreeSummary["capabilities"] {
+  return {
+    canEdit: role === "owner" || role === "editor",
+    canInvite: role === "owner",
+    canManageMembers: role === "owner",
+    canDelete: role === "owner",
+    canRestore: role === "owner" || role === "editor",
+    canExport: true,
+    canContribute: true,
+  };
+}
+
+function summaryFromTree(
+  tree: TreeData,
+  previous: TreeSummary | undefined,
+  fallbackRole: TreeSummary["myRole"]
+): TreeSummary {
+  const role = previous?.myRole ?? fallbackRole;
+  return {
+    id: tree.id,
+    name: tree.name,
+    ownerId: tree.ownerId,
+    version: tree.version,
+    nodeCount: tree.nodes.length,
+    createdAt: tree.createdAt,
+    updatedAt: tree.updatedAt,
+    myRole: role,
+    entitlement: previous?.entitlement ?? FREE_ENTITLEMENT,
+    capabilities: previous?.capabilities ?? capabilitiesForRole(role),
+  };
+}
+
 export type InitialMemberInput = {
   label: string;
   year: number | null;
@@ -622,15 +664,11 @@ export function useTreeState(userId: string, userName: string) {
       treesRef.current = nextTrees;
       setTrees(nextTrees);
       setTreeSummaries((prev) => [
-        {
-          id: hydrated.id,
-          name: hydrated.name,
-          ownerId: hydrated.ownerId,
-          version: hydrated.version,
-          nodeCount: hydrated.nodes.length,
-          createdAt: hydrated.createdAt,
-          updatedAt: hydrated.updatedAt,
-        },
+        summaryFromTree(
+          hydrated,
+          prev.find((tree) => tree.id === hydrated.id),
+          hydrated.ownerId === userId ? "owner" : "viewer"
+        ),
         ...prev.filter((tree) => tree.id !== hydrated.id),
       ]);
       if (currentTreeId === hydrated.id) {
@@ -847,15 +885,7 @@ export function useTreeState(userId: string, userName: string) {
       setCurrentTreeId(created.id);
       saveActiveTreeId(userId, created.id);
       setTreeSummaries((prev) => [
-        {
-          id: created.id,
-          name: created.name,
-          ownerId: created.ownerId,
-          version: created.version,
-          nodeCount: created.nodes.length,
-          createdAt: created.createdAt,
-          updatedAt: created.updatedAt,
-        },
+        summaryFromTree(created, undefined, "owner"),
         ...prev.filter((tree) => tree.id !== created.id),
       ]);
       setHistory({ past: [], present: created.nodes, future: [] });

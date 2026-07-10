@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireActiveSubscriber } from "../../../../lib/auth-helpers";
+import { requireUser } from "../../../../lib/auth-helpers";
 import {
   FamilyIdentityError,
   findFamilyCandidatesForProfile,
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   );
   if (rateLimitError) return rateLimitError;
 
-  const authResult = await requireActiveSubscriber();
+  const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
   const userId = authResult.session.user.id;
 

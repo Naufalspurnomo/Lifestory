@@ -14,6 +14,7 @@ export type MediaStorageConfig = {
   secretAccessKey: string;
   publicBaseUrl: string;
   uploadUrlTtlSeconds: number;
+  readUrlTtlSeconds: number;
   maxFileBytes: number;
   treeQuotaBytes: number;
 };
@@ -21,6 +22,12 @@ export type MediaStorageConfig = {
 export type PresignedUpload = {
   uploadUrl: string;
   objectUrl: string;
+  storageKey: string;
+  expiresAt: string;
+};
+
+export type PresignedRead = {
+  readUrl: string;
   storageKey: string;
   expiresAt: string;
 };
@@ -35,6 +42,7 @@ export class MediaStorageConfigurationError extends Error {
 const DEFAULT_MAX_FILE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_TREE_QUOTA_BYTES = 5 * 1024 * 1024 * 1024;
 const DEFAULT_UPLOAD_TTL_SECONDS = 10 * 60;
+const DEFAULT_READ_TTL_SECONDS = 5 * 60;
 
 const allowedImageContentTypes = new Set([
   "image/avif",
@@ -182,6 +190,10 @@ export function getMediaStorageConfig(
       env.MEDIA_UPLOAD_URL_TTL_SECONDS,
       DEFAULT_UPLOAD_TTL_SECONDS
     ),
+    readUrlTtlSeconds: parsePositiveInteger(
+      env.MEDIA_READ_URL_TTL_SECONDS,
+      DEFAULT_READ_TTL_SECONDS
+    ),
     maxFileBytes: parsePositiveInteger(
       env.MEDIA_FILE_MAX_BYTES,
       DEFAULT_MAX_FILE_BYTES
@@ -284,6 +296,56 @@ export function createPresignedPutUrl(
   return {
     uploadUrl: endpoint.toString(),
     objectUrl: buildObjectUrl(config, storageKey),
+    storageKey,
+    expiresAt,
+  };
+}
+
+export function createPresignedGetUrl(
+  config: MediaStorageConfig,
+  storageKey: string,
+  now = new Date()
+): PresignedRead {
+  const { amzDate, dateStamp } = amzDates(now);
+  const scope = credentialScope(dateStamp, config.region);
+  const endpoint = objectEndpointUrl(config, storageKey);
+  const expiresAt = new Date(
+    now.getTime() + config.readUrlTtlSeconds * 1000
+  ).toISOString();
+  const query = new URLSearchParams({
+    "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
+    "X-Amz-Credential": `${config.accessKeyId}/${scope}`,
+    "X-Amz-Date": amzDate,
+    "X-Amz-Expires": `${config.readUrlTtlSeconds}`,
+    "X-Amz-SignedHeaders": "host",
+  });
+
+  const canonicalRequest = [
+    "GET",
+    canonicalObjectUri(config, storageKey),
+    canonicalQuery(query),
+    `host:${endpoint.host}\n`,
+    "host",
+    "UNSIGNED-PAYLOAD",
+  ].join("\n");
+  const stringToSign = [
+    "AWS4-HMAC-SHA256",
+    amzDate,
+    scope,
+    sha256Hex(canonicalRequest),
+  ].join("\n");
+  const signature = createHmac(
+    "sha256",
+    signingKey(config.secretAccessKey, dateStamp, config.region)
+  )
+    .update(stringToSign)
+    .digest("hex");
+
+  query.set("X-Amz-Signature", signature);
+  endpoint.search = query.toString();
+
+  return {
+    readUrl: endpoint.toString(),
     storageKey,
     expiresAt,
   };

@@ -12,6 +12,25 @@ export type TreeSummary = {
   nodeCount: number;
   createdAt: string;
   updatedAt: string;
+  myRole: "owner" | "editor" | "viewer";
+  entitlement: {
+    tier: string;
+    maxPeople: number;
+    maxVerifiedMembers: number;
+    storageQuotaBytes: number;
+    contributionLinksPerMonth: number;
+    snapshotLimit: number;
+    studioVideoAllowed: boolean;
+  };
+  capabilities: {
+    canEdit: boolean;
+    canInvite: boolean;
+    canManageMembers: boolean;
+    canDelete: boolean;
+    canRestore: boolean;
+    canExport: boolean;
+    canContribute: boolean;
+  };
 };
 
 export type TreeOnboardingStatus = {

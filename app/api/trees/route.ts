@@ -1,7 +1,7 @@
 // Trees collection: list current user's trees, create a new one.
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-import { requireActiveSubscriber, requireUser } from "../../../lib/auth-helpers";
+import { requireUser } from "../../../lib/auth-helpers";
 import {
   createTreeForUser,
   getFirstTreeWelcomeTreeIdForUser,
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   );
   if (rateLimitError) return rateLimitError;
 
-  const authResult = await requireActiveSubscriber();
+  const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
   const userId = authResult.session.user.id;
 

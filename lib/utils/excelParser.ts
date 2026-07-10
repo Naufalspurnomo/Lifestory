@@ -1,9 +1,10 @@
 /**
  * Excel Parser Utility for Family Tree Import
- * Parses .xlsx/.xls files and converts to FamilyNode[]
+ * Parses .xlsx files and converts to FamilyNode[]
  */
 
-import * as XLSX from "xlsx";
+import { readSheet, type SheetData as ReadSheetData } from "read-excel-file/browser";
+import writeXlsxFile, { type SheetData as WriteSheetData } from "write-excel-file/browser";
 import type { FamilyNode, NodeContent, MediaItem, TreeData } from "../types/tree";
 
 type Locale = "id" | "en";
@@ -251,6 +252,39 @@ function getCellString(row: Record<string, any>, keys: string[]): string | undef
   return undefined;
 }
 
+function sheetDataToObjects(rows: ReadSheetData): Record<string, any>[] {
+  const [headerRow, ...dataRows] = rows;
+  if (!headerRow) return [];
+
+  const headers = headerRow.map((value) => String(value ?? "").trim());
+  return dataRows
+    .map((row) => {
+      const object: Record<string, any> = {};
+      headers.forEach((header, index) => {
+        if (!header) return;
+        object[header] = row[index] ?? "";
+      });
+      return object;
+    })
+    .filter((row) =>
+      Object.values(row).some((value) => String(value ?? "").trim().length > 0)
+    );
+}
+
+function objectsToSheetData(rows: Array<Record<string, string | number>>): WriteSheetData {
+  const headers = Array.from(
+    rows.reduce((set, row) => {
+      Object.keys(row).forEach((key) => set.add(key));
+      return set;
+    }, new Set<string>())
+  );
+
+  return [
+    headers,
+    ...rows.map((row) => headers.map((header) => row[header] ?? null)),
+  ];
+}
+
 function normalizeText(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -351,55 +385,34 @@ export async function parseExcelFile(
   locale: Locale = "id"
 ): Promise<ExcelMember[]> {
   const t = getCopy(locale);
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+  try {
+    const jsonData = sheetDataToObjects(await readSheet(file));
+    const members: ExcelMember[] = jsonData.map((row) => ({
+      id: getCellString(row, ["id", "ID"]),
+      nama: getCellString(row, ["nama", "Nama", "name", "Name"]) || "",
+      jenis_kelamin: parseGender(
+        getCellString(row, ["jenis_kelamin", "gender", "sex", "Jenis_Kelamin"])
+      ),
+      tahun_lahir: parseYear(row.tahun_lahir ?? row.birth_year),
+      tahun_wafat: parseYear(row.tahun_wafat ?? row.death_year),
+      parent_id: getCellString(row, ["parent_id", "Parent_ID"]),
+      parent_ids: getCellString(row, ["parent_ids", "Parent_IDs", "parents_ids"]),
+      parent_nama: getCellString(row, ["parent_nama", "parent_names"]),
+      ayah_id: getCellString(row, ["ayah_id", "father_id"]),
+      ayah_nama: getCellString(row, ["ayah_nama", "father_name"]),
+      ibu_id: getCellString(row, ["ibu_id", "mother_id"]),
+      ibu_nama: getCellString(row, ["ibu_nama", "mother_name"]),
+      pasangan_ids: getCellString(row, ["pasangan_ids", "partner_ids", "pasangan_id"]),
+      pasangan_nama: getCellString(row, ["pasangan_nama", "partner_names"]),
+      garis: getCellString(row, ["garis", "line"]),
+      deskripsi: getCellString(row, ["deskripsi", "description"]),
+      foto_url: getCellString(row, ["foto_url", "image_url"]),
+    }));
 
-    reader.onload = (e) => {
-      try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: "array" });
-
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-
-        const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, {
-          defval: "",
-        });
-
-        const members: ExcelMember[] = jsonData.map((row) => ({
-          id: getCellString(row, ["id", "ID"]),
-          nama: getCellString(row, ["nama", "Nama", "name", "Name"]) || "",
-          jenis_kelamin: parseGender(
-            getCellString(row, ["jenis_kelamin", "gender", "sex", "Jenis_Kelamin"])
-          ),
-          tahun_lahir: parseYear(row.tahun_lahir ?? row.birth_year),
-          tahun_wafat: parseYear(row.tahun_wafat ?? row.death_year),
-          parent_id: getCellString(row, ["parent_id", "Parent_ID"]),
-          parent_ids: getCellString(row, ["parent_ids", "Parent_IDs", "parents_ids"]),
-          parent_nama: getCellString(row, ["parent_nama", "parent_names"]),
-          ayah_id: getCellString(row, ["ayah_id", "father_id"]),
-          ayah_nama: getCellString(row, ["ayah_nama", "father_name"]),
-          ibu_id: getCellString(row, ["ibu_id", "mother_id"]),
-          ibu_nama: getCellString(row, ["ibu_nama", "mother_name"]),
-          pasangan_ids: getCellString(row, ["pasangan_ids", "partner_ids", "pasangan_id"]),
-          pasangan_nama: getCellString(row, ["pasangan_nama", "partner_names"]),
-          garis: getCellString(row, ["garis", "line"]),
-          deskripsi: getCellString(row, ["deskripsi", "description"]),
-          foto_url: getCellString(row, ["foto_url", "image_url"]),
-        }));
-
-        resolve(mergeDuplicateMembers(members));
-      } catch (error) {
-        reject(new Error(t.readExcelFailedPrefix + (error as Error).message));
-      }
-    };
-
-    reader.onerror = () => {
-      reject(new Error(t.readFileFailed));
-    };
-
-    reader.readAsArrayBuffer(file);
-  });
+    return mergeDuplicateMembers(members);
+  } catch (error) {
+    throw new Error(t.readExcelFailedPrefix + ((error as Error).message || t.readFileFailed));
+  }
 }
 
 /**
@@ -658,36 +671,12 @@ export function convertToFamilyNodes(members: ExcelMember[]): FamilyNode[] {
 /**
  * Generate downloadable Excel template
  */
-export function generateExcelTemplate(locale: Locale = "id"): Blob {
+export async function generateExcelTemplate(locale: Locale = "id"): Promise<Blob> {
   const t = getCopy(locale);
-  const workbook = XLSX.utils.book_new();
-
-  const worksheet = XLSX.utils.json_to_sheet([...t.sampleRows]);
-  worksheet["!cols"] = [
-    { width: 15 },
-    { width: 25 },
-    { width: 12 },
-    { width: 12 },
-    { width: 12 },
-    { width: 15 },
-    { width: 18 },
-    { width: 15 },
-    { width: 15 },
-    { width: 20 },
-    { width: 12 },
-    { width: 30 },
-    { width: 40 },
-  ];
-  XLSX.utils.book_append_sheet(workbook, worksheet, t.templateSheet);
-
-  const instructionSheet = XLSX.utils.json_to_sheet([...t.instructionRows]);
-  instructionSheet["!cols"] = [{ width: 18 }, { width: 65 }];
-  XLSX.utils.book_append_sheet(workbook, instructionSheet, t.instructionSheet);
-
-  const buffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
-  return new Blob([buffer], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
+  return writeXlsxFile([
+    { sheet: t.templateSheet, data: objectsToSheetData([...t.sampleRows]) },
+    { sheet: t.instructionSheet, data: objectsToSheetData([...t.instructionRows]) },
+  ]).toBlob();
 }
 
 type ExportSheetNames = {
@@ -841,15 +830,14 @@ function triggerBlobDownload(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-export function exportFamilyTreeToExcel(
+export async function exportFamilyTreeToExcel(
   tree: TreeData,
   locale: Locale = "id"
-): void {
+): Promise<void> {
   if (!tree.nodes.length) {
     throw new Error(locale === "id" ? "Tidak ada anggota untuk diekspor." : "No members to export.");
   }
 
-  const workbook = XLSX.utils.book_new();
   const copy = EXPORT_COPY[locale];
   const sortedNodes = [...tree.nodes].sort(sortPeople);
   const { nodeMap, parentMap, childMap, partnerMap } = buildRelationGraph(sortedNodes);
@@ -980,67 +968,12 @@ export function exportFamilyTreeToExcel(
       : { Key: "Exported At", Value: new Date().toISOString() },
   ];
 
-  const importSheet = XLSX.utils.json_to_sheet(importRows);
-  importSheet["!cols"] = [
-    { width: 22 },
-    { width: 28 },
-    { width: 14 },
-    { width: 12 },
-    { width: 12 },
-    { width: 22 },
-    { width: 28 },
-    { width: 28 },
-    { width: 20 },
-    { width: 24 },
-    { width: 20 },
-    { width: 24 },
-    { width: 28 },
-    { width: 28 },
-    { width: 12 },
-    { width: 45 },
-    { width: 32 },
-  ];
-  XLSX.utils.book_append_sheet(workbook, importSheet, copy.importSheet);
-
-  const relationSheet = XLSX.utils.json_to_sheet(relationRows);
-  relationSheet["!cols"] = [
-    { width: 22 },
-    { width: 28 },
-    { width: 14 },
-    { width: 10 },
-    { width: 12 },
-    { width: 12 },
-    { width: 14 },
-    { width: 20 },
-    { width: 24 },
-    { width: 20 },
-    { width: 24 },
-    { width: 28 },
-    { width: 32 },
-    { width: 28 },
-    { width: 32 },
-    { width: 28 },
-    { width: 32 },
-    { width: 28 },
-    { width: 32 },
-    { width: 28 },
-    { width: 32 },
-    { width: 28 },
-    { width: 32 },
-    { width: 34 },
-    { width: 38 },
-  ];
-  XLSX.utils.book_append_sheet(workbook, relationSheet, copy.relationSheet);
-
-  const summarySheet = XLSX.utils.json_to_sheet(summaryRows);
-  summarySheet["!cols"] = [{ width: 22 }, { width: 70 }];
-  XLSX.utils.book_append_sheet(workbook, summarySheet, copy.summarySheet);
-
-  const buffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
+  const blob = await writeXlsxFile([
+    { sheet: copy.importSheet, data: objectsToSheetData(importRows) },
+    { sheet: copy.relationSheet, data: objectsToSheetData(relationRows) },
+    { sheet: copy.summarySheet, data: objectsToSheetData(summaryRows) },
+  ]).toBlob();
   const fileDate = new Date().toISOString().split("T")[0];
-  const blob = new Blob([buffer], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
 
   triggerBlobDownload(blob, `${safeFileName(tree.name)}-export-${fileDate}.xlsx`);
 }

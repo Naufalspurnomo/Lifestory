@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
 import { FamilyNode } from "../../lib/types/tree";
 import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
@@ -11,18 +11,37 @@ interface SearchBarProps {
 
 export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
   const { locale } = useLanguage();
+  const listboxId = useId();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const copy =
     locale === "id"
       ? {
           placeholder: "Cari keluarga...",
+          label: "Cari anggota keluarga",
           generation: "Generasi",
+          line: {
+            paternal: "jalur Ayah",
+            maternal: "jalur Ibu",
+            self: "Anda",
+            descendant: "keturunan",
+            union: "pasangan",
+            default: "keluarga",
+          } as Record<string, string>,
           notFound: (text: string) => `Tidak ditemukan hasil untuk "${text}"`,
         }
       : {
           placeholder: "Search family...",
+          label: "Search family members",
           generation: "Generation",
+          line: {
+            paternal: "Father's line",
+            maternal: "Mother's line",
+            self: "You",
+            descendant: "Descendant",
+            union: "Partner",
+            default: "Family",
+          } as Record<string, string>,
           notFound: (text: string) => `No result found for "${text}"`,
         };
 
@@ -30,22 +49,48 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return [];
 
-    return nodes.filter((node) =>
-      node.label.toLowerCase().includes(normalizedQuery)
-    );
-  }, [nodes, query]);
+    return nodes
+      .filter((node) => {
+        const searchable = [
+          node.label,
+          node.year,
+          node.deathYear,
+          node.generation,
+          node.line ? copy.line[node.line] : copy.line.default,
+        ]
+          .filter((value) => value !== null && value !== undefined)
+          .join(" ")
+          .toLowerCase();
+        return searchable.includes(normalizedQuery);
+      })
+      .slice(0, 8);
+  }, [copy.line, nodes, query]);
+
+  function resultMeta(node: FamilyNode) {
+    const line = node.line ? copy.line[node.line] : copy.line.default;
+    const year = node.year ? String(node.year) : "?";
+    return `${line} - ${copy.generation} ${node.generation} - ${year}`;
+  }
 
   return (
     <div className="relative w-full max-w-sm">
       <div className="relative">
         <input
           type="text"
+          role="combobox"
+          aria-label={copy.label}
+          aria-autocomplete="list"
+          aria-expanded={isOpen && Boolean(query)}
+          aria-controls={listboxId}
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setIsOpen(false);
+          }}
           placeholder={copy.placeholder}
           className="h-10 w-full rounded-xl border border-cream-300 bg-cream-50/90 pl-10 pr-10 text-sm font-semibold text-ink-800 shadow-sm outline-none transition-all placeholder:text-ink-500 backdrop-blur focus:border-brand-700 focus:ring-2 focus:ring-brand-100"
         />
@@ -67,7 +112,11 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
       </div>
 
       {isOpen && query && (
-        <div className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-cream-300 bg-cream-50 shadow-xl animate-[fadeIn_0.2s]">
+        <div
+          id={listboxId}
+          role="listbox"
+          className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-cream-300 bg-cream-50 shadow-xl animate-[fadeIn_0.2s]"
+        >
           {filteredNodes.length > 0 ? (
             <div className="max-h-[min(18rem,calc(100dvh-12rem))] overflow-y-auto py-2">
               {filteredNodes.map((node) => {
@@ -77,6 +126,9 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
 
                 return (
                   <button
+                    id={`${listboxId}-${node.id}`}
+                    role="option"
+                    aria-selected={false}
                     key={node.id}
                     onClick={() => {
                       onSelect(node.id);
@@ -102,7 +154,7 @@ export default function SearchBar({ nodes, onSelect }: SearchBarProps) {
                         {node.label}
                       </div>
                       <div className="text-xs text-ink-500">
-                        {copy.generation} {node.generation} - {node.year || "?"}
+                        {resultMeta(node)}
                       </div>
                     </div>
                   </button>
