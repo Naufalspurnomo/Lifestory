@@ -145,6 +145,24 @@ describe("invite API invariants", () => {
   });
 });
 
+describe("tree action menu invariants", () => {
+  it("keeps the tree action menus controlled and click-outside closable", () => {
+    const source = readSource("app/app/page.tsx");
+
+    expect(source).toContain(
+      'const [openActionMenu, setOpenActionMenu] = useState<ActionMenuKey | null>(null);'
+    );
+    expect(source).toContain("mobileActionMenuRef");
+    expect(source).toContain("desktopActionMenuRef");
+    expect(source).toContain('document.addEventListener("pointerdown", handlePointerDown, true)');
+    expect(source).toContain("toggleActionMenu(group.key)");
+    expect(source).toContain("aria-expanded={isOpen}");
+    expect(source).toContain("setOpenActionMenu(null);");
+    expect(source).not.toContain('closest("details")');
+    expect(source).not.toContain('removeAttribute("open")');
+  });
+});
+
 describe("public auth and gallery hardening invariants", () => {
   it("keeps registration throttled to five attempts per IP per hour", () => {
     const source = readSource("lib/rate-limit.ts");

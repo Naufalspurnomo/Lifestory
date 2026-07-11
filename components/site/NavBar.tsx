@@ -232,20 +232,11 @@ function SessionAwareNavBar({
               <Link
                 key={link.href}
                 href={link.href}
-                className={`group relative pb-2 text-[14px] font-serif tracking-[0.03em] transition-all duration-300 ${
-                  active
-                    ? "text-ink-900 italic font-medium"
-                    : "text-ink-500 hover:text-ink-900"
+                className={`text-[14px] font-serif tracking-[0.03em] transition-colors duration-300 ${
+                  active ? "text-ink-900" : "text-ink-500 hover:text-ink-900"
                 }`}
               >
                 {link.label}
-                <span
-                  className={`absolute -bottom-1 left-1/2 h-[3px] w-[3px] -translate-x-1/2 rounded-full bg-brand-400 transition-all duration-300 ${
-                    active
-                      ? "opacity-100 scale-100"
-                      : "opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100"
-                  }`}
-                />
               </Link>
             );
           })}
@@ -386,9 +377,9 @@ function SessionAwareNavBar({
                     <Link
                       href={link.href}
                       onClick={() => setMobileOpen(false)}
-                      className={`block font-serif text-[2.5rem] leading-tight font-medium tracking-tight transition-colors ${
+                      className={`block font-serif text-[2.5rem] leading-tight tracking-tight transition-colors ${
                         active
-                          ? "text-brand-700 italic"
+                          ? "text-brand-700"
                           : "text-ink-800 hover:text-ink-500"
                       }`}
                     >

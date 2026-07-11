@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -52,6 +52,8 @@ type GalleryEntry = MediaItem & {
   ownerName: string;
   ownerYear: number | null;
 };
+
+type ActionMenuKey = "manage" | "download";
 
 export default function AppHome() {
   const { data: session, status } = useSession();
@@ -219,9 +221,12 @@ export default function AppHome() {
   const [firstTreeWelcomeError, setFirstTreeWelcomeError] = useState<string | null>(null);
   const [isFirstTreeWelcomeSubmitting, setIsFirstTreeWelcomeSubmitting] = useState(false);
   const [viewMode, setViewMode] = useState<"tree" | "timeline">("tree");
+  const [openActionMenu, setOpenActionMenu] = useState<ActionMenuKey | null>(null);
 
   const [isTomeOpen, setIsTomeOpen] = useState(false);
   const [isVaultOpen, setIsVaultOpen] = useState(false);
+  const mobileActionMenuRef = useRef<HTMLDivElement | null>(null);
+  const desktopActionMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -565,6 +570,29 @@ export default function AppHome() {
     }
   }, [copy, currentTree, locale, showNotification]);
 
+  useEffect(() => {
+    if (!openActionMenu) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+
+      const actionMenuContainers = [mobileActionMenuRef.current, desktopActionMenuRef.current];
+      if (actionMenuContainers.some((container) => container?.contains(target))) {
+        return;
+      }
+
+      setOpenActionMenu(null);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () => document.removeEventListener("pointerdown", handlePointerDown, true);
+  }, [openActionMenu]);
+
+  const toggleActionMenu = useCallback((menu: ActionMenuKey) => {
+    setOpenActionMenu((current) => (current === menu ? null : menu));
+  }, []);
+
   const treeActions = [
     ...(treeCapabilities.canManageMembers ? [{
       label: copy.requests,
@@ -595,16 +623,75 @@ export default function AppHome() {
 
   const actionGroups = [
     {
+      key: "manage" as const,
       label: copy.manage,
       Icon: UserPlus,
       actions: treeActions.slice(0, 3),
     },
     {
+      key: "download" as const,
       label: copy.archive,
       Icon: Download,
       actions: treeActions.slice(3),
     },
   ];
+
+  const renderActionGroup = (
+    group: (typeof actionGroups)[number],
+    groupIndex: number,
+    layout: "mobile" | "desktop"
+  ) => {
+    const GroupIcon = group.Icon;
+    const isOpen = openActionMenu === group.key;
+    const summaryClassName =
+      layout === "mobile"
+        ? "inline-flex h-9 w-9 cursor-pointer list-none items-center justify-center gap-1.5 rounded-full border border-cream-400 bg-cream-200 px-0 text-[11px] font-bold text-ink-600 transition hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm sm:w-auto sm:px-3 [&::-webkit-details-marker]:hidden"
+        : "flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-cream-400 bg-cream-200 px-3 py-1.5 text-xs font-bold text-ink-600 transition-colors hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm";
+    const menuClassName =
+      layout === "mobile"
+        ? `absolute top-11 z-50 min-w-40 rounded-xl border border-cream-300 bg-cream-50 p-1.5 shadow-xl shadow-ink-900/10 ${
+            groupIndex === actionGroups.length - 1 ? "right-0" : "left-0"
+          }`
+        : "absolute right-0 top-10 z-50 min-w-40 rounded-xl border border-cream-300 bg-cream-50 p-1.5 shadow-xl shadow-ink-900/10";
+
+    return (
+      <div key={group.key} className="group relative inline-flex shrink-0">
+        <button
+          type="button"
+          className={summaryClassName}
+          title={group.label}
+          aria-label={group.label}
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+          onClick={() => toggleActionMenu(group.key)}
+        >
+          <GroupIcon className="h-[15px] w-[15px]" />
+          <span className="hidden sm:inline">{group.label}</span>
+        </button>
+        {isOpen ? (
+          <div className={menuClassName}>
+            {group.actions.map((btn) => {
+              const Icon = btn.Icon;
+              return (
+                <button
+                  key={btn.label}
+                  type="button"
+                  onClick={() => {
+                    setOpenActionMenu(null);
+                    btn.onClick();
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold text-ink-700 transition hover:bg-cream-200"
+                >
+                  <Icon className="h-[15px] w-[15px] text-brand-700" />
+                  {btn.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   const stats = {
     generations: 0,
@@ -758,41 +845,11 @@ export default function AppHome() {
                     {copy.viewTimeline}
                   </button>
                 </div>
-                {actionGroups.map((group, groupIndex) => {
-                  const GroupIcon = group.Icon;
-                  return (
-                    <details key={group.label} className="group relative inline-flex shrink-0">
-                      <summary
-                        className="inline-flex h-9 w-9 cursor-pointer list-none items-center justify-center gap-1.5 rounded-full border border-cream-400 bg-cream-200 px-0 text-[11px] font-bold text-ink-600 transition hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm sm:w-auto sm:px-3 [&::-webkit-details-marker]:hidden"
-                        title={group.label}
-                        aria-label={group.label}
-                      >
-                        <GroupIcon className="h-[15px] w-[15px]" />
-                        <span className="hidden sm:inline">{group.label}</span>
-                      </summary>
-                      <div className={`absolute top-11 z-50 min-w-40 rounded-xl border border-cream-300 bg-cream-50 p-1.5 shadow-xl shadow-ink-900/10 ${
-                        groupIndex === actionGroups.length - 1 ? "right-0" : "left-0"
-                      }`}>
-                        {group.actions.map((btn) => {
-                          const Icon = btn.Icon;
-                          return (
-                            <button
-                              key={btn.label}
-                              onClick={(event) => {
-                                (event.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
-                                btn.onClick();
-                              }}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold text-ink-700 transition hover:bg-cream-200"
-                            >
-                              <Icon className="h-[15px] w-[15px] text-brand-700" />
-                              {btn.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </details>
-                  );
-                })}
+                <div ref={mobileActionMenuRef} className="flex items-center gap-1.5">
+                  {actionGroups.map((group, groupIndex) =>
+                    renderActionGroup(group, groupIndex, "mobile")
+                  )}
+                </div>
               </div>
             </div>
 
@@ -838,36 +895,10 @@ export default function AppHome() {
                   }}
                 />
               </div>
-              <div className="flex items-center gap-2">
-                {actionGroups.map((group) => {
-                  const GroupIcon = group.Icon;
-                  return (
-                    <details key={group.label} className="group relative">
-                      <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-cream-400 bg-cream-200 px-3 py-1.5 text-xs font-bold text-ink-600 transition-colors hover:bg-cream-50 hover:text-ink-800 hover:shadow-sm [&::-webkit-details-marker]:hidden">
-                        <GroupIcon className="h-[15px] w-[15px]" />
-                        {group.label}
-                      </summary>
-                      <div className="absolute right-0 top-10 z-50 min-w-40 rounded-xl border border-cream-300 bg-cream-50 p-1.5 shadow-xl shadow-ink-900/10">
-                        {group.actions.map((btn) => {
-                          const Icon = btn.Icon;
-                          return (
-                            <button
-                              key={btn.label}
-                              onClick={(event) => {
-                                (event.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
-                                btn.onClick();
-                              }}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold text-ink-700 transition hover:bg-cream-200"
-                            >
-                              <Icon className="h-[15px] w-[15px] text-brand-700" />
-                              {btn.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </details>
-                  );
-                })}
+              <div ref={desktopActionMenuRef} className="flex items-center gap-2">
+                {actionGroups.map((group, groupIndex) =>
+                  renderActionGroup(group, groupIndex, "desktop")
+                )}
               </div>
               {/* User profile */}
               <div className="flex items-center gap-2 rounded-full border border-cream-300 bg-cream-50 px-1.5 py-1.5">

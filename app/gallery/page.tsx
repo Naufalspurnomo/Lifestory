@@ -3,30 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import {
-  BookOpenText,
-  ChevronLeft,
-  ChevronRight,
-  ExternalLink,
-  FileDown,
-  Maximize2,
-  X,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, FileDown } from "lucide-react";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { galleryItems } from "../../lib/content/galleryItems";
-import {
-  getGalleryLocalizedMeta,
-  type LocalizedGalleryMeta,
-} from "../../lib/content/galleryLocalizedMeta";
+import { getGalleryLocalizedMeta, type LocalizedGalleryMeta } from "../../lib/content/galleryLocalizedMeta";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 
 export default function GalleryPage() {
-  return (
-    <Suspense fallback={<GalleryPageSkeleton />}>
-      <GalleryPageContent />
-    </Suspense>
-  );
+  return <Suspense fallback={<GalleryPageSkeleton />}><GalleryPageContent /></Suspense>;
 }
 
 function GalleryPageContent() {
@@ -34,743 +18,101 @@ function GalleryPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-  const [activePane, setActivePane] = useState<"story" | "pdf">("story");
-  const [isFocusedReaderOpen, setIsFocusedReaderOpen] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
-
   const activeItem = galleryItems[activeIndex] ?? galleryItems[0];
   const activePdf = activeItem?.pdf ?? null;
-  const pdfViewerSrc = activePdf
-    ? `${activePdf.url}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`
-    : null;
-  const copy =
-    locale === "id"
-      ? {
-          sectionLabel: "Galeri",
-          title: "Koleksi Biografi Pilihan",
-          desc:
-            "Halaman ini memperluas section unggulan dari beranda. Koleksi yang sama, sekarang dengan konteks lebih kaya, catatan era, identitas visual, dan reader PDF untuk naskah memoar keluarga.",
-          backHome: "Kembali ke Beranda",
-          era: "Era",
-          palette: "Palet",
-          tips: "Tips: gunakan tombol panah kiri/kanan untuk melihat sampul dengan cepat.",
-          storyTab: "Cerita Sampul",
-          pdfTab: "Baca PDF",
-          pdfReaderTitle: "Naskah Memoar Keluarga",
-          pdfReaderDesc:
-            "Dokumen ini bisa langsung dibaca dari galeri. Gunakan mode fokus jika ingin pengalaman baca yang lebih lega.",
-          openPdfTab: "Buka Reader PDF",
-          focusMode: "Mode Fokus",
-          openInNewTab: "Tab Baru",
-          downloadPdf: "Unduh PDF",
-          readerHint:
-            "Tip baca: gunakan scroll atau kontrol bawaan PDF untuk navigasi halaman.",
-          closeReader: "Tutup Reader",
-          prev: "Sebelumnya",
-          next: "Berikutnya",
-          close: "Tutup",
-          ariaCloseModal: "Tutup modal",
-          ariaPrevCover: "Sampul sebelumnya",
-          ariaNextCover: "Sampul berikutnya",
-          ariaCloseReader: "Tutup pembaca PDF",
-          ariaOpenFocusedReader: "Buka pembaca PDF mode fokus",
-          ariaOpenPdfNewTab: "Buka PDF di tab baru",
-          ariaDownloadPdf: "Unduh PDF",
-          ariaPdfFrame: (title: string) => `Pembaca PDF untuk ${title}`,
-          ariaOpenDetails: (title: string) => `Buka detail ${title}`,
-        }
-      : {
-          sectionLabel: "Gallery",
-          title: "Featured Biography Collections",
-          desc:
-            "This page expands the featured section from homepage. Same collection, now with richer context, era notes, visual identity details, and a built-in PDF reader for family memoir manuscripts.",
-          backHome: "Back to Home",
-          era: "Era",
-          palette: "Palette",
-          tips: "Tips: use left/right arrow keys to browse covers quickly.",
-          storyTab: "Cover Story",
-          pdfTab: "Read PDF",
-          pdfReaderTitle: "Family Memoir Manuscript",
-          pdfReaderDesc:
-            "This document can be read directly from the gallery. Use focus mode for a more immersive reading layout.",
-          openPdfTab: "Open PDF Reader",
-          focusMode: "Focus Mode",
-          openInNewTab: "New Tab",
-          downloadPdf: "Download PDF",
-          readerHint:
-            "Reading tip: scroll naturally or use the built-in PDF controls for page navigation.",
-          closeReader: "Close Reader",
-          prev: "Prev",
-          next: "Next",
-          close: "Close",
-          ariaCloseModal: "Close modal",
-          ariaPrevCover: "Previous cover",
-          ariaNextCover: "Next cover",
-          ariaCloseReader: "Close PDF reader",
-          ariaOpenFocusedReader: "Open PDF reader in focus mode",
-          ariaOpenPdfNewTab: "Open PDF in new tab",
-          ariaDownloadPdf: "Download PDF",
-          ariaPdfFrame: (title: string) => `PDF reader for ${title}`,
-          ariaOpenDetails: (title: string) => `Open ${title} details`,
-        };
+  const copy = locale === "id" ? {
+    sectionLabel: "Galeri", backHome: "Kembali ke Beranda", era: "Era",
+    openInNewTab: "Buka naskah", downloadPdf: "Unduh PDF", prev: "Sebelumnya", next: "Berikutnya",
+    ariaPrevCover: "Kisah sebelumnya", ariaNextCover: "Kisah berikutnya", ariaOpenPdfNewTab: "Buka PDF di tab baru", ariaDownloadPdf: "Unduh PDF",
+  } : {
+    sectionLabel: "Gallery", backHome: "Back to Home", era: "Era",
+    openInNewTab: "Open manuscript", downloadPdf: "Download PDF", prev: "Previous", next: "Next",
+    ariaPrevCover: "Previous story", ariaNextCover: "Next story", ariaOpenPdfNewTab: "Open PDF in new tab", ariaDownloadPdf: "Download PDF",
+  };
 
-  const getLocalizedMeta = useCallback(
-    (itemId: string): LocalizedGalleryMeta | null => {
-      return getGalleryLocalizedMeta(itemId, locale) ?? null;
-    },
-    [locale]
-  );
-
+  const getLocalizedMeta = useCallback((itemId: string): LocalizedGalleryMeta | null => getGalleryLocalizedMeta(itemId, locale) ?? null, [locale]);
   const activeMeta = activeItem ? getLocalizedMeta(activeItem.id) : null;
-
-  const replaceItemQuery = useCallback(
-    (itemId: string | null) => {
-      const params = new URLSearchParams(searchParams.toString());
-
-      if (itemId) {
-        params.set("item", itemId);
-      } else {
-        params.delete("item");
-      }
-
-      const query = params.toString();
-      const nextUrl = query ? `${pathname}?${query}` : pathname;
-      router.replace(nextUrl, { scroll: false });
-    },
-    [pathname, router, searchParams],
-  );
-
-  const selectItem = useCallback(
-    (index: number) => {
-      setActiveIndex(index);
-      replaceItemQuery(galleryItems[index].id);
-    },
-    [replaceItemQuery],
-  );
-
-  const openItem = useCallback(
-    (index: number) => {
-      selectItem(index);
-      setIsDetailOpen(true);
-      setActivePane("story");
-      setIsFocusedReaderOpen(false);
-    },
-    [selectItem],
-  );
-
-  const closeModal = useCallback(() => {
-    setActivePane("story");
-    setIsFocusedReaderOpen(false);
-    setIsDetailOpen(false);
-  }, []);
-
-  const goNext = useCallback(() => {
-    setActivePane("story");
-    setIsFocusedReaderOpen(false);
-    setActiveIndex((prev) => {
-      const nextIndex = (prev + 1) % galleryItems.length;
-      replaceItemQuery(galleryItems[nextIndex].id);
-      return nextIndex;
-    });
+  const replaceItemQuery = useCallback((itemId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("item", itemId);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+  const selectItem = useCallback((index: number) => {
+    setActiveIndex(index);
+    replaceItemQuery(galleryItems[index].id);
   }, [replaceItemQuery]);
-
-  const goPrev = useCallback(() => {
-    setActivePane("story");
-    setIsFocusedReaderOpen(false);
-    setActiveIndex((prev) => {
-      const prevIndex = (prev - 1 + galleryItems.length) % galleryItems.length;
-      replaceItemQuery(galleryItems[prevIndex].id);
-      return prevIndex;
-    });
-  }, [replaceItemQuery]);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const goNext = useCallback(() => selectItem((activeIndex + 1) % galleryItems.length), [activeIndex, selectItem]);
+  const goPrev = useCallback(() => selectItem((activeIndex - 1 + galleryItems.length) % galleryItems.length), [activeIndex, selectItem]);
 
   useEffect(() => {
     const itemId = searchParams.get("item");
-
-    if (!itemId) {
-      setActiveIndex(0);
-      return;
-    }
-
-    const indexFromQuery = galleryItems.findIndex((item) => item.id === itemId);
-    if (indexFromQuery === -1) {
-      setActiveIndex(0);
-      return;
-    }
-
-    setActiveIndex((prev) => (prev === indexFromQuery ? prev : indexFromQuery));
+    const index = galleryItems.findIndex((item) => item.id === itemId);
+    if (index >= 0) setActiveIndex(index);
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!activePdf) {
-      setActivePane("story");
-      setIsFocusedReaderOpen(false);
-    }
-  }, [activePdf]);
-
-  useEffect(() => {
-    if (!isDetailOpen || isFocusedReaderOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeModal();
-        return;
-      }
-
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        goNext();
-      }
-
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        goPrev();
-      }
-    }
-
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [closeModal, goNext, goPrev, isDetailOpen, isFocusedReaderOpen]);
-
-  useEffect(() => {
-    if (!isFocusedReaderOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    function onReaderKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setIsFocusedReaderOpen(false);
-      }
-    }
-
-    window.addEventListener("keydown", onReaderKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onReaderKeyDown);
-    };
-  }, [isFocusedReaderOpen]);
-
-  const modal = isDetailOpen && activeItem ? (
-    <div
-      className="fixed inset-0 z-[120] bg-[rgba(16,11,7,0.76)] backdrop-blur-[3px]"
-      role="dialog"
-      aria-modal="true"
-      onClick={closeModal}
-    >
-      <div className="mx-auto flex min-h-full w-full max-w-6xl items-center justify-center p-3 sm:p-5 md:p-8">
-        <div
-          className="relative w-full overflow-hidden rounded-[24px] border border-[#bca783]/45 bg-[#f5efe4] shadow-[0_28px_60px_rgba(17,12,8,0.42)] md:max-h-[calc(100vh-4rem)]"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <button
-            type="button"
-            onClick={closeModal}
-            className="absolute right-3 top-3 z-20 hidden h-10 w-10 items-center justify-center rounded-full border border-[#d9ccb8] bg-white/90 text-[#5d4f42] shadow-sm transition hover:bg-white md:inline-flex"
-            aria-label={copy.ariaCloseModal}
-          >
-            <X className="h-5 w-5" />
-          </button>
-
-          <div className="grid md:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-            <div className="relative h-[42vh] min-h-[280px] md:h-auto md:min-h-[560px]">
-              <Image
-                src={activeItem.src}
-                alt={activeItem.alt}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 50vw"
-                priority
-              />
-            </div>
-
-            <div className="max-h-[48vh] space-y-5 overflow-y-auto p-6 md:max-h-[calc(100vh-4rem)] md:p-10">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a68553]">
-                {activeMeta?.subtitle || activeItem.subtitle}
-              </p>
-              <h2 className="font-serif text-[clamp(2rem,4vw,3.2rem)] leading-tight text-[#3f342d]">
-                {activeItem.title}
-              </h2>
-
-              <div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#705f4e]">
-                <span className="rounded-full border border-[#dfd2bb] bg-white/80 px-2.5 py-1">
-                  {copy.era}: {activeMeta?.era || activeItem.era}
-                </span>
-                <span className="rounded-full border border-[#dfd2bb] bg-white/80 px-2.5 py-1">
-                  {copy.palette}: {activeMeta?.palette || activeItem.palette}
-                </span>
-              </div>
-
-              {activePdf ? (
-                <div className="inline-flex rounded-full border border-[#dbcba6] bg-white/90 p-1 shadow-[0_8px_20px_rgba(96,71,33,0.1)]">
-                  <button
-                    type="button"
-                    onClick={() => setActivePane("story")}
-                    className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
-                      activePane === "story"
-                        ? "bg-[#b88642] text-white shadow-[0_8px_18px_rgba(142,94,35,0.35)]"
-                        : "text-[#6f5a42] hover:text-[#4d3e2e]"
-                    }`}
-                  >
-                    {copy.storyTab}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActivePane("pdf")}
-                    className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
-                      activePane === "pdf"
-                        ? "bg-[#8d5f2c] text-white shadow-[0_8px_18px_rgba(115,73,24,0.35)]"
-                        : "text-[#6f5a42] hover:text-[#4d3e2e]"
-                    }`}
-                  >
-                    {copy.pdfTab}
-                  </button>
-                </div>
-              ) : null}
-
-              {activePane === "pdf" && activePdf && pdfViewerSrc ? (
-                <div className="space-y-4 rounded-[20px] border border-[#d9c49d] bg-[linear-gradient(150deg,#fff9eb_0%,#f9efdc_48%,#f2e2c8_100%)] p-4 shadow-[0_16px_28px_rgba(90,62,26,0.16)]">
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#a37733]">
-                      {copy.pdfReaderTitle}
-                    </p>
-                    <p className="text-sm leading-relaxed text-[#5f4c37]">
-                      {copy.pdfReaderDesc}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsFocusedReaderOpen(true)}
-                      className="inline-flex items-center gap-2 rounded-full border border-[#c6a269] bg-[#fdfbf6] px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#6f4a21] transition hover:bg-white"
-                      aria-label={copy.ariaOpenFocusedReader}
-                    >
-                      <Maximize2 className="h-3.5 w-3.5" />
-                      {copy.focusMode}
-                    </button>
-                    <a
-                      href={activePdf.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 rounded-full border border-[#d4bd95] bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#5f4d37] transition hover:bg-white"
-                      aria-label={copy.ariaOpenPdfNewTab}
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      {copy.openInNewTab}
-                    </a>
-                    <a
-                      href={activePdf.url}
-                      download={activePdf.fileName}
-                      className="inline-flex items-center gap-2 rounded-full border border-[#d4bd95] bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#5f4d37] transition hover:bg-white"
-                      aria-label={copy.ariaDownloadPdf}
-                    >
-                      <FileDown className="h-3.5 w-3.5" />
-                      {copy.downloadPdf}
-                    </a>
-                  </div>
-
-                  <div className="overflow-hidden rounded-2xl border border-[#c9ad78]/70 bg-[#fef9ee] shadow-inner">
-                    <iframe
-                      title={copy.ariaPdfFrame(activeItem.title)}
-                      src={pdfViewerSrc}
-                      className="h-[420px] w-full md:h-[500px]"
-                    />
-                  </div>
-
-                  <p className="text-xs leading-relaxed text-[#705a42]">
-                    {copy.readerHint}
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <p className="max-w-xl text-base leading-relaxed text-[#6f6358] md:text-lg">
-                    {activeMeta?.summary || activeItem.summary}
-                  </p>
-
-                  <p className="text-sm text-[#7b6e61]">
-                    {copy.tips}
-                  </p>
-
-                  {activePdf ? (
-                    <button
-                      type="button"
-                      onClick={() => setActivePane("pdf")}
-                      className="inline-flex items-center gap-2 rounded-full border border-[#cfb07e] bg-[#fff8ea] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#70491f] transition hover:bg-white"
-                    >
-                      <BookOpenText className="h-4 w-4" />
-                      {copy.openPdfTab}
-                    </button>
-                  ) : null}
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 border-t border-[#deceb6] bg-[#f7f1e6] p-3 md:hidden">
-            <button
-              type="button"
-              onClick={goPrev}
-              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[#d9ccb8] bg-white text-sm font-semibold text-[#5d4f42]"
-              aria-label={copy.ariaPrevCover}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              {copy.prev}
-            </button>
-            <button
-              type="button"
-              onClick={closeModal}
-              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[#e4c9c9] bg-[#fff5f5] text-sm font-semibold text-[#9b4d4d]"
-              aria-label={copy.ariaCloseModal}
-            >
-              <X className="h-4 w-4" />
-              {copy.close}
-            </button>
-            <button
-              type="button"
-              onClick={goNext}
-              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[#d9ccb8] bg-white text-sm font-semibold text-[#5d4f42]"
-              aria-label={copy.ariaNextCover}
-            >
-              {copy.next}
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={goPrev}
-            className="absolute left-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#d9ccb8] bg-white/90 text-[#5d4f42] shadow-sm transition hover:bg-white md:inline-flex"
-            aria-label={copy.ariaPrevCover}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-
-          <button
-            type="button"
-            onClick={goNext}
-            className="absolute right-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#d9ccb8] bg-white/90 text-[#5d4f42] shadow-sm transition hover:bg-white md:inline-flex"
-            aria-label={copy.ariaNextCover}
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-    </div>
-  ) : null;
-
-  const focusedReaderModal =
-    isDetailOpen && activeItem && activePdf && pdfViewerSrc && isFocusedReaderOpen ? (
-      <div
-        className="fixed inset-0 z-[130] bg-[rgba(19,12,6,0.84)] backdrop-blur-[4px]"
-        role="dialog"
-        aria-modal="true"
-        onClick={() => setIsFocusedReaderOpen(false)}
-      >
-        <div className="mx-auto flex min-h-full w-full max-w-[1500px] items-center justify-center p-3 sm:p-5 md:p-7">
-          <div
-            className="w-full overflow-hidden rounded-[22px] border border-[#b89967]/55 bg-[linear-gradient(170deg,#fff9ec_0%,#f7e9ce_45%,#f0debc_100%)] shadow-[0_28px_60px_rgba(20,11,5,0.45)]"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d9c39a] bg-white/70 px-4 py-3 md:px-6">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#9f7538]">
-                  {copy.pdfReaderTitle}
-                </p>
-                <p className="text-sm text-[#5f4d36]">{activePdf.fileName}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <a
-                  href={activePdf.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex h-10 items-center gap-2 rounded-full border border-[#cfb68b] bg-white px-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#5f4b33]"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  {copy.openInNewTab}
-                </a>
-                <a
-                  href={activePdf.url}
-                  download={activePdf.fileName}
-                  className="inline-flex h-10 items-center gap-2 rounded-full border border-[#cfb68b] bg-white px-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#5f4b33]"
-                >
-                  <FileDown className="h-3.5 w-3.5" />
-                  {copy.downloadPdf}
-                </a>
-                <button
-                  type="button"
-                  onClick={() => setIsFocusedReaderOpen(false)}
-                  className="inline-flex h-10 items-center gap-2 rounded-full border border-[#dcb5a7] bg-[#fff4f1] px-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#8f4f44]"
-                  aria-label={copy.ariaCloseReader}
-                >
-                  <X className="h-3.5 w-3.5" />
-                  {copy.closeReader}
-                </button>
-              </div>
-            </div>
-            <iframe
-              title={copy.ariaPdfFrame(activeItem.title)}
-              src={pdfViewerSrc}
-              className="h-[82vh] min-h-[520px] w-full md:h-[84vh]"
-            />
-          </div>
-        </div>
-      </div>
-    ) : null;
-
   return (
-    <div className="bg-[#faf6ed] text-[#40342c]">
-      <section className="mx-auto max-w-[1320px] px-6 py-16 md:py-20">
-        <div className="mb-14 flex flex-col gap-6 md:mb-16 md:flex-row md:items-start md:justify-between md:gap-10">
-          <div className="max-w-3xl space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a68553]">
-              {copy.sectionLabel}
-            </p>
-            <h1 className="font-serif text-[clamp(2rem,4.8vw,3.8rem)] leading-[1.06] text-[#3f342d]">
-              {copy.title}
-            </h1>
-            <p className="text-base leading-relaxed text-[#72675f] md:text-lg">
-              {copy.desc}
-            </p>
-          </div>
+    <div className="min-h-screen bg-[#1d1610] text-[#faf6ed]">
+      <section className="mx-auto max-w-[1540px] px-5 py-6 sm:px-8 lg:px-12 lg:py-10">
+        <header className="mb-8 flex items-center justify-between gap-6 lg:mb-10">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#c5a66f]">{copy.sectionLabel} <span className="text-[#84776a]">/ 01—0{galleryItems.length}</span></p>
+          <Link href="/" className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em] text-[#ded4c3] transition hover:text-[#c5a66f]"><span aria-hidden>←</span>{copy.backHome}</Link>
+        </header>
 
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 self-start rounded-full border border-[#dccfb3] bg-white/80 px-5 py-2 text-sm font-semibold text-[#6c5a49] transition hover:border-[#c7b289] hover:bg-white hover:text-[#4c3f34] md:mt-1 md:self-start"
-          >
-            {copy.backHome}
-            <span aria-hidden>&rarr;</span>
-          </Link>
-        </div>
+        <div className="grid gap-8 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-12">
+          <aside className="min-w-0 border-t border-[#4a3a2a] pt-4 lg:border-t-0 lg:pt-6">
+            <div className="mb-4 flex items-center justify-between lg:block">
+              <p className="text-[10px] font-bold uppercase tracking-[0.19em] text-[#c5a66f]">{locale === "id" ? "Koleksi" : "Collection"}</p>
+              <span className="text-[10px] tracking-[0.14em] text-[#84776a]">0{activeIndex + 1} / 0{galleryItems.length}</span>
+            </div>
+            <div className="flex w-full min-w-0 gap-2 overflow-x-auto pb-2 lg:flex-col lg:gap-1 lg:overflow-visible">
+              {galleryItems.map((item, index) => {
+                const isActive = index === activeIndex;
+                return <button key={item.id} type="button" onClick={() => selectItem(index)} aria-pressed={isActive} className={`min-w-max border-l-2 py-2 pl-3 pr-2 text-left transition lg:min-w-0 lg:py-3 ${isActive ? "border-[#c5a66f] text-[#faf6ed]" : "border-transparent text-[#84776a] hover:border-[#66523c] hover:text-[#ded4c3]"}`}>
+                  <span className={`mr-2 text-[10px] font-bold tracking-[0.1em] ${isActive ? "text-[#c5a66f]" : ""}`}>0{index + 1}</span>
+                  <span className="font-serif text-lg leading-none">{item.title}</span>
+                </button>;
+              })}
+            </div>
+          </aside>
 
-        <div className="space-y-7">
-          <div className="grid gap-6 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)] lg:gap-7">
-            <aside className="rounded-[28px] border border-[#d7cbb6] bg-white/75 p-4 shadow-[0_14px_34px_rgba(88,67,37,0.08)] backdrop-blur-sm">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a68553]">
-                    Pilih sampul
-                  </p>
-                  <p className="mt-1 text-sm text-[#72675f]">
-                    Geser daftar ini untuk melihat opsi lain.
-                  </p>
-                </div>
-                <span className="rounded-full border border-[#e1d4bc] bg-[#faf7f1] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7d6a55]">
-                  {activeIndex + 1}/{galleryItems.length}
-                </span>
+          <article className="grid overflow-hidden border border-[#3b2d20] bg-[#2a2018] lg:grid-cols-[minmax(0,1.12fr)_minmax(300px,.88fr)]" onTouchStart={(event) => { touchStartXRef.current = event.touches[0]?.clientX ?? null; }} onTouchEnd={(event) => {
+            const startX = touchStartXRef.current; const endX = event.changedTouches[0]?.clientX ?? null;
+            if (startX !== null && endX !== null && Math.abs(endX - startX) >= 48) endX < startX ? goNext() : goPrev();
+            touchStartXRef.current = null;
+          }} onTouchCancel={() => { touchStartXRef.current = null; }}>
+            <div className="relative min-h-[420px] bg-[#31261c] sm:min-h-[560px] lg:min-h-[680px]">
+              <Image src={activeItem.src} alt={activeItem.alt} fill priority className="object-cover grayscale" sizes="(max-width: 1024px) 100vw, 60vw" />
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(0deg,rgba(20,14,9,.62),rgba(20,14,9,0)_42%)]" />
+              <p className="absolute bottom-5 left-5 max-w-[15rem] text-[10px] font-bold uppercase tracking-[0.16em] text-[#f5ebdc]/75">{activeMeta?.subtitle || activeItem.subtitle}</p>
+            </div>
+            <div className="flex flex-col justify-between px-6 py-8 sm:px-9 lg:px-11 lg:py-12">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.19em] text-[#c5a66f]">{copy.era} {activeMeta?.era || activeItem.era}</p>
+                <h1 className="mt-5 font-serif text-[clamp(3.2rem,5vw,5.5rem)] leading-[.84] tracking-[-0.04em] text-[#faf6ed]">{activeItem.title}</h1>
+                <p className="mt-8 max-w-sm text-base leading-relaxed text-[#c4b8a8] md:text-lg">{activeMeta?.summary || activeItem.summary}</p>
               </div>
-
-              <div className="flex gap-3 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0">
-                {galleryItems.map((item, index) => {
-                  const meta = getLocalizedMeta(item.id);
-                  const isActive = index === activeIndex;
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => selectItem(index)}
-                      className={`group min-w-[220px] rounded-[22px] border p-3 text-left transition duration-300 lg:min-w-0 ${
-                        isActive
-                          ? "border-[#c8ad7e] bg-[#fff8ec] shadow-[0_10px_24px_rgba(139,102,44,0.14)]"
-                          : "border-[#e4d7bf] bg-white hover:border-[#d2be9b] hover:bg-[#fffdf9]"
-                      }`}
-                      aria-pressed={isActive}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded-[14px] border border-[#ddcfb8] bg-[#f3ede0]">
-                          <Image src={item.src} alt={item.alt} fill className="object-cover" sizes="48px" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#aa8b5c]">
-                            {meta?.subtitle || item.subtitle}
-                          </p>
-                          <h2 className="mt-1 font-serif text-[1.1rem] leading-tight text-[#3f342d]">
-                            {item.title}
-                          </h2>
-                          <p className="mt-2 text-xs leading-relaxed text-[#776a5f] line-clamp-2">
-                            {meta?.summary || item.summary}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </aside>
-
-            <div
-              className="rounded-[34px] border border-[#d7cbb6] bg-[linear-gradient(180deg,#fffdf8_0%,#f7efe4_100%)] p-4 shadow-[0_18px_42px_rgba(88,67,37,0.12)] md:p-5"
-              onTouchStart={(event) => {
-                touchStartXRef.current = event.touches[0]?.clientX ?? null;
-              }}
-              onTouchEnd={(event) => {
-                const startX = touchStartXRef.current;
-                const endX = event.changedTouches[0]?.clientX ?? null;
-
-                if (startX === null || endX === null) return;
-
-                const deltaX = endX - startX;
-                if (Math.abs(deltaX) < 48) return;
-
-                if (deltaX < 0) {
-                  goNext();
-                } else {
-                  goPrev();
-                }
-
-                touchStartXRef.current = null;
-              }}
-              onTouchCancel={() => {
-                touchStartXRef.current = null;
-              }}
-            >
-              <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7d6a55]">
-                    <span className="rounded-full border border-[#dccfb3] bg-white/80 px-3 py-1">
-                      {copy.sectionLabel}
-                    </span>
-                    <span className="rounded-full border border-[#dccfb3] bg-white/80 px-3 py-1">
-                      {copy.era}: {activeMeta?.era || activeItem.era}
-                    </span>
-                    <span className="rounded-full border border-[#dccfb3] bg-white/80 px-3 py-1">
-                      {copy.palette}: {activeMeta?.palette || activeItem.palette}
-                    </span>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#a68553]">
-                      {activeMeta?.subtitle || activeItem.subtitle}
-                    </p>
-                    <h2 className="mt-2 font-serif text-[clamp(2rem,3.8vw,3.4rem)] leading-[1.02] text-[#3f342d]">
-                      {activeItem.title}
-                    </h2>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 justify-self-start xl:justify-self-end">
-                  <button
-                    type="button"
-                    onClick={goPrev}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#dccfb3] bg-white/90 text-[#5d4f42] transition hover:bg-white"
-                    aria-label={copy.ariaPrevCover}
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={goNext}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#dccfb3] bg-white/90 text-[#5d4f42] transition hover:bg-white"
-                    aria-label={copy.ariaNextCover}
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-5 overflow-hidden rounded-[28px] border border-[#dfd2bb] bg-[#f9f4ea] shadow-inner">
-                <div className="relative aspect-[4/5] bg-[#f2eadc] sm:aspect-[16/11] xl:aspect-[5/6]">
-                  <Image
-                    src={activeItem.src}
-                    alt={activeItem.alt}
-                    fill
-                    priority
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1280px) 70vw, 60vw"
-                  />
-                  <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0)_55%,rgba(30,20,10,0.28)_100%)]" />
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                <div className="space-y-3">
-                  <p className="max-w-2xl text-base leading-relaxed text-[#6f6358] md:text-lg">
-                    {activeMeta?.summary || activeItem.summary}
-                  </p>
-                  <p className="text-sm text-[#7b6e61]">
-                    Geser panel gambar atau klik pilihan di kiri untuk berpindah sampul.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-2 lg:justify-end">
-                  <button
-                    type="button"
-                    onClick={() => openItem(activeIndex)}
-                    className="inline-flex items-center gap-2 rounded-full border border-[#cfb07e] bg-[#fff8ea] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#70491f] transition hover:bg-white"
-                  >
-                    {copy.ariaOpenDetails(activeItem.title)}
-                  </button>
-                  {activePdf ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        openItem(activeIndex);
-                        setActivePane("pdf");
-                      }}
-                      className="inline-flex items-center gap-2 rounded-full border border-[#dbcba6] bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f4d37] transition hover:bg-white"
-                    >
-                      {copy.openPdfTab}
-                    </button>
-                  ) : null}
+              <div className="mt-10 flex flex-wrap items-center gap-3">
+                {activePdf ? <>
+                  <a href={activePdf.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-[#c5a66f] bg-[#c5a66f] px-4 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#1d1610] transition hover:bg-[#e4c994]" aria-label={copy.ariaOpenPdfNewTab}><ExternalLink className="h-3.5 w-3.5" />{copy.openInNewTab}</a>
+                  <a href={activePdf.url} download={activePdf.fileName} className="inline-flex items-center gap-2 px-2 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#ded4c3] transition hover:text-[#c5a66f]" aria-label={copy.ariaDownloadPdf}><FileDown className="h-3.5 w-3.5" />{copy.downloadPdf}</a>
+                </> : null}
+                <div className="ml-auto flex items-center gap-4 text-[#ded4c3]">
+                  <button type="button" onClick={goPrev} className="transition hover:text-[#c5a66f]" aria-label={copy.ariaPrevCover}><ChevronLeft className="h-5 w-5" /></button>
+                  <span className="text-[10px] font-bold tracking-[0.16em]">0{activeIndex + 1} — 0{galleryItems.length}</span>
+                  <button type="button" onClick={goNext} className="transition hover:text-[#c5a66f]" aria-label={copy.ariaNextCover}><ChevronRight className="h-5 w-5" /></button>
                 </div>
               </div>
             </div>
-          </div>
+          </article>
         </div>
       </section>
-
-      {isMounted && (modal || focusedReaderModal)
-        ? createPortal(
-            <>
-              {modal}
-              {focusedReaderModal}
-            </>,
-            document.body,
-          )
-        : null}
     </div>
   );
 }
 
 function GalleryPageSkeleton() {
-  return (
-    <div className="bg-[#faf6ed] text-[#40342c]">
-      <section className="mx-auto max-w-[1320px] px-6 py-16 md:py-20">
-        <div className="mb-14 space-y-4 md:mb-16">
-          <div className="h-3 w-20 animate-pulse rounded-full bg-[#e9e0cf]" />
-          <div className="h-10 w-[min(560px,90%)] animate-pulse rounded-xl bg-[#e9e0cf]" />
-          <div className="h-5 w-[min(760px,95%)] animate-pulse rounded-lg bg-[#ece4d6]" />
-        </div>
-        <div className="space-y-7">
-          <div className="grid gap-7 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] xl:items-stretch">
-            <div className="aspect-[4/5] animate-pulse rounded-[28px] border border-[#ded2be] bg-[#efe6d8]" />
-
-            <div className="grid gap-7 sm:grid-cols-2">
-              <div className="aspect-[3/4] animate-pulse rounded-[24px] border border-[#ded2be] bg-[#efe6d8]" />
-              <div className="aspect-[3/4] animate-pulse rounded-[24px] border border-[#ded2be] bg-[#efe6d8]" />
-              <div className="sm:col-span-2 flex min-h-[260px] animate-pulse flex-col rounded-[28px] border border-[#ded2be] bg-[#efe6d8] md:flex-row" />
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
+  return <div className="min-h-screen bg-[#1d1610] px-6 py-16"><div className="mx-auto h-[72vh] max-w-[1320px] animate-pulse bg-[#2a2018]" /></div>;
 }

@@ -102,6 +102,19 @@ describe("footer brand invariant", () => {
   });
 });
 
+describe("site header nav active state", () => {
+  const navBar = source("components/site/NavBar.tsx");
+
+  it("uses color only to distinguish active nav links and removes the dot marker", () => {
+    expect(navBar).toMatch(/active\s*\?\s*"text-ink-900"/);
+    expect(navBar).toMatch(/active\s*\?\s*"text-brand-700"/);
+    expect(navBar).not.toContain("italic font-medium");
+    expect(navBar).not.toContain("text-brand-700 italic");
+    expect(navBar).not.toContain("group-hover:opacity-100 group-hover:scale-100");
+    expect(navBar).not.toContain("h-[3px] w-[3px]");
+  });
+});
+
 describe("about process image budget", () => {
   const images = [
     "public/image/about-mendengar.webp",
