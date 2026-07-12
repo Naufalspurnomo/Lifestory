@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
 import FamilyTreeCanvas from "../../components/tree/FamilyTreeCanvas";
 import type { FirstTreeRelationship } from "../../components/tree/FirstTreeWelcome";
@@ -21,13 +21,17 @@ import { getSiblingOrderUpdates } from "../../lib/tree/siblingOrder";
 import {
   BookOpen,
   ChevronLeft,
+  ChevronDown,
   Download,
   FileText,
   GitBranch,
   History,
   ImageIcon,
   Layers3,
+  LayoutDashboard,
+  LogOut,
   PanelRightOpen,
+  Sparkles,
   Upload,
   UserPlus,
   ShieldCheck,
@@ -46,6 +50,8 @@ const InviteModal = dynamic(() => import("../../components/tree/InviteModal"));
 const ImportModal = dynamic(() => import("../../components/tree/ImportModal"));
 const ConflictResolutionModal = dynamic(() => import("../../components/tree/ConflictResolutionModal"));
 const TimelineView = dynamic(() => import("../../components/tree/TimelineView"));
+const ArchiveDesk = dynamic(() => import("../../components/tree/ArchiveDesk"));
+const StudioJourney = dynamic(() => import("../../components/tree/StudioJourney"));
 
 type GalleryEntry = MediaItem & {
   ownerId: string;
@@ -103,6 +109,12 @@ export default function AppHome() {
           export: "Ekspor",
           exportPdf: "PDF",
           openDetail: "Detail",
+          accountMenu: "Buka menu akun",
+          noEmail: "Email tidak tersedia",
+          adminDashboard: "Dashboard Admin",
+          collections: "Koleksi",
+          studioPackages: "Paket Studio",
+          signOut: "Keluar",
           addMemberTitle: "Tambah anggota keluarga",
           statGenerations: "Generasi",
           statMembers: "Anggota Keluarga",
@@ -147,6 +159,12 @@ export default function AppHome() {
           export: "Export",
           exportPdf: "PDF",
           openDetail: "Detail",
+          accountMenu: "Open account menu",
+          noEmail: "Email unavailable",
+          adminDashboard: "Admin Dashboard",
+          collections: "Collections",
+          studioPackages: "Studio Packages",
+          signOut: "Sign Out",
           addMemberTitle: "Add family member",
           statGenerations: "Generations",
           statMembers: "Family Members",
@@ -157,11 +175,7 @@ export default function AppHome() {
 
   const userId = user?.id || user?.email || "";
   const userName = user?.name || copy.fallbackUser;
-  const accountRoleLabel = isAdmin
-    ? "Admin"
-    : locale === "id"
-      ? "Pengelola"
-      : "Manager";
+  const userEmail = user?.email || copy.noEmail;
 
   const {
     userTree,
@@ -222,11 +236,18 @@ export default function AppHome() {
   const [isFirstTreeWelcomeSubmitting, setIsFirstTreeWelcomeSubmitting] = useState(false);
   const [viewMode, setViewMode] = useState<"tree" | "timeline">("tree");
   const [openActionMenu, setOpenActionMenu] = useState<ActionMenuKey | null>(null);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
 
   const [isTomeOpen, setIsTomeOpen] = useState(false);
   const [isVaultOpen, setIsVaultOpen] = useState(false);
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+  const [isStudioJourneyOpen, setIsStudioJourneyOpen] = useState(false);
+  const [archiveTargetId, setArchiveTargetId] = useState<string | null>(null);
   const mobileActionMenuRef = useRef<HTMLDivElement | null>(null);
   const desktopActionMenuRef = useRef<HTMLDivElement | null>(null);
+  const mobileAccountMenuRef = useRef<HTMLDivElement | null>(null);
+  const desktopAccountMenuRef = useRef<HTMLDivElement | null>(null);
+  const closeStudioJourney = useCallback(() => setIsStudioJourneyOpen(false), []);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -331,6 +352,8 @@ export default function AppHome() {
         setSelectedId(null);
         setDetailNodeId(null);
         setShowNodeEditor(false);
+        setOpenActionMenu(null);
+        setIsAccountMenuOpen(false);
       } else if (e.key === "Delete" && selectedId) {
         const node = getNode(selectedId);
         if (node && node.line !== "self") {
@@ -593,6 +616,110 @@ export default function AppHome() {
     setOpenActionMenu((current) => (current === menu ? null : menu));
   }, []);
 
+  useEffect(() => {
+    if (!isAccountMenuOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+
+      if (
+        mobileAccountMenuRef.current?.contains(target) ||
+        desktopAccountMenuRef.current?.contains(target)
+      ) {
+        return;
+      }
+
+      setIsAccountMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () => document.removeEventListener("pointerdown", handlePointerDown, true);
+  }, [isAccountMenuOpen]);
+
+  const accountLinks = isAdmin
+    ? [
+        { href: "/dashboard", label: copy.adminDashboard, Icon: LayoutDashboard },
+        { href: "/gallery", label: copy.collections, Icon: Sparkles },
+      ]
+    : [
+        { href: "/subscribe", label: copy.studioPackages, Icon: Sparkles },
+        { href: "/gallery", label: copy.collections, Icon: Sparkles },
+      ];
+
+  const handleSignOut = () => {
+    setIsAccountMenuOpen(false);
+    void signOut({ callbackUrl: "/" });
+  };
+
+  const renderAccountMenu = (layout: "mobile" | "desktop") => {
+    const menuRef = layout === "mobile" ? mobileAccountMenuRef : desktopAccountMenuRef;
+
+    return (
+      <div ref={menuRef} className="relative shrink-0">
+        <button
+          type="button"
+          onClick={() => setIsAccountMenuOpen((current) => !current)}
+          className="inline-flex h-10 items-center gap-1.5 rounded-full border border-cream-300 bg-cream-50 p-1.5 text-ink-600 transition hover:border-brand-300 hover:text-ink-800 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-100"
+          aria-label={copy.accountMenu}
+          aria-haspopup="menu"
+          aria-expanded={isAccountMenuOpen}
+        >
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-gradient text-xs font-bold text-cream-50 ring-1 ring-inset ring-cream-50/20">
+            {userName.charAt(0).toUpperCase()}
+          </span>
+          <ChevronDown
+            className={`h-3.5 w-3.5 transition-transform ${isAccountMenuOpen ? "rotate-180" : ""}`}
+            aria-hidden="true"
+          />
+        </button>
+
+        <AnimatePresence>
+          {isAccountMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 6, scale: 0.97 }}
+              transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+              role="menu"
+              aria-label={copy.accountMenu}
+              className="absolute right-0 top-[calc(100%+8px)] z-[60] w-64 overflow-hidden rounded-2xl border border-cream-300 bg-cream-50/95 p-2 shadow-deep backdrop-blur-xl"
+            >
+              <div className="border-b border-cream-200 px-3 py-3">
+                <p className="truncate text-sm font-bold text-ink-800">{userName}</p>
+                <p className="truncate text-xs text-ink-500">{userEmail}</p>
+              </div>
+              <div className="pt-1.5">
+                {accountLinks.map(({ href, label, Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    role="menuitem"
+                    onClick={() => setIsAccountMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-ink-600 transition hover:bg-cream-200 hover:text-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                  >
+                    <Icon className="h-4 w-4 text-brand-700" />
+                    {label}
+                  </Link>
+                ))}
+                <div className="my-1.5 h-px bg-cream-200" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleSignOut}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink-600 transition hover:bg-red-50 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+                >
+                  <LogOut className="h-4 w-4" />
+                  {copy.signOut}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
   const treeActions = [
     ...(treeCapabilities.canManageMembers ? [{
       label: copy.requests,
@@ -801,16 +928,8 @@ export default function AppHome() {
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-2 rounded-full border border-cream-300 bg-cream-50 px-1.5 py-1.5 lg:hidden">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-cream-50 ring-1 ring-inset ring-cream-50/20">
-                  {userName.charAt(0).toUpperCase()}
-                </span>
-                <div className="hidden pr-1 text-left leading-none sm:block">
-                  <p className="max-w-[100px] truncate text-[11px] font-bold text-ink-800">{userName}</p>
-                  <p className="text-[9px] font-semibold uppercase tracking-wider text-ink-500">
-                    {accountRoleLabel}
-                  </p>
-                </div>
+              <div className="lg:hidden">
+                {renderAccountMenu("mobile")}
               </div>
             </div>
 
@@ -900,18 +1019,7 @@ export default function AppHome() {
                   renderActionGroup(group, groupIndex, "desktop")
                 )}
               </div>
-              {/* User profile */}
-              <div className="flex items-center gap-2 rounded-full border border-cream-300 bg-cream-50 px-1.5 py-1.5">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-cream-50 ring-1 ring-inset ring-cream-50/20">
-                  {userName.charAt(0).toUpperCase()}
-                </span>
-                <div className="hidden pr-1 text-left leading-none sm:block">
-                  <p className="max-w-[80px] truncate text-[11px] font-bold text-ink-800">{userName}</p>
-                  <p className="text-[9px] font-semibold uppercase tracking-wider text-ink-500">
-                    {accountRoleLabel}
-                  </p>
-                </div>
-              </div>
+              {renderAccountMenu("desktop")}
             </div>
           </header>
 
@@ -998,6 +1106,38 @@ export default function AppHome() {
             {/* FLOATING ACTION DRAWERS AT BOTTOM LEFT */}
             <div className={`absolute bottom-3 left-3 z-30 items-center gap-2 pointer-events-auto select-none sm:bottom-4 sm:left-4 lg:bottom-6 lg:left-6 ${isFirstTreeWelcomeOpen ? "hidden sm:flex" : "flex"}`}>
               <div className="flex items-center bg-white/70 backdrop-blur-md rounded-xl border border-[#dccfb3] p-1 shadow-sm">
+                <button
+                  onClick={() => {
+                    setIsStudioJourneyOpen(true);
+                    setIsArchiveOpen(false);
+                    setIsTomeOpen(false);
+                    setIsVaultOpen(false);
+                  }}
+                  className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-bold text-[#5a4d42] transition-all hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 sm:gap-2 sm:px-4"
+                  title={locale === "id" ? "Buka perjalanan studio" : "Open studio journey"}
+                  aria-label={locale === "id" ? "Buka perjalanan studio" : "Open studio journey"}
+                >
+                  <BookOpen className="h-4 w-4" />
+                  <span className="hidden sm:inline">Studio</span>
+                </button>
+                <div className="w-px h-4 bg-[#dccfb3]/50 mx-1" />
+                {treeCapabilities.canManageMembers && <>
+                  <button
+                    onClick={() => {
+                      setIsArchiveOpen(!isArchiveOpen);
+                      setIsTomeOpen(false);
+                      setIsVaultOpen(false);
+                    }}
+                    className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-bold transition-all sm:gap-2 sm:px-4 ${
+                      isArchiveOpen ? "bg-[#82693c] text-white shadow-md" : "text-[#5a4d42] hover:bg-white hover:shadow-sm"
+                    }`}
+                    title={locale === "id" ? "Buka Misi Arsip" : "Open archive missions"}
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    <span className="hidden sm:inline">{locale === "id" ? "Arsip" : "Archive"}</span>
+                  </button>
+                  <div className="w-px h-4 bg-[#dccfb3]/50 mx-1" />
+                </>}
                 <button
                   onClick={() => {
                     setIsVaultOpen(!isVaultOpen);
@@ -1214,6 +1354,12 @@ export default function AppHome() {
                 onAddRelative={(type) => {
                   handleAddNode(detailNode.id, type);
                 }}
+                onRequestMemory={() => {
+                  setArchiveTargetId(detailNode.id);
+                  setDetailNodeId(null);
+                  setIsArchiveOpen(true);
+                }}
+                canRequestMemory={treeCapabilities.canManageMembers}
                 readOnly={treeReadOnly}
               />
             )}
@@ -1256,6 +1402,33 @@ export default function AppHome() {
               showNotification(copy.notifImported(nodes.length));
             }}
           />
+
+          {currentTree && treeCapabilities.canManageMembers && (
+            <ArchiveDesk
+              isOpen={isArchiveOpen}
+              treeId={currentTree.id}
+              nodes={currentTree.nodes}
+              targetNode={archiveTargetId ? currentTree.nodes.find((node) => node.id === archiveTargetId) ?? null : null}
+              onClose={() => {
+                setIsArchiveOpen(false);
+                setArchiveTargetId(null);
+              }}
+              onFocus={(nodeId) => {
+                setSelectedId(nodeId);
+                setArchiveTargetId(nodeId);
+              }}
+              onEdit={handleEditNode}
+              onPublished={() => showNotification(locale === "id" ? "Kenangan diterbitkan ke arsip keluarga." : "Memory published to the family archive.")}
+            />
+          )}
+
+          {currentTree && (
+            <StudioJourney
+              isOpen={isStudioJourneyOpen}
+              treeId={currentTree.id}
+              onClose={closeStudioJourney}
+            />
+          )}
 
           {syncConflict && (
             <ConflictResolutionModal

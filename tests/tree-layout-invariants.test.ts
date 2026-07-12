@@ -72,7 +72,7 @@ describe("family tree layout spacing", () => {
     expect(childEdge?.path[0].x).not.toBeCloseTo(mother.x, 5);
   });
 
-  it("renders legacy single-parent children from the couple midpoint when the parent has one clear partner", () => {
+  it("routes an explicit single-parent child from that parent", () => {
     const nodes = [
       familyNode("father", "Riduan Santoso", {
         partners: ["mother"],
@@ -88,16 +88,13 @@ describe("family tree layout spacing", () => {
     ];
 
     const layout = calculateHierarchicalLayout(nodes);
-    const father = getPosition(layout.nodes, "father");
     const mother = getPosition(layout.nodes, "mother");
-    const coupleMidpoint = (father.x + mother.x) / 2;
     const childEdge = layout.edges.find(
       (edge) => edge.type === "union-child" && edge.target === "child"
     );
 
     expect(childEdge).toBeDefined();
-    expect(childEdge?.path[0].x).toBeCloseTo(coupleMidpoint, 5);
-    expect(childEdge?.path[0].x).not.toBeCloseTo(mother.x, 5);
+    expect(childEdge?.path[0].x).toBeCloseTo(mother.x, 5);
   });
 
   it("reserves horizontal room for neighboring branches with descendants", () => {
@@ -186,6 +183,62 @@ describe("family tree layout spacing", () => {
     expect(updates.some((update) => update.nodeId === "youngest-partner")).toBe(
       false
     );
+  });
+
+  it("keeps spouse lines in the middle and drops below only when blocked", () => {
+    const nodes = [
+      familyNode("hub", "Zulu", { partners: ["alpha", "beta"] }),
+      familyNode("alpha", "Alpha", { partners: ["hub"] }),
+      familyNode("beta", "Beta", { partners: ["hub"] }),
+    ];
+
+    const layout = calculateHierarchicalLayout(nodes);
+    const spouseEdges = layout.edges.filter((edge) => edge.type === "spouse");
+
+    expect(spouseEdges).toHaveLength(2);
+    expect(spouseEdges.every((edge) => edge.path.length > 0)).toBe(true);
+    expect(spouseEdges.every((edge) => edge.path.length === 2 || edge.path.length === 4)).toBe(true);
+    const middleLine = spouseEdges.find((edge) => edge.path.length === 2);
+    expect(middleLine).toBeDefined();
+    expect(middleLine!.path[0].y).toBe(middleLine!.path[1].y);
+    const fallbackLine = spouseEdges.find((edge) => edge.path.length === 4);
+    expect(fallbackLine).toBeDefined();
+    expect(fallbackLine!.path[1].y).toBeGreaterThan(fallbackLine!.path[0].y);
+  });
+
+  it("does not draw a spouse edge for a multi-parent unit", () => {
+    const nodes = [
+      familyNode("parent-a", "Parent A", { childrenIds: ["child"] }),
+      familyNode("parent-b", "Parent B", { childrenIds: ["child"] }),
+      familyNode("parent-c", "Parent C", { childrenIds: ["child"] }),
+      familyNode("child", "Child", {
+        parentIds: ["parent-a", "parent-b", "parent-c"],
+        parentId: "parent-a",
+      }),
+    ];
+
+    const layout = calculateHierarchicalLayout(nodes);
+
+    expect(layout.edges.filter((edge) => edge.type === "spouse")).toHaveLength(0);
+    expect(layout.edges.filter((edge) => edge.type === "parent-union")).toHaveLength(3);
+  });
+
+  it("places an adoptive-only child below the adoptive parent", () => {
+    const nodes = [
+      familyNode("adoptive-parent", "Adoptive Parent", {
+        childrenIds: [],
+      }),
+      familyNode("child", "Adopted Child", {
+        adoptiveParentIds: ["adoptive-parent"],
+      }),
+    ];
+
+    const layout = calculateHierarchicalLayout(nodes);
+    const parent = getPosition(layout.nodes, "adoptive-parent");
+    const child = getPosition(layout.nodes, "child");
+
+    expect(child.y).toBeGreaterThan(parent.y);
+    expect(layout.edges.some((edge) => edge.type === "adoption")).toBe(true);
   });
 
   it("keeps each parent on the same side as their own parents", () => {

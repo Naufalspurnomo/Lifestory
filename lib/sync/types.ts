@@ -121,7 +121,8 @@ export type ValidationError = {
     | "circular-ancestor"
     | "duplicate-id"
     | "self-reference"
-    | "sibling-partner";
+    | "sibling-partner"
+    | "ancestor-partner";
   nodeId: string;
   details: string;
 };

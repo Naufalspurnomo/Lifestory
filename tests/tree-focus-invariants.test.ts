@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { FamilyNode } from "../lib/types/tree";
 import { buildFamilyGraph } from "../lib/tree/familyGraph";
 import { resolveTreeFocusContext } from "../lib/tree/focusView";
+import { calculateHierarchicalLayout } from "../lib/tree/layoutEngine";
 
 function person(id: string, overrides: Partial<FamilyNode> = {}): FamilyNode {
   return {
@@ -62,5 +63,10 @@ describe("tree focus context", () => {
     expect(focus.nodeIds.has("sibling")).toBe(false);
     expect(focus.nodeIds.has("unrelated")).toBe(false);
     expect(focus.unionIds.size).toBeGreaterThan(0);
+
+    const layout = calculateHierarchicalLayout(nodes);
+    expect(layout.unions?.every((union) => focus.entityIds.has(union.id))).toBe(
+      true
+    );
   });
 });

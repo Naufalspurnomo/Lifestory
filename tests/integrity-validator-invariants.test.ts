@@ -106,4 +106,13 @@ describe("IntegrityValidator.validate", () => {
     ];
     expect(types(nodes)).not.toContain("sibling-partner");
   });
+
+  it("flags partners who are in an ancestor chain", () => {
+    const nodes = [
+      node("parent", { childrenIds: ["child"], partners: ["child"] }),
+      node("child", { parentIds: ["parent"], partners: ["parent"] }),
+    ];
+
+    expect(types(nodes)).toContain("ancestor-partner");
+  });
 });

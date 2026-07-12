@@ -16,6 +16,7 @@ export class IntegrityValidator {
       ...this.checkBidirectionalPartners(nodes),
       ...this.checkBidirectionalParentChildren(nodes),
       ...this.checkSiblingPartners(nodes),
+      ...this.checkAncestorPartners(nodes),
       ...this.checkCircularAncestors(nodes),
     ];
     return { valid: errors.length === 0, errors };
@@ -179,6 +180,46 @@ export class IntegrityValidator {
             details: `Partner link to ${partnerId} connects biological siblings`,
           });
         }
+      }
+    }
+
+    return errors;
+  }
+
+  checkAncestorPartners(nodes: FamilyNode[]): ValidationError[] {
+    const byId = new Map(nodes.map((node) => [node.id, node]));
+    const errors: ValidationError[] = [];
+    const checkedPairs = new Set<string>();
+
+    const isAncestor = (ancestorId: string, descendantId: string) => {
+      const queue = [ancestorId];
+      const visited = new Set<string>();
+      while (queue.length > 0) {
+        const currentId = queue.shift()!;
+        if (visited.has(currentId)) continue;
+        visited.add(currentId);
+        if (currentId === descendantId) return true;
+        for (const childId of byId.get(currentId)?.childrenIds || []) {
+          if (!visited.has(childId)) queue.push(childId);
+        }
+      }
+      return false;
+    };
+
+    for (const node of nodes) {
+      for (const partnerId of uniq(node.partners || [])) {
+        const pairKey = [node.id, partnerId].sort().join("\u0000");
+        if (checkedPairs.has(pairKey)) continue;
+        checkedPairs.add(pairKey);
+        if (!byId.has(partnerId)) continue;
+        if (!isAncestor(node.id, partnerId) && !isAncestor(partnerId, node.id)) {
+          continue;
+        }
+        errors.push({
+          type: "ancestor-partner",
+          nodeId: node.id,
+          details: `Partner link to ${partnerId} connects an ancestor and descendant`,
+        });
       }
     }
 

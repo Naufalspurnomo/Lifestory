@@ -13,6 +13,7 @@ import {
   Linkedin,
   Music,
   Music2,
+  MessageCircle,
   Palette,
   Pencil,
   Plus,
@@ -40,6 +41,8 @@ interface BioModalProps {
   onEdit: () => void;
   onDelete: () => void;
   onAddRelative: (type: "parent" | "partner" | "child" | "sibling") => void;
+  onRequestMemory?: () => void;
+  canRequestMemory?: boolean;
   readOnly?: boolean;
 }
 
@@ -51,6 +54,8 @@ export default function BioModal({
   onEdit,
   onDelete,
   onAddRelative,
+  onRequestMemory,
+  canRequestMemory = false,
   readOnly = false,
 }: BioModalProps) {
   const { locale } = useLanguage();
@@ -87,6 +92,7 @@ export default function BioModal({
           noStoryTitle: "Cerita keluarga ini belum ditulis.",
           noStoryBody: "Tambahkan biografi agar ingatan tentang anggota ini tersimpan rapi.",
           writeStory: "Tulis cerita",
+          requestMemory: "Minta kenangan",
           worksTitle: "Karya & Kreasi",
           archiveEmptyTitle: "Arsip belum berisi media.",
           archiveEmptyBody: "Tambahkan foto atau dokumen dari mode edit profil.",
@@ -125,6 +131,7 @@ export default function BioModal({
           noStoryTitle: "This family story has not been written.",
           noStoryBody: "Add a biography to preserve this member's memory.",
           writeStory: "Write story",
+          requestMemory: "Request a memory",
           worksTitle: "Works & Creations",
           archiveEmptyTitle: "The archive has no media yet.",
           archiveEmptyBody: "Add photos or documents from edit profile mode.",
@@ -404,6 +411,14 @@ export default function BioModal({
                     >
                       <Pencil className="h-4 w-4" />
                       {copy.writeStory}
+                    </button>}
+                    {canRequestMemory && onRequestMemory && <button
+                      type="button"
+                      onClick={onRequestMemory}
+                      className="mt-3 inline-flex h-10 items-center gap-2 rounded-full border border-brand-400 bg-cream-50 px-5 text-sm font-bold text-brand-800 transition hover:bg-brand-50"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      {copy.requestMemory}
                     </button>}
                   </div>
                 )}

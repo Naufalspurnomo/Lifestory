@@ -226,6 +226,23 @@ describe("canonical family graph", () => {
     ]);
   });
 
+  it("keeps unions distinct when ids contain the old separator", () => {
+    const first = familyNode("a--b", { partners: ["c"] });
+    const second = familyNode("c", { partners: ["a--b"] });
+    const third = familyNode("a", { partners: ["b--c"] });
+    const fourth = familyNode("b--c", { partners: ["a"] });
+
+    const graph = buildFamilyGraph([first, second, third, fourth]);
+
+    expect(graph.unions).toHaveLength(2);
+    expect(graph.unions.map((union) => union.partnerIds)).toEqual(
+      expect.arrayContaining([
+        expect.arrayContaining(["a--b", "c"]),
+        expect.arrayContaining(["a", "b--c"]),
+      ])
+    );
+  });
+
   it("allows unknown parent units for future sibling commands without storing sibling links", () => {
     const graph = {
       schemaVersion: 1 as const,
@@ -307,8 +324,8 @@ describe("canonical family graph", () => {
   });
 });
 
-describe("legacy relationship repair", () => {
-  it("promotes single-parent children to the unambiguous couple parent unit", () => {
+describe("explicit parent relationships", () => {
+  it("preserves a single parent even when that parent has a partner", () => {
     const father = familyNode("riduan", {
       label: "Riduan Santoso",
       partners: ["suwahi"],
@@ -327,8 +344,8 @@ describe("legacy relationship repair", () => {
     const result = sanitizeGraph([father, mother, child]);
     const byId = new Map(result.map((node) => [node.id, node]));
 
-    expect(byId.get("sugiarto")?.parentIds).toEqual(["suwahi", "riduan"]);
-    expect(byId.get("riduan")?.childrenIds).toEqual(["sugiarto"]);
+    expect(byId.get("sugiarto")?.parentIds).toEqual(["suwahi"]);
+    expect(byId.get("riduan")?.childrenIds).toEqual([]);
   });
 });
 

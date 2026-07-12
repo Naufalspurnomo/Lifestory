@@ -126,7 +126,7 @@ describe("tree PDF export invariants", () => {
 
     expect(generationPages).toHaveLength(4);
     expect(generationPages.every((page) => page.format === "a3" && page.orientation === "landscape")).toBe(true);
-    expect(generationPages.every((page) => page.kind !== "generation" || page.minFontSize >= 8)).toBe(true);
+    expect(generationPages.every((page) => page.kind !== "generation" || page.minFontSize >= 9)).toBe(true);
     expect(generationPages.map((page) => (page.kind === "generation" ? page.memberIds.length : 0))).toEqual([
       1,
       12,
@@ -152,8 +152,8 @@ describe("tree PDF export invariants", () => {
       format: "a3",
       orientation: "landscape",
       logoPath: "/logo/lifestory-logo.png",
-      minNodeWidth: 34,
-      minNodeHeight: 15,
+      minNodeWidth: 42,
+      minNodeHeight: 18,
     });
     expect(model.pages.find((page) => page.kind === "directory")).toMatchObject({
       format: "a4",

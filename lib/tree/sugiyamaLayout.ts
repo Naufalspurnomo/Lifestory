@@ -6,9 +6,12 @@ import {
   Union,
   LAYOUT,
 } from "../types/tree";
+import { makeFamilyUnionId } from "./unionId";
 
 const {
   NODE_SIZE,
+  CARD_WIDTH,
+  CARD_HEIGHT,
   NODE_SPACING_X,
   NODE_SPACING_Y,
   PARTNER_GAP,
@@ -73,11 +76,6 @@ function average(values: number[]): number | null {
   return finite.reduce((sum, value) => sum + value, 0) / finite.length;
 }
 
-function getUnionKey(partnerIds: string[]): string {
-  const validIds = uniq(partnerIds).sort();
-  return validIds.length === 1 ? `single-${validIds[0]}` : validIds.join("::");
-}
-
 function comparePersons(a: PersonNode, b: PersonNode): number {
   const aYear = a.birthDate ? Number(a.birthDate) : Number.POSITIVE_INFINITY;
   const bYear = b.birthDate ? Number(b.birthDate) : Number.POSITIVE_INFINITY;
@@ -99,7 +97,7 @@ function ensureUnion(
   const validPartnerIds = uniq(partnerIds).filter((id) => g.persons.has(id));
   if (validPartnerIds.length === 0) return null;
 
-  const unionId = `union-${getUnionKey(validPartnerIds)}`;
+  const unionId = makeFamilyUnionId(validPartnerIds);
   let union = g.unions.get(unionId);
 
   if (!union) {
@@ -130,48 +128,11 @@ function ensureUnion(
   return unionId;
 }
 
-function getParentIds(
-  node: FamilyNode,
-  persons: Map<string, PersonNode>,
-  rawNodesById?: Map<string, FamilyNode>
-) {
-  const parentIds = uniq([
+function getParentIds(node: FamilyNode, persons: Map<string, PersonNode>) {
+  return uniq([
     ...(Array.isArray(node.parentIds) ? node.parentIds : []),
     ...(node.parentId ? [node.parentId] : []),
   ]).filter((id) => persons.has(id));
-
-  if (parentIds.length !== 1 || !rawNodesById) return parentIds;
-
-  const parent = rawNodesById.get(parentIds[0]);
-  if (!parent) return parentIds;
-
-  const reciprocalPartners = uniq(parent.partners || [])
-    .filter((partnerId) => persons.has(partnerId))
-    .map((partnerId) => rawNodesById.get(partnerId))
-    .filter((partner): partner is FamilyNode => Boolean(partner))
-    .filter((partner) => (partner.partners || []).includes(parent.id));
-
-  if (reciprocalPartners.length !== 1) return parentIds;
-
-  const coParent = reciprocalPartners[0];
-  const parentChildren = new Set(parent.childrenIds || []);
-  const coParentChildren = new Set(coParent.childrenIds || []);
-
-  if (coParent.parentIds?.includes(node.id) || coParent.parentId === node.id) {
-    return parentIds;
-  }
-
-  if (node.childrenIds?.includes(coParent.id)) {
-    return parentIds;
-  }
-
-  // Visual fallback for legacy trees: if one parent owns the child but has a
-  // single clear partner, draw descendants from the couple midpoint.
-  if (parentChildren.has(node.id) || coParentChildren.has(node.id)) {
-    return uniq([...parentIds, coParent.id]);
-  }
-
-  return parentIds;
 }
 
 function getAdoptiveParentIds(
@@ -184,7 +145,6 @@ function getAdoptiveParentIds(
 }
 
 function buildInternalGraph(nodes: FamilyNode[]): InternalGraph {
-  const rawNodesById = new Map(nodes.map((node) => [node.id, node]));
   const g: InternalGraph = {
     persons: new Map<string, PersonNode>(),
     unions: new Map<string, UnionNode>(),
@@ -222,7 +182,7 @@ function buildInternalGraph(nodes: FamilyNode[]): InternalGraph {
   }
 
   for (const node of nodes) {
-    const parentIds = getParentIds(node, g.persons, rawNodesById);
+    const parentIds = getParentIds(node, g.persons);
     const unionId = ensureUnion(g, parentIds, "relationship");
     if (!unionId) continue;
 
@@ -249,7 +209,7 @@ function buildInternalGraph(nodes: FamilyNode[]): InternalGraph {
 
       const originalChild = nodes.find((node) => node.id === childId);
       const parentIds = originalChild
-        ? getParentIds(originalChild, g.persons, rawNodesById)
+        ? getParentIds(originalChild, g.persons)
         : [];
       const unionId = ensureUnion(
         g,
@@ -442,6 +402,19 @@ function assignLayers(g: InternalGraph) {
           child.layer = unionLayer + 1;
           changed = true;
         }
+      }
+    });
+
+    g.adoptions.forEach((parentIds, childId) => {
+      const child = g.persons.get(childId);
+      const parentLayers = parentIds
+        .map((parentId) => g.persons.get(parentId)?.layer)
+        .filter((layer): layer is number => typeof layer === "number");
+      if (!child || parentLayers.length === 0) return;
+      const requiredLayer = Math.max(...parentLayers) + 1;
+      if (child.layer < requiredLayer) {
+        child.layer = requiredLayer;
+        changed = true;
       }
     });
   }
@@ -649,6 +622,25 @@ function calculateUnionCoordinates(g: InternalGraph) {
     // Anchor the union at the partner midpoint — keeps the spouse edge honest.
     if (partnerCenter !== null) {
       union.x = partnerCenter;
+      if (union.type !== "marriage" && partnerXs.length > 1) {
+        const sorted = [...partnerXs].sort((a, b) => a - b);
+        const safeGaps = sorted
+          .slice(0, -1)
+          .map((left, index) => {
+            const right = sorted[index + 1];
+            return right - left > CARD_WIDTH + 8
+              ? (left + right) / 2
+              : null;
+          })
+          .filter((x): x is number => x !== null);
+        if (safeGaps.length > 0) {
+          union.x = safeGaps.reduce((closest, candidate) =>
+            Math.abs(candidate - partnerCenter) < Math.abs(closest - partnerCenter)
+              ? candidate
+              : closest
+          );
+        }
+      }
     } else if (childCenter !== null) {
       union.x = childCenter;
     }
@@ -975,26 +967,86 @@ function normalizeCoordinates(g: InternalGraph) {
   });
 }
 
+function findClearChildChannelX(g: InternalGraph, union: UnionNode): number {
+  const partnerIds = new Set(union.partnerIds);
+  const blockers = Array.from(g.persons.values())
+    .filter((person) => person.layer === union.layer && !partnerIds.has(person.id))
+    .sort((a, b) => a.x - b.x);
+  const clearance = CARD_WIDTH / 2 + 10;
+  const candidates = [
+    union.x,
+    ...blockers.slice(0, -1).map((person, index) =>
+      (person.x + blockers[index + 1].x) / 2
+    ),
+    ...(blockers.length > 0
+      ? [blockers[0].x - clearance, blockers[blockers.length - 1].x + clearance]
+      : []),
+  ];
+
+  return candidates
+    .filter((candidate) =>
+      blockers.every((person) => Math.abs(candidate - person.x) > clearance)
+    )
+    .sort((a, b) => Math.abs(a - union.x) - Math.abs(b - union.x))[0] ?? union.x;
+}
+
 function routeEdges(g: InternalGraph): LayoutEdge[] {
   const edges: LayoutEdge[] = [];
+  const unions = Array.from(g.unions.values());
+  const middleLane = new Map<string, number>();
+  const laneByRow = new Map<number, number>();
 
-  g.unions.forEach((union) => {
+  // Keep the normal spouse rule in the visual middle of the two cards. Only
+  // use a lower fallback lane when another card sits between remarried
+  // partners; a direct middle line would then cut through that card.
+  unions
+    .filter((union) => union.type === "marriage" && union.partnerIds.length >= 2)
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .forEach((union) => {
+      const row = union.layer;
+      const lane = laneByRow.get(row) || 0;
+      laneByRow.set(row, lane + 1);
+      middleLane.set(union.id, lane);
+    });
+
+  unions.forEach((union) => {
     const partners = union.partnerIds
       .map((id) => g.persons.get(id))
       .filter((person): person is PersonNode => Boolean(person))
       .sort((a, b) => a.x - b.x);
 
-    if (partners.length >= 2) {
+    if (union.type === "marriage" && partners.length >= 2) {
       const y = average(partners.map((partner) => partner.y)) ?? union.y;
+      const left = partners[0];
+      const right = partners[partners.length - 1];
+      const partnerIds = new Set(partners.map((partner) => partner.id));
+      const hasBlockingCard = Array.from(g.persons.values()).some(
+        (person) =>
+          person.layer === union.layer &&
+          !partnerIds.has(person.id) &&
+          person.x > left.x &&
+          person.x < right.x
+      );
+      const lane = middleLane.get(union.id) || 0;
+      const leftEdge = left.x + NODE_SIZE / 2;
+      const rightEdge = right.x - NODE_SIZE / 2;
+      const laneY = y + CARD_HEIGHT / 2 + 18 + lane * 18;
       edges.push({
         id: `edge-spouse-${union.id}`,
-        source: partners[0].id,
-        target: partners[partners.length - 1].id,
+        source: left.id,
+        target: right.id,
         type: "spouse",
-        path: [
-          { x: partners[0].x, y },
-          { x: partners[partners.length - 1].x, y },
-        ],
+        path: hasBlockingCard
+          ? [
+              { x: leftEdge, y },
+              { x: leftEdge, y: laneY },
+              { x: rightEdge, y: laneY },
+              { x: rightEdge, y },
+            ]
+          : [
+              { x: leftEdge, y },
+              { x: rightEdge, y },
+            ],
       });
     }
 
@@ -1007,19 +1059,22 @@ function routeEdges(g: InternalGraph): LayoutEdge[] {
 
     const startY = union.y + NODE_SIZE / 2;
     const busY = union.y + NODE_SPACING_Y / 2;
+    const childChannelX = findClearChildChannelX(g, union);
 
-    if (partners.length === 1 && Math.abs(partners[0].x - union.x) > 1) {
-      edges.push({
-        id: `edge-parent-union-${partners[0].id}-${union.id}`,
-        source: partners[0].id,
-        target: union.id,
-        type: "parent-union",
-        path: [
-          { x: partners[0].x, y: partners[0].y + NODE_SIZE / 2 },
-          { x: partners[0].x, y: busY },
-          { x: union.x, y: busY },
-        ],
-      });
+    if (union.type !== "marriage" && partners.length > 1) {
+      for (const partner of partners) {
+        edges.push({
+          id: `edge-parent-union-${partner.id}-${union.id}`,
+          source: partner.id,
+          target: union.id,
+          type: "parent-union",
+          path: [
+            { x: partner.x, y: partner.y + NODE_SIZE / 2 },
+            { x: partner.x, y: busY },
+            { x: union.x, y: busY },
+          ],
+        });
+      }
     }
 
     for (const child of children) {
@@ -1029,8 +1084,8 @@ function routeEdges(g: InternalGraph): LayoutEdge[] {
         target: child.id,
         type: "union-child",
         path: [
-          { x: union.x, y: startY },
-          { x: union.x, y: busY },
+          { x: childChannelX, y: startY },
+          { x: childChannelX, y: busY },
           { x: child.x, y: busY },
           { x: child.x, y: child.y - NODE_SIZE / 2 },
         ],

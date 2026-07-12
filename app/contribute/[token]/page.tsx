@@ -17,6 +17,8 @@ export default function ContributionPage({
 }) {
   const [info, setInfo] = useState<RequestInfo | null>(null);
   const [text, setText] = useState("");
+  const [contributorName, setContributorName] = useState("");
+  const [relationshipToFamily, setRelationshipToFamily] = useState("");
   const [status, setStatus] = useState<"loading" | "ready" | "sent" | "error">("loading");
   const [message, setMessage] = useState("");
 
@@ -47,7 +49,11 @@ export default function ContributionPage({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         kind: "story",
-        payload: { text: text.trim() },
+        payload: {
+          text: text.trim(),
+          ...(contributorName.trim() ? { contributorName: contributorName.trim() } : {}),
+          ...(relationshipToFamily.trim() ? { relationshipToFamily: relationshipToFamily.trim() } : {}),
+        },
         turnstileToken: String(formData.get("turnstileToken") || "") || undefined,
       }),
     });
@@ -100,6 +106,22 @@ export default function ContributionPage({
                 placeholder="Tulis yang Anda ingat..."
                 className="w-full resize-y rounded-2xl border border-cream-300 bg-cream-50 px-4 py-3 text-[0.95rem] leading-relaxed outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
               />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  value={contributorName}
+                  onChange={(event) => setContributorName(event.target.value)}
+                  maxLength={100}
+                  placeholder="Nama Anda (opsional)"
+                  className="w-full rounded-2xl border border-cream-300 bg-cream-50 px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                />
+                <input
+                  value={relationshipToFamily}
+                  onChange={(event) => setRelationshipToFamily(event.target.value)}
+                  maxLength={100}
+                  placeholder="Hubungan dengan keluarga (opsional)"
+                  className="w-full rounded-2xl border border-cream-300 bg-cream-50 px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                />
+              </div>
               <TurnstileField />
               <Button
                 type="submit"

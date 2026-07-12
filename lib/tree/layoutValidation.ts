@@ -22,6 +22,38 @@ function average(values: number[]) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function segmentHitsNode(
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  node: { x?: number; y?: number }
+) {
+  if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return false;
+  const left = node.x! - LAYOUT.CARD_WIDTH / 2;
+  const right = node.x! + LAYOUT.CARD_WIDTH / 2;
+  const top = node.y! - LAYOUT.CARD_HEIGHT / 2;
+  const bottom = node.y! + LAYOUT.CARD_HEIGHT / 2;
+
+  if (start.x === end.x) {
+    return (
+      start.x > left &&
+      start.x < right &&
+      Math.max(Math.min(start.y, end.y), top) <
+        Math.min(Math.max(start.y, end.y), bottom)
+    );
+  }
+
+  if (start.y === end.y) {
+    return (
+      start.y > top &&
+      start.y < bottom &&
+      Math.max(Math.min(start.x, end.x), left) <
+        Math.min(Math.max(start.x, end.x), right)
+    );
+  }
+
+  return false;
+}
+
 export function validateFamilyLayout(layout: LayoutGraph): LayoutValidationResult {
   const issues: LayoutValidationIssue[] = [];
   const nodeById = new Map(layout.nodes.map((node) => [node.id, node]));
@@ -89,6 +121,31 @@ export function validateFamilyLayout(layout: LayoutGraph): LayoutValidationResul
           edgeId: edge.id,
           message: `Edge ${edge.id} has invalid path coordinates`,
         });
+      }
+    }
+
+    const relatedNodeIds = new Set<string>([edge.source, edge.target]);
+    const relatedUnion = (layout.unions || []).find(
+      (union) => union.id === edge.source || union.id === edge.target
+    );
+    for (const partnerId of relatedUnion?.partnerIds || []) {
+      relatedNodeIds.add(partnerId);
+    }
+
+    for (let index = 1; index < edge.path.length; index += 1) {
+      const start = edge.path[index - 1];
+      const end = edge.path[index];
+      for (const node of layout.nodes) {
+        if (relatedNodeIds.has(node.id)) continue;
+        if (!segmentHitsNode(start, end, node)) continue;
+        issues.push({
+          severity: "error",
+          code: "edge-node-overlap",
+          edgeId: edge.id,
+          nodeId: node.id,
+          message: `Edge ${edge.id} passes through node ${node.id}`,
+        });
+        break;
       }
     }
 

@@ -21,12 +21,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   try {
     const access = await getTreeAccessContext(id, authResult.session.user.id);
+    if (!access.capabilities.canManageMembers) return NextResponse.json({ error: "Owner access required" }, { status: 403 });
     const requests = await prisma.contributionRequest.findMany({
       where: { treeId: id, createdById: authResult.session.user.id },
       include: { targetPerson: { select: { id: true, label: true } }, proposal: true },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json({ requests, canCreate: access.capabilities.canContribute });
+    return NextResponse.json({ requests, canCreate: true });
   } catch (error) {
     return handleError(error);
   }
@@ -44,7 +45,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!validation.success) return NextResponse.json({ error: "Validation failed", details: formatZodErrors(validation.errors) }, { status: 400 });
   try {
     const access = await getTreeAccessContext(id, authResult.session.user.id);
-    if (!access.capabilities.canContribute) return NextResponse.json({ error: "Contribution is not available" }, { status: 403 });
+    if (!access.capabilities.canManageMembers) return NextResponse.json({ error: "Owner access required" }, { status: 403 });
     const monthStart = new Date();
     monthStart.setUTCDate(1);
     monthStart.setUTCHours(0, 0, 0, 0);

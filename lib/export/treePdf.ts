@@ -103,8 +103,8 @@ const LINE = "#c7b488";
 const LOGO_PATH = "/logo/lifestory-logo.png";
 const MAX_IMAGES = 48;
 const A4 = { width: 210, margin: 16 };
-const OVERVIEW_NODE = { width: 42, height: 18, minWidth: 34, minHeight: 15, minFont: 7.2 };
-const GENERATION_CARD = { width: 56, height: 34, minFont: 8.2 };
+const OVERVIEW_NODE = { width: 56, height: 21, minWidth: 42, minHeight: 18, minFont: 7.8 };
+const GENERATION_CARD = { width: 80, height: 44, minFont: 9.1 };
 const GENERATION_PAGE_SIZE = 12;
 const DIRECTORY_PAGE_SIZE = 12;
 
@@ -126,6 +126,8 @@ function copy(locale: PdfLocale) {
         story: "Cerita tersimpan",
         photo: "Foto profil",
         gallery: "Media keluarga",
+        archiveNote: "Peta hubungan, nama, dan cerita yang disimpan bersama.",
+        archiveCenter: "Pusat arsip keluarga",
         noDescription: "Belum ada ringkasan cerita.",
         empty: "Belum ada data keluarga untuk diekspor.",
       }
@@ -145,6 +147,8 @@ function copy(locale: PdfLocale) {
         story: "Story saved",
         photo: "Profile photo",
         gallery: "Family media",
+        archiveNote: "A considered record of the people, relationships, and stories kept together.",
+        archiveCenter: "Family archive centre",
         noDescription: "No story summary yet.",
         empty: "No family data available to export.",
       };
@@ -441,7 +445,9 @@ function drawFooter(doc: jsPDF, model: TreePdfDocumentModel, pageIndex: number) 
   doc.setFontSize(7);
   doc.setTextColor(MUTED);
   doc.text(model.treeName, 16, pageH - 10);
-  doc.text(String(pageIndex + 1), pageW - 16, pageH - 10, { align: "right" });
+  doc.text(`${pageIndex + 1} / ${model.pages.length}`, pageW - 16, pageH - 10, {
+    align: "right",
+  });
 }
 
 function drawCoverPage(
@@ -456,29 +462,64 @@ function drawCoverPage(
   drawLogo(doc, logoDataUrl, 24, 24, 54);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(BRAND_DARK);
-  doc.text(c.titleSuffix.toUpperCase(), 24, 62);
+  doc.text(c.titleSuffix.toUpperCase(), 24, 65);
 
   doc.setFont("times", "normal");
-  doc.setFontSize(31);
+  doc.setFontSize(32);
   doc.setTextColor(INK);
-  doc.text(doc.splitTextToSize(model.treeName, pageW - 48).slice(0, 3), 24, 92);
+  const titleLines = doc.splitTextToSize(model.treeName, pageW - 58).slice(0, 3);
+  doc.text(titleLines, 31, 93);
+
+  doc.setDrawColor(BRAND);
+  doc.setLineWidth(1.1);
+  doc.line(24, 74, 24, 123);
 
   doc.setDrawColor(BRAND);
   doc.setLineWidth(0.4);
-  doc.line(24, 132, pageW - 24, 132);
+  doc.line(31, 132, pageW - 24, 132);
 
-  const statY = 156;
+  doc.setFillColor(PAPER);
+  doc.setDrawColor("#e1d3b8");
+  doc.setLineWidth(0.3);
+  doc.roundedRect(24, 148, pageW - 48, 49, 4, 4, "FD");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(BRAND_DARK);
+  doc.text(c.archiveCenter.toUpperCase(), 34, 161);
+  doc.setFont("times", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(INK);
+  doc.text(doc.splitTextToSize(model.root.label, pageW - 96).slice(0, 2), 34, 176);
+  const rootLifespan = formatTreeLifespan(model.root);
+  if (rootLifespan) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(MUTED);
+    doc.text(rootLifespan, pageW - 34, 161, { align: "right" });
+  }
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.8);
+  doc.setTextColor(MUTED);
+  doc.text(doc.splitTextToSize(c.archiveNote, pageW - 68).slice(0, 2), 34, 188);
+
+  const statY = 226;
   const stats = [
     [String(model.stats.members), c.members],
     [String(model.stats.generations), c.generations],
+    [String(model.stats.photos), c.photos],
     [String(model.stats.stories), c.stories],
   ];
   stats.forEach(([value, label], index) => {
-    const x = 24 + index * 54;
+    const x = 24 + index * ((pageW - 48) / stats.length);
+    if (index > 0) {
+      doc.setDrawColor("#e1d3b8");
+      doc.setLineWidth(0.25);
+      doc.line(x - 14, statY - 20, x - 14, statY + 11);
+    }
     doc.setFont("times", "bold");
-    doc.setFontSize(24);
+    doc.setFontSize(21);
     doc.setTextColor(BRAND);
     doc.text(value, x, statY);
     doc.setFont("helvetica", "bold");
@@ -490,7 +531,7 @@ function drawCoverPage(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(MUTED);
-  doc.text(`${c.exported}: ${formatDate(model.exportedAt, locale)}`, 24, 245);
+  doc.text(`${c.exported}: ${formatDate(model.exportedAt, locale)}`, 24, 267);
 }
 
 function drawPageHeader(
@@ -560,26 +601,114 @@ function buildOverviewSlots(model: TreePdfDocumentModel, pageW: number, pageH: n
 
 function drawOverviewConnectors(doc: jsPDF, slots: Map<string, OverviewSlot>) {
   doc.setDrawColor("#b8a171");
-  doc.setLineWidth(0.28);
+  doc.setLineWidth(0.34);
+  doc.setLineCap("round");
+  const partnerLaneByRow = new Map<number, number>();
 
   for (const slot of slots.values()) {
     const parentIds = slot.node.parentIds?.length ? slot.node.parentIds : slot.node.parentId ? [slot.node.parentId] : [];
-    for (const parentId of parentIds) {
-      const parent = slots.get(parentId);
-      if (!parent) continue;
+    const parents = parentIds
+      .map((parentId) => slots.get(parentId))
+      .filter((parent): parent is OverviewSlot => Boolean(parent));
+    if (parents.length === 0) continue;
 
-      const midY = parent.y + (slot.y - parent.y) / 2;
+    if (parents.length === 1) {
+      const parent = parents[0];
+      const midY = parent.y + (slot.y - parent.y) * 0.52;
       doc.line(parent.x, parent.y + parent.height / 2, parent.x, midY);
       doc.line(parent.x, midY, slot.x, midY);
       doc.line(slot.x, midY, slot.x, slot.y - slot.height / 2);
+      continue;
+    }
+
+    const junctionY = Math.min(...parents.map((parent) => parent.y)) +
+      (slot.y - Math.min(...parents.map((parent) => parent.y))) * 0.58;
+    const left = Math.min(...parents.map((parent) => parent.x));
+    const right = Math.max(...parents.map((parent) => parent.x));
+    parents.forEach((parent) => {
+      doc.line(parent.x, parent.y + parent.height / 2, parent.x, junctionY);
+    });
+    doc.line(left, junctionY, right, junctionY);
+    doc.line(slot.x, junctionY, slot.x, slot.y - slot.height / 2);
+  }
+
+  const seenPartners = new Set<string>();
+  for (const slot of slots.values()) {
+    for (const partnerId of slot.node.partners || []) {
+      const partner = slots.get(partnerId);
+      if (!partner || partner.y !== slot.y) continue;
+      const key = [slot.node.id, partner.node.id].sort().join("::");
+      if (seenPartners.has(key)) continue;
+      seenPartners.add(key);
+      const leftSlot = slot.x <= partner.x ? slot : partner;
+      const rightSlot = slot.x <= partner.x ? partner : slot;
+      const left = leftSlot.x;
+      const right = rightSlot.x;
+      doc.setDrawColor("#9c8052");
+      doc.setLineWidth(0.5);
+      const blockers = Array.from(slots.values()).some(
+        (candidate) =>
+          candidate.y === slot.y &&
+          candidate.node.id !== leftSlot.node.id &&
+          candidate.node.id !== rightSlot.node.id &&
+          candidate.x > left &&
+          candidate.x < right
+      );
+      if (!blockers) {
+        doc.line(left + leftSlot.width / 2, slot.y, right - rightSlot.width / 2, slot.y);
+        continue;
+      }
+
+      const row = Math.round(slot.y);
+      const lane = partnerLaneByRow.get(row) || 0;
+      partnerLaneByRow.set(row, lane + 1);
+      const laneY = slot.y + Math.max(slot.height, partner.height) / 2 + 5 + lane * 5;
+      doc.line(
+        left + leftSlot.width / 2,
+        leftSlot.y + leftSlot.height / 2,
+        left + leftSlot.width / 2,
+        laneY
+      );
+      doc.line(left + leftSlot.width / 2, laneY, right - rightSlot.width / 2, laneY);
+      doc.line(
+        right - rightSlot.width / 2,
+        laneY,
+        right - rightSlot.width / 2,
+        rightSlot.y + rightSlot.height / 2
+      );
     }
   }
+}
+
+function drawOverviewRowLabels(
+  doc: jsPDF,
+  model: TreePdfDocumentModel,
+  slots: Map<string, OverviewSlot>,
+  locale: PdfLocale
+) {
+  const c = copy(locale);
+  model.generations.forEach((group) => {
+    const first = group.members[0];
+    const slot = first ? slots.get(first.id) : undefined;
+    if (!slot) return;
+    doc.setDrawColor("#eadfc8");
+    doc.setLineWidth(0.2);
+    doc.line(27, slot.y + OVERVIEW_NODE.height / 2 + 8, doc.internal.pageSize.getWidth() - 27, slot.y + OVERVIEW_NODE.height / 2 + 8);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(MUTED);
+    doc.text(group.generation === 999 ? c.unknownGeneration : group.title, 18, slot.y + 2, {
+      angle: 90,
+      align: "center",
+    });
+  });
 }
 
 function drawOverviewNode(doc: jsPDF, slot: OverviewSlot) {
   const x = slot.x - slot.width / 2;
   const y = slot.y - slot.height / 2;
   const isRoot = slot.node.line === "self";
+  const statusCount = [slot.node.imageUrl, slot.node.content?.description, slot.node.content?.media?.length].filter(Boolean).length;
 
   doc.setFillColor(PAPER);
   doc.setDrawColor(isRoot ? BRAND : "#d0bd94");
@@ -602,6 +731,13 @@ function drawOverviewNode(doc: jsPDF, slot: OverviewSlot) {
     doc.setTextColor(MUTED);
     doc.text(lifespan, x + 5, y + slot.height - 3.2);
   }
+
+  if (statusCount > 0) {
+    doc.setFillColor(BRAND);
+    for (let index = 0; index < statusCount; index += 1) {
+      doc.circle(x + slot.width - 5 - index * 3.2, y + 4.5, 0.8, "F");
+    }
+  }
 }
 
 function drawOverviewPage(
@@ -616,6 +752,7 @@ function drawOverviewPage(
     doc.internal.pageSize.getWidth(),
     doc.internal.pageSize.getHeight()
   );
+  drawOverviewRowLabels(doc, model, slots, locale);
   drawOverviewConnectors(doc, slots);
   for (const slot of slots.values()) {
     drawOverviewNode(doc, slot);
@@ -634,38 +771,50 @@ function drawGenerationCard(
   const image = images.get(member.id);
   doc.setFillColor(PAPER);
   doc.setDrawColor(member.source.line === "self" ? BRAND : "#d3c199");
-  doc.setLineWidth(member.source.line === "self" ? 0.4 : 0.2);
-  doc.roundedRect(x, y, GENERATION_CARD.width, GENERATION_CARD.height, 3, 3, "FD");
+  doc.setLineWidth(member.source.line === "self" ? 0.55 : 0.28);
+  doc.roundedRect(x, y, GENERATION_CARD.width, GENERATION_CARD.height, 4, 4, "FD");
+
+  doc.setFillColor("#f5efe1");
+  doc.roundedRect(x + 5, y + 6, 27, 32, 3, 3, "F");
 
   if (image) {
-    doc.addImage(image, "JPEG", x + 5, y + 6, 16, 16);
+    doc.addImage(image, "JPEG", x + 5.5, y + 6.5, 26, 31);
   } else {
     doc.setFillColor("#efe4cf");
-    doc.circle(x + 13, y + 14, 8, "F");
+    doc.roundedRect(x + 5, y + 6, 27, 32, 3, 3, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(13);
     doc.setTextColor(BRAND);
-    doc.text(initials(member.name), x + 13, y + 16.5, { align: "center" });
+    doc.text(initials(member.name), x + 18.5, y + 24, { align: "center" });
   }
 
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(5.8);
+  doc.setTextColor(BRAND_DARK);
+  doc.text(`GEN ${member.generation === 999 ? "?" : member.generation}`, x + 38, y + 9);
+
   doc.setFont("times", "bold");
-  doc.setFontSize(GENERATION_CARD.minFont);
+  doc.setFontSize(GENERATION_CARD.minFont + 0.6);
   doc.setTextColor(INK);
-  doc.text(doc.splitTextToSize(member.name, 29).slice(0, 2), x + 25, y + 9);
+  doc.text(doc.splitTextToSize(member.name, 37).slice(0, 2), x + 38, y + 18);
 
   if (member.treeLifespan) {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6);
+    doc.setFontSize(6.8);
     doc.setTextColor(MUTED);
-    doc.text(member.treeLifespan, x + 25, y + 21);
+    doc.text(member.treeLifespan, x + 38, y + 29);
   }
 
-  const badges = [member.hasPhoto ? c.photo : "", member.hasStory ? c.story : "", member.hasMedia ? c.gallery : ""].filter(Boolean);
-  if (badges.length) {
+  const indicators = [
+    member.hasPhoto ? c.photo : "",
+    member.hasStory ? c.story : "",
+    member.hasMedia ? c.gallery : "",
+  ].filter(Boolean);
+  if (indicators.length) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(5.4);
     doc.setTextColor(BRAND_DARK);
-    doc.text(doc.splitTextToSize(badges.join(" / "), GENERATION_CARD.width - 10).slice(0, 1), x + 5, y + 29);
+    doc.text(indicators.slice(0, 2).join("  ·  "), x + 38, y + 38);
   }
 }
 
@@ -681,9 +830,9 @@ function drawGenerationPage(
   const members = page.memberIds
     .map((id) => model.memberCards.find((member) => member.id === id))
     .filter((member): member is TreePdfMemberCard => Boolean(member));
-  const columns = 4;
-  const gapX = 12;
-  const gapY = 12;
+  const columns = 3;
+  const gapX = 16;
+  const gapY = 14;
   const gridW = columns * GENERATION_CARD.width + (columns - 1) * gapX;
   const startX = (doc.internal.pageSize.getWidth() - gridW) / 2;
   const startY = 62;
@@ -742,22 +891,24 @@ function drawDirectoryPage(
     doc.setFillColor("#fbf5ea");
     doc.setDrawColor("#eadfc8");
     doc.roundedRect(left, y - 5, right - left, rowH, 2, 2, "FD");
+    doc.setFillColor(member.source.line === "self" ? BRAND : "#c8ac7e");
+    doc.roundedRect(left, y - 5, 2.2, rowH, 1, 1, "F");
     doc.setFont("times", "bold");
-    doc.setFontSize(10.5);
+    doc.setFontSize(10.8);
     doc.setTextColor(INK);
-    doc.text(member.name, left + 4, y + 1);
+    doc.text(member.name, left + 6, y + 1);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.2);
     doc.setTextColor(MUTED);
     doc.text(member.lifespan, right - 4, y + 1, { align: "right" });
-    doc.text(doc.splitTextToSize(member.description, right - left - 50).slice(0, 1), left + 4, y + 7);
+    doc.text(doc.splitTextToSize(member.description, right - left - 54).slice(0, 1), left + 6, y + 7);
 
     const badges = [member.hasPhoto ? c.photo : "", member.hasStory ? c.story : "", member.hasMedia ? c.gallery : ""].filter(Boolean);
     if (badges.length) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(6);
       doc.setTextColor(BRAND_DARK);
-      doc.text(badges.join(" / "), right - 4, y + 7, { align: "right" });
+      doc.text(badges.slice(0, 2).join("  ·  "), right - 4, y + 7, { align: "right" });
     }
     y += rowH + 4;
   }

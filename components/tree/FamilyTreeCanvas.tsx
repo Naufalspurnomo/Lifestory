@@ -89,13 +89,13 @@ const GEN_COLORS: Record<number, { border: string; labelId: string; labelEn: str
 };
 const GEN_FALLBACK_COLOR = "#8c7655";
 
-const NODE_CARD_WIDTH = 154;
-const NODE_CARD_HEIGHT = 142;
+const NODE_CARD_WIDTH = LAYOUT.CARD_WIDTH;
+const NODE_CARD_HEIGHT = LAYOUT.CARD_HEIGHT;
 const NODE_CARD_RADIUS = 18;
 const NODE_COMPACT_WIDTH = 120;
 const NODE_COMPACT_HEIGHT = 94;
 const BUTTON_SIZE = 30;
-const MIN_SCALE = 0.045;
+const MIN_SCALE = 0.001;
 const MAX_SCALE = 4;
 const FIT_PADDING = 96;
 const MINIMAP_DESKTOP = { width: 188, height: 118 };
@@ -114,8 +114,9 @@ const FAN_RING_WIDTH = 82;
 const FAN_RING_GAP = 4;
 const FAN_PADDING = 140;
 
-// LRU image cache. Evicts oldest entries when exceeding MAX_IMAGE_CACHE_SIZE.
-const MAX_IMAGE_CACHE_SIZE = 200;
+// Bounded image cache sized to the maximum supported tree so panning never
+// permanently replaces photo previews with initials.
+const MAX_IMAGE_CACHE_SIZE = 500;
 const imageCache = new Map<string, HTMLImageElement>();
 function imageCacheSet(key: string, img: HTMLImageElement) {
   // Delete then re-insert to maintain insertion-order (Map iterates in insertion order)
@@ -341,42 +342,95 @@ function drawOrnateCardFrame(
   transformScale: number
 ) {
   const safeScale = Math.max(transformScale, 0.45);
+  const left = x - width / 2;
+  const top = y - height / 2;
   const innerInset = 4;
   const outerInset = 1;
   const innerRadius = Math.max(4, radius - 2);
   const frameStroke = active ? 2.1 : 0.9;
 
   ctx.save();
-  ctx.shadowColor = active ? "rgba(44,30,22,0.32)" : "rgba(44,30,22,0.18)";
-  ctx.shadowBlur = (active ? 22 : 14) / safeScale;
-  ctx.shadowOffsetY = (active ? 8 : 5) / safeScale;
-  traceNodeShape(ctx, x, y + 6, width - 10, height - 6, radius);
-  ctx.fillStyle = active ? "rgba(44,30,22,0.28)" : "rgba(44,30,22,0.18)";
+  ctx.shadowColor = active ? "rgba(44,30,22,0.24)" : "rgba(44,30,22,0.11)";
+  ctx.shadowBlur = (active ? 16 : 8) / safeScale;
+  ctx.shadowOffsetY = (active ? 5 : 3) / safeScale;
+  traceNodeShape(ctx, x, y + 3, width - 4, height - 3, radius);
+  ctx.fillStyle = active ? "rgba(44,30,22,0.18)" : "rgba(44,30,22,0.08)";
   ctx.fill();
   ctx.restore();
 
   ctx.save();
   traceNodeShape(ctx, x, y, width, height, radius);
-  const cardGrad = ctx.createLinearGradient(x, y - height / 2, x, y + height / 2);
-  cardGrad.addColorStop(0, "#fffdf9");
-  cardGrad.addColorStop(0.58, "#fbf4e9");
-  cardGrad.addColorStop(1, "#efe1cc");
-  ctx.fillStyle = cardGrad;
+  ctx.fillStyle = "#fffdf9";
   ctx.fill();
   ctx.restore();
 
   ctx.save();
+  traceNodeShape(ctx, x, y, width, height, radius);
+  ctx.clip();
+  ctx.fillStyle = "#f5efe1";
+  ctx.fillRect(left, top, width, Math.min(30, height * 0.23));
+  ctx.fillStyle = accentColor;
+  ctx.globalAlpha = active ? 1 : 0.72;
+  ctx.fillRect(left, top + 12, Math.min(4, width * 0.03), Math.max(24, height - 28));
+  ctx.restore();
+
+  ctx.save();
   traceNodeShape(ctx, x, y, width - outerInset, height - outerInset, radius - 1);
-  ctx.strokeStyle = "rgba(255,250,242,0.78)";
+  ctx.strokeStyle = "rgba(255,250,242,0.96)";
   ctx.lineWidth = frameStroke / safeScale;
   ctx.stroke();
 
   traceNodeShape(ctx, x, y, width - innerInset, height - innerInset, innerRadius);
-  ctx.strokeStyle = active ? accentColor : "rgba(130,105,60,0.38)";
-  ctx.lineWidth = (active ? 1.6 : 1) / safeScale;
+  ctx.strokeStyle = active ? accentColor : "rgba(130,105,60,0.28)";
+  ctx.lineWidth = (active ? 1.6 : 0.8) / safeScale;
+  ctx.stroke();
+
+  ctx.strokeStyle = active ? accentColor : "rgba(130,105,60,0.2)";
+  ctx.lineWidth = 0.7 / safeScale;
+  ctx.beginPath();
+  ctx.moveTo(left + 16, top + 13);
+  ctx.lineTo(left + width - 14, top + 13);
   ctx.stroke();
   ctx.restore();
+}
 
+function pathIntersectsViewport(
+  path: { x: number; y: number }[],
+  viewport: { left: number; top: number; right: number; bottom: number }
+) {
+  const inside = (point: { x: number; y: number }) =>
+    point.x >= viewport.left &&
+    point.x <= viewport.right &&
+    point.y >= viewport.top &&
+    point.y <= viewport.bottom;
+
+  if (path.some(inside)) return true;
+
+  for (let index = 1; index < path.length; index += 1) {
+    const start = path[index - 1];
+    const end = path[index];
+    if (start.y === end.y) {
+      if (
+        start.y >= viewport.top &&
+        start.y <= viewport.bottom &&
+        Math.max(Math.min(start.x, end.x), viewport.left) <=
+          Math.min(Math.max(start.x, end.x), viewport.right)
+      ) {
+        return true;
+      }
+    } else if (start.x === end.x) {
+      if (
+        start.x >= viewport.left &&
+        start.x <= viewport.right &&
+        Math.max(Math.min(start.y, end.y), viewport.top) <=
+          Math.min(Math.max(start.y, end.y), viewport.bottom)
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 function getQuickAddButtons(
@@ -890,6 +944,7 @@ export default function FamilyTreeCanvas({
             map: "Map",
             detail: "Detail",
             selected: "Dipilih",
+            members: "Anggota keluarga",
             people: "orang",
             generations: "generasi",
             minimap: "Peta",
@@ -922,6 +977,7 @@ export default function FamilyTreeCanvas({
             map: "Map",
             detail: "Detail",
             selected: "Selected",
+            members: "Family members",
             people: "people",
             generations: "generations",
             minimap: "Map",
@@ -1241,18 +1297,21 @@ export default function FamilyTreeCanvas({
       const hitWidth = Math.max(baseHit.width, 36 / transform.k);
       const hitHeight = Math.max(baseHit.height, 28 / transform.k);
 
-      for (let index = nodes.length - 1; index >= 0; index--) {
-        const node = nodes[index];
+      let closest: FamilyNode | null = null;
+      let closestDistance = Number.POSITIVE_INFINITY;
+      for (const node of nodes) {
         if (typeof node.x !== "number" || typeof node.y !== "number") continue;
-        if (
-          Math.abs(world.x - node.x) <= hitWidth / 2 &&
-          Math.abs(world.y - node.y) <= hitHeight / 2
-        ) {
-          return node;
+        if (Math.abs(world.x - node.x) > hitWidth / 2) continue;
+        if (Math.abs(world.y - node.y) > hitHeight / 2) continue;
+        const distance =
+          (world.x - node.x) ** 2 + (world.y - node.y) ** 2;
+        if (distance < closestDistance) {
+          closest = node;
+          closestDistance = distance;
         }
       }
 
-      return null;
+      return closest;
     },
     [getRelativePoint, nodes, renderMode, screenToWorld, transform.k]
   );
@@ -1507,13 +1566,7 @@ export default function FamilyTreeCanvas({
     ctx.lineCap = "round";
     for (const edge of edges) {
       if (edge.path.length === 0) continue;
-      const visible = edge.path.some(
-        (point) =>
-          point.x >= visibleWorld.left &&
-          point.x <= visibleWorld.right &&
-          point.y >= visibleWorld.top &&
-          point.y <= visibleWorld.bottom
-      );
+      const visible = pathIntersectsViewport(edge.path, visibleWorld);
       if (!visible) continue;
 
       ctx.save();
@@ -1682,28 +1735,58 @@ export default function FamilyTreeCanvas({
       }
 
       if (renderMode !== "overview") {
-        const avatarSize =
-          renderMode === "compact"
-            ? Math.max(34, 26 / Math.max(transform.k, 0.48))
-            : 46;
-        const avatarRadius = avatarSize / 2;
+        const isDetail = renderMode === "detail";
+        const cardTop = y - cardH / 2;
+        const avatarWidth = isDetail
+          ? 48
+          : Math.max(30, 24 / Math.max(transform.k, 0.48));
+        const avatarHeight = isDetail ? 52 : avatarWidth;
+        const avatarRadius = isDetail ? 11 : avatarWidth / 2;
         const avatarX = x;
-        const avatarY = y - cardH / 2 + (renderMode === "compact" ? 12 : 16);
-        const avatarCenterY = avatarY + avatarRadius;
+        const avatarY = cardTop + (isDetail ? 20 : 7);
+
+        if (isDetail) {
+          const generationName =
+            GEN_COLORS[displayGen]?.[locale === "id" ? "labelId" : "labelEn"] ||
+            generationLabel(displayGen - baseGen, locale);
+          ctx.save();
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = accentColor;
+          ctx.font = "700 7px Inter, system-ui, sans-serif";
+          ctx.fillText(
+            generationName.toUpperCase(),
+            x - cardW / 2 + 14,
+            cardTop + 9
+          );
+          ctx.restore();
+        }
 
         ctx.save();
         ctx.shadowColor = "rgba(59,43,24,0.3)";
-        ctx.shadowBlur = 6 / transform.k;
-        ctx.shadowOffsetY = 3 / transform.k;
-        ctx.beginPath();
-        ctx.arc(avatarX, avatarCenterY, avatarRadius + 3, 0, Math.PI * 2);
+        ctx.shadowBlur = (isDetail ? 7 : 5) / transform.k;
+        ctx.shadowOffsetY = (isDetail ? 3 : 2) / transform.k;
+        traceRoundedRect(
+          ctx,
+          avatarX - avatarWidth / 2 - 2,
+          avatarY - 2,
+          avatarWidth + 4,
+          avatarHeight + 4,
+          avatarRadius + 2
+        );
         ctx.fillStyle = "#dfcca6";
         ctx.fill();
         ctx.restore();
 
         ctx.save();
-        ctx.beginPath();
-        ctx.arc(avatarX, avatarCenterY, avatarRadius, 0, Math.PI * 2);
+        traceRoundedRect(
+          ctx,
+          avatarX - avatarWidth / 2,
+          avatarY,
+          avatarWidth,
+          avatarHeight,
+          avatarRadius
+        );
         ctx.clip();
 
         const imageUrl = node.imageUrl
@@ -1714,17 +1797,17 @@ export default function FamilyTreeCanvas({
           drawImageCover(
             ctx,
             img,
-            avatarX - avatarRadius,
+            avatarX - avatarWidth / 2,
             avatarY,
-            avatarSize,
-            avatarSize
+            avatarWidth,
+            avatarHeight
           );
         } else {
           const sealGrad = ctx.createLinearGradient(
-            avatarX - avatarRadius,
+            avatarX - avatarWidth / 2,
             avatarY,
-            avatarX + avatarRadius,
-            avatarY + avatarSize
+            avatarX + avatarWidth / 2,
+            avatarY + avatarHeight
           );
           sealGrad.addColorStop(0, "#f3eedc");
           sealGrad.addColorStop(1, "#d1bfa3");
@@ -1732,36 +1815,51 @@ export default function FamilyTreeCanvas({
           ctx.fill();
 
           ctx.fillStyle = node.line === "self" ? "#6a4b33" : "#4f4036";
-          ctx.font = `800 ${renderMode === "compact" ? 20 : 26}px "Playfair Display", serif`;
+          ctx.font = `800 ${isDetail ? 26 : 20}px "Playfair Display", serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(node.label.charAt(0).toUpperCase(), avatarX, avatarCenterY + 2);
+          ctx.fillText(
+            node.label.charAt(0).toUpperCase(),
+            avatarX,
+            avatarY + avatarHeight / 2 + 2
+          );
         }
         ctx.restore();
 
         ctx.save();
-        ctx.beginPath();
-        ctx.arc(avatarX, avatarCenterY, avatarRadius + 3, 0, Math.PI * 2);
+        traceRoundedRect(
+          ctx,
+          avatarX - avatarWidth / 2 - 2,
+          avatarY - 2,
+          avatarWidth + 4,
+          avatarHeight + 4,
+          avatarRadius + 2
+        );
         ctx.strokeStyle = active ? accentColor : "#a38d6d";
-        ctx.lineWidth = (active ? 2 : 1.5) / Math.max(transform.k, 0.45);
+        ctx.lineWidth = (active ? 2 : 1.2) / Math.max(transform.k, 0.45);
         ctx.stroke();
 
-        ctx.beginPath();
-        ctx.arc(avatarX, avatarCenterY, avatarRadius, 0, Math.PI * 2);
+        traceRoundedRect(
+          ctx,
+          avatarX - avatarWidth / 2,
+          avatarY,
+          avatarWidth,
+          avatarHeight,
+          avatarRadius
+        );
         ctx.strokeStyle = "rgba(255,255,255,0.6)";
         ctx.lineWidth = 1 / Math.max(transform.k, 0.45);
         ctx.stroke();
         ctx.restore();
 
-        const labelY =
-          avatarCenterY + avatarRadius + (renderMode === "detail" ? 11 : 8);
+        const labelY = avatarY + avatarHeight + (isDetail ? 11 : 6);
         const maxTextW = cardW - 24;
 
         ctx.save();
         ctx.textAlign = "center";
 
-        if (renderMode === "detail") {
-          ctx.font = '700 13px Inter, system-ui, sans-serif';
+        if (isDetail) {
+          ctx.font = '700 14px "Playfair Display", Georgia, serif';
           ctx.fillStyle = "#3a2a18";
           ctx.textBaseline = "top";
           const labelLines = wrapLabel(ctx, node.label, maxTextW, 2);
@@ -1777,19 +1875,9 @@ export default function FamilyTreeCanvas({
             .filter(Boolean)
             .join("  ·  ");
           if (meta) {
-            ctx.font = "700 9px Inter, system-ui, sans-serif";
+            ctx.font = "600 8.5px Inter, system-ui, sans-serif";
             const metaText = truncateLabel(ctx, meta, maxTextW - 18);
-            const metaWidth = Math.min(
-              maxTextW,
-              Math.max(44, ctx.measureText(metaText).width + 18)
-            );
-            const metaY = y + cardH / 2 - 22;
-            traceRoundedRect(ctx, x - metaWidth / 2, metaY - 9, metaWidth, 18, 9);
-            ctx.fillStyle = "rgba(130,105,60,0.1)";
-            ctx.fill();
-            ctx.strokeStyle = "rgba(130,105,60,0.22)";
-            ctx.lineWidth = 0.8 / Math.max(transform.k, 0.45);
-            ctx.stroke();
+            const metaY = y + cardH / 2 - 14;
             ctx.fillStyle = "#715c3d";
             ctx.textBaseline = "middle";
             ctx.fillText(metaText, x, metaY + 0.5);
@@ -2191,6 +2279,17 @@ export default function FamilyTreeCanvas({
     }
   };
 
+  const cancelPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    pointersRef.current.delete(event.pointerId);
+    pinchRef.current = null;
+    pendingBranchDragRef.current = null;
+    setIsDragging(false);
+    setBranchDrag(null);
+    dragDistanceRef.current = 0;
+    queuedTransformRef.current = null;
+    if (canvasRef.current) canvasRef.current.style.cursor = "grab";
+  };
+
   const minimap = useMemo(() => {
     if (!width || !height || nodes.length === 0) return null;
     const scale = Math.min(
@@ -2304,7 +2403,7 @@ export default function FamilyTreeCanvas({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={endPointer}
-      onPointerCancel={endPointer}
+      onPointerCancel={cancelPointer}
       onPointerLeave={() => {
         // S1: Reset all interaction state on pointer leave
         setIsDragging(false);
@@ -2317,7 +2416,20 @@ export default function FamilyTreeCanvas({
         queuedTransformRef.current = null;
       }}
     >
-      <canvas ref={canvasRef} className="block" />
+      <canvas
+        ref={canvasRef}
+        className="block"
+        role="img"
+        aria-label={`${nodes.length} ${copy.people}, ${generationMarkers.length} ${copy.generations}`}
+      />
+
+      <nav aria-label={copy.members} className="sr-only">
+        {nodes.map((node) => (
+          <button key={node.id} type="button" onClick={() => onSelectNode(node.id)}>
+            {node.label}
+          </button>
+        ))}
+      </nav>
 
       {branchDrag?.changed && (
         <div className="pointer-events-none absolute bottom-28 left-1/2 z-20 max-w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2 rounded-full border border-cream-500 bg-ink-50/90 px-3 py-2 text-center text-[11px] font-bold text-ink-700 shadow-sm backdrop-blur-md sm:bottom-8 sm:text-xs">
@@ -2372,7 +2484,7 @@ export default function FamilyTreeCanvas({
               <SlidersHorizontal className="h-4 w-4" />
               <span className="hidden sm:inline">{copy.settings}</span>
             </summary>
-            <div className="absolute left-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-cream-300 bg-cream-50 p-3 text-ink-800 shadow-2xl shadow-ink-900/15">
+            <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-cream-300 bg-cream-50 p-3 text-ink-800 shadow-2xl shadow-ink-900/15">
               <div className="space-y-3">
                 <div>
                   <div className="mb-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-ink-500">

@@ -6,6 +6,7 @@ import type {
   ParentChildLink,
   ParentChildRelationType,
 } from "../types/tree";
+import { makeFamilyUnionId } from "./unionId";
 
 const BIOLOGICAL_LIKE = new Set<ParentChildRelationType>([
   "biological",
@@ -35,18 +36,6 @@ const uniq = <T>(values: T[]) =>
 
 function orderedIds(ids: string[]) {
   return uniq(ids).sort();
-}
-
-function unionKey(partnerIds: string[]) {
-  const ordered = orderedIds(partnerIds);
-  return ordered.length > 0 ? ordered.join("::") : "unknown";
-}
-
-function makeUnionId(partnerIds: string[]) {
-  const ordered = orderedIds(partnerIds);
-  if (ordered.length === 0) return "unit-unknown-parent";
-  if (ordered.length === 1) return `unit-single-${ordered[0]}`;
-  return `unit-${ordered.join("--")}`;
 }
 
 function makeParentChildLinkId(
@@ -118,8 +107,7 @@ export function buildFamilyGraph(
   nodes: FamilyNode[],
   options: BuildFamilyGraphOptions = {}
 ): FamilyGraph {
-  const repairLegacyCoupleChildren =
-    options.repairLegacyCoupleChildren ?? true;
+  const repairLegacyCoupleChildren = options.repairLegacyCoupleChildren ?? false;
   const persons = nodes.map(clonePerson);
   const byId = new Map(persons.map((person) => [person.id, person]));
   const unions = new Map<string, FamilyUnion>();
@@ -130,7 +118,7 @@ export function buildFamilyGraph(
     fallbackStatus: FamilyUnionStatus
   ): FamilyUnion => {
     const validPartnerIds = uniq(partnerIds).filter((id) => byId.has(id));
-    const id = makeUnionId(validPartnerIds);
+    const id = makeFamilyUnionId(validPartnerIds);
     const existing = unions.get(id);
     if (existing) return existing;
 
@@ -224,7 +212,7 @@ export function buildFamilyGraph(
     schemaVersion: 1,
     persons,
     unions: Array.from(unions.values()).sort((a, b) =>
-      unionKey(a.partnerIds).localeCompare(unionKey(b.partnerIds))
+      a.id.localeCompare(b.id)
     ),
     parentChildLinks: Array.from(links.values()).sort((a, b) =>
       a.id.localeCompare(b.id)

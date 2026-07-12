@@ -16,7 +16,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!validation.success) return NextResponse.json({ error: "Validation failed", details: formatZodErrors(validation.errors) }, { status: 400 });
   try {
     const access = await getTreeAccessContext(id, authResult.session.user.id);
-    if (!access.capabilities.canEdit) return NextResponse.json({ error: "Read-only access" }, { status: 403 });
+    if (!access.capabilities.canManageMembers) return NextResponse.json({ error: "Owner access required" }, { status: 403 });
     const proposal = await prisma.contributionProposal.findFirst({ where: { id: proposalId, treeId: id }, select: { id: true, status: true } });
     if (!proposal) return NextResponse.json({ error: "Proposal not found" }, { status: 404 });
     const nextStatus = validation.data.decision === "approved" ? "approved" : "rejected";

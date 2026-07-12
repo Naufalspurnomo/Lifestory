@@ -17,7 +17,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   try {
     const access = await getTreeAccessContext(id, authResult.session.user.id);
-    if (!access.capabilities.canEdit) return NextResponse.json({ error: "Read-only access" }, { status: 403 });
+    if (!access.capabilities.canManageMembers) return NextResponse.json({ error: "Owner access required" }, { status: 403 });
     const proposals = await prisma.contributionProposal.findMany({
       where: { treeId: id },
       include: { request: { include: { targetPerson: { select: { id: true, label: true } } } } },

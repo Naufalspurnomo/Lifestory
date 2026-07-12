@@ -506,7 +506,7 @@ export const storyCreateSchema = z.object({
   approximateYear: z.number().int().min(0).max(9999).nullable().optional(),
   location: z.string().trim().max(180).nullable().optional(),
   status: z.enum(["draft", "review", "published"]).optional().default("draft"),
-  visibility: z.enum(["tree", "private", "selected"]).optional().default("tree"),
+  visibility: z.enum(["tree", "private", "selected"]).optional().default("private"),
   personIds: treePersonIdsSchema,
 });
 
@@ -516,8 +516,21 @@ export const contributionRequestSchema = z.object({
 });
 
 export const contributionSubmissionSchema = z.object({
-  kind: z.enum(["story", "person_fact", "relationship", "media_tag"]),
-  payload: z.record(z.unknown()),
+  kind: z.literal("story"),
+  payload: z.object({
+    text: z.string().trim().min(1).max(20_000),
+    contributorName: z.string().trim().min(1).max(100).optional(),
+    relationshipToFamily: z.string().trim().min(1).max(100).optional(),
+  }),
+});
+
+export const proposalPublishSchema = storyCreateSchema.pick({
+  title: true,
+  body: true,
+  approximateYear: true,
+  location: true,
+  visibility: true,
+  personIds: true,
 });
 
 export const proposalDecisionSchema = z.object({
@@ -532,7 +545,7 @@ export const mediaAssetCreateSchema = z.object({
   sizeBytes: z.number().int().positive().max(MAX_MEDIA_UPLOAD_BYTES),
   caption: z.string().trim().max(500).nullable().optional(),
   capturedAt: z.string().datetime().nullable().optional(),
-  visibility: z.enum(["tree", "private", "selected"]).optional().default("tree"),
+  visibility: z.enum(["tree", "private", "selected"]).optional().default("private"),
 });
 
 export const studioLeadSchema = z.object({
