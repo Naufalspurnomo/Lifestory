@@ -203,11 +203,29 @@ describe("public auth and gallery hardening invariants", () => {
     expect(section).toContain("prisma.user.findUnique");
     expect(section).toContain("where: { email }");
     expect(section).toContain('message: "Registration received"');
+    expect(section).toContain('existingUser.status === "pending_email" ? "pending_email" : "existing"');
     expect(section).toContain("tx.user.create");
     expect(section).toContain("tx.emailVerificationToken.create");
     expectBefore(section, "prisma.user.findUnique", "hash(password");
     expectBefore(section, "prisma.user.findUnique", "tx.user.create");
     expectBefore(section, "tx.user.create", "tx.emailVerificationToken.create");
+  });
+
+  it("allows Turnstile scripts, frames, and verification requests through CSP", () => {
+    const config = readSource("next.config.js");
+
+    expect(config).toContain("script-src 'self' 'unsafe-inline'");
+    expect(config).toContain("https://challenges.cloudflare.com");
+    expect(config).toContain('"frame-src \'self\' https://challenges.cloudflare.com"');
+    expect(config).toContain("connect-src 'self' https://vercel.live https://challenges.cloudflare.com");
+  });
+
+  it("offers a resend path after a correct login is blocked for email verification", () => {
+    const source = readSource("components/auth/AuthCurtain.tsx");
+
+    expect(source).toContain('res.error.includes("EMAIL_UNVERIFIED")');
+    expect(source).toContain("setPendingVerificationEmail(email)");
+    expect(source).toContain('<VerificationResend email={pendingVerificationEmail} locale={locale} compact />');
   });
 
   it("keeps an existing verification link valid when a resend cannot be delivered", () => {

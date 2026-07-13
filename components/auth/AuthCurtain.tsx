@@ -17,6 +17,7 @@ import { TurnstileField } from "../security/TurnstileField";
 
 type Mode = "login" | "register";
 type Status = "idle" | "loading" | "success";
+type RegistrationOutcome = "new" | "pending_email" | "existing" | null;
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -38,6 +39,9 @@ export function AuthCurtain({
   const [loginError, setLoginError] = useState<string | null>(null);
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [registeredEmail, setRegisteredEmail] = useState("");
+  const [registrationOutcome, setRegistrationOutcome] =
+    useState<RegistrationOutcome>(null);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
 
   const safeNext = getSafeNextPath(next);
   const redirectToSafeNext = useCallback(() => {
@@ -63,9 +67,10 @@ export function AuthCurtain({
     event.preventDefault();
     setLoginStatus("loading");
     setLoginError(null);
+    setPendingVerificationEmail("");
 
     const data = new FormData(event.currentTarget);
-    const email = String(data.get("email") || "");
+    const email = String(data.get("email") || "").trim().toLowerCase();
     const password = String(data.get("password") || "");
 
     const res = await signIn("credentials", {
@@ -77,7 +82,10 @@ export function AuthCurtain({
 
     if (res?.error) {
       if (res.error.includes("RATE_LIMITED")) setLoginError(t.login.rateLimited);
-      else if (res.error.includes("EMAIL_UNVERIFIED")) setLoginError(t.login.emailUnverified);
+      else if (res.error.includes("EMAIL_UNVERIFIED")) {
+        setLoginError(t.login.emailUnverified);
+        setPendingVerificationEmail(email);
+      }
       else if (res.error.includes("ACCOUNT_INACTIVE")) setLoginError(t.login.inactive);
       else if (res.error.includes("ACCOUNT_SUSPENDED")) setLoginError(t.login.suspended);
       else setLoginError(t.login.invalid);
@@ -112,13 +120,20 @@ export function AuthCurtain({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      const payload = await response.json().catch(() => null);
       if (!response.ok) {
-        const payload = await response.json().catch(() => null);
         setRegisterError(getRegistrationErrorMessage(response.status, payload, locale));
         setRegisterStatus("idle");
         return;
       }
       setRegisteredEmail(body.email);
+      setRegistrationOutcome(
+        payload?.account === "pending_email"
+          ? "pending_email"
+          : payload?.account === "existing"
+            ? "existing"
+            : "new"
+      );
       setRegisterStatus("success");
     } catch {
       setRegisterError(t.register.networkError);
@@ -130,12 +145,15 @@ export function AuthCurtain({
     return <StatusScreen>{t.shared.loading}</StatusScreen>;
   if (sessionStatus === "authenticated")
     return <StatusScreen>{t.shared.authed}</StatusScreen>;
+  if (registerStatus === "success" && registrationOutcome === "existing")
+    return <ExistingAccountState locale={locale} reduce={Boolean(reduce)} />;
   if (registerStatus === "success")
     return (
       <SuccessState
         email={registeredEmail}
         locale={locale}
         reduce={Boolean(reduce)}
+        existingPending={registrationOutcome === "pending_email"}
       />
     );
 
@@ -145,6 +163,8 @@ export function AuthCurtain({
       onSubmit={handleLogin}
       status={loginStatus}
       error={loginError}
+      locale={locale}
+      pendingVerificationEmail={pendingVerificationEmail}
     />
   );
   const registerForm = (
@@ -317,11 +337,15 @@ function LoginForm({
   onSubmit,
   status,
   error,
+  locale,
+  pendingVerificationEmail,
 }: {
   t: Copy;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   status: Status;
   error: string | null;
+  locale: string;
+  pendingVerificationEmail: string;
 }) {
   return (
     <div>
@@ -359,7 +383,6 @@ function LoginForm({
             {error}
           </p>
         )}
-
         <Button
           type="submit"
           block
@@ -373,6 +396,9 @@ function LoginForm({
 
         <p className="text-center text-[0.8rem] text-ink-500">{t.login.trust}</p>
       </form>
+      {pendingVerificationEmail && (
+        <VerificationResend email={pendingVerificationEmail} locale={locale} compact />
+      )}
     </div>
   );
 }
@@ -498,10 +524,12 @@ function SuccessState({
   email,
   locale,
   reduce,
+  existingPending,
 }: {
   email: string;
   locale: string;
   reduce: boolean;
+  existingPending: boolean;
 }) {
   const c =
     locale === "id"
@@ -511,6 +539,9 @@ function SuccessState({
             "Kami mengirim tautan verifikasi yang berlaku 30 menit. Setelah email terverifikasi, pohon keluarga gratis langsung bisa digunakan.",
           signIn: "Sudah verifikasi? Masuk",
           backHome: "Kembali ke beranda",
+          pendingTitle: "Email Anda belum diverifikasi.",
+          pendingDesc:
+            "Akun ini sudah terdaftar. Kami belum mengirim email baru, tetapi Anda dapat meminta tautan verifikasi lagi.",
         }
       : {
           title: "Check your inbox.",
@@ -518,6 +549,9 @@ function SuccessState({
             "We sent a verification link that expires in 30 minutes. Once verified, your free family tree is ready to use.",
           signIn: "Verified? Sign in",
           backHome: "Back to home",
+          pendingTitle: "Your email is not verified yet.",
+          pendingDesc:
+            "This account already exists. We have not sent another email, but you can request a new verification link.",
         };
   return (
     <main className="flex min-h-[calc(100vh-78px)] items-center justify-center bg-cream-100 px-6 py-16">
@@ -529,9 +563,11 @@ function SuccessState({
       >
         <span aria-hidden className="h-px w-10 bg-brand-700" />
         <h1 className="mt-6 font-serif text-[2.2rem] font-light leading-[1.08] tracking-[-0.02em] text-ink-900 sm:text-[2.6rem]">
-          {c.title}
+          {existingPending ? c.pendingTitle : c.title}
         </h1>
-        <p className="mt-4 max-w-[40ch] text-[0.95rem] leading-relaxed text-ink-600">{c.desc}</p>
+        <p className="mt-4 max-w-[40ch] text-[0.95rem] leading-relaxed text-ink-600">
+          {existingPending ? c.pendingDesc : c.desc}
+        </p>
         <div className="mt-6 flex w-full max-w-[28rem] items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50/60 px-4 py-3 text-left">
           <Mail className="h-4 w-4 shrink-0 text-brand-700" aria-hidden />
           <div className="min-w-0">
@@ -559,7 +595,61 @@ function SuccessState({
   );
 }
 
-function VerificationResend({ email, locale }: { email: string; locale: string }) {
+function ExistingAccountState({ locale, reduce }: { locale: string; reduce: boolean }) {
+  const copy =
+    locale === "id"
+      ? {
+          title: "Akun sudah terdaftar.",
+          desc: "Gunakan email dan password yang sudah Anda buat untuk masuk ke Lifestory.",
+          signIn: "Masuk ke Lifestory",
+          home: "Kembali ke beranda",
+        }
+      : {
+          title: "This account already exists.",
+          desc: "Use the email and password you created to sign in to Lifestory.",
+          signIn: "Sign in to Lifestory",
+          home: "Back to home",
+        };
+
+  return (
+    <main className="flex min-h-[calc(100vh-78px)] items-center justify-center bg-cream-100 px-6 py-16">
+      <motion.div
+        initial={{ opacity: 0, y: reduce ? 0 : 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: reduce ? 0.01 : 0.6, ease: EASE }}
+        className="flex w-full max-w-[30rem] flex-col items-center text-center"
+      >
+        <span aria-hidden className="h-px w-10 bg-brand-700" />
+        <h1 className="mt-6 font-serif text-[2.2rem] font-light leading-[1.08] tracking-[-0.02em] text-ink-900 sm:text-[2.6rem]">
+          {copy.title}
+        </h1>
+        <p className="mt-4 max-w-[40ch] text-[0.95rem] leading-relaxed text-ink-600">{copy.desc}</p>
+        <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
+          <Link href="/auth/login" className="w-full sm:w-auto">
+            <Button block size="lg" className="h-12 rounded-pill">
+              {copy.signIn}
+            </Button>
+          </Link>
+          <Link href="/" className="w-full sm:w-auto">
+            <Button variant="ghost" size="lg" className="h-12 rounded-pill">
+              {copy.home}
+            </Button>
+          </Link>
+        </div>
+      </motion.div>
+    </main>
+  );
+}
+
+function VerificationResend({
+  email,
+  locale,
+  compact = false,
+}: {
+  email: string;
+  locale: string;
+  compact?: boolean;
+}) {
   const [seconds, setSeconds] = useState(30);
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
 
@@ -610,7 +700,7 @@ function VerificationResend({ email, locale }: { email: string; locale: string }
 
   return (
     <section className="mt-5 w-full max-w-[28rem] text-left" aria-live="polite">
-      <p className="text-sm leading-6 text-ink-600">{copy.prompt}</p>
+      {!compact && <p className="text-sm leading-6 text-ink-600">{copy.prompt}</p>}
       {seconds > 0 ? (
         <p className="mt-2 text-xs font-semibold tracking-[0.03em] text-ink-500">{copy.wait}</p>
       ) : (

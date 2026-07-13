@@ -87,15 +87,17 @@ export async function POST(request: Request) {
   try {
     const existingUser = await prisma.user.findUnique({
       where: { email },
-      select: { id: true },
+      select: { id: true, status: true },
     });
 
     if (existingUser) {
       return NextResponse.json(
         {
           message: "Registration received",
+          account:
+            existingUser.status === "pending_email" ? "pending_email" : "existing",
         },
-        { status: 201 }
+        { status: 200 }
       );
     }
 

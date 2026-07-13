@@ -48,4 +48,13 @@ describe("registration verification UX", () => {
     expect(source).toContain("Kirim ulang tersedia dalam");
     expect(source).toContain("/api/auth/resend-verification");
   });
+
+  it("distinguishes an existing pending account from an active existing account", () => {
+    const source = readFileSync(join(process.cwd(), "components/auth/AuthCurtain.tsx"), "utf8");
+
+    expect(source).toContain('payload?.account === "pending_email"');
+    expect(source).toContain('payload?.account === "existing"');
+    expect(source).toContain("existingPending={registrationOutcome === \"pending_email\"}");
+    expect(source).toContain("<ExistingAccountState locale={locale} reduce={Boolean(reduce)} />");
+  });
 });

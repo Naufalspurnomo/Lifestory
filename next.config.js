@@ -24,14 +24,15 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   `script-src 'self' 'unsafe-inline'${
     isDevelopment ? " 'unsafe-eval'" : ""
-  } https://vercel.live`,
+  } https://vercel.live https://challenges.cloudflare.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https: blob:",
   "media-src 'self' data: https: blob:",
   "font-src 'self' data: https://fonts.gstatic.com",
-  `connect-src 'self' https://vercel.live${
+  `connect-src 'self' https://vercel.live https://challenges.cloudflare.com${
     storageConnectSources ? ` ${storageConnectSources}` : ""
   }`,
+  "frame-src 'self' https://challenges.cloudflare.com",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   isDevelopment ? "" : "upgrade-insecure-requests",
