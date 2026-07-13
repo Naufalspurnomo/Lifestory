@@ -23,6 +23,10 @@ import {
 } from "../../../../lib/auth/email-verification";
 import { sendEmailVerificationEmail } from "../../../../lib/email";
 import { verifyTurnstileToken } from "../../../../lib/turnstile";
+import {
+  enqueueRegistrationWelcome,
+  processWhatsAppWelcomeJob,
+} from "../../../../lib/whatsapp";
 
 function readUserAgent(request: Request): string | null {
   const value = request.headers.get("user-agent");
@@ -102,7 +106,7 @@ export async function POST(request: Request) {
       verificationToken
     );
 
-    await prisma.$transaction(async (tx) => {
+    const welcomeJob = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
           name,
@@ -126,6 +130,7 @@ export async function POST(request: Request) {
           expiresAt: getEmailVerificationExpiry(),
         },
       });
+      return enqueueRegistrationWelcome(tx, { userId: user.id, phone });
     });
 
     const emailResult = await sendEmailVerificationEmail({
@@ -134,11 +139,20 @@ export async function POST(request: Request) {
       expiresInMinutes: EMAIL_VERIFICATION_TOKEN_TTL_MINUTES,
     });
 
+    try {
+      await processWhatsAppWelcomeJob(
+        welcomeJob.id,
+        process.env.NEXTAUTH_URL || new URL(request.url).origin
+      );
+    } catch (error) {
+      console.error("Registration WhatsApp welcome dispatch failed", error);
+    }
+
     return NextResponse.json(
       {
         message: "Registration received",
         ...(process.env.NODE_ENV !== "production" &&
-        !emailResult.ok && emailResult.skipped
+        !emailResult.ok
           ? { verificationUrl }
           : {}),
       },

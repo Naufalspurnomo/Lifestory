@@ -112,7 +112,11 @@ export async function middleware(req: NextRequest) {
     typeof token?.status === "string" ? token.status : undefined;
   const isAdmin = token?.role === "admin";
 
-  if (accountStatus === "suspended" || accountStatus === "inactive") {
+  if (
+    accountStatus === "suspended" ||
+    accountStatus === "inactive" ||
+    accountStatus === "pending_email"
+  ) {
     if (isAdminOnlyApi) {
       return NextResponse.json(
         { error: "Forbidden - Account is not active" },

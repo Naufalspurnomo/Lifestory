@@ -10,14 +10,16 @@ import {
   Search,
   ShieldOff,
   Sparkles,
+  Trash2,
   UserCheck,
   Users,
   UserX,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "../../components/providers/LanguageProvider";
 
-type UserStatus = "active" | "inactive" | "suspended";
+type UserStatus = "active" | "inactive" | "pending_email" | "suspended";
 
 interface UserData {
   id: string;
@@ -41,6 +43,9 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [deletingUser, setDeletingUser] = useState<UserData | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const copy =
     locale === "id"
@@ -52,6 +57,7 @@ export default function DashboardPage() {
           statusLabels: {
             active: "Berlangganan",
             inactive: "Belum Berlangganan",
+            pending_email: "Menunggu Verifikasi",
             suspended: "Ditangguhkan",
           },
           headerLabel: "Admin Dashboard",
@@ -64,6 +70,7 @@ export default function DashboardPage() {
           filterAll: "Semua",
           filterActive: "Berlangganan",
           filterInactive: "Belum Bayar",
+          filterPendingEmail: "Belum Verifikasi",
           filterSuspended: "Ditangguhkan",
           searchPlaceholder: "Cari nama atau email...",
           loadingText: "Memuat data...",
@@ -80,6 +87,14 @@ export default function DashboardPage() {
           deactivate: "Nonaktifkan",
           suspend: "Tangguhkan",
           unsuspend: "Cabut Penangguhan",
+          delete: "Hapus akun",
+          deleteTitle: "Hapus akun test?",
+          deleteBody:
+            "Tindakan ini menghapus akun, token verifikasi, dan antrean WhatsApp. Akun dengan pohon keluarga tidak dapat dihapus dari sini.",
+          deleteType: "Ketik email akun ini untuk mengaktifkan penghapusan.",
+          deleteCancel: "Batal",
+          deleteConfirm: "Hapus permanen",
+          deleteFailed: "Akun tidak dapat dihapus. Pastikan akun tidak memiliki pohon keluarga.",
           suspendConfirm: (name: string) =>
             `Tangguhkan ${name}? User tidak akan bisa mengakses platform.`,
           howItWorks: "Cara Kerja",
@@ -98,6 +113,7 @@ export default function DashboardPage() {
           statusLabels: {
             active: "Subscribed",
             inactive: "Not Subscribed",
+            pending_email: "Awaiting Verification",
             suspended: "Suspended",
           },
           headerLabel: "Admin Dashboard",
@@ -110,6 +126,7 @@ export default function DashboardPage() {
           filterAll: "All",
           filterActive: "Subscribed",
           filterInactive: "Unpaid",
+          filterPendingEmail: "Unverified",
           filterSuspended: "Suspended",
           searchPlaceholder: "Search name or email...",
           loadingText: "Loading data...",
@@ -126,6 +143,14 @@ export default function DashboardPage() {
           deactivate: "Deactivate",
           suspend: "Suspend",
           unsuspend: "Remove Suspension",
+          delete: "Delete account",
+          deleteTitle: "Delete test account?",
+          deleteBody:
+            "This removes the account, verification tokens, and WhatsApp queue. Accounts with family trees cannot be deleted here.",
+          deleteType: "Type this account email to enable deletion.",
+          deleteCancel: "Cancel",
+          deleteConfirm: "Delete permanently",
+          deleteFailed: "This account cannot be deleted. Make sure it has no family tree.",
           suspendConfirm: (name: string) =>
             `Suspend ${name}? This user will lose platform access.`,
           howItWorks: "How It Works",
@@ -233,6 +258,30 @@ export default function DashboardPage() {
     }
   }
 
+  async function deleteUser() {
+    if (!deletingUser) return;
+    setUpdating(deletingUser.id);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/users/${deletingUser.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmationEmail: deleteConfirmation }),
+      });
+      if (!res.ok) {
+        setDeleteError(copy.deleteFailed);
+        return;
+      }
+      setUsers((previous) => previous.filter((user) => user.id !== deletingUser.id));
+      setDeletingUser(null);
+      setDeleteConfirmation("");
+    } catch {
+      setDeleteError(copy.deleteFailed);
+    } finally {
+      setUpdating(null);
+    }
+  }
+
   const filteredUsers = users.filter((u) => {
     const matchesFilter = filter === "all" || u.status === filter;
     const matchesSearch =
@@ -246,12 +295,14 @@ export default function DashboardPage() {
     total: users.length,
     active: users.filter((u) => u.status === "active").length,
     inactive: users.filter((u) => u.status === "inactive").length,
+    pending_email: users.filter((u) => u.status === "pending_email").length,
     suspended: users.filter((u) => u.status === "suspended").length,
   };
 
   const statusBadgeStyles: Record<UserStatus, string> = {
     active: "border-[#cfe3d2] bg-[#f1faef] text-[#3a6e44]",
     inactive: "border-[#e9d4a3] bg-[#fdfbf6] text-[#9d6e1c]",
+    pending_email: "border-[#e9d4a3] bg-[#fff9ec] text-[#9d6e1c]",
     suspended: "border-[#e7c9c9] bg-[#fff4f4] text-[#b34a4a]",
   };
 
@@ -259,6 +310,7 @@ export default function DashboardPage() {
     all: copy.filterAll,
     active: copy.filterActive,
     inactive: copy.filterInactive,
+    pending_email: copy.filterPendingEmail,
     suspended: copy.filterSuspended,
   };
 
@@ -359,7 +411,7 @@ export default function DashboardPage() {
 
         <div className="flex flex-col gap-4 rounded-3xl border border-[#dfd2be] bg-white/82 p-5 shadow-[0_14px_28px_rgba(59,43,24,0.06)] backdrop-blur-sm md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap gap-2">
-            {(["all", "active", "inactive", "suspended"] as const).map((status) => (
+            {(["all", "active", "inactive", "pending_email", "suspended"] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
@@ -512,6 +564,19 @@ export default function DashboardPage() {
                                     {copy.unsuspend}
                                   </button>
                                 )}
+                                {u.role !== "admin" && (
+                                  <button
+                                    onClick={() => {
+                                      setDeletingUser(u);
+                                      setDeleteConfirmation("");
+                                      setDeleteError(null);
+                                    }}
+                                    className="inline-flex items-center gap-1 rounded-full border border-[#e7c9c9] bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b34a4a] transition hover:bg-[#fff4f4]"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                    {copy.delete}
+                                  </button>
+                                )}
                               </>
                             )}
                           </div>
@@ -570,6 +635,59 @@ export default function DashboardPage() {
           </div>
         </div>
       </section>
+      {deletingUser && (
+        <div className="fixed inset-0 z-[80] flex items-end bg-ink-900/35 p-3 backdrop-blur-[2px] sm:items-center sm:justify-center sm:p-6">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-account-title"
+            className="w-full max-w-md rounded-[28px] border border-[#e7c9c9] bg-[#fffdf8] p-6 shadow-[0_28px_60px_rgba(43,29,17,0.28)] sm:p-7"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-danger">{copy.delete}</p>
+                <h2 id="delete-account-title" className="mt-2 font-serif text-2xl text-ink-900">{copy.deleteTitle}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeletingUser(null)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-500 transition hover:bg-cream-100 hover:text-ink-800"
+                aria-label={copy.deleteCancel}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-ink-600">{copy.deleteBody}</p>
+            <div className="mt-5 rounded-2xl border border-danger/20 bg-[#fff4f4] px-4 py-3">
+              <p className="font-semibold text-ink-800">{deletingUser.name}</p>
+              <p className="mt-0.5 break-all text-sm text-ink-600">{deletingUser.email}</p>
+            </div>
+            <label className="mt-5 block text-sm font-semibold text-ink-800">
+              {copy.deleteType}
+              <input
+                autoFocus
+                value={deleteConfirmation}
+                onChange={(event) => setDeleteConfirmation(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-ink-900 outline-none transition focus:border-danger focus:ring-2 focus:ring-danger/15"
+              />
+            </label>
+            {deleteError && <p className="mt-3 text-sm font-medium text-danger">{deleteError}</p>}
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setDeletingUser(null)} className="rounded-pill px-4 py-2.5 text-sm font-semibold text-ink-600 transition hover:bg-cream-100">
+                {copy.deleteCancel}
+              </button>
+              <button
+                type="button"
+                disabled={updating === deletingUser.id || deleteConfirmation.trim().toLowerCase() !== deletingUser.email.toLowerCase()}
+                onClick={() => void deleteUser()}
+                className="rounded-pill bg-danger px-5 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {updating === deletingUser.id ? copy.updating : copy.deleteConfirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

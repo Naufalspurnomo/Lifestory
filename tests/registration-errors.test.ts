@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { getRegistrationErrorMessage } from "../lib/registration-errors";
 
 describe("registration error messages", () => {
@@ -34,5 +36,16 @@ describe("registration error messages", () => {
     ).toBe(
       "The server is having trouble and could not create the account. Please try again shortly."
     );
+  });
+});
+
+describe("registration verification UX", () => {
+  it("shows the registered address and a resend countdown", () => {
+    const source = readFileSync(join(process.cwd(), "components/auth/AuthCurtain.tsx"), "utf8");
+
+    expect(source).toContain("setRegisteredEmail(body.email)");
+    expect(source).toContain("Dikirim ke");
+    expect(source).toContain("Kirim ulang tersedia dalam");
+    expect(source).toContain("/api/auth/resend-verification");
   });
 });

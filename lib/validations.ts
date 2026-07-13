@@ -24,6 +24,10 @@ export const userIdParamSchema = z.object({
   id: z.string().min(1, "User ID is required"),
 });
 
+export const deleteUserSchema = z.object({
+  confirmationEmail: z.string().trim().max(254).email("Invalid email format"),
+});
+
 // ====== Pagination Schemas ======
 
 export const paginationSchema = z.object({

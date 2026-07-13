@@ -54,6 +54,27 @@ model User {
   treeAuditEvents              TreeAuditEvent[]         @relation("TreeAuditActor")
   studioLeads                  StudioLead[]
   uploadedStudioDeliverables   StudioDeliverable[]      @relation("DeliverableUploader")
+  whatsAppOutbox               WhatsAppOutbox[]
+}
+
+model WhatsAppOutbox {
+  id            String   @id @default(cuid())
+  userId        String
+  kind          String
+  recipient     String
+  status        String   @default("pending")
+  attemptCount  Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  processingAt  DateTime?
+  lastError     String?
+  sentAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind])
+  @@index([status, nextAttemptAt])
 }
 
 model EmailVerificationToken {

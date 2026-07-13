@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Mail, RefreshCw } from "lucide-react";
 import { useLanguage } from "../providers/LanguageProvider";
 import { Button } from "../ui/Button";
 import { AuthField } from "./AuthField";
@@ -36,6 +37,7 @@ export function AuthCurtain({
   const [registerStatus, setRegisterStatus] = useState<Status>("idle");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [registerError, setRegisterError] = useState<string | null>(null);
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
   const safeNext = getSafeNextPath(next);
   const redirectToSafeNext = useCallback(() => {
@@ -75,6 +77,7 @@ export function AuthCurtain({
 
     if (res?.error) {
       if (res.error.includes("RATE_LIMITED")) setLoginError(t.login.rateLimited);
+      else if (res.error.includes("EMAIL_UNVERIFIED")) setLoginError(t.login.emailUnverified);
       else if (res.error.includes("ACCOUNT_INACTIVE")) setLoginError(t.login.inactive);
       else if (res.error.includes("ACCOUNT_SUSPENDED")) setLoginError(t.login.suspended);
       else setLoginError(t.login.invalid);
@@ -115,6 +118,7 @@ export function AuthCurtain({
         setRegisterStatus("idle");
         return;
       }
+      setRegisteredEmail(body.email);
       setRegisterStatus("success");
     } catch {
       setRegisterError(t.register.networkError);
@@ -127,7 +131,13 @@ export function AuthCurtain({
   if (sessionStatus === "authenticated")
     return <StatusScreen>{t.shared.authed}</StatusScreen>;
   if (registerStatus === "success")
-    return <SuccessState locale={locale} reduce={Boolean(reduce)} />;
+    return (
+      <SuccessState
+        email={registeredEmail}
+        locale={locale}
+        reduce={Boolean(reduce)}
+      />
+    );
 
   const loginForm = (
     <LoginForm
@@ -484,18 +494,26 @@ function StatusScreen({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SuccessState({ locale, reduce }: { locale: string; reduce: boolean }) {
+function SuccessState({
+  email,
+  locale,
+  reduce,
+}: {
+  email: string;
+  locale: string;
+  reduce: boolean;
+}) {
   const c =
     locale === "id"
       ? {
-          title: "Cek email Anda.",
+          title: "Periksa kotak masuk Anda.",
           desc:
             "Kami mengirim tautan verifikasi yang berlaku 30 menit. Setelah email terverifikasi, pohon keluarga gratis langsung bisa digunakan.",
           signIn: "Sudah verifikasi? Masuk",
           backHome: "Kembali ke beranda",
         }
       : {
-          title: "Check your email.",
+          title: "Check your inbox.",
           desc:
             "We sent a verification link that expires in 30 minutes. Once verified, your free family tree is ready to use.",
           signIn: "Verified? Sign in",
@@ -514,6 +532,16 @@ function SuccessState({ locale, reduce }: { locale: string; reduce: boolean }) {
           {c.title}
         </h1>
         <p className="mt-4 max-w-[40ch] text-[0.95rem] leading-relaxed text-ink-600">{c.desc}</p>
+        <div className="mt-6 flex w-full max-w-[28rem] items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50/60 px-4 py-3 text-left">
+          <Mail className="h-4 w-4 shrink-0 text-brand-700" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-ink-500">
+              {locale === "id" ? "Dikirim ke" : "Sent to"}
+            </p>
+            <p className="truncate text-sm font-semibold text-ink-800">{email}</p>
+          </div>
+        </div>
+        <VerificationResend email={email} locale={locale} />
         <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
           <Link href="/auth/login" className="w-full sm:w-auto">
             <Button block size="lg" className="h-12 rounded-pill">
@@ -528,6 +556,80 @@ function SuccessState({ locale, reduce }: { locale: string; reduce: boolean }) {
         </div>
       </motion.div>
     </main>
+  );
+}
+
+function VerificationResend({ email, locale }: { email: string; locale: string }) {
+  const [seconds, setSeconds] = useState(30);
+  const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
+
+  useEffect(() => {
+    if (seconds <= 0) return;
+    const timer = window.setTimeout(() => setSeconds((value) => value - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [seconds]);
+
+  const time = `00:${String(seconds).padStart(2, "0")}`;
+  const copy =
+    locale === "id"
+      ? {
+          wait: `Kirim ulang tersedia dalam ${time}`,
+          prompt: "Belum menemukan emailnya? Cek folder Spam atau Promosi, lalu minta tautan baru.",
+          cta: "Kirim ulang email verifikasi",
+          sent: "Permintaan terkirim. Periksa inbox dan Spam Anda.",
+          error: "Email belum dapat dikirim. Coba lagi sebentar lagi.",
+        }
+      : {
+          wait: `Resend available in ${time}`,
+          prompt: "Can’t find it? Check Spam or Promotions, then request a new link.",
+          cta: "Resend verification email",
+          sent: "Request sent. Check your inbox and Spam folder.",
+          error: "The email could not be sent. Please try again shortly.",
+        };
+
+  async function handleResend(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus("loading");
+    const form = new FormData(event.currentTarget);
+    const response = await fetch("/api/auth/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        turnstileToken: String(form.get("turnstileToken") || "") || undefined,
+      }),
+    }).catch(() => null);
+
+    if (!response?.ok) {
+      setStatus("error");
+      return;
+    }
+    setStatus("sent");
+    setSeconds(60);
+  }
+
+  return (
+    <section className="mt-5 w-full max-w-[28rem] text-left" aria-live="polite">
+      <p className="text-sm leading-6 text-ink-600">{copy.prompt}</p>
+      {seconds > 0 ? (
+        <p className="mt-2 text-xs font-semibold tracking-[0.03em] text-ink-500">{copy.wait}</p>
+      ) : (
+        <form onSubmit={handleResend} className="mt-4 space-y-3">
+          <TurnstileField />
+          <Button
+            type="submit"
+            variant="secondary"
+            size="sm"
+            loading={status === "loading"}
+            iconLeft={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}
+          >
+            {copy.cta}
+          </Button>
+        </form>
+      )}
+      {status === "sent" && <p className="mt-3 text-sm font-medium text-success">{copy.sent}</p>}
+      {status === "error" && <p className="mt-3 text-sm font-medium text-danger">{copy.error}</p>}
+    </section>
   );
 }
 
@@ -556,6 +658,8 @@ function copyFor(locale: string) {
         invalid: "Email atau password salah.",
         rateLimited: "Terlalu banyak percobaan login. Coba lagi dalam 15 menit.",
         inactive:
+          "Akun ini belum aktif. Hubungi tim Lifestory untuk bantuan.",
+        emailUnverified:
           "Email Anda belum diverifikasi. Cek inbox atau kirim ulang tautan verifikasi.",
         suspended: "Akun ini sedang ditangguhkan. Hubungi tim Lifestory untuk bantuan.",
       },
@@ -610,7 +714,9 @@ function copyFor(locale: string) {
       invalid: "Incorrect email or password.",
       rateLimited: "Too many login attempts. Please try again in 15 minutes.",
       inactive:
-        "Your email is not verified yet. Check your inbox or request a new verification link.",
+        "This account is not active yet. Please contact Lifestory for help.",
+        emailUnverified:
+          "Your email is not verified yet. Check your inbox or request a new verification link.",
       suspended: "This account is suspended. Please contact Lifestory for help.",
     },
     register: {

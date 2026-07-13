@@ -41,15 +41,12 @@ export async function POST(request: Request) {
   if (!user || user.status !== "pending_email") return NextResponse.json(GENERIC_RESPONSE);
 
   const rawToken = generateEmailVerificationToken();
-  await prisma.$transaction(async (tx) => {
-    await tx.emailVerificationToken.deleteMany({ where: { userId: user.id, usedAt: null } });
-    await tx.emailVerificationToken.create({
-      data: {
-        userId: user.id,
-        tokenHash: hashEmailVerificationToken(rawToken),
-        expiresAt: getEmailVerificationExpiry(),
-      },
-    });
+  const replacement = await prisma.emailVerificationToken.create({
+    data: {
+      userId: user.id,
+      tokenHash: hashEmailVerificationToken(rawToken),
+      expiresAt: getEmailVerificationExpiry(),
+    },
   });
   const verificationUrl = getEmailVerificationUrl(process.env.NEXTAUTH_URL || new URL(request.url).origin, rawToken);
   const emailResult = await sendEmailVerificationEmail({
@@ -57,8 +54,15 @@ export async function POST(request: Request) {
     verificationUrl,
     expiresInMinutes: EMAIL_VERIFICATION_TOKEN_TTL_MINUTES,
   });
+  if (emailResult.ok) {
+    await prisma.emailVerificationToken.deleteMany({
+      where: { userId: user.id, usedAt: null, id: { not: replacement.id } },
+    });
+  } else {
+    await prisma.emailVerificationToken.delete({ where: { id: replacement.id } });
+  }
   return NextResponse.json({
     ...GENERIC_RESPONSE,
-    ...(process.env.NODE_ENV !== "production" && !emailResult.ok && emailResult.skipped ? { verificationUrl } : {}),
+    ...(process.env.NODE_ENV !== "production" && !emailResult.ok ? { verificationUrl } : {}),
   });
 }

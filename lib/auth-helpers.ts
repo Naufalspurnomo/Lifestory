@@ -36,11 +36,15 @@ export async function requireUser(): Promise<AuthResult> {
     };
   }
 
-  if (session.user.status === "suspended") {
+  if (
+    session.user.status === "suspended" ||
+    session.user.status === "inactive" ||
+    session.user.status === "pending_email"
+  ) {
     return {
       success: false,
       response: NextResponse.json(
-        { error: "Forbidden - Account is suspended" },
+        { error: "Forbidden - Account is not active" },
         { status: 403 }
       ),
     };

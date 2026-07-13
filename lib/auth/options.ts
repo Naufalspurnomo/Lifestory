@@ -78,7 +78,10 @@ export const authOptions: NextAuthOptions = {
           user?.passwordHash ?? DUMMY_PASSWORD_HASH
         );
         if (!user || !isValid) return null;
-        if (user.status === "inactive" || user.status === "pending_email") {
+        if (user.status === "pending_email") {
+          throw new Error("EMAIL_UNVERIFIED");
+        }
+        if (user.status === "inactive") {
           throw new Error("ACCOUNT_INACTIVE");
         }
         if (user.status === "suspended") {

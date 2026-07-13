@@ -164,6 +164,28 @@ describe("tree action menu invariants", () => {
 });
 
 describe("public auth and gallery hardening invariants", () => {
+  it("blocks unverified accounts at login, middleware, and API authorization", () => {
+    const authOptions = readSource("lib/auth/options.ts");
+    const middleware = readSource("middleware.ts");
+    const authHelpers = readSource("lib/auth-helpers.ts");
+
+    expect(authOptions).toContain('user.status === "pending_email"');
+    expect(authOptions).toContain('throw new Error("EMAIL_UNVERIFIED")');
+    expect(middleware).toContain('accountStatus === "pending_email"');
+    expect(authHelpers).toContain('session.user.status === "pending_email"');
+  });
+
+  it("requires an admin and matching target email before deleting a test account", () => {
+    const source = readSource("app/api/users/[id]/route.ts");
+
+    expect(source).toContain("export async function DELETE");
+    expect(source).toContain("requireAdmin()");
+    expect(source).toContain("deleteUserSchema");
+    expect(source).toContain('target.role === "admin"');
+    expect(source).toContain("target._count.trees > 0");
+    expect(source).toContain("confirmationEmail.toLowerCase()");
+  });
+
   it("keeps registration throttled to five attempts per IP per hour", () => {
     const source = readSource("lib/rate-limit.ts");
 
@@ -186,6 +208,15 @@ describe("public auth and gallery hardening invariants", () => {
     expectBefore(section, "prisma.user.findUnique", "hash(password");
     expectBefore(section, "prisma.user.findUnique", "tx.user.create");
     expectBefore(section, "tx.user.create", "tx.emailVerificationToken.create");
+  });
+
+  it("keeps an existing verification link valid when a resend cannot be delivered", () => {
+    const source = readSource("app/api/auth/resend-verification/route.ts");
+
+    expect(source).toContain("const replacement = await prisma.emailVerificationToken.create");
+    expect(source).toContain("if (emailResult.ok)");
+    expect(source).toContain("id: { not: replacement.id }");
+    expect(source).toContain("await prisma.emailVerificationToken.delete({ where: { id: replacement.id } })");
   });
 
   it("redirects after successful credential login without extra session refresh work", () => {

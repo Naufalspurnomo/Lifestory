@@ -4,6 +4,7 @@ import { applyRateLimit, rateLimitConfigs } from "../../../../lib/rate-limit";
 import {
   validateBody,
   updateUserStatusSchema,
+  deleteUserSchema,
   formatZodErrors,
 } from "../../../../lib/validations";
 import { prisma } from "../../../../lib/db";
@@ -112,6 +113,61 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json(
       { error: "An error occurred while updating user" },
       { status: 500 }
+    );
+  }
+}
+
+// DELETE - irreversible test-account cleanup, protected by admin + matching email.
+export async function DELETE(request: Request, { params }: Params) {
+  const rateLimitError = await applyRateLimit(
+    request,
+    "admin-delete-user",
+    rateLimitConfigs.sensitive
+  );
+  if (rateLimitError) return rateLimitError;
+
+  const authResult = await requireAdmin();
+  if (!authResult.success) return authResult.response;
+
+  const { id } = await params;
+  if (!id) return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+
+  const bodyResult = await parseJsonBody(request, jsonBodyLimits.tiny);
+  if (!bodyResult.success) return bodyResult.response;
+  const validation = validateBody(deleteUserSchema, bodyResult.body);
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: formatZodErrors(validation.errors) },
+      { status: 400 }
+    );
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, email: true, role: true, _count: { select: { trees: true } } },
+  });
+  if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (target.role === "admin") {
+    return NextResponse.json({ error: "Admin accounts cannot be deleted" }, { status: 400 });
+  }
+  if (target._count.trees > 0) {
+    return NextResponse.json(
+      { error: "Accounts with family trees cannot be deleted" },
+      { status: 409 }
+    );
+  }
+  if (target.email !== validation.data.confirmationEmail.toLowerCase()) {
+    return NextResponse.json({ error: "Confirmation email does not match" }, { status: 400 });
+  }
+
+  try {
+    await prisma.user.delete({ where: { id: target.id } });
+    return NextResponse.json({ deleted: true });
+  } catch (error) {
+    console.error("Error deleting user", error);
+    return NextResponse.json(
+      { error: "Account cannot be deleted while it has related data" },
+      { status: 409 }
     );
   }
 }
