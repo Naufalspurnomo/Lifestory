@@ -32,6 +32,7 @@ import {
   LayoutDashboard,
   LogOut,
   PanelRightOpen,
+  RefreshCw,
   Sparkles,
   Upload,
   UserPlus,
@@ -98,6 +99,10 @@ export default function AppHome() {
           pageTitle: "Pohon Keluarga",
           pageDescription:
             "Visualisasikan sejarah keluarga Anda, simpan cerita, dan wariskan memori untuk generasi mendatang.",
+          archiveUnavailableTitle: "Arsip keluarga belum dapat dibuka",
+          archiveUnavailableBody:
+            "Kami belum menerima konfirmasi daftar pohon keluarga Anda. Coba lagi agar kami tidak keliru menampilkan proses keluarga baru.",
+          retryArchive: "Coba lagi",
           viewTree: "Pohon",
           viewTimeline: "Cerita",
           mode: "Mode",
@@ -150,6 +155,10 @@ export default function AppHome() {
           pageTitle: "Family Trees",
           pageDescription:
             "Visualize your family history, preserve stories, and pass memory to future generations.",
+          archiveUnavailableTitle: "Your family archive is unavailable",
+          archiveUnavailableBody:
+            "We could not confirm your family-tree list. Try again so we do not mistakenly show the new-family setup.",
+          retryArchive: "Try again",
           viewTree: "Tree",
           viewTimeline: "Stories",
           mode: "Mode",
@@ -186,6 +195,7 @@ export default function AppHome() {
     userTree,
     treeSummaries,
     currentTree,
+    treeInventoryState,
     firstTreeWelcomeTreeId,
     selectTree,
     layoutGraph,
@@ -252,6 +262,10 @@ export default function AppHome() {
   const mobileAccountMenuRef = useRef<HTMLDivElement | null>(null);
   const desktopAccountMenuRef = useRef<HTMLDivElement | null>(null);
   const closeStudioJourney = useCallback(() => setIsStudioJourneyOpen(false), []);
+
+  useEffect(() => {
+    setHasCreatedTree(false);
+  }, [userId]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -549,6 +563,10 @@ export default function AppHome() {
   const focusedNode = selectedId ? getNode(selectedId) : null;
   const detailNode = detailNodeId ? getNode(detailNodeId) : null;
   const showTree = Boolean(currentTree);
+  const canShowFamilyDiscovery =
+    !showTree && !hasCreatedTree && treeInventoryState === "empty";
+  const showArchiveRecovery =
+    !showTree && !hasCreatedTree && treeInventoryState === "unavailable";
   const isFirstTreeWelcomeOpen = Boolean(
     viewMode === "tree" &&
       currentTree &&
@@ -849,7 +867,8 @@ export default function AppHome() {
 
   // Loading state: session or tree data still hydrating.
   const isSessionLoading = status === "loading";
-  const isTreeLoading = syncStatus === "loading";
+  const isTreeLoading =
+    treeInventoryState === "loading" || syncStatus === "loading";
   const showLoading = isSessionLoading || (isTreeLoading && !currentTree && !hasCreatedTree);
 
   if (showLoading) {
@@ -885,8 +904,31 @@ export default function AppHome() {
   return (
     <div className={showTree ? "h-[100dvh] w-screen overflow-hidden bg-[#2c1e16] flex flex-col relative text-[#3f342d]" : "min-h-screen bg-[#faf6ed] pb-32"}>
       {/* Vignette removed for a cleaner look */}
-      {!showTree && !hasCreatedTree && (
+      {canShowFamilyDiscovery && (
         <FamilyDiscoveryGate userName={userName} onStart={handleStartTree} />
+      )}
+
+      {showArchiveRecovery && (
+        <main className="mx-auto flex min-h-[70vh] w-full max-w-xl items-center px-4 py-12 sm:px-6">
+          <section className="w-full border border-cream-300 bg-cream-50/90 px-7 py-10 text-center shadow-[0_20px_55px_-34px_rgba(59,43,24,0.55)]">
+            <span className="mx-auto mb-5 inline-flex h-12 w-12 items-center justify-center rounded-full border border-brand-200 bg-cream-100 text-brand-700">
+              <RefreshCw className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <h1 className="font-serif text-3xl text-ink-900">
+              {copy.archiveUnavailableTitle}
+            </h1>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-ink-600">
+              {copy.archiveUnavailableBody}
+            </p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-7 inline-flex h-11 items-center justify-center border border-brand-700 bg-brand-700 px-5 text-sm font-semibold text-cream-50 transition hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-100"
+            >
+              {copy.retryArchive}
+            </button>
+          </section>
+        </main>
       )}
 
       {showTree && (

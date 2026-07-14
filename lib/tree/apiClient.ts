@@ -126,8 +126,11 @@ export async function listTrees(
   );
   await expectOk(res);
   const body = (await res.json()) as Partial<TreeListResult>;
+  if (!Array.isArray(body.trees)) {
+    throw new TreeApiError("Invalid tree list response", 502);
+  }
   return {
-    trees: body.trees ?? [],
+    trees: body.trees,
     onboarding: {
       firstTreeWelcomeTreeId:
         body.onboarding?.firstTreeWelcomeTreeId ?? null,

@@ -115,6 +115,23 @@ describe("site header nav active state", () => {
   });
 });
 
+describe("site header scroll stability", () => {
+  const navBar = source("components/site/NavBar.tsx");
+
+  it("uses hysteresis and avoids scroll-driven layout transitions", () => {
+    expect(navBar).toContain("const COMPACT_SCROLL_Y = 64;");
+    expect(navBar).toContain("const EXPAND_SCROLL_Y = 8;");
+    expect(navBar).toContain('useMotionValueEvent(scrollY, "change"');
+    expect(navBar).toContain(
+      "transition-[background-color,border-color,box-shadow] duration-300"
+    );
+    expect(navBar).not.toContain('window.addEventListener("scroll"');
+    expect(navBar).not.toContain(
+      "max-w-[1320px] items-center justify-between px-4 transition-all duration-300"
+    );
+  });
+});
+
 describe("about process image budget", () => {
   const images = [
     "public/image/about-mendengar.webp",

@@ -17,6 +17,7 @@ type SendResult =
   | { kind: "sent" }
   | { kind: "retry"; error: string }
   | { kind: "review"; error: string }
+  | { kind: "deferred"; error: string }
   | { kind: "disabled" };
 
 export function normalizeWhatsAppPhone(value: string): string | null {
@@ -40,7 +41,7 @@ export function buildWelcomePayload({
   return {
     Phone: phone,
     Image: imageUrl,
-    Caption: `Halo ${name}, selamat datang di Lifestory.\n\nSilakan verifikasi email Anda terlebih dahulu. Setelah itu, mulai susun kisah keluarga Anda di Lifestory.\n\nBuka Lifestory:\n${appUrl}`,
+    Caption: `Selamat, ${name}! Email Anda berhasil diverifikasi dan akun Lifestory Anda kini aktif.\n\nRuang keluarga Anda siap digunakan. Mulai susun pohon keluarga, simpan cerita, dan wariskan kenangan untuk generasi berikutnya.\n\nBuka Lifestory:\n${appUrl}`,
   };
 }
 
@@ -103,16 +104,19 @@ async function sendWelcome({
   }
 }
 
-export async function enqueueRegistrationWelcome(
+export async function enqueueVerifiedAccountWelcome(
   tx: Prisma.TransactionClient,
   input: { userId: string; phone: string }
 ) {
-  return tx.whatsAppOutbox.create({
-    data: {
+  const recipient = normalizeWhatsAppPhone(input.phone) || input.phone.trim();
+  return tx.whatsAppOutbox.upsert({
+    where: { userId_kind: { userId: input.userId, kind: WELCOME_KIND } },
+    create: {
       userId: input.userId,
       kind: WELCOME_KIND,
-      recipient: normalizeWhatsAppPhone(input.phone) || input.phone.trim(),
+      recipient,
     },
+    update: { recipient, nextAttemptAt: new Date() },
     select: { id: true },
   });
 }
@@ -136,8 +140,23 @@ export async function processWhatsAppWelcomeJob(
 
   const job = await prisma.whatsAppOutbox.findUniqueOrThrow({
     where: { id },
-    include: { user: { select: { name: true } } },
+    include: {
+      user: { select: { name: true, status: true, emailVerifiedAt: true } },
+    },
   });
+  if (job.user.status !== "active" || !job.user.emailVerifiedAt) {
+    await prisma.whatsAppOutbox.update({
+      where: { id },
+      data: {
+        status: "pending",
+        processingAt: null,
+        attemptCount: { decrement: 1 },
+        nextAttemptAt: new Date(now.getTime() + DISABLED_RETRY_MS),
+        lastError: "awaiting_email_verification",
+      },
+    });
+    return { kind: "deferred", error: "awaiting_email_verification" };
+  }
   const result = await sendWelcome({
     name: job.user.name,
     recipient: job.recipient,
@@ -204,7 +223,11 @@ export async function processDueWhatsAppWelcomeJobs(origin: string) {
   for (const job of jobs) {
     const result = await processWhatsAppWelcomeJob(job.id, origin);
     if (result?.kind === "sent") sent += 1;
-    else if (result?.kind === "retry" || result?.kind === "disabled") retried += 1;
+    else if (
+      result?.kind === "retry" ||
+      result?.kind === "disabled" ||
+      result?.kind === "deferred"
+    ) retried += 1;
     else if (result?.kind === "review") review += 1;
   }
   return { processed: jobs.length, sent, retried, review };

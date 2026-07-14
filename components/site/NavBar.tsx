@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  useMotionValueEvent,
+  useScroll,
+} from "framer-motion";
 import {
   ChevronDown,
   LayoutDashboard,
@@ -84,30 +89,21 @@ function buildCopy(locale: string) {
 function useNavbarChrome(pathname: string) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const { scrollY } = useScroll();
+
+  const COMPACT_SCROLL_Y = 64;
+  const EXPAND_SCROLL_Y = 8;
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    setIsScrolled((current) => {
+      if (current) return latest <= EXPAND_SCROLL_Y ? false : current;
+      return latest >= COMPACT_SCROLL_Y;
+    });
+  });
 
   useEffect(() => {
-    let current = window.scrollY > 24;
-    let frame = 0;
-
-    function onScroll() {
-      if (frame) return;
-      frame = window.requestAnimationFrame(() => {
-        frame = 0;
-        const next = window.scrollY > 24;
-        if (next !== current) {
-          current = next;
-          setIsScrolled(next);
-        }
-      });
-    }
-
-    setIsScrolled(current);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, []);
+    setIsScrolled(scrollY.get() >= COMPACT_SCROLL_Y);
+  }, [scrollY]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -193,14 +189,14 @@ function SessionAwareNavBar({
 
   return (
     <header
-      className={`sticky top-0 z-50 border-b transition-all duration-300 ${
+      className={`sticky top-0 z-50 border-b transition-[background-color,border-color,box-shadow] duration-300 ${
         isScrolled
           ? "border-cream-300 bg-cream-50/95 shadow-soft backdrop-blur-md"
           : "border-cream-300/60 bg-cream-100/85 backdrop-blur-sm"
       }`}
     >
       <div
-        className={`mx-auto flex max-w-[1320px] items-center justify-between px-4 transition-all duration-300 sm:px-6 ${
+        className={`mx-auto flex max-w-[1320px] items-center justify-between px-4 sm:px-6 ${
           isScrolled ? "h-[56px] lg:h-[64px]" : "h-[78px]"
         }`}
       >
@@ -208,7 +204,7 @@ function SessionAwareNavBar({
           <BrandLogo variant={isScrolled ? "navbar-compact" : "navbar"} />
           {isHome && (
             <span
-              className="absolute left-0 top-full mt-[-2px] block whitespace-nowrap font-sans text-[9.5px] font-medium uppercase text-brand-700/75 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="absolute left-0 top-full mt-[-2px] block whitespace-nowrap font-sans text-[9.5px] font-medium uppercase text-brand-700/75 transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
               style={{
                 letterSpacing: "1.8px",
                 opacity: isScrolled ? 0 : 1,
@@ -222,7 +218,7 @@ function SessionAwareNavBar({
         </div>
 
         <nav
-          className={`hidden items-center transition-all duration-300 lg:flex ${
+          className={`hidden items-center transition-colors duration-300 lg:flex ${
             isScrolled ? "gap-8" : "gap-12"
           }`}
         >

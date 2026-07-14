@@ -34,6 +34,12 @@ const MAX_HISTORY = 50;
 const ACTIVE_TREE_KEY_PREFIX = "lifestory_active_tree:";
 const LOCAL_DRAFT_KEY_PREFIX = "lifestory_local_draft:";
 
+export type TreeInventoryState =
+  | "loading"
+  | "empty"
+  | "available"
+  | "unavailable";
+
 const FREE_ENTITLEMENT: TreeSummary["entitlement"] = {
   tier: "FREE",
   maxPeople: 500,
@@ -376,6 +382,9 @@ export function useTreeState(userId: string, userName: string) {
   const [loadStatus, setLoadStatus] = useState<
     "idle" | "loading" | "saving" | "offline" | "error"
   >("idle");
+  const [treeInventoryState, setTreeInventoryState] =
+    useState<TreeInventoryState>("loading");
+  const [treeScopeUserId, setTreeScopeUserId] = useState<string | null>(null);
 
   const treesRef = useRef<TreeData[]>([]);
   const localRevisionRef = useRef(new Map<string, number>());
@@ -499,6 +508,8 @@ export function useTreeState(userId: string, userName: string) {
       // Seed with local cache immediately so UI isn't blank while we fetch.
       if (!cancelled) {
         treesRef.current = migrated;
+        setTreeScopeUserId(userId || null);
+        setTreeInventoryState("loading");
         setCurrentTreeId(null);
         setHistory({ past: [], present: [], future: [] });
         setTrees(migrated);
@@ -552,7 +563,9 @@ export function useTreeState(userId: string, userName: string) {
               setHistory({ past: [], present: recovered.nodes, future: [] });
               await setLastSyncedVersion(recovered.id, recovered.version ?? 1);
               setSaveError(null);
+              setTreeInventoryState("available");
             } catch (error) {
+              setTreeInventoryState("unavailable");
               setSaveError(
                 error instanceof Error
                   ? `Draft lokal masih aman, tetapi belum masuk server: ${error.message}`
@@ -560,6 +573,7 @@ export function useTreeState(userId: string, userName: string) {
               );
             }
           } else {
+            setTreeInventoryState("empty");
             // A zero-tree server response can also mean a misconfigured or
             // freshly reset database. Keep versioned browser caches visible
             // until an operator verifies that deletion was intentional.
@@ -573,16 +587,23 @@ export function useTreeState(userId: string, userName: string) {
           return;
         }
 
+        setTreeInventoryState("available");
+
         const primary = choosePrimaryTree(
           visibleSummaries,
           getActiveTreeId(userId)
         );
-        if (!primary) return;
+        if (!primary) {
+          setTreeInventoryState("unavailable");
+          setLoadStatus("offline");
+          return;
+        }
         await hydrateServerTree(primary.id, () => !cancelled);
         if (cancelled) return;
         setLoadStatus("idle");
       } catch (error) {
         if (cancelled) return;
+        setTreeInventoryState("unavailable");
         if (error instanceof TreeApiError && error.status === 401) {
           // Not logged in (e.g. page loaded before NextAuth session). Silently
           // stay in local-only mode.
@@ -611,8 +632,13 @@ export function useTreeState(userId: string, userName: string) {
 
   }, [trees, userId]);
 
-  const currentTree = trees.find((t) => t.id === currentTreeId) || null;
-  const userTree = trees.find((t) => t.ownerId === userId) || null;
+  const hasCurrentUserTreeScope = Boolean(userId) && treeScopeUserId === userId;
+  const currentTree = hasCurrentUserTreeScope
+    ? trees.find((t) => t.id === currentTreeId) || null
+    : null;
+  const userTree = hasCurrentUserTreeScope
+    ? trees.find((t) => t.ownerId === userId) || null
+    : null;
 
   const applyRemoteTree = useCallback(
     async (remoteTree: TreeData) => {
@@ -1195,6 +1221,8 @@ export function useTreeState(userId: string, userName: string) {
     treeSummaries,
     currentTree,
     userTree,
+    treeInventoryState:
+      hasCurrentUserTreeScope ? treeInventoryState : "loading",
     currentTreeId,
     firstTreeWelcomeTreeId,
     selectTree,

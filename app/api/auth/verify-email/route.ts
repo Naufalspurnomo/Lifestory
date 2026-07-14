@@ -3,6 +3,10 @@ import { prisma } from "../../../../lib/db";
 import { verifyEmailSchema, validateBody } from "../../../../lib/validations";
 import { hashEmailVerificationToken } from "../../../../lib/auth/email-verification";
 import { jsonBodyLimits, parseJsonBody } from "../../../../lib/request-body";
+import {
+  enqueueVerifiedAccountWelcome,
+  processWhatsAppWelcomeJob,
+} from "../../../../lib/whatsapp";
 
 export async function POST(request: Request) {
   const bodyResult = await parseJsonBody(request, jsonBodyLimits.auth);
@@ -25,25 +29,47 @@ export async function POST(request: Request) {
     );
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const verification = await prisma.$transaction(async (tx) => {
     const user = await tx.user.findUnique({
       where: { id: token.userId },
-      select: { id: true, status: true },
+      select: { id: true, phone: true, status: true },
     });
-    if (!user || user.status === "suspended") return false;
+    if (!user || user.status === "suspended") return null;
+    const activatesAccount = user.status === "pending_email";
     await tx.emailVerificationToken.update({
       where: { id: token.id },
       data: { usedAt: now },
     });
     await tx.user.update({
       where: { id: token.userId },
-      data: { emailVerifiedAt: now, status: user.status === "pending_email" ? "active" : user.status },
+      data: {
+        emailVerifiedAt: now,
+        status: activatesAccount ? "active" : user.status,
+      },
     });
-    return true;
+    const welcomeJob =
+      activatesAccount && user.phone
+        ? await enqueueVerifiedAccountWelcome(tx, {
+            userId: user.id,
+            phone: user.phone,
+          })
+        : null;
+    return { welcomeJobId: welcomeJob?.id ?? null };
   });
 
-  if (!updated) {
+  if (!verification) {
     return NextResponse.json({ error: "Akun tidak dapat diverifikasi." }, { status: 400 });
+  }
+
+  if (verification.welcomeJobId) {
+    try {
+      await processWhatsAppWelcomeJob(
+        verification.welcomeJobId,
+        process.env.NEXTAUTH_URL || new URL(request.url).origin
+      );
+    } catch (error) {
+      console.error("Verified account WhatsApp welcome dispatch failed", error);
+    }
   }
   return NextResponse.json({ message: "Email berhasil diverifikasi" });
 }

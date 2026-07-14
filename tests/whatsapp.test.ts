@@ -23,11 +23,32 @@ describe("WhatsApp welcome payload", () => {
       Phone: "6281234567890",
       Image: "https://lifestory.co.id/image/whatsapp-welcome.webp",
       Caption:
-        "Halo Naufal, selamat datang di Lifestory.\n\nSilakan verifikasi email Anda terlebih dahulu. Setelah itu, mulai susun kisah keluarga Anda di Lifestory.\n\nBuka Lifestory:\nhttps://lifestory.co.id/app",
+        "Selamat, Naufal! Email Anda berhasil diverifikasi dan akun Lifestory Anda kini aktif.\n\nRuang keluarga Anda siap digunakan. Mulai susun pohon keluarga, simpan cerita, dan wariskan kenangan untuk generasi berikutnya.\n\nBuka Lifestory:\nhttps://lifestory.co.id/app",
     });
 
     const source = readFileSync(join(process.cwd(), "lib/whatsapp.ts"), "utf8");
     expect(source).toContain("/chat/send/image");
     expect(source).not.toContain("/chat/send/buttons");
+  });
+
+  it("queues and sends the welcome only after email activation", () => {
+    const register = readFileSync(
+      join(process.cwd(), "app/api/auth/register/route.ts"),
+      "utf8"
+    );
+    const verify = readFileSync(
+      join(process.cwd(), "app/api/auth/verify-email/route.ts"),
+      "utf8"
+    );
+    const whatsapp = readFileSync(join(process.cwd(), "lib/whatsapp.ts"), "utf8");
+
+    expect(register).not.toContain("enqueueVerifiedAccountWelcome");
+    expect(register).not.toContain("processWhatsAppWelcomeJob");
+    expect(verify).toContain('status: activatesAccount ? "active" : user.status');
+    expect(verify).toContain("enqueueVerifiedAccountWelcome");
+    expect(verify).toContain("processWhatsAppWelcomeJob");
+    expect(whatsapp).toContain('job.user.status !== "active"');
+    expect(whatsapp).toContain("!job.user.emailVerifiedAt");
+    expect(whatsapp).toContain('lastError: "awaiting_email_verification"');
   });
 });
