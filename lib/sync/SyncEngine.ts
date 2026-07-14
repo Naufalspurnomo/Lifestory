@@ -1,5 +1,6 @@
 import { ConflictResolver } from "./ConflictResolver";
 import { IntegrityValidator } from "./IntegrityValidator";
+import { fetchWithTimeout } from "../utils/fetchWithTimeout";
 import { NetworkDetector } from "./NetworkDetector";
 import { RetryQueue } from "./RetryQueue";
 import { applyNodeMutations } from "./applyMutations";
@@ -80,21 +81,6 @@ function initialStatus(warningMessage?: string): SyncStatusInfo {
     pendingDisplay: "0",
     warningMessage,
   };
-}
-
-async function fetchWithTimeout(
-  fetchImpl: typeof fetch,
-  url: string,
-  init: RequestInit,
-  timeoutMs: number
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetchImpl(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
 }
 
 async function readErrorMessage(response: Response): Promise<string> {

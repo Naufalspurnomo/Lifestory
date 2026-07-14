@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "../utils/fetchWithTimeout";
+
 type NetworkCallback = (online: boolean) => void;
 
 const OFFLINE_FAILURE_THRESHOLD = 4;
@@ -94,14 +96,13 @@ export class NetworkDetector {
   }
 
   private async runCheck(): Promise<boolean> {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS);
     try {
-      const response = await this.fetchImpl(this.healthCheckUrl, {
-        method: "GET",
-        cache: "no-store",
-        signal: controller.signal,
-      });
+      const response = await fetchWithTimeout(
+        this.fetchImpl,
+        this.healthCheckUrl,
+        { method: "GET", cache: "no-store" },
+        HEALTH_CHECK_TIMEOUT_MS
+      );
       const ok = response.ok;
       if (ok) {
         this.reportOnline();
@@ -116,8 +117,6 @@ export class NetworkDetector {
           : "Health check failed: Network error";
       this.reportFailure(message);
       return false;
-    } finally {
-      clearTimeout(timer);
     }
   }
 

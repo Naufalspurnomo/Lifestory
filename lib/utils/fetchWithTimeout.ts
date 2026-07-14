@@ -27,7 +27,10 @@ export async function fetchWithTimeout(
   }
 
   try {
-    return await fetchImpl(url, { ...init, signal: controller.signal });
+    return await fetchImpl.call(globalThis, url, {
+      ...init,
+      signal: controller.signal,
+    });
   } catch (error) {
     const isAbortError =
       (error instanceof DOMException && error.name === "AbortError") ||
