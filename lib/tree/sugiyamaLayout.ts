@@ -19,11 +19,13 @@ const {
 } = LAYOUT;
 
 const PARTNER_CENTER_GAP = NODE_SIZE + PARTNER_GAP;
-const DESCENDANT_CENTER_GAP = NODE_SIZE + Math.round(NODE_SPACING_X * 0.45);
 // Adjacent row-blocks represent family branches, not just individual cards.
 // Keep this wide enough that connector buses from different subtrees do not
 // visually collide when each side has children of its own.
 const ROW_BLOCK_GAP = Math.round(NODE_SPACING_X * 1.05);
+const CONNECTOR_LANE_CLEARANCE = 12;
+const CONNECTOR_CARD_CLEARANCE =
+  Math.ceil((CARD_HEIGHT - NODE_SIZE) / 2) + 4;
 const MAX_LAYER_ITERATIONS = 250;
 const MAX_LAYOUT_ITERATIONS = 40;
 const CONVERGENCE_EPSILON = 0.5; // px — stop when no block moves more than this in a pass
@@ -500,69 +502,6 @@ function sortBlockPersonIds(g: InternalGraph, ids: string[]) {
   });
 }
 
-function getChildIdsForPersons(g: InternalGraph, personIds: string[]) {
-  const children: string[] = [];
-  const seenUnions = new Set<string>();
-
-  for (const personId of personIds) {
-    const person = g.persons.get(personId);
-    if (!person) continue;
-
-    for (const unionId of person.unionIds) {
-      if (seenUnions.has(unionId)) continue;
-      seenUnions.add(unionId);
-
-      const union = g.unions.get(unionId);
-      if (!union) continue;
-      children.push(...union.childrenIds);
-    }
-  }
-
-  return uniq(children).filter((id) => g.persons.has(id));
-}
-
-function countDescendantLeaves(
-  g: InternalGraph,
-  personId: string,
-  visiting = new Set<string>()
-): number {
-  if (visiting.has(personId)) return 1;
-
-  const person = g.persons.get(personId);
-  if (!person) return 1;
-
-  visiting.add(personId);
-  const children = getChildIdsForPersons(g, [personId]);
-  const total =
-    children.length > 0
-      ? children.reduce(
-          (sum, childId) => sum + countDescendantLeaves(g, childId, visiting),
-          0
-        )
-      : 1;
-  visiting.delete(personId);
-
-  return Math.max(1, total);
-}
-
-function calculateSubtreeAwareWidth(
-  g: InternalGraph,
-  personIds: string[],
-  partnerWidth: number
-): number {
-  const childIds = getChildIdsForPersons(g, personIds);
-  if (childIds.length === 0) return partnerWidth;
-
-  const leafCount = childIds.reduce(
-    (sum, childId) => sum + countDescendantLeaves(g, childId),
-    0
-  );
-  const descendantWidth =
-    NODE_SIZE + Math.max(0, leafCount - 1) * DESCENDANT_CENTER_GAP;
-
-  return Math.max(partnerWidth, descendantWidth);
-}
-
 function makeRowBlocks(g: InternalGraph, layer: number): RowBlock[] {
   const ids = getPersonIdsByLayer(g, layer);
   const dsu = createDisjointSet(ids);
@@ -588,9 +527,8 @@ function makeRowBlocks(g: InternalGraph, layer: number): RowBlock[] {
 
   return Array.from(groups.values()).map((groupIds) => {
     const personIds = sortBlockPersonIds(g, groupIds);
-    const partnerWidth =
+    const width =
       NODE_SIZE + Math.max(0, personIds.length - 1) * PARTNER_CENTER_GAP;
-    const width = calculateSubtreeAwareWidth(g, personIds, partnerWidth);
     const xs = personIds.map((id) => g.persons.get(id)!.x);
     const center = average(xs) ?? 0;
     const order = Math.min(...personIds.map((id) => g.persons.get(id)!.order));
@@ -990,9 +928,95 @@ function findClearChildChannelX(g: InternalGraph, union: UnionNode): number {
     .sort((a, b) => Math.abs(a - union.x) - Math.abs(b - union.x))[0] ?? union.x;
 }
 
+type ChildConnectorRoute = {
+  union: UnionNode;
+  children: PersonNode[];
+  channelX: number;
+  left: number;
+  right: number;
+  lane: number;
+  laneCount: number;
+};
+
+function createChildConnectorRoutes(
+  g: InternalGraph,
+  unions: UnionNode[]
+): Map<string, ChildConnectorRoute> {
+  const routes = unions
+    .map((union) => {
+      const children = union.childrenIds
+        .map((id) => g.persons.get(id))
+        .filter((person): person is PersonNode => Boolean(person))
+        .sort((a, b) => a.x - b.x);
+      if (children.length === 0) return null;
+
+      const channelX = findClearChildChannelX(g, union);
+      const xs = [channelX, ...children.map((child) => child.x)];
+      return {
+        union,
+        children,
+        channelX,
+        left: Math.min(...xs),
+        right: Math.max(...xs),
+        lane: 0,
+        laneCount: 1,
+      };
+    })
+    .filter((route): route is ChildConnectorRoute => route !== null);
+
+  const byLayer = new Map<number, ChildConnectorRoute[]>();
+  for (const route of routes) {
+    byLayer.set(route.union.layer, [
+      ...(byLayer.get(route.union.layer) || []),
+      route,
+    ]);
+  }
+
+  byLayer.forEach((layerRoutes) => {
+    layerRoutes.sort(
+      (a, b) =>
+        a.left - b.left ||
+        a.right - b.right ||
+        a.union.id.localeCompare(b.union.id)
+    );
+
+    const laneEnds: number[] = [];
+    for (const route of layerRoutes) {
+      let lane = laneEnds.findIndex(
+        (end) => end + CONNECTOR_LANE_CLEARANCE < route.left
+      );
+      if (lane === -1) lane = laneEnds.length;
+      laneEnds[lane] = route.right;
+      route.lane = lane;
+    }
+
+    for (const route of layerRoutes) {
+      route.laneCount = laneEnds.length;
+    }
+  });
+
+  return new Map(routes.map((route) => [route.union.id, route]));
+}
+
+function getConnectorBusY(route: ChildConnectorRoute): number {
+  const startY = route.union.y + NODE_SIZE / 2;
+  const childTop = Math.min(
+    ...route.children.map((child) => child.y - NODE_SIZE / 2)
+  );
+  const minY = startY + CONNECTOR_CARD_CLEARANCE;
+  const maxY = childTop - CONNECTOR_CARD_CLEARANCE;
+
+  if (route.laneCount <= 1 || minY >= maxY) {
+    return (startY + childTop) / 2;
+  }
+
+  return minY + (route.lane / (route.laneCount - 1)) * (maxY - minY);
+}
+
 function routeEdges(g: InternalGraph): LayoutEdge[] {
   const edges: LayoutEdge[] = [];
   const unions = Array.from(g.unions.values());
+  const childRoutes = createChildConnectorRoutes(g, unions);
   const middleLane = new Map<string, number>();
   const laneByRow = new Map<number, number>();
 
@@ -1050,16 +1074,11 @@ function routeEdges(g: InternalGraph): LayoutEdge[] {
       });
     }
 
-    const children = union.childrenIds
-      .map((id) => g.persons.get(id))
-      .filter((person): person is PersonNode => Boolean(person))
-      .sort((a, b) => a.x - b.x);
-
-    if (children.length === 0) return;
+    const childRoute = childRoutes.get(union.id);
+    if (!childRoute) return;
 
     const startY = union.y + NODE_SIZE / 2;
-    const busY = union.y + NODE_SPACING_Y / 2;
-    const childChannelX = findClearChildChannelX(g, union);
+    const busY = getConnectorBusY(childRoute);
 
     if (union.type !== "marriage" && partners.length > 1) {
       for (const partner of partners) {
@@ -1077,15 +1096,15 @@ function routeEdges(g: InternalGraph): LayoutEdge[] {
       }
     }
 
-    for (const child of children) {
+    for (const child of childRoute.children) {
       edges.push({
         id: `edge-union-child-${union.id}-${child.id}`,
         source: union.id,
         target: child.id,
         type: "union-child",
         path: [
-          { x: childChannelX, y: startY },
-          { x: childChannelX, y: busY },
+          { x: childRoute.channelX, y: startY },
+          { x: childRoute.channelX, y: busY },
           { x: child.x, y: busY },
           { x: child.x, y: child.y - NODE_SIZE / 2 },
         ],

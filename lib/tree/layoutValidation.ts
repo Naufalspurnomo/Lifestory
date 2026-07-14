@@ -54,6 +54,26 @@ function segmentHitsNode(
   return false;
 }
 
+function connectorFamilyId(edge: LayoutGraph["edges"][number]) {
+  if (edge.type === "parent-union") return edge.target;
+  if (edge.type === "union-child") return edge.source;
+  return null;
+}
+
+function horizontalSegments(edge: LayoutGraph["edges"][number]) {
+  return edge.path.slice(1).flatMap((end, index) => {
+    const start = edge.path[index];
+    if (start.y !== end.y || start.x === end.x) return [];
+    return [
+      {
+        y: start.y,
+        left: Math.min(start.x, end.x),
+        right: Math.max(start.x, end.x),
+      },
+    ];
+  });
+}
+
 export function validateFamilyLayout(layout: LayoutGraph): LayoutValidationResult {
   const issues: LayoutValidationIssue[] = [];
   const nodeById = new Map(layout.nodes.map((node) => [node.id, node]));
@@ -160,6 +180,51 @@ export function validateFamilyLayout(layout: LayoutGraph): LayoutValidationResul
           nodeId: child.id,
           message: `Child ${child.id} is not below its parent union`,
         });
+      }
+    }
+  }
+
+  const parentConnectors = layout.edges
+    .map((edge) => ({
+      edge,
+      familyId: connectorFamilyId(edge),
+      segments: horizontalSegments(edge),
+    }))
+    .filter(
+      (entry): entry is typeof entry & { familyId: string } =>
+        entry.familyId !== null && entry.segments.length > 0
+    );
+  const reportedOverlaps = new Set<string>();
+
+  for (let leftIndex = 0; leftIndex < parentConnectors.length; leftIndex++) {
+    const left = parentConnectors[leftIndex];
+    for (
+      let rightIndex = leftIndex + 1;
+      rightIndex < parentConnectors.length;
+      rightIndex++
+    ) {
+      const right = parentConnectors[rightIndex];
+      if (left.familyId === right.familyId) continue;
+
+      for (const leftSegment of left.segments) {
+        for (const rightSegment of right.segments) {
+          if (leftSegment.y !== rightSegment.y) continue;
+          const overlap =
+            Math.min(leftSegment.right, rightSegment.right) -
+            Math.max(leftSegment.left, rightSegment.left);
+          if (overlap <= 1) continue;
+
+          const familyPair = [left.familyId, right.familyId].sort().join("::");
+          const key = `${familyPair}::${leftSegment.y}`;
+          if (reportedOverlaps.has(key)) continue;
+          reportedOverlaps.add(key);
+          issues.push({
+            severity: "error",
+            code: "edge-edge-overlap",
+            edgeId: left.edge.id,
+            message: `Parent connectors from different family units overlap by ${Math.round(overlap)}px`,
+          });
+        }
       }
     }
   }

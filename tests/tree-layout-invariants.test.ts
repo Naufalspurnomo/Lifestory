@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { calculateHierarchicalLayout } from "../lib/tree/layoutEngine";
+import { validateFamilyLayout } from "../lib/tree/layoutValidation";
 import { getSiblingOrderUpdates } from "../lib/tree/siblingOrder";
-import type { FamilyNode } from "../lib/types/tree";
+import { LAYOUT, type FamilyNode } from "../lib/types/tree";
 
 function familyNode(id: string, label: string, overrides: Partial<FamilyNode> = {}): FamilyNode {
   return {
@@ -304,5 +305,78 @@ describe("family tree layout spacing", () => {
     expect(Math.sign(father.x - mother.x)).toBe(
       Math.sign(paternalCenter - maternalCenter)
     );
+  });
+
+  it("keeps converging ancestor branches compact and on separate connector lanes", () => {
+    const nodes = [
+      familyNode("root-a1", "Ancestor A1"),
+      familyNode("root-a2", "Ancestor A2"),
+      familyNode("root-b1", "Ancestor B1"),
+      familyNode("root-b2", "Ancestor B2"),
+      familyNode("grand-a1", "Grandparent A1", {
+        partners: ["grand-a2"],
+      }),
+      familyNode("grand-a2", "Grandparent A2", {
+        partners: ["grand-a1"],
+      }),
+      familyNode("grand-b1", "Grandparent B1", {
+        partners: ["grand-b2"],
+      }),
+      familyNode("grand-b2", "Grandparent B2", {
+        partners: ["grand-b1"],
+      }),
+      ...Array.from({ length: 5 }, (_, index) =>
+        familyNode(`branch-a-${index + 1}`, `Branch A ${index + 1}`, {
+          partners: index === 0 ? ["branch-b-1"] : [],
+        })
+      ),
+      ...Array.from({ length: 4 }, (_, index) =>
+        familyNode(`branch-b-${index + 1}`, `Branch B ${index + 1}`, {
+          partners: index === 0 ? ["branch-a-1"] : [],
+        })
+      ),
+      familyNode("focus-child", "Focus Child", { line: "self" }),
+      familyNode("focus-sibling", "Focus Sibling"),
+    ];
+
+    link(nodes, "root-a1", "grand-a1");
+    link(nodes, "root-a2", "grand-a2");
+    link(nodes, "root-b1", "grand-b1");
+    link(nodes, "root-b2", "grand-b2");
+    for (let index = 1; index <= 5; index++) {
+      link(nodes, "grand-a1", `branch-a-${index}`);
+      link(nodes, "grand-a2", `branch-a-${index}`);
+    }
+    for (let index = 1; index <= 4; index++) {
+      link(nodes, "grand-b1", `branch-b-${index}`);
+      link(nodes, "grand-b2", `branch-b-${index}`);
+    }
+    for (const childId of ["focus-child", "focus-sibling"]) {
+      link(nodes, "branch-a-1", childId);
+      link(nodes, "branch-b-1", childId);
+    }
+
+    const layout = calculateHierarchicalLayout(nodes);
+    const validation = validateFamilyLayout(layout);
+    const ancestorLinks = [
+      ["root-a1", "grand-a1"],
+      ["root-a2", "grand-a2"],
+      ["root-b1", "grand-b1"],
+      ["root-b2", "grand-b2"],
+    ] as const;
+
+    for (const [ancestorId, childId] of ancestorLinks) {
+      expect(
+        Math.abs(
+          getPosition(layout.nodes, ancestorId).x -
+            getPosition(layout.nodes, childId).x
+        )
+      ).toBeLessThanOrEqual(LAYOUT.NODE_SPACING_X);
+    }
+    expect(layout.width).toBeLessThanOrEqual(3500);
+    expect(validation.valid).toBe(true);
+    expect(
+      validation.issues.some((issue) => issue.code === "edge-edge-overlap")
+    ).toBe(false);
   });
 });
