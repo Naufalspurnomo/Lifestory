@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { useLanguage } from "../providers/LanguageProvider";
+import { toast } from "sonner";
 
 type Candidate = {
   familyIdentityId: string;
@@ -103,6 +104,7 @@ export default function FamilyDiscoveryGate({ userName, onStart }: Props) {
             failedSearch:
               "Pencarian keluarga belum bisa diproses. Coba lagi atau buat pohon baru.",
             failedRequest: "Request akses belum terkirim.",
+            requestSent: "Permintaan akses dikirim kepada pemilik keluarga.",
             firstMemberLabel: "Anggota pertama",
             firstMemberTitle: "Mulai dari satu catatan keluarga",
             firstMemberSubtitle:
@@ -150,6 +152,7 @@ export default function FamilyDiscoveryGate({ userName, onStart }: Props) {
             failedSearch:
               "Family discovery could not run. Try again or create a new tree.",
             failedRequest: "Access request was not sent.",
+            requestSent: "Your access request was sent to the family owner.",
             firstMemberLabel: "First family record",
             firstMemberTitle: "Begin with one family record",
             firstMemberSubtitle:
@@ -260,6 +263,7 @@ export default function FamilyDiscoveryGate({ userName, onStart }: Props) {
             : item
         )
       );
+      toast.success(copy.requestSent, { id: "family-access-request" });
     } catch {
       setError(copy.failedRequest);
     } finally {

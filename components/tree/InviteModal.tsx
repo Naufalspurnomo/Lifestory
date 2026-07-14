@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "../ui/Button";
 import { useLanguage } from "../providers/LanguageProvider";
+import { toast } from "sonner";
 
 type Props = {
   isOpen: boolean;
@@ -35,6 +36,7 @@ export default function InviteModal({
           creatingLink: "Membuat link...",
           copied: "Tersalin",
           copy: "Salin",
+          failedCopy: "Link undangan belum dapat disalin.",
           expires: "Berlaku sampai",
           shareVia: "Bagikan via",
           mailSubject: "Undangan Pohon Keluarga",
@@ -55,6 +57,7 @@ export default function InviteModal({
           creatingLink: "Creating link...",
           copied: "Copied",
           copy: "Copy",
+          failedCopy: "The invite link could not be copied.",
           expires: "Expires at",
           shareVia: "Share via",
           mailSubject: "Family Tree Invitation",
@@ -120,11 +123,15 @@ export default function InviteModal({
     copy.whatsappMessage(treeName, inviteLink)
   );
 
-  function copyLink() {
+  async function copyLink() {
     if (!inviteLink) return;
-    navigator.clipboard.writeText(inviteLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error(copy.failedCopy, { id: "invite-copy-error", duration: 7000 });
+    }
   }
 
   const canShare = Boolean(inviteLink) && !loading;

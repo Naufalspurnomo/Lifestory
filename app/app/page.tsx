@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
 
 import FamilyTreeCanvas from "../../components/tree/FamilyTreeCanvas";
 import type { FirstTreeRelationship } from "../../components/tree/FirstTreeWelcome";
@@ -78,6 +79,8 @@ export default function AppHome() {
           notifAdded: (name: string) => `${name} ditambahkan ke pohon`,
           notifError: (error?: string) => `Error: ${error || "Tidak diketahui"}`,
           notifDeleted: (name: string) => `${name} dihapus dari pohon`,
+          notifDeleteUndone: "Penghapusan dibatalkan.",
+          undo: "Urungkan",
           notifImported: (count: number) =>
             `${count} anggota keluarga berhasil diimpor`,
           notifExported: (count: number) =>
@@ -128,6 +131,8 @@ export default function AppHome() {
           notifAdded: (name: string) => `${name} added to tree`,
           notifError: (error?: string) => `Error: ${error || "Unknown error"}`,
           notifDeleted: (name: string) => `${name} removed from tree`,
+          notifDeleteUndone: "Deletion undone.",
+          undo: "Undo",
           notifImported: (count: number) =>
             `${count} family members imported successfully`,
           notifExported: (count: number) =>
@@ -230,7 +235,6 @@ export default function AppHome() {
   >("child");
   const [addParentId, setAddParentId] = useState<string | null>(null);
   const [editingNode, setEditingNode] = useState<FamilyNode | null>(null);
-  const [notification, setNotification] = useState<string | null>(null);
   const [hasCreatedTree, setHasCreatedTree] = useState(false);
   const [firstTreeWelcomeError, setFirstTreeWelcomeError] = useState<string | null>(null);
   const [isFirstTreeWelcomeSubmitting, setIsFirstTreeWelcomeSubmitting] = useState(false);
@@ -285,22 +289,27 @@ export default function AppHome() {
   const storiesCount = storiesList.length;
   const relicsCount = relicsList.length;
 
-  const showNotification = useCallback((msg: string) => {
-    setNotification(msg);
-    setTimeout(() => setNotification(null), 3000);
-  }, []);
-
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
       const node = getNode(nodeId);
       if (node) {
         deleteNode(nodeId);
-        showNotification(copy.notifDeleted(node.label));
+        toast.success(copy.notifDeleted(node.label), {
+          id: "member-delete",
+          duration: 6000,
+          action: {
+            label: copy.undo,
+            onClick: () => {
+              undo();
+              toast.success(copy.notifDeleteUndone, { id: "member-delete-undone" });
+            },
+          },
+        });
         setSelectedId(null);
         setDetailNodeId(null);
       }
     },
-    [getNode, deleteNode, showNotification, copy]
+    [copy, deleteNode, getNode, undo]
   );
 
   const handleOpenNodeDetail = useCallback((nodeId: string) => {
@@ -388,7 +397,10 @@ export default function AppHome() {
     type: "parent" | "partner" | "child" | "sibling"
   ) => {
     if (treeReadOnly) {
-      showNotification(locale === "id" ? "Akses Anda hanya untuk melihat." : "Your access is view-only.");
+      toast.warning(locale === "id" ? "Akses Anda hanya untuk melihat." : "Your access is view-only.", {
+        id: "tree-read-only",
+        duration: 5000,
+      });
       return;
     }
     setAddType(type);
@@ -397,7 +409,7 @@ export default function AppHome() {
     setSelectedId(null);
     setDetailNodeId(null);
     setShowNodeEditor(true);
-  }, [locale, showNotification, treeReadOnly]);
+  }, [locale, treeReadOnly]);
 
   const handleDismissFirstTreeWelcome = useCallback(async () => {
     if (!currentTree) return false;
@@ -438,9 +450,9 @@ export default function AppHome() {
       );
       if (updates.length === 0) return;
       updateNodes(updates);
-      showNotification(copy.notifSiblingOrderUpdated);
+      toast.success(copy.notifSiblingOrderUpdated, { id: "sibling-order" });
     },
-    [copy.notifSiblingOrderUpdated, currentTree, showNotification, treeReadOnly, updateNodes]
+    [copy.notifSiblingOrderUpdated, currentTree, treeReadOnly, updateNodes]
   );
 
   const handleSaveNode = (
@@ -448,7 +460,7 @@ export default function AppHome() {
   ) => {
     if (editingNode) {
       updateNode(editingNode.id, nodeData);
-      showNotification(copy.notifProfileUpdated);
+      toast.success(copy.notifProfileUpdated, { id: "member-profile" });
     } else {
       let finalNodeData = { ...nodeData };
       let updatedParentIds = nodeData.parentIds || [];
@@ -490,7 +502,7 @@ export default function AppHome() {
               finalNodeData.parentIds = updatedParentIds;
               finalNodeData.parentId = updatedParentIds[0];
 
-              showNotification(copy.notifAutoParentCreated);
+              toast.info(copy.notifAutoParentCreated, { id: "placeholder-parents" });
             }
           }
         }
@@ -515,9 +527,9 @@ export default function AppHome() {
       });
 
       if (result.success && result.node) {
-        showNotification(copy.notifAdded(nodeData.label));
+        toast.success(copy.notifAdded(nodeData.label), { id: "member-add" });
       } else {
-        showNotification(copy.notifError(result.error));
+        toast.error(copy.notifError(result.error), { id: "member-add-error", duration: 7000 });
       }
     }
     setShowNodeEditor(false);
@@ -564,34 +576,34 @@ export default function AppHome() {
 
   const handleExportTree = useCallback(() => {
     if (!currentTree || currentTree.nodes.length === 0) {
-      showNotification(copy.notifNoDataToExport);
+      toast.warning(copy.notifNoDataToExport, { id: "tree-export-empty", duration: 5000 });
       return;
     }
 
     try {
       downloadTreeJson(currentTree);
-      showNotification(copy.notifExported(currentTree.nodes.length));
+      toast.success(copy.notifExported(currentTree.nodes.length), { id: "tree-export" });
     } catch (error) {
       console.error("Failed to export tree:", error);
-      showNotification(copy.notifExportFailed);
+      toast.error(copy.notifExportFailed, { id: "tree-export-error", duration: 7000 });
     }
-  }, [copy, currentTree, showNotification]);
+  }, [copy, currentTree]);
 
   const handleExportPdf = useCallback(async () => {
     if (!currentTree || currentTree.nodes.length === 0) {
-      showNotification(copy.notifNoDataToExport);
+      toast.warning(copy.notifNoDataToExport, { id: "tree-pdf-empty", duration: 5000 });
       return;
     }
 
     try {
       const { downloadTreePdf } = await import("../../lib/export/treePdf");
       await downloadTreePdf(currentTree, locale);
-      showNotification(copy.notifPdfExported(currentTree.nodes.length));
+      toast.success(copy.notifPdfExported(currentTree.nodes.length), { id: "tree-pdf" });
     } catch (error) {
       console.error("Failed to export tree PDF:", error);
-      showNotification(copy.notifPdfExportFailed);
+      toast.error(copy.notifPdfExportFailed, { id: "tree-pdf-error", duration: 7000 });
     }
-  }, [copy, currentTree, locale, showNotification]);
+  }, [copy, currentTree, locale]);
 
   useEffect(() => {
     if (!openActionMenu) return;
@@ -1382,7 +1394,7 @@ export default function AppHome() {
           <FamilyAccessInbox
             isOpen={showAccessInbox}
             onClose={() => setShowAccessInbox(false)}
-            onReviewed={showNotification}
+            onReviewed={(message) => toast.success(message, { id: "access-review" })}
           />
 
           {currentTree && (
@@ -1399,7 +1411,7 @@ export default function AppHome() {
             onClose={() => setShowImportModal(false)}
             onImport={(nodes) => {
               importNodes(nodes);
-              showNotification(copy.notifImported(nodes.length));
+              toast.success(copy.notifImported(nodes.length), { id: "tree-import" });
             }}
           />
 
@@ -1418,7 +1430,7 @@ export default function AppHome() {
                 setArchiveTargetId(nodeId);
               }}
               onEdit={handleEditNode}
-              onPublished={() => showNotification(locale === "id" ? "Kenangan diterbitkan ke arsip keluarga." : "Memory published to the family archive.")}
+              onPublished={() => toast.success(locale === "id" ? "Kenangan diterbitkan ke arsip keluarga." : "Memory published to the family archive.", { id: "archive-published" })}
             />
           )}
 
@@ -1435,17 +1447,12 @@ export default function AppHome() {
               conflicts={syncConflict.conflicts}
               onResolve={(resolutions) => {
                 void resolveSyncConflict(resolutions)
-                  .then(() => showNotification(copy.notifConflictResolved))
-                  .catch(() => showNotification(copy.notifConflictFailed));
+                  .then(() => toast.success(copy.notifConflictResolved, { id: "sync-conflict" }))
+                  .catch(() => toast.error(copy.notifConflictFailed, { id: "sync-conflict", duration: 7000 }));
               }}
             />
           )}
 
-          {notification && (
-            <div className="fixed left-1/2 top-[172px] z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 rounded-full border border-cream-400 bg-cream-50/95 px-5 py-3 text-center text-sm font-medium text-ink-800 shadow-md backdrop-blur sm:top-[120px] lg:top-20">
-              {notification}
-            </div>
-          )}
         </>
       )}
     </div>

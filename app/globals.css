@@ -375,3 +375,37 @@ h3 {
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ============================================================
+   Global toast — quiet archive treatment
+   ============================================================ */
+.lifestory-toaster {
+  --offset-top: 88px !important;
+  --mobile-offset-top: 88px !important;
+  z-index: 100 !important;
+}
+
+.lifestory-toaster--workspace {
+  --offset-top: 120px !important;
+  --mobile-offset-top: 172px !important;
+}
+
+@media (max-width: 639px) {
+  .lifestory-toaster--workspace {
+    --offset-top: 172px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lifestory-toaster--workspace {
+    --offset-top: 80px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lifestory-toast,
+  .lifestory-toast * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

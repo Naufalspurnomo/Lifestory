@@ -220,6 +220,13 @@ describe("public auth and gallery hardening invariants", () => {
     expect(config).toContain("connect-src 'self' https://vercel.live https://challenges.cloudflare.com");
   });
 
+  it("keeps the third-party Turnstile control centered without an empty card wrapper", () => {
+    const source = readSource("components/security/TurnstileField.tsx");
+
+    expect(source).toContain('className="flex min-h-[65px] w-full items-center justify-center"');
+    expect(source).not.toContain("rounded-2xl border border-cream-300 bg-cream-50");
+  });
+
   it("offers a resend path after a correct login is blocked for email verification", () => {
     const source = readSource("components/auth/AuthCurtain.tsx");
 

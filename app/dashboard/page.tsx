@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "../../components/providers/LanguageProvider";
+import { toast } from "sonner";
 
 type UserStatus = "active" | "inactive" | "pending_email" | "suspended";
 
@@ -54,6 +55,8 @@ export default function DashboardPage() {
           adminOnly: "Halaman ini hanya untuk admin.",
           alertUpdateFailed: "Gagal mengupdate status user",
           alertGeneralError: "Terjadi kesalahan",
+          statusUpdated: (name: string) => `Status ${name} berhasil diperbarui.`,
+          accountDeleted: (name: string) => `Akun ${name} berhasil dihapus.`,
           statusLabels: {
             active: "Berlangganan",
             inactive: "Belum Berlangganan",
@@ -110,6 +113,8 @@ export default function DashboardPage() {
           adminOnly: "This page is for admins only.",
           alertUpdateFailed: "Failed to update user status",
           alertGeneralError: "An error occurred",
+          statusUpdated: (name: string) => `${name}'s status was updated.`,
+          accountDeleted: (name: string) => `${name}'s account was deleted.`,
           statusLabels: {
             active: "Subscribed",
             inactive: "Not Subscribed",
@@ -247,12 +252,14 @@ export default function DashboardPage() {
               : u
           )
         );
+        const targetName = users.find((item) => item.id === userId)?.name || "User";
+        toast.success(copy.statusUpdated(targetName), { id: `admin-status-${userId}` });
       } else {
-        alert(copy.alertUpdateFailed);
+        toast.error(copy.alertUpdateFailed, { id: `admin-status-${userId}`, duration: 7000 });
       }
     } catch (error) {
       console.error("Error updating user:", error);
-      alert(copy.alertGeneralError);
+      toast.error(copy.alertGeneralError, { id: `admin-status-${userId}`, duration: 7000 });
     } finally {
       setUpdating(null);
     }
@@ -272,9 +279,11 @@ export default function DashboardPage() {
         setDeleteError(copy.deleteFailed);
         return;
       }
+      const deletedName = deletingUser.name;
       setUsers((previous) => previous.filter((user) => user.id !== deletingUser.id));
       setDeletingUser(null);
       setDeleteConfirmation("");
+      toast.success(copy.accountDeleted(deletedName), { id: "admin-account-delete" });
     } catch {
       setDeleteError(copy.deleteFailed);
     } finally {

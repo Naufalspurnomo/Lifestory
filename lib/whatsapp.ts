@@ -36,18 +36,11 @@ export function buildWelcomePayload({
   origin: string;
   imageUrl: string;
 }) {
+  const appUrl = new URL("/app", origin).toString();
   return {
     Phone: phone,
-    Body: `Halo ${name}, selamat datang di Lifestory.\n\nSilakan verifikasi email Anda terlebih dahulu. Setelah itu, mulai susun kisah keluarga Anda di Lifestory.`,
-    Footer: "Lifestory",
     Image: imageUrl,
-    Buttons: [
-      {
-        type: "cta_url",
-        title: "Buka Lifestory",
-        url: new URL("/app", origin).toString(),
-      },
-    ],
+    Caption: `Halo ${name}, selamat datang di Lifestory.\n\nSilakan verifikasi email Anda terlebih dahulu. Setelah itu, mulai susun kisah keluarga Anda di Lifestory.\n\nBuka Lifestory:\n${appUrl}`,
   };
 }
 
@@ -88,7 +81,7 @@ async function sendWelcome({
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
   try {
-    const response = await fetch(`${config.baseUrl}/chat/send/buttons`, {
+    const response = await fetch(`${config.baseUrl}/chat/send/image`, {
       method: "POST",
       headers: { token: config.token, "Content-Type": "application/json" },
       body: JSON.stringify(

@@ -5,6 +5,7 @@ import { BookHeart, Check, ClipboardCheck, Copy, MessageCircle, PenLine, Send, X
 import type { FamilyNode } from "../../lib/types/tree";
 import { starterContributionPrompts } from "../../lib/contributions";
 import { getArchiveMissions } from "../../lib/archive/missions";
+import { toast } from "sonner";
 
 type Request = { id: string; prompt: string; status: string; expiresAt: string; targetPerson?: { id: string; label: string } | null; proposal?: { id: string; status: string } | null };
 type Proposal = { id: string; status: string; payload: { text?: string; contributorName?: string; relationshipToFamily?: string }; request?: Request | null };
@@ -76,6 +77,7 @@ export default function ArchiveDesk({ isOpen, treeId, nodes, targetNode, onClose
     try {
       await fetch(`/api/trees/${encodeURIComponent(treeId)}/proposals/${encodeURIComponent(proposal.id)}/decision`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: "rejected" }) }).then(readJson);
       await refresh();
+      toast.success("Kontribusi ditolak.", { id: "archive-rejected" });
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Kontribusi belum ditolak."); }
     finally { setBusy(false); }
   }
@@ -109,6 +111,19 @@ export default function ArchiveDesk({ isOpen, treeId, nodes, targetNode, onClose
     else { onFocus(node.id); onEdit(node); }
   };
 
+  async function copyWhatsAppMessage() {
+    if (!share) return;
+    try {
+      await navigator.clipboard.writeText(share.text);
+      toast.success("Pesan WhatsApp disalin.", { id: "archive-whatsapp-copy" });
+    } catch {
+      toast.error("Pesan WhatsApp belum dapat disalin.", {
+        id: "archive-whatsapp-copy",
+        duration: 7000,
+      });
+    }
+  }
+
   return <div className="fixed inset-0 z-[90] flex justify-end">
     <button aria-label="Tutup meja arsip" onClick={onClose} className="absolute inset-0 bg-ink-900/35 backdrop-blur-[2px]" />
     <aside role="dialog" aria-modal="true" aria-label="Misi Arsip" className="relative flex h-full w-full max-w-[480px] flex-col bg-cream-50 shadow-deep ring-1 ring-ink-900/10">
@@ -127,7 +142,7 @@ export default function ArchiveDesk({ isOpen, treeId, nodes, targetNode, onClose
           <select onChange={(event) => event.target.value && setPrompt(event.target.value)} defaultValue="" className="mt-2 w-full rounded-xl border border-cream-300 bg-white px-3 py-2.5 text-sm text-ink-700"><option value="">Pilih pertanyaan arsip…</option>{starterContributionPrompts.map((item) => <option key={item} value={item}>{item}</option>)}</select>
           <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Tulis pertanyaan yang ingin Anda titipkan…" rows={4} maxLength={500} className="mt-2 w-full rounded-xl border border-cream-300 bg-white px-3 py-3 text-sm leading-6 text-ink-800 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200" />
           <button disabled={busy || !prompt.trim()} onClick={() => void createRequest()} className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-brand-700 px-4 text-sm font-bold text-white shadow-cta transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"><Send className="h-4 w-4" /> Buat tautan WhatsApp</button>
-          {share && <div className="mt-3 rounded-xl border border-brand-200 bg-brand-50/50 p-3"><p className="text-xs leading-5 text-ink-700">Tautan siap dibagikan. Kontribusi akan menunggu persetujuan Anda.</p><button onClick={() => void navigator.clipboard.writeText(share.text)} className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-brand-800"><Copy className="h-3.5 w-3.5" /> Salin pesan WhatsApp</button></div>}
+          {share && <div className="mt-3 rounded-xl border border-brand-200 bg-brand-50/50 p-3"><p className="text-xs leading-5 text-ink-700">Tautan siap dibagikan. Kontribusi akan menunggu persetujuan Anda.</p><button onClick={() => void copyWhatsAppMessage()} className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-brand-800"><Copy className="h-3.5 w-3.5" /> Salin pesan WhatsApp</button></div>}
         </section>
         <section id="archive-inbox" className="border-t border-cream-300 pt-6"><div className="flex items-center gap-2"><BookHeart className="h-4 w-4 text-brand-700"/><h3 className="text-sm font-bold text-ink-800">Kotak masuk kenangan</h3>{pending.length ? <span className="rounded-full bg-brand-700 px-2 py-0.5 text-[10px] font-bold text-white">{pending.length}</span> : null}</div>
           <div className="mt-3 space-y-3">{pending.length ? pending.map((proposal) => <article key={proposal.id} className="rounded-xl border border-cream-300 bg-white p-4"><p className="text-xs leading-5 text-ink-500">{proposal.request?.prompt}</p><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-ink-800">{proposal.payload?.text}</p>{proposal.payload?.contributorName && <p className="mt-3 text-xs font-bold text-brand-800">{proposal.payload.contributorName}{proposal.payload.relationshipToFamily ? ` · ${proposal.payload.relationshipToFamily}` : ""}</p>}<div className="mt-4 flex gap-2"><button disabled={busy} onClick={() => openReview(proposal)} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-700 px-3 text-xs font-bold text-white"><PenLine className="h-3.5 w-3.5" /> Tinjau & terbitkan</button><button disabled={busy} onClick={() => void reject(proposal)} className="h-9 rounded-full border border-cream-400 px-3 text-xs font-bold text-ink-600 hover:bg-cream-100">Tolak</button></div></article>) : <p className="rounded-xl border border-dashed border-cream-400 p-4 text-sm text-ink-500">Belum ada kenangan yang menunggu ditinjau.</p>}</div>

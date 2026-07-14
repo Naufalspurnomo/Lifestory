@@ -8,6 +8,7 @@ import { AuthProvider } from "../components/providers/AuthProvider";
 import { LanguageProvider } from "../components/providers/LanguageProvider";
 import { ScrollProgress } from "../components/ui/ScrollProgress";
 import { BackToTop } from "../components/ui/BackToTop";
+import { AppToaster } from "../components/ui/AppToaster";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const playfair = Playfair_Display({
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <Footer />
             </div>
             <BackToTop />
+            <AppToaster />
           </AuthProvider>
         </LanguageProvider>
       </body>
