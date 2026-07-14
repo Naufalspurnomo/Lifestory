@@ -1,7 +1,13 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 
-const WELCOME_KIND = "welcome_registration";
+const VERIFIED_ACCOUNT_WELCOME_KIND = "welcome_registration";
+const FIRST_TREE_WELCOME_KIND = "first_tree_created";
+const WELCOME_KINDS = [
+  VERIFIED_ACCOUNT_WELCOME_KIND,
+  FIRST_TREE_WELCOME_KIND,
+] as const;
+type WelcomeKind = (typeof WELCOME_KINDS)[number];
 const MAX_ATTEMPTS = 5;
 const STALE_PROCESSING_MS = 10 * 60 * 1000;
 const DISABLED_RETRY_MS = 60 * 60 * 1000;
@@ -45,6 +51,25 @@ export function buildWelcomePayload({
   };
 }
 
+export function buildFirstTreeWelcomePayload({
+  name,
+  phone,
+  origin,
+  imageUrl,
+}: {
+  name: string;
+  phone: string;
+  origin: string;
+  imageUrl: string;
+}) {
+  const appUrl = new URL("/app", origin).toString();
+  return {
+    Phone: phone,
+    Image: imageUrl,
+    Caption: `Terima kasih, ${name}! Anggota pertama keluarga Anda sudah tersimpan di Lifestory.\n\nPohon keluarga Anda kini resmi dimulai. Lanjutkan dengan menambahkan orang tua, pasangan, anak, atau saudara agar kisah keluarga tumbuh dari satu nama menjadi warisan bersama.\n\nLanjutkan pohon keluarga:\n${appUrl}`,
+  };
+}
+
 function readConfig(env = process.env): WuzapiConfig | null {
   const baseUrl = env.WUZAPI_BASE_URL?.trim().replace(/\/+$/, "");
   const token = env.WUZAPI_TOKEN?.trim();
@@ -63,11 +88,13 @@ function readConfig(env = process.env): WuzapiConfig | null {
 }
 
 async function sendWelcome({
+  kind,
   name,
   recipient,
   origin,
   env = process.env,
 }: {
+  kind: WelcomeKind;
   name: string;
   recipient: string;
   origin: string;
@@ -86,7 +113,19 @@ async function sendWelcome({
       method: "POST",
       headers: { token: config.token, "Content-Type": "application/json" },
       body: JSON.stringify(
-        buildWelcomePayload({ name, phone, origin, imageUrl: config.imageUrl })
+        kind === FIRST_TREE_WELCOME_KIND
+          ? buildFirstTreeWelcomePayload({
+              name,
+              phone,
+              origin,
+              imageUrl: config.imageUrl,
+            })
+          : buildWelcomePayload({
+              name,
+              phone,
+              origin,
+              imageUrl: config.imageUrl,
+            })
       ),
       signal: controller.signal,
     });
@@ -110,10 +149,34 @@ export async function enqueueVerifiedAccountWelcome(
 ) {
   const recipient = normalizeWhatsAppPhone(input.phone) || input.phone.trim();
   return tx.whatsAppOutbox.upsert({
-    where: { userId_kind: { userId: input.userId, kind: WELCOME_KIND } },
+    where: {
+      userId_kind: {
+        userId: input.userId,
+        kind: VERIFIED_ACCOUNT_WELCOME_KIND,
+      },
+    },
     create: {
       userId: input.userId,
-      kind: WELCOME_KIND,
+      kind: VERIFIED_ACCOUNT_WELCOME_KIND,
+      recipient,
+    },
+    update: { recipient, nextAttemptAt: new Date() },
+    select: { id: true },
+  });
+}
+
+export async function enqueueFirstTreeWelcome(
+  tx: Prisma.TransactionClient,
+  input: { userId: string; phone: string }
+) {
+  const recipient = normalizeWhatsAppPhone(input.phone) || input.phone.trim();
+  return tx.whatsAppOutbox.upsert({
+    where: {
+      userId_kind: { userId: input.userId, kind: FIRST_TREE_WELCOME_KIND },
+    },
+    create: {
+      userId: input.userId,
+      kind: FIRST_TREE_WELCOME_KIND,
       recipient,
     },
     update: { recipient, nextAttemptAt: new Date() },
@@ -157,7 +220,19 @@ export async function processWhatsAppWelcomeJob(
     });
     return { kind: "deferred", error: "awaiting_email_verification" };
   }
+  if (!WELCOME_KINDS.includes(job.kind as WelcomeKind)) {
+    await prisma.whatsAppOutbox.update({
+      where: { id },
+      data: {
+        status: "needs_review",
+        processingAt: null,
+        lastError: "unsupported_welcome_kind",
+      },
+    });
+    return { kind: "review", error: "unsupported_welcome_kind" };
+  }
   const result = await sendWelcome({
+    kind: job.kind as WelcomeKind,
     name: job.user.name,
     recipient: job.recipient,
     origin,
@@ -211,7 +286,11 @@ export async function processDueWhatsAppWelcomeJobs(origin: string) {
   });
 
   const jobs = await prisma.whatsAppOutbox.findMany({
-    where: { kind: WELCOME_KIND, status: "pending", nextAttemptAt: { lte: now } },
+    where: {
+      kind: { in: [...WELCOME_KINDS] },
+      status: "pending",
+      nextAttemptAt: { lte: now },
+    },
     orderBy: { nextAttemptAt: "asc" },
     take: 25,
     select: { id: true },

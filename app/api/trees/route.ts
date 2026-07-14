@@ -16,6 +16,7 @@ import {
 } from "../../../lib/validations";
 import { jsonBodyLimits, parseJsonBody } from "../../../lib/request-body";
 import { applyRateLimit, rateLimitConfigs } from "../../../lib/rate-limit";
+import { processWhatsAppWelcomeJob } from "../../../lib/whatsapp";
 
 // Missing persistence tables are an outage, not an empty archive. Returning
 // 503 keeps browser caches intact while deployment is repaired.
@@ -88,6 +89,16 @@ export async function POST(request: Request) {
       validation.data.nodes as FamilyNode[],
       validation.data.id
     );
+    if (result.firstTreeWhatsAppJobId) {
+      try {
+        await processWhatsAppWelcomeJob(
+          result.firstTreeWhatsAppJobId,
+          process.env.NEXTAUTH_URL || new URL(request.url).origin
+        );
+      } catch (error) {
+        console.error("First tree WhatsApp welcome dispatch failed", error);
+      }
+    }
     return NextResponse.json(
       {
         tree: result.tree,

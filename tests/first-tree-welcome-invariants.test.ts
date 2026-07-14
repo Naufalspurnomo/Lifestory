@@ -55,6 +55,23 @@ describe("first-tree welcome persistence", () => {
     expect(statusSection).toContain("tree._count.memberships !== 0");
   });
 
+  it("queues one WhatsApp message with the first self node and dispatches after commit", () => {
+    const repository = readSource("lib/tree/repository.ts");
+    const route = readSource("app/api/trees/route.ts");
+    const createSection = repository.slice(
+      repository.indexOf("export async function createTreeForUser"),
+      repository.indexOf("export async function replaceTreeNodes")
+    );
+
+    expect(createSection).toContain("nodes.length === 1");
+    expect(createSection).toContain('nodes[0]?.line === "self"');
+    expect(createSection).toContain("enqueueFirstTreeWelcome(tx");
+    expect(createSection).toContain("firstTreeWhatsAppJobId: null");
+    expect(route).toContain("result.firstTreeWhatsAppJobId");
+    expect(route).toContain("processWhatsAppWelcomeJob");
+    expect(route).toContain("First tree WhatsApp welcome dispatch failed");
+  });
+
   it("makes dismiss owner-only and idempotent", () => {
     const source = readSource("lib/tree/repository.ts");
     const section = source.slice(

@@ -1,7 +1,11 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
-import { buildWelcomePayload, normalizeWhatsAppPhone } from "../lib/whatsapp";
+import {
+  buildFirstTreeWelcomePayload,
+  buildWelcomePayload,
+  normalizeWhatsAppPhone,
+} from "../lib/whatsapp";
 
 describe("WhatsApp welcome payload", () => {
   it("normalizes common Indonesian WhatsApp number forms", () => {
@@ -50,5 +54,21 @@ describe("WhatsApp welcome payload", () => {
     expect(whatsapp).toContain('job.user.status !== "active"');
     expect(whatsapp).toContain("!job.user.emailVerifiedAt");
     expect(whatsapp).toContain('lastError: "awaiting_email_verification"');
+  });
+
+  it("builds the first-tree thank-you message with the app link", () => {
+    expect(
+      buildFirstTreeWelcomePayload({
+        name: "Naufal",
+        phone: "6281234567890",
+        origin: "https://lifestory.co.id",
+        imageUrl: "https://lifestory.co.id/image/whatsapp-welcome.webp",
+      })
+    ).toEqual({
+      Phone: "6281234567890",
+      Image: "https://lifestory.co.id/image/whatsapp-welcome.webp",
+      Caption:
+        "Terima kasih, Naufal! Anggota pertama keluarga Anda sudah tersimpan di Lifestory.\n\nPohon keluarga Anda kini resmi dimulai. Lanjutkan dengan menambahkan orang tua, pasangan, anak, atau saudara agar kisah keluarga tumbuh dari satu nama menjadi warisan bersama.\n\nLanjutkan pohon keluarga:\nhttps://lifestory.co.id/app",
+    });
   });
 });

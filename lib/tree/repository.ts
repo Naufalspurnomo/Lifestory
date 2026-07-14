@@ -4,6 +4,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { syncFamilyIdentityForTreeTx } from "../family-identity";
+import { enqueueFirstTreeWelcome } from "../whatsapp";
 import { applyNodeMutations } from "../sync/applyMutations";
 import { IntegrityValidator } from "../sync/IntegrityValidator";
 import {
@@ -40,6 +41,7 @@ export class InvalidTreeGraphError extends Error {
 export type TreeCreateResult = {
   tree: TreeData;
   firstTreeWelcomeTreeId: string | null;
+  firstTreeWhatsAppJobId: string | null;
 };
 
 export type TreeRole = "owner" | "editor" | "viewer";
@@ -601,6 +603,7 @@ export async function createTreeForUser(
     return {
       tree: await getTreeForUser(canonicalOwnedTree.id, userId),
       firstTreeWelcomeTreeId: await getFirstTreeWelcomeTreeIdForUser(userId),
+      firstTreeWhatsAppJobId: null,
     };
   }
 
@@ -619,15 +622,18 @@ export async function createTreeForUser(
       return {
         tree: await getTreeForUser(requestedId, userId),
         firstTreeWelcomeTreeId: await getFirstTreeWelcomeTreeIdForUser(userId),
+        firstTreeWhatsAppJobId: null,
       };
     }
   }
 
   const eligibleForFirstTreeWelcome =
     ownedTreeHistoryCount === 0 && membershipHistoryCount === 0;
-  let tree;
+  const eligibleForFirstTreeWhatsApp =
+    eligibleForFirstTreeWelcome && nodes.length === 1 && nodes[0]?.line === "self";
+  let transactionResult;
   try {
-    tree = await prisma.$transaction(
+    transactionResult = await prisma.$transaction(
       async (tx) => {
         const created = await tx.tree.create({
           data: {
@@ -650,7 +656,19 @@ export async function createTreeForUser(
             data: { firstTreeWelcomeTreeId: created.id },
           });
         }
-        return created;
+        const owner = eligibleForFirstTreeWhatsApp
+          ? await tx.user.findUnique({
+              where: { id: userId },
+              select: { phone: true },
+            })
+          : null;
+        const whatsAppJob = owner?.phone
+          ? await enqueueFirstTreeWelcome(tx, {
+              userId,
+              phone: owner.phone,
+            })
+          : null;
+        return { tree: created, whatsAppJobId: whatsAppJob?.id ?? null };
       },
       TREE_WRITE_TRANSACTION_OPTIONS
     );
@@ -663,10 +681,13 @@ export async function createTreeForUser(
       return {
         tree: await getTreeForUser(requestedId, userId),
         firstTreeWelcomeTreeId: await getFirstTreeWelcomeTreeIdForUser(userId),
+        firstTreeWhatsAppJobId: null,
       };
     }
     throw error;
   }
+
+  const tree = transactionResult.tree;
 
   return {
     tree: {
@@ -679,6 +700,7 @@ export async function createTreeForUser(
       updatedAt: tree.updatedAt.toISOString(),
     },
     firstTreeWelcomeTreeId: await getFirstTreeWelcomeTreeIdForUser(userId),
+    firstTreeWhatsAppJobId: transactionResult.whatsAppJobId,
   };
 }
 
