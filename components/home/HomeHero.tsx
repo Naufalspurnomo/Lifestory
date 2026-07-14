@@ -122,6 +122,7 @@ export function HomeHero({ isId, copy, primaryCtaHref, secondaryCtaHref }: Props
     0,
     shouldAnimateHeroScroll ? 1 : 0,
   ]);
+  const scrollHintOpacity = useTransform(scrollYProgress, [0, 0.14], [1, 0]);
 
   return (
     <section
@@ -133,7 +134,12 @@ export function HomeHero({ isId, copy, primaryCtaHref, secondaryCtaHref }: Props
         <motion.div
           data-hero-archive-band
           style={{ opacity: archiveBandOpacity }}
-          className="pointer-events-none absolute inset-y-0 left-0 z-0 hidden w-[52vw] border-r border-cream-300/70 bg-cream-100/90 lg:block"
+          className="pointer-events-none absolute inset-y-0 left-0 z-0 hidden w-[48vw] bg-cream-100/[0.84] lg:block"
+        />
+        <motion.div
+          data-hero-archive-field
+          style={{ opacity: archiveBandOpacity }}
+          className="pointer-events-none absolute inset-y-[8vh] right-0 z-0 hidden w-[52vw] border-l border-cream-300/[0.55] bg-cream-200/[0.38] lg:block"
         />
 
         {/* 1. BACKGROUND IMAGE WITH GRADIENT FADE */}
@@ -164,7 +170,7 @@ export function HomeHero({ isId, copy, primaryCtaHref, secondaryCtaHref }: Props
                 padding: photoFramePadding,
                 boxShadow: photoFrameShadow,
               }}
-              className="absolute overflow-hidden bg-cream-50"
+              className="absolute overflow-hidden bg-cream-100"
             >
               <div className="relative h-full w-full overflow-hidden bg-cream-100">
                 <motion.div
@@ -188,7 +194,7 @@ export function HomeHero({ isId, copy, primaryCtaHref, secondaryCtaHref }: Props
                 <motion.div
                   data-hero-photo-caption
                   style={{ opacity: photoCaptionOpacity }}
-                  className="absolute bottom-4 left-4 right-4 z-20 flex items-end justify-between gap-6 bg-cream-50/95 px-4 py-3 text-ink-700 shadow-soft"
+                  className="absolute bottom-4 left-4 right-4 z-20 flex items-end justify-between gap-6 border-t border-cream-300/[0.6] bg-cream-100/[0.95] px-4 py-3 text-ink-700"
                 >
                   <p className="max-w-[28rem] text-[0.72rem] leading-[1.55] text-ink-600">
                     {archiveStageCopy.caption}
@@ -333,7 +339,11 @@ export function HomeHero({ isId, copy, primaryCtaHref, secondaryCtaHref }: Props
         </div>
 
         {/* Scroll hint */}
-        <div className="absolute bottom-0 left-6 z-20 hidden flex-col items-center gap-4 pb-8 md:left-12 md:flex lg:left-16">
+        <motion.div
+          data-hero-scroll-hint
+          style={{ opacity: shouldAnimateHeroScroll ? scrollHintOpacity : 1 }}
+          className="absolute bottom-0 left-6 z-20 hidden flex-col items-center gap-4 pb-8 md:left-12 md:flex lg:left-16"
+        >
           <div
             className="relative"
             style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
@@ -349,7 +359,7 @@ export function HomeHero({ isId, copy, primaryCtaHref, secondaryCtaHref }: Props
           <div className="relative h-16 w-px overflow-hidden bg-ink-200/40">
             <div className="hero-scroll-line absolute inset-0 h-full w-full bg-brand-700" />
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

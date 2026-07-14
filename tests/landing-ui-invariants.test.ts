@@ -36,6 +36,8 @@ describe("landing hero interaction invariants", () => {
     expect(homeHero).toContain("data-hero-scroll-section");
     expect(homeHero).toContain("data-hero-photo-frame");
     expect(homeHero).toContain("data-hero-archive-stage");
+    expect(homeHero).toContain("data-hero-archive-band");
+    expect(homeHero).toContain("data-hero-archive-field");
     expect(homeHero).toContain("data-hero-photo-caption");
     expect(homeHero).toContain("data-hero-copy");
     expect(homeHero).toContain('offset: ["start start", "end end"]');
@@ -44,6 +46,14 @@ describe("landing hero interaction invariants", () => {
     expect(homeHero).toContain('shouldAnimateHeroScroll ? "46vw" : "65vw"');
     expect(homeHero).toContain('shouldAnimateHeroScroll ? "60vh" : "100vh"');
     expect(homeHero).toContain('shouldAnimateHeroScroll ? "16px" : "0px"');
+    expect(homeHero).toContain('hidden w-[48vw] bg-cream-100/[0.84]');
+    expect(homeHero).toContain('hidden w-[52vw] border-l border-cream-300/[0.55]');
+    expect(homeHero).toContain("const scrollHintOpacity = useTransform");
+    expect(homeHero).toContain("data-hero-scroll-hint");
+    expect(homeHero).toContain(
+      "opacity: shouldAnimateHeroScroll ? scrollHintOpacity : 1"
+    );
+    expect(homeHero).not.toContain('hidden w-[52vw] border-r');
     expect(homeHero).not.toContain("data-hero-memory-frame");
     expect(homeHero).not.toContain("data-hero-scrollytelling-copy");
     expect(homeHero).not.toMatch(/phone|iphone|device mockup/i);
