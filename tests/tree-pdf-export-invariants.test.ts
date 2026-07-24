@@ -79,7 +79,6 @@ describe("tree PDF export invariants", () => {
       "cover",
       "overview",
       "generation",
-      "generation",
       "directory",
     ]);
   });
@@ -101,6 +100,18 @@ describe("tree PDF export invariants", () => {
       ["Root"],
       ["Ari", "Budi"],
     ]);
+  });
+
+  it("derives export generations from relationships when stored values are stale", () => {
+    const model = buildTreePdfDocumentModel(
+      tree([
+        node("parent", "Parent", { childrenIds: ["child"], generation: 0 }),
+        node("child", "Child", { parentId: "parent", parentIds: ["parent"], generation: 0 }),
+      ])
+    );
+
+    expect(model.generations.map((group) => group.generation)).toEqual([0, 1]);
+    expect(model.memberCards.find((member) => member.id === "child")?.generation).toBe(1);
   });
 
   it("formats lifespan fallbacks without throwing on sparse data", () => {
@@ -145,11 +156,11 @@ describe("tree PDF export invariants", () => {
     expect(model.memberCards[0].description).toBe("No story summary yet.");
   });
 
-  it("preserves A3 visual pages and A4 directory pages", () => {
+  it("uses an expandable atlas page for the full relationship map", () => {
     const model = buildTreePdfDocumentModel(tree([node("root", "Root", { generation: 0 })]));
 
     expect(model.pages.find((page) => page.kind === "overview")).toMatchObject({
-      format: "a3",
+      format: "a2",
       orientation: "landscape",
       logoPath: "/logo/lifestory-logo.png",
       minNodeWidth: 42,
@@ -159,6 +170,20 @@ describe("tree PDF export invariants", () => {
       format: "a4",
       orientation: "portrait",
     });
+  });
+
+  it("keeps the overview tied to the production relationship layout", () => {
+    const model = buildTreePdfDocumentModel(
+      tree([
+        node("father", "Bapak", { partners: ["mother"], childrenIds: ["child"] }),
+        node("mother", "Ibu", { partners: ["father"], childrenIds: ["child"] }),
+        node("child", "Anak", { parentId: "father", parentIds: ["father", "mother"] }),
+      ])
+    );
+
+    expect(model.layout.edges.map((edge) => edge.type)).toEqual(
+      expect.arrayContaining(["spouse", "union-child"])
+    );
   });
 
   it("includes member photos, stories, and media indicators in directory cards", () => {

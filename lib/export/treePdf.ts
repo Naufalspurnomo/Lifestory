@@ -5,7 +5,7 @@ import type { FamilyNode, LayoutGraph, TreeData } from "../types/tree";
 
 export type PdfLocale = "id" | "en";
 export type TreePdfPageKind = "cover" | "overview" | "generation" | "directory";
-export type TreePdfPageFormat = "a3" | "a4";
+export type TreePdfPageFormat = "a0" | "a1" | "a2" | "a3" | "a4";
 export type TreePdfPageOrientation = "landscape" | "portrait";
 
 type PdfMemberGroup = {
@@ -107,6 +107,13 @@ const OVERVIEW_NODE = { width: 56, height: 21, minWidth: 42, minHeight: 18, minF
 const GENERATION_CARD = { width: 80, height: 44, minFont: 9.1 };
 const GENERATION_PAGE_SIZE = 12;
 const DIRECTORY_PAGE_SIZE = 12;
+const OVERVIEW_PAGE_SIZES = {
+  a2: { width: 594, height: 420 },
+  a1: { width: 841, height: 594 },
+  a0: { width: 1189, height: 841 },
+} as const;
+const OVERVIEW_MIN_SCALE = 0.34;
+const LAYOUT_CARD = { width: 154, height: 142 };
 
 function copy(locale: PdfLocale) {
   return locale === "id"
@@ -118,7 +125,7 @@ function copy(locale: PdfLocale) {
         photos: "Foto",
         stories: "Cerita",
         media: "Media",
-        overview: "Ringkasan Pohon Keluarga",
+        overview: "Peta Hubungan Keluarga",
         directory: "Daftar Anggota Keluarga",
         generation: (n: number) => `Generasi ${n}`,
         unknownGeneration: "Generasi tidak diketahui",
@@ -139,7 +146,7 @@ function copy(locale: PdfLocale) {
         photos: "Photos",
         stories: "Stories",
         media: "Media",
-        overview: "Family Tree Overview",
+        overview: "Family Relationship Map",
         directory: "Family Member Directory",
         generation: (n: number) => `Generation ${n}`,
         unknownGeneration: "Unknown generation",
@@ -237,13 +244,14 @@ function chunk<T>(items: T[], size: number): T[][] {
 function planPages(
   branchGroups: TreePdfBranchGroup[],
   memberCards: TreePdfMemberCard[],
-  locale: PdfLocale
+  locale: PdfLocale,
+  layout: LayoutGraph
 ): TreePdfPage[] {
   const pages: TreePdfPage[] = [
     { kind: "cover", format: "a4", orientation: "portrait", logoPath: LOGO_PATH },
     {
       kind: "overview",
-      format: "a3",
+      format: selectOverviewPageFormat(layout),
       orientation: "landscape",
       logoPath: LOGO_PATH,
       minNodeWidth: OVERVIEW_NODE.minWidth,
@@ -253,20 +261,38 @@ function planPages(
     },
   ];
 
+  let pendingMembers: TreePdfMemberCard[] = [];
+  let pendingBranches: TreePdfBranchGroup[] = [];
+  const flushGenerationSpread = () => {
+    if (!pendingMembers.length) return;
+    const first = pendingBranches[0];
+    const last = pendingBranches[pendingBranches.length - 1];
+    if (!first || !last) return;
+    pages.push({
+      kind: "generation",
+      format: "a3",
+      orientation: "landscape",
+      branchId: `${first.id}-to-${last.id}`,
+      title: first.id === last.id ? first.title : `${first.title} - ${last.title}`,
+      memberIds: pendingMembers.map((member) => member.id),
+      minCardWidth: GENERATION_CARD.width,
+      minFontSize: GENERATION_CARD.minFont,
+    });
+    pendingMembers = [];
+    pendingBranches = [];
+  };
+
   for (const branch of branchGroups) {
     for (const members of chunk(branch.members, GENERATION_PAGE_SIZE)) {
-      pages.push({
-        kind: "generation",
-        format: "a3",
-        orientation: "landscape",
-        branchId: branch.id,
-        title: branch.title,
-        memberIds: members.map((member) => member.id),
-        minCardWidth: GENERATION_CARD.width,
-        minFontSize: GENERATION_CARD.minFont,
-      });
+      if (pendingMembers.length && pendingMembers.length + members.length > GENERATION_PAGE_SIZE) {
+        flushGenerationSpread();
+      }
+      pendingMembers.push(...members);
+      pendingBranches.push(branch);
+      if (pendingMembers.length === GENERATION_PAGE_SIZE) flushGenerationSpread();
     }
   }
+  flushGenerationSpread();
 
   for (const members of chunk(memberCards, DIRECTORY_PAGE_SIZE)) {
     pages.push({
@@ -290,8 +316,14 @@ export function buildTreePdfDocumentModel(
     throw new Error(copy(locale).empty);
   }
 
-  const generations = groupNodesForPdf(tree.nodes, locale);
-  const memberCards = buildMemberCards(tree.nodes, locale);
+  const layout = calculateHierarchicalLayout(tree.nodes);
+  const layoutNodeById = new Map(layout.nodes.map((node) => [node.id, node]));
+  const positionedNodes = tree.nodes.map((node) => ({
+    ...node,
+    generation: layoutNodeById.get(node.id)?.generation ?? node.generation,
+  }));
+  const generations = groupNodesForPdf(positionedNodes, locale);
+  const memberCards = buildMemberCards(positionedNodes, locale);
   const byId = new Map(memberCards.map((member) => [member.id, member]));
   const branchGroups = generations.map((group) => ({
     id: `generation-${group.generation}`,
@@ -311,15 +343,15 @@ export function buildTreePdfDocumentModel(
     treeName: tree.name,
     exportedAt,
     locale,
-    root: findRoot(tree.nodes),
+    root: findRoot(positionedNodes),
     memberCount: stats.members,
     generationCount: stats.generations,
     stats,
-    layout: calculateHierarchicalLayout(tree.nodes),
+    layout,
     generations,
     branchGroups,
     memberCards,
-    pages: planPages(branchGroups, memberCards, locale),
+    pages: planPages(branchGroups, memberCards, locale, layout),
     logoPath: LOGO_PATH,
   };
 }
@@ -565,142 +597,142 @@ type OverviewSlot = {
   height: number;
 };
 
-function buildOverviewSlots(model: TreePdfDocumentModel, pageW: number, pageH: number) {
-  const top = 58;
-  const bottom = pageH - 42;
-  const left = 28;
-  const right = pageW - 28;
-  const rows = model.generations;
-  const rowGap = rows.length > 1 ? (bottom - top) / (rows.length - 1) : 0;
-  const slots = new Map<string, OverviewSlot>();
+type OverviewBounds = {
+  minX: number;
+  minY: number;
+  width: number;
+  height: number;
+};
 
-  rows.forEach((group, rowIndex) => {
-    const members = group.members;
-    const gap = 8;
-    const cardW = Math.max(
-      OVERVIEW_NODE.minWidth,
-      Math.min(OVERVIEW_NODE.width, (right - left - gap * Math.max(0, members.length - 1)) / Math.max(1, members.length))
-    );
-    const usedW = members.length * cardW + Math.max(0, members.length - 1) * gap;
-    const startX = left + Math.max(0, (right - left - usedW) / 2);
-    const y = top + rowIndex * rowGap;
+type OverviewMap = {
+  slots: Map<string, OverviewSlot>;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  scale: number;
+  project: (x: number, y: number) => { x: number; y: number };
+};
 
-    members.forEach((node, index) => {
-      slots.set(node.id, {
-        node,
-        x: startX + index * (cardW + gap) + cardW / 2,
-        y,
-        width: cardW,
-        height: OVERVIEW_NODE.height,
-      });
-    });
-  });
+function buildOverviewBounds(layout: LayoutGraph): OverviewBounds {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
 
-  return slots;
+  for (const node of layout.nodes) {
+    const x = node.x ?? 0;
+    const y = node.y ?? 0;
+    minX = Math.min(minX, x - LAYOUT_CARD.width / 2);
+    minY = Math.min(minY, y - LAYOUT_CARD.height / 2);
+    maxX = Math.max(maxX, x + LAYOUT_CARD.width / 2);
+    maxY = Math.max(maxY, y + LAYOUT_CARD.height / 2);
+  }
+  for (const edge of layout.edges) {
+    for (const point of edge.path) {
+      minX = Math.min(minX, point.x);
+      minY = Math.min(minY, point.y);
+      maxX = Math.max(maxX, point.x);
+      maxY = Math.max(maxY, point.y);
+    }
+  }
+
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
+    return { minX: 0, minY: 0, width: 1, height: 1 };
+  }
+  return { minX, minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY) };
 }
 
-function drawOverviewConnectors(doc: jsPDF, slots: Map<string, OverviewSlot>) {
-  doc.setDrawColor("#b8a171");
-  doc.setLineWidth(0.34);
+function overviewViewport(pageW: number, pageH: number) {
+  const side = Math.max(30, Math.min(48, pageW * 0.04));
+  const top = Math.max(58, Math.min(90, pageH * 0.12));
+  const bottom = Math.max(34, Math.min(52, pageH * 0.07));
+  return { left: side, top, width: pageW - side * 2, height: pageH - top - bottom };
+}
+
+function overviewScale(bounds: OverviewBounds, pageW: number, pageH: number) {
+  const viewport = overviewViewport(pageW, pageH);
+  return Math.min(viewport.width / bounds.width, viewport.height / bounds.height);
+}
+
+function selectOverviewPageFormat(layout: LayoutGraph): TreePdfPageFormat {
+  const bounds = buildOverviewBounds(layout);
+  const formats = Object.entries(OVERVIEW_PAGE_SIZES) as Array<
+    [keyof typeof OVERVIEW_PAGE_SIZES, (typeof OVERVIEW_PAGE_SIZES)[keyof typeof OVERVIEW_PAGE_SIZES]]
+  >;
+  return (
+    formats.find(([, size]) => overviewScale(bounds, size.width, size.height) >= OVERVIEW_MIN_SCALE)?.[0] ??
+    "a0"
+  );
+}
+
+function buildOverviewMap(model: TreePdfDocumentModel, pageW: number, pageH: number): OverviewMap {
+  const bounds = buildOverviewBounds(model.layout);
+  const viewport = overviewViewport(pageW, pageH);
+  const scale = Math.min(1.15, overviewScale(bounds, pageW, pageH));
+  const mapWidth = bounds.width * scale;
+  const mapHeight = bounds.height * scale;
+  const left = viewport.left + Math.max(0, (viewport.width - mapWidth) / 2);
+  const top = viewport.top + Math.max(0, (viewport.height - mapHeight) / 2);
+  const positionById = new Map(model.layout.nodes.map((node) => [node.id, node]));
+  const sourceById = new Map(
+    model.generations.flatMap((group) => group.members).map((node) => [node.id, node])
+  );
+  const slots = new Map<string, OverviewSlot>();
+  const cardWidth = Math.max(24, Math.min(78, LAYOUT_CARD.width * scale * 0.82));
+  const cardHeight = Math.max(15, Math.min(34, cardWidth * 0.54));
+  const project = (x: number, y: number) => ({
+    x: left + (x - bounds.minX) * scale,
+    y: top + (y - bounds.minY) * scale,
+  });
+
+  model.layout.nodes.forEach((node, index) => {
+    const source = sourceById.get(node.id) ?? node;
+    const positioned = positionById.get(node.id);
+    const point = project(
+      positioned?.x ?? bounds.minX + index * LAYOUT_CARD.width,
+      positioned?.y ?? bounds.minY + index * LAYOUT_CARD.height
+    );
+    slots.set(node.id, { node: source, x: point.x, y: point.y, width: cardWidth, height: cardHeight });
+  });
+
+  return { slots, left, top, width: mapWidth, height: mapHeight, scale, project };
+}
+
+function drawOverviewConnectors(doc: jsPDF, model: TreePdfDocumentModel, map: OverviewMap) {
   doc.setLineCap("round");
-  const partnerLaneByRow = new Map<number, number>();
-
-  for (const slot of slots.values()) {
-    const parentIds = slot.node.parentIds?.length ? slot.node.parentIds : slot.node.parentId ? [slot.node.parentId] : [];
-    const parents = parentIds
-      .map((parentId) => slots.get(parentId))
-      .filter((parent): parent is OverviewSlot => Boolean(parent));
-    if (parents.length === 0) continue;
-
-    if (parents.length === 1) {
-      const parent = parents[0];
-      const midY = parent.y + (slot.y - parent.y) * 0.52;
-      doc.line(parent.x, parent.y + parent.height / 2, parent.x, midY);
-      doc.line(parent.x, midY, slot.x, midY);
-      doc.line(slot.x, midY, slot.x, slot.y - slot.height / 2);
-      continue;
-    }
-
-    const junctionY = Math.min(...parents.map((parent) => parent.y)) +
-      (slot.y - Math.min(...parents.map((parent) => parent.y))) * 0.58;
-    const left = Math.min(...parents.map((parent) => parent.x));
-    const right = Math.max(...parents.map((parent) => parent.x));
-    parents.forEach((parent) => {
-      doc.line(parent.x, parent.y + parent.height / 2, parent.x, junctionY);
-    });
-    doc.line(left, junctionY, right, junctionY);
-    doc.line(slot.x, junctionY, slot.x, slot.y - slot.height / 2);
-  }
-
-  const seenPartners = new Set<string>();
-  for (const slot of slots.values()) {
-    for (const partnerId of slot.node.partners || []) {
-      const partner = slots.get(partnerId);
-      if (!partner || partner.y !== slot.y) continue;
-      const key = [slot.node.id, partner.node.id].sort().join("::");
-      if (seenPartners.has(key)) continue;
-      seenPartners.add(key);
-      const leftSlot = slot.x <= partner.x ? slot : partner;
-      const rightSlot = slot.x <= partner.x ? partner : slot;
-      const left = leftSlot.x;
-      const right = rightSlot.x;
-      doc.setDrawColor("#9c8052");
-      doc.setLineWidth(0.5);
-      const blockers = Array.from(slots.values()).some(
-        (candidate) =>
-          candidate.y === slot.y &&
-          candidate.node.id !== leftSlot.node.id &&
-          candidate.node.id !== rightSlot.node.id &&
-          candidate.x > left &&
-          candidate.x < right
-      );
-      if (!blockers) {
-        doc.line(left + leftSlot.width / 2, slot.y, right - rightSlot.width / 2, slot.y);
-        continue;
-      }
-
-      const row = Math.round(slot.y);
-      const lane = partnerLaneByRow.get(row) || 0;
-      partnerLaneByRow.set(row, lane + 1);
-      const laneY = slot.y + Math.max(slot.height, partner.height) / 2 + 5 + lane * 5;
-      doc.line(
-        left + leftSlot.width / 2,
-        leftSlot.y + leftSlot.height / 2,
-        left + leftSlot.width / 2,
-        laneY
-      );
-      doc.line(left + leftSlot.width / 2, laneY, right - rightSlot.width / 2, laneY);
-      doc.line(
-        right - rightSlot.width / 2,
-        laneY,
-        right - rightSlot.width / 2,
-        rightSlot.y + rightSlot.height / 2
-      );
+  for (const edge of model.layout.edges) {
+    const isPartner = edge.type === "spouse";
+    const isAdoption = edge.type === "adoption";
+    doc.setDrawColor(isPartner ? "#9c8052" : "#b8a171");
+    doc.setLineWidth(isPartner ? 0.5 : 0.3);
+    doc.setLineDashPattern(isAdoption ? [1.2, 1] : [], 0);
+    for (let index = 1; index < edge.path.length; index += 1) {
+      const start = map.project(edge.path[index - 1].x, edge.path[index - 1].y);
+      const end = map.project(edge.path[index].x, edge.path[index].y);
+      doc.line(start.x, start.y, end.x, end.y);
     }
   }
+  doc.setLineDashPattern([], 0);
 }
 
 function drawOverviewRowLabels(
   doc: jsPDF,
   model: TreePdfDocumentModel,
-  slots: Map<string, OverviewSlot>,
+  map: OverviewMap,
   locale: PdfLocale
 ) {
   const c = copy(locale);
   model.generations.forEach((group) => {
-    const first = group.members[0];
-    const slot = first ? slots.get(first.id) : undefined;
-    if (!slot) return;
-    doc.setDrawColor("#eadfc8");
-    doc.setLineWidth(0.2);
-    doc.line(27, slot.y + OVERVIEW_NODE.height / 2 + 8, doc.internal.pageSize.getWidth() - 27, slot.y + OVERVIEW_NODE.height / 2 + 8);
+    const slots = group.members
+      .map((member) => map.slots.get(member.id))
+      .filter((slot): slot is OverviewSlot => Boolean(slot));
+    if (!slots.length) return;
+    const y = slots.reduce((total, slot) => total + slot.y, 0) / slots.length;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6.5);
     doc.setTextColor(MUTED);
-    doc.text(group.generation === 999 ? c.unknownGeneration : group.title, 18, slot.y + 2, {
-      angle: 90,
-      align: "center",
-    });
+    doc.text(group.generation === 999 ? c.unknownGeneration : group.title, map.left - 8, y + 2, { align: "right" });
   });
 }
 
@@ -713,26 +745,35 @@ function drawOverviewNode(doc: jsPDF, slot: OverviewSlot) {
   doc.setFillColor(PAPER);
   doc.setDrawColor(isRoot ? BRAND : "#d0bd94");
   doc.setLineWidth(isRoot ? 0.46 : 0.24);
-  doc.roundedRect(x, y, slot.width, slot.height, 2.5, 2.5, "FD");
+  doc.roundedRect(x, y, slot.width, slot.height, 1.8, 1.8, "FD");
   if (isRoot) {
     doc.setFillColor(BRAND);
-    doc.rect(x, y, 2.4, slot.height, "F");
+    doc.rect(x, y, Math.min(2.4, slot.width * 0.07), slot.height, "F");
   }
 
+  const showLifespan = slot.height >= 23;
+  const maxNameLines = showLifespan ? 2 : 1;
+  const nameLines = doc.splitTextToSize(slot.node.label, Math.max(8, slot.width - 7));
+  if (nameLines.length > maxNameLines) {
+    nameLines.splice(maxNameLines);
+    nameLines[maxNameLines - 1] = `${String(nameLines[maxNameLines - 1]).replace(/\.{3}$/, "")}...`;
+  }
   doc.setTextColor(INK);
   doc.setFont("times", "bold");
-  doc.setFontSize(OVERVIEW_NODE.minFont);
-  doc.text(doc.splitTextToSize(slot.node.label, slot.width - 8).slice(0, 2), x + 5, y + 7);
+  const nameSize = Math.max(5.7, Math.min(9.4, slot.width * 0.145));
+  doc.setFontSize(nameSize);
+  const nameY = showLifespan ? y + nameSize + 2.7 : y + slot.height / 2 + nameSize * 0.34;
+  doc.text(nameLines, x + 4.5, nameY);
 
   const lifespan = formatTreeLifespan(slot.node);
-  if (lifespan) {
+  if (lifespan && showLifespan) {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(5.4);
+    doc.setFontSize(Math.max(5, Math.min(6.2, slot.width * 0.1)));
     doc.setTextColor(MUTED);
     doc.text(lifespan, x + 5, y + slot.height - 3.2);
   }
 
-  if (statusCount > 0) {
+  if (statusCount > 0 && slot.height >= 28) {
     doc.setFillColor(BRAND);
     for (let index = 0; index < statusCount; index += 1) {
       doc.circle(x + slot.width - 5 - index * 3.2, y + 4.5, 0.8, "F");
@@ -747,14 +788,14 @@ function drawOverviewPage(
   logoDataUrl: string | null
 ) {
   drawPageHeader(doc, model, copy(locale).overview, logoDataUrl);
-  const slots = buildOverviewSlots(
+  const map = buildOverviewMap(
     model,
     doc.internal.pageSize.getWidth(),
     doc.internal.pageSize.getHeight()
   );
-  drawOverviewRowLabels(doc, model, slots, locale);
-  drawOverviewConnectors(doc, slots);
-  for (const slot of slots.values()) {
+  drawOverviewRowLabels(doc, model, map, locale);
+  drawOverviewConnectors(doc, model, map);
+  for (const slot of map.slots.values()) {
     drawOverviewNode(doc, slot);
   }
 }
@@ -835,7 +876,9 @@ function drawGenerationPage(
   const gapY = 14;
   const gridW = columns * GENERATION_CARD.width + (columns - 1) * gapX;
   const startX = (doc.internal.pageSize.getWidth() - gridW) / 2;
-  const startY = 62;
+  const rows = Math.ceil(members.length / columns);
+  const contentHeight = rows * GENERATION_CARD.height + Math.max(0, rows - 1) * gapY;
+  const startY = Math.max(62, (doc.internal.pageSize.getHeight() - contentHeight) / 2 + 16);
 
   members.forEach((member, index) => {
     const col = index % columns;
@@ -940,10 +983,10 @@ function renderPage(
   drawFooter(doc, model, pageIndex);
 }
 
-export async function downloadTreePdf(
+export async function createTreePdfDocument(
   tree: TreeData,
   locale: PdfLocale = "id"
-): Promise<void> {
+): Promise<jsPDF> {
   const model = buildTreePdfDocumentModel(tree, locale);
   const firstPage = model.pages[0];
   const doc = new jsPDF({
@@ -957,5 +1000,13 @@ export async function downloadTreePdf(
   ]);
 
   model.pages.forEach((page, index) => renderPage(doc, model, page, index, images, logoDataUrl));
+  return doc;
+}
+
+export async function downloadTreePdf(
+  tree: TreeData,
+  locale: PdfLocale = "id"
+): Promise<void> {
+  const doc = await createTreePdfDocument(tree, locale);
   doc.save(safeFilename(tree.name));
 }

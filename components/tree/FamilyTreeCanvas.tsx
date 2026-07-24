@@ -21,6 +21,11 @@ import {
 import { resolveTreeFocusContext } from "../../lib/tree/focusView";
 import { getSiblingBranchGroup } from "../../lib/tree/siblingOrder";
 import { resolveDisplayMediaUrl } from "../../lib/media/public-url";
+import {
+  clampCanvasTransform,
+  type CanvasPanBounds,
+  type CanvasTransform,
+} from "../../lib/tree/canvasBounds";
 import { useLanguage } from "../providers/LanguageProvider";
 
 type Props = {
@@ -45,11 +50,7 @@ export type ViewportInsets = {
   left: number;
 };
 
-type Transform = {
-  x: number;
-  y: number;
-  k: number;
-};
+type Transform = CanvasTransform;
 
 type TreeProjectionMode = "portrait" | "landscape" | "fan";
 type DensityMode = "auto" | "map" | "detail";
@@ -913,6 +914,9 @@ export default function FamilyTreeCanvas({
   const queuedTransformRef = useRef<((previous: Transform) => Transform) | null>(
     null
   );
+  const constrainTransformRef = useRef<(transform: Transform) => Transform>(
+    (transform) => transform
+  );
   const initializedRef = useRef(false);
   // C4: Guard to prevent infinite focus -> re-render -> focus loop.
   const focusedForRef = useRef<string | null>(null);
@@ -1019,7 +1023,11 @@ export default function FamilyTreeCanvas({
         transformFrameRef.current = null;
         const queued = queuedTransformRef.current;
         queuedTransformRef.current = null;
-        if (queued) setTransform(queued);
+        if (queued) {
+          setTransform((previous) =>
+            constrainTransformRef.current(queued(previous))
+          );
+        }
       });
     },
     []
@@ -1108,6 +1116,47 @@ export default function FamilyTreeCanvas({
         ? CANVAS_TOOLBAR_SAFE_TOP_MOBILE_RADIAL
         : CANVAS_TOOLBAR_SAFE_TOP_MOBILE
       : CANVAS_TOOLBAR_SAFE_TOP_DESKTOP;
+  const panBounds = useMemo<CanvasPanBounds>(
+    () => ({
+      contentWidth: width,
+      contentHeight: height,
+      viewport: {
+        left: insets.left,
+        top: insets.top + toolbarSafeTop,
+        right: Math.max(insets.left + 1, wrapperSize.width - insets.right),
+        bottom: Math.max(
+          insets.top + toolbarSafeTop + 1,
+          wrapperSize.height - insets.bottom
+        ),
+      },
+    }),
+    [
+      height,
+      insets.bottom,
+      insets.left,
+      insets.right,
+      insets.top,
+      toolbarSafeTop,
+      width,
+      wrapperSize.height,
+      wrapperSize.width,
+    ]
+  );
+  const constrainTransform = useCallback(
+    (next: Transform) => clampCanvasTransform(next, panBounds),
+    [panBounds]
+  );
+  constrainTransformRef.current = constrainTransform;
+  const setConstrainedTransform = useCallback(
+    (next: Transform | ((previous: Transform) => Transform)) => {
+      setTransform((previous) =>
+        constrainTransform(
+          typeof next === "function" ? next(previous) : next
+        )
+      );
+    },
+    [constrainTransform]
+  );
   const showGenerationMarkers = treeProjectionMode === "portrait";
 
   const generationMarkers = useMemo(() => {
@@ -1162,7 +1211,7 @@ export default function FamilyTreeCanvas({
       const nextScale = clamp(Math.max(transform.k, minScale), MIN_SCALE, MAX_SCALE);
       const usableWidth = Math.max(1, wrapperSize.width - insets.left - insets.right);
       const usableHeight = Math.max(1, wrapperSize.height - toolbarSafeTop - insets.top - insets.bottom);
-      setTransform({
+      setConstrainedTransform({
         x: insets.left + usableWidth / 2 - (node.x || 0) * nextScale,
         y:
           insets.top + toolbarSafeTop +
@@ -1177,6 +1226,7 @@ export default function FamilyTreeCanvas({
       insets.left,
       insets.right,
       insets.top,
+      setConstrainedTransform,
       toolbarSafeTop,
       transform.k,
       wrapperSize.height,
@@ -1202,6 +1252,10 @@ export default function FamilyTreeCanvas({
   }, []);
 
   useEffect(() => {
+    setTransform((previous) => constrainTransform(previous));
+  }, [constrainTransform]);
+
+  useEffect(() => {
     initializedRef.current = false;
   }, [height, nodes.length, treeProjectionMode, width]);
 
@@ -1220,19 +1274,20 @@ export default function FamilyTreeCanvas({
       const nextScale = clamp(Math.max(fit.k, 0.72), MIN_SCALE, 0.92);
       const usableWidth = Math.max(1, wrapperSize.width - insets.left - insets.right);
       const usableHeight = Math.max(1, wrapperSize.height - toolbarSafeTop - insets.top - insets.bottom);
-      setTransform({
+      setConstrainedTransform({
         x: insets.left + usableWidth / 2 - (focus.x || 0) * nextScale,
         y: insets.top + toolbarSafeTop + usableHeight / 2 - (focus.y || 0) * nextScale,
         k: nextScale,
       });
     } else {
-      setTransform(calculateFitTransform());
+      setConstrainedTransform(calculateFitTransform());
     }
     initializedRef.current = true;
   }, [
     calculateFitTransform,
     nodes,
     owner,
+    setConstrainedTransform,
     toolbarSafeTop,
     insets.bottom,
     insets.left,
@@ -1995,7 +2050,7 @@ export default function FamilyTreeCanvas({
 
   const zoomAt = useCallback(
     (screenX: number, screenY: number, nextScale: number) => {
-      setTransform((previous) => {
+      setConstrainedTransform((previous) => {
         const worldX = (screenX - previous.x) / previous.k;
         const worldY = (screenY - previous.y) / previous.k;
         const scale = clamp(nextScale, MIN_SCALE, MAX_SCALE);
@@ -2006,7 +2061,7 @@ export default function FamilyTreeCanvas({
         };
       });
     },
-    []
+    [setConstrainedTransform]
   );
 
   const selectDensityMode = useCallback(
@@ -2049,7 +2104,7 @@ export default function FamilyTreeCanvas({
           ? event.deltaY
           : event.deltaX;
       const panY = event.shiftKey ? 0 : event.deltaY;
-      setTransform((previous) => ({
+      setConstrainedTransform((previous) => ({
         ...previous,
         x: previous.x - panX * deltaMultiplier,
         y: previous.y - panY * deltaMultiplier,
@@ -2336,7 +2391,7 @@ export default function FamilyTreeCanvas({
       const usableHeight = Math.max(1, wrapperSize.height - toolbarSafeTop - insets.top - insets.bottom);
       const viewportCenterY = insets.top + toolbarSafeTop + usableHeight / 2;
 
-      setTransform((previous) => ({
+      setConstrainedTransform((previous) => ({
         ...previous,
         x: insets.left + usableWidth / 2 - worldX * previous.k,
         y: viewportCenterY - worldY * previous.k,
@@ -2349,6 +2404,7 @@ export default function FamilyTreeCanvas({
       insets.left,
       insets.right,
       insets.top,
+      setConstrainedTransform,
       toolbarSafeTop,
       width,
       wrapperSize.height,
@@ -2444,7 +2500,7 @@ export default function FamilyTreeCanvas({
         <div className="flex max-w-full items-center gap-1.5 rounded-2xl border border-[#b99f70] bg-[#fffaf0]/95 p-1.5 shadow-[0_10px_28px_-18px_rgba(45,33,22,0.55),0_1px_0_rgba(255,255,255,0.82)_inset] backdrop-blur-md">
           <button
             className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dfcfad] bg-[#f8efdE] px-3 text-xs font-bold text-ink-800 shadow-[0_1px_0_rgba(255,255,255,0.75)_inset] transition hover:border-[#b99f70] hover:bg-white hover:shadow-sm"
-            onClick={() => setTransform(calculateFitTransform())}
+            onClick={() => setConstrainedTransform(calculateFitTransform())}
             title={copy.fit}
             type="button"
           >
@@ -2656,7 +2712,7 @@ export default function FamilyTreeCanvas({
             onKeyDown={(event) => {
               if (event.key !== "Enter" && event.key !== " ") return;
               event.preventDefault();
-              setTransform(calculateFitTransform());
+              setConstrainedTransform(calculateFitTransform());
             }}
             role="button"
             tabIndex={0}

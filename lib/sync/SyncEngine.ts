@@ -48,7 +48,7 @@ export type SyncEngineOptions = {
 };
 
 const DEFAULT_CONFIG: SyncEngineConfig = {
-  debounceMs: 300,
+  debounceMs: 150,
   maxRetries: 10,
   visibleErrorRetryThreshold: 3,
   baseRetryDelayMs: 1000,
@@ -109,6 +109,7 @@ export class SyncEngine {
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private flushing = false;
   private paused = false;
+  private blockedError: string | undefined;
   private pendingConflict: PendingSyncConflict | null = null;
 
   constructor(options: SyncEngineOptions) {
@@ -235,6 +236,7 @@ export class SyncEngine {
     this.retryQueue.cancelAll();
     await this.wal.resetFailed();
     this.paused = false;
+    this.blockedError = undefined;
     await this.ensureOnline();
     await this.refreshStatus("syncing");
     await this.flush({ allowOfflineAttempt: true });
@@ -243,6 +245,7 @@ export class SyncEngine {
   async forceSync(): Promise<void> {
     this.retryQueue.cancelAll();
     this.paused = false;
+    this.blockedError = undefined;
     await this.ensureOnline();
     await this.flush({ allowOfflineAttempt: true });
   }
@@ -315,6 +318,7 @@ export class SyncEngine {
       if (response.status === 409) {
         this.pendingConflict = null;
         this.paused = false;
+        this.blockedError = undefined;
         this.scheduleFlush(0);
       }
       throw new Error(message);
@@ -330,6 +334,7 @@ export class SyncEngine {
     const rebasedNodes = this.applyMutations(resolvedNodes, remainingAfterWrite);
     this.pendingConflict = null;
     this.paused = false;
+    this.blockedError = undefined;
     this.events.rebased?.(pending.treeId, rebasedNodes);
     await this.refreshStatus(
       remainingAfterWrite.length > 0 ? "pending" : "saved"
@@ -411,9 +416,12 @@ export class SyncEngine {
 
     const validation = this.validateTree(treeId);
     if (validation.length > 0) {
+      const message = validation.join("; ");
       await this.wal.markPending(seqNos);
+      this.paused = true;
+      this.blockedError = message;
       this.events.corruption?.(validation);
-      this.updateStatus("error", validation.join("; "));
+      this.updateStatus("error", message);
       return;
     }
 
@@ -471,6 +479,8 @@ export class SyncEngine {
           return;
         }
         this.paused = true;
+        this.blockedError =
+          "This tree was changed from another device. Resolve the conflict before syncing.";
         this.pendingConflict = {
           treeId,
           conflicts: resolution.conflicts,
@@ -484,7 +494,7 @@ export class SyncEngine {
         });
         this.updateStatus(
           "error",
-          "This tree was changed from another device. Resolve the conflict before syncing."
+          this.blockedError
         );
         return;
       }
@@ -493,9 +503,11 @@ export class SyncEngine {
         await this.wal.markPending(seqNos);
         this.paused = true;
         this.events.authRequired?.();
+        this.blockedError =
+          "Your session expired. Sign in again, then retry to save these local changes.";
         this.updateStatus(
-          "pending",
-          "Session expired. Changes are saved locally and will sync after login."
+          "error",
+          this.blockedError
         );
         return;
       }
@@ -743,21 +755,29 @@ export class SyncEngine {
     forced?: SyncStatusInfo["status"],
     errorMessage?: string
   ): Promise<void> {
+    const activeEntries = await this.wal.getAllPending();
     const pendingCount = await this.wal.getCount();
     const permanentlyFailedCount = await this.wal.getPermanentlyFailedCount();
+    const retriableError = activeEntries.find(
+      (entry) =>
+        entry.status === "failed" &&
+        entry.retryCount >= this.config.visibleErrorRetryThreshold
+    );
     const status =
-      forced ??
-      (permanentlyFailedCount > 0
+      this.blockedError || permanentlyFailedCount > 0 || retriableError
         ? "error"
-        : pendingCount === 0
-        ? "saved"
-        : this.networkDetector.isOnline()
-        ? "pending"
-        : "offline");
+        : forced ??
+          (pendingCount === 0
+            ? "saved"
+            : this.networkDetector.isOnline()
+            ? "pending"
+            : "offline");
     const visibleErrorMessage =
       status === "offline" || status === "error"
         ? errorMessage ??
-          (status === "offline" ? this.networkDetector.getLastError() : undefined)
+          (status === "offline"
+            ? this.networkDetector.getLastError()
+            : this.blockedError ?? retriableError?.errorMessage ?? undefined)
         : undefined;
     this.updateStatus(
       status,
