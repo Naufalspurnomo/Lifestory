@@ -15,6 +15,9 @@ import {
 } from "./persistence";
 import type { FamilyNode, TreeData } from "../types/tree";
 import { nonEmptyFamilyTreeNodesSchema } from "../validations";
+import {
+  assertActiveMediaUploadReservations,
+} from "../media/verification";
 
 export const TREE_WRITE_TRANSACTION_OPTIONS = {
   maxWait: 5_000,
@@ -731,6 +734,34 @@ export async function replaceTreeNodes(
         throw new VersionConflictError(current.version);
       }
 
+      const currentTree = await tx.node.findMany({
+        where: { treeId },
+        select: {
+          id: true,
+          imageUrl: true,
+          imageStorageKey: true,
+          imageMimeType: true,
+          imageSizeBytes: true,
+          media: true,
+        },
+      });
+      const currentNodes = currentTree.map((node) => ({
+        id: node.id,
+        label: "",
+        imageUrl: node.imageUrl,
+        imageStorageKey: node.imageStorageKey,
+        imageMimeType: node.imageMimeType,
+        imageSizeBytes: node.imageSizeBytes,
+        content: { media: node.media ?? [] },
+      })) as unknown as FamilyNode[];
+      await assertActiveMediaUploadReservations(
+        tx,
+        treeId,
+        userId,
+        currentNodes,
+        nodes
+      );
+
       const snapshot = await writeGraph(tx, treeId, nodes);
       const newVersion = expectedVersion + 1;
       await createSnapshot(tx, treeId, newVersion, snapshot);
@@ -791,6 +822,7 @@ export async function applyTreeMutations(
   newVersion: number;
   acknowledgedSeqNos: number[];
   duplicate: boolean;
+  nodes?: FamilyNode[];
 }> {
   await assertMembership(treeId, userId, true);
   const access = await getTreeAccessContext(treeId, userId);
@@ -879,6 +911,13 @@ export async function applyTreeMutations(
       const ordered = [...mutations].sort((a, b) => a.seqNo - b.seqNo);
       const nextNodes = applyNodeMutations(currentNodes, ordered);
       assertPeopleLimit(nextNodes, access.entitlement.maxPeople);
+      await assertActiveMediaUploadReservations(
+        tx,
+        treeId,
+        userId,
+        currentNodes,
+        nextNodes
+      );
       const snapshot = await writeMutatedGraph(tx, treeId, currentDbNodes, nextNodes);
       const newVersion = clientVersion + 1;
       const acknowledgedSeqNos = ordered.map((mutation) => mutation.seqNo);
@@ -899,6 +938,7 @@ export async function applyTreeMutations(
         newVersion,
         acknowledgedSeqNos,
         duplicate: false,
+        nodes: nextNodes,
       };
     },
     TREE_WRITE_TRANSACTION_OPTIONS

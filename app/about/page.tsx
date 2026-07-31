@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -421,9 +420,9 @@ export default function AboutPage() {
               </div>
 
               <div className="mt-9 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
-                <Link href="/contact" className="w-full sm:w-auto">
-                  <MagneticButton strength={0.2} distance={100} className="w-full sm:w-auto">
+                <MagneticButton strength={0.2} distance={100} className="w-full sm:w-auto">
                     <Button
+                      href="/contact"
                       variant="dark"
                       size="lg"
                       block
@@ -433,10 +432,9 @@ export default function AboutPage() {
                     >
                       <span className="relative z-10 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap">{copy.heroPrimary}</span>
                     </Button>
-                  </MagneticButton>
-                </Link>
-                <Link href="#process" className="w-full sm:w-auto">
-                  <Button
+                </MagneticButton>
+                <Button
+                  href="#process"
                     variant="outline"
                     size="lg"
                     block
@@ -444,8 +442,7 @@ export default function AboutPage() {
                     className="group sm:w-auto !border-brand-700 bg-transparent hover:!bg-brand-700 !text-brand-700 hover:!text-cream-50 shadow-none px-10 py-6 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap rounded-none transition-colors duration-500"
                   >
                     {copy.heroSecondary}
-                  </Button>
-                </Link>
+                </Button>
               </div>
             </motion.div>
 
@@ -717,9 +714,9 @@ export default function AboutPage() {
               </p>
 
               <div className="mt-10 flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:flex-wrap sm:items-center">
-                <Link href="/contact" className="w-full sm:w-auto">
-                  <MagneticButton strength={0.2} distance={100} className="w-full sm:w-auto">
+                <MagneticButton strength={0.2} distance={100} className="w-full sm:w-auto">
                     <Button
+                      href="/contact"
                       variant="dark"
                       size="lg"
                       block
@@ -729,18 +726,16 @@ export default function AboutPage() {
                     >
                       <span className="relative z-10 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap">{copy.consultCta}</span>
                     </Button>
-                  </MagneticButton>
-                </Link>
-                <Link href="#process" className="w-full sm:w-auto">
-                  <Button
+                </MagneticButton>
+                <Button
+                  href="#process"
                     variant="outline"
                     size="lg"
                     block
                     className="group sm:w-auto !border-brand-700 bg-transparent hover:!bg-brand-700 !text-brand-700 hover:!text-cream-50 shadow-none px-10 py-6 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap rounded-none transition-colors duration-500"
                   >
                     {copy.exploreCta}
-                  </Button>
-                </Link>
+                </Button>
               </div>
             </div>
           </motion.div>

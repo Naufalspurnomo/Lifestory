@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "../../../components/ui/Button";
 
@@ -41,9 +40,7 @@ export default function VerifyEmailPage() {
         </h1>
         <p className="mt-4 text-[0.95rem] leading-relaxed text-ink-600">{message}</p>
         {state !== "loading" && (
-          <Link href={state === "success" ? "/auth/login" : "/auth/register"} className="mt-8 inline-block">
-            <Button size="lg" className="rounded-pill">{state === "success" ? "Masuk ke Lifestory" : "Daftar ulang"}</Button>
-          </Link>
+          <Button href={state === "success" ? "/auth/login" : "/auth/register"} size="lg" className="mt-8 rounded-pill">{state === "success" ? "Masuk ke Lifestory" : "Daftar ulang"}</Button>
         )}
       </section>
     </main>

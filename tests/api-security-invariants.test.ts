@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { canViewMediaAsset } from "../lib/media/access";
 
 function readSource(relativePath: string): string {
   return readFileSync(join(process.cwd(), relativePath), "utf8");
@@ -164,6 +165,81 @@ describe("tree action menu invariants", () => {
 });
 
 describe("public auth and gallery hardening invariants", () => {
+  it("protects the legacy full-tree write path with media reservation checks", () => {
+    const source = readSource("app/api/trees/[id]/route.ts");
+    const repository = readSource("lib/tree/repository.ts");
+
+    expect(source).toContain("verifyNewMediaReferences");
+    expect(source).toContain("mediaUploadReservation.updateMany");
+    expect(repository).toContain("assertActiveMediaUploadReservations");
+    const verification = readSource("lib/media/verification.ts");
+    expect(verification).toContain("storageKeyBelongsToTree");
+    expect(verification).toContain("studioDeliverable");
+    expect(verification).toContain("familyEvidence");
+  });
+
+  it("keeps the database audit aware of media upload reservations", () => {
+    const audit = readSource("scripts/audit-database.mjs");
+
+    expect(audit).toContain('"MediaUploadReservation"');
+    expect(audit).toContain('"MediaUploadReservation.treeId"');
+    expect(audit).toContain('"MediaUploadReservation.consumedAt"');
+  });
+
+  it("does not widen private or selected media visibility", () => {
+    const mediaRoute = readSource("app/api/trees/[id]/media-assets/route.ts");
+    const storyRoute = readSource("app/api/trees/[id]/stories/route.ts");
+
+    expect(mediaRoute).toContain('visibility: "tree"');
+    expect(mediaRoute).toContain('visibility: { in: ["private", "selected"] }');
+    expect(storyRoute).toContain("canViewMediaAsset");
+    expect(storyRoute).toContain('visibility: { in: ["private", "selected"] }');
+  });
+
+  it("keeps selected assets private until recipient selection is modelled", () => {
+    expect(canViewMediaAsset({ visibility: "tree", uploaderId: null }, "u1")).toBe(true);
+    expect(canViewMediaAsset({ visibility: "private", uploaderId: "u1" }, "u1")).toBe(true);
+    expect(canViewMediaAsset({ visibility: "private", uploaderId: "u1" }, "u2")).toBe(false);
+    expect(canViewMediaAsset({ visibility: "selected", uploaderId: "u1" }, "u2")).toBe(false);
+  });
+
+  it("reserves upload quota and verifies storage objects before persistence", () => {
+    const presign = readSource("app/api/media/presign/route.ts");
+    const sync = readSource("app/api/trees/[id]/sync/route.ts");
+    const assets = readSource("app/api/trees/[id]/media-assets/route.ts");
+    const verification = readSource("lib/media/verification.ts");
+
+    expect(presign).toContain("mediaUploadReservation.create");
+    expect(presign).toContain('FOR UPDATE`');
+    expect(presign).toContain("reservedBytes");
+    expect(sync).toContain("verifyNewMediaReferences");
+    expect(verification).toContain("headMediaObject");
+    expect(sync).toContain("mediaUploadReservation.updateMany");
+    expect(assets).toContain("headMediaObject");
+    expect(assets).toContain('objectMetadata.sizeBytes !== validation.data.sizeBytes');
+    expect(assets).toContain("mediaUploadReservation.findFirst");
+    expect(assets).toContain("effectiveQuota");
+    expect(assets).toContain('FOR UPDATE`');
+  });
+
+  it("does not allow arbitrary tree writers to delete referenced media", () => {
+    const source = readSource("app/api/media/delete/route.ts");
+
+    expect(source).toContain("mediaUploadReservation.findFirst");
+    expect(source).toContain("userId: authResult.session.user.id");
+    expect(source).toContain('FOR UPDATE`');
+    expect(source).toContain("tx.mediaAsset.findFirst");
+    expect(source).toContain("tx.studioDeliverable.findFirst");
+    expect(source).toContain("tx.familyEvidence.findFirst");
+    expect(source).toContain("MediaDeleteReferenceError");
+    expectBefore(
+      source,
+      "const reservation = await tx.mediaUploadReservation.findFirst",
+      "await deleteMediaObject("
+    );
+    expectBefore(source, "MediaDeleteReferenceError", "await deleteMediaObject(");
+  });
+
   it("blocks unverified accounts at login, middleware, and API authorization", () => {
     const authOptions = readSource("lib/auth/options.ts");
     const middleware = readSource("middleware.ts");

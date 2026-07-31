@@ -16,6 +16,7 @@ if (process.env.MEDIA_SMOKE_USE_DIRECT_URL !== "0" && process.env.DIRECT_URL) {
 
 const prisma = new PrismaClient();
 const runId = `${Date.now()}-${randomUUID()}`;
+const smokeIp = `smoke-${runId}`;
 const password = "SmokePass123";
 const email = `media-smoke-${runId}@example.com`;
 let smokeResult;
@@ -83,6 +84,7 @@ async function login() {
       method: "POST",
       headers: {
         Origin: baseUrl,
+        "x-forwarded-for": smokeIp,
         "Content-Type": "application/x-www-form-urlencoded",
         Cookie: serializeCookies(jar),
       },
@@ -102,6 +104,7 @@ async function login() {
 function authHeaders(jar, extra = {}) {
   return {
     Origin: baseUrl,
+    "x-forwarded-for": smokeIp,
     Cookie: serializeCookies(jar),
     ...extra,
   };
@@ -203,7 +206,43 @@ async function syncProfile(jar, tree, asset) {
     }),
   });
   assertStatus(response, 200, "sync profile media metadata");
-  return response.status;
+  return response.json();
+}
+
+async function clearProfile(jar, tree, asset, clientVersion) {
+  const root = tree.nodes[0];
+  const cleared = {
+    ...root,
+    imageUrl: null,
+    imageStorageKey: null,
+    imageMimeType: null,
+    imageSizeBytes: null,
+  };
+  const response = await fetch(`${baseUrl}/api/trees/${tree.id}/sync`, {
+    method: "POST",
+    headers: authHeaders(jar, { "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      batchId: `media-smoke-clear-${randomUUID()}`,
+      clientVersion,
+      mutations: [
+        {
+          seqNo: 1,
+          type: "update",
+          nodeId: root.id,
+          payload: cleared,
+          previousPayload: {
+            ...root,
+            imageUrl: asset.url,
+            imageStorageKey: asset.storageKey,
+            imageMimeType: asset.mimeType,
+            imageSizeBytes: asset.sizeBytes,
+          },
+        },
+      ],
+    }),
+  });
+  assertStatus(response, 200, "clear profile media metadata");
+  return response.json();
 }
 
 async function deleteObject(jar, treeId, storageKey) {
@@ -220,22 +259,33 @@ try {
   await createUser();
   const jar = await login();
   const { tree } = await createTree(jar);
-  const uploadPlan = await presign(jar, tree.id, tree.nodes[0].id);
-  const uploadStatus = await upload(uploadPlan);
-  const publicUrlStatus = await verifyPublicUrl(uploadPlan.asset);
-  const syncStatus = await syncProfile(jar, tree, uploadPlan.asset);
+  const abandonedPlan = await presign(jar, tree.id, tree.nodes[0].id);
+  const abandonedUploadStatus = await upload(abandonedPlan);
   const deleteStatus = await deleteObject(
     jar,
     tree.id,
-    uploadPlan.asset.storageKey
+    abandonedPlan.asset.storageKey
+  );
+  const uploadPlan = await presign(jar, tree.id, tree.nodes[0].id);
+  const uploadStatus = await upload(uploadPlan);
+  const publicUrlStatus = await verifyPublicUrl(uploadPlan.asset);
+  const syncResult = await syncProfile(jar, tree, uploadPlan.asset);
+  const clearResult = await clearProfile(
+    jar,
+    tree,
+    uploadPlan.asset,
+    syncResult.newVersion
   );
 
   smokeResult = {
     presignStatus: 200,
+    abandonedUploadStatus,
+    deleteStatus,
     uploadStatus,
     publicUrlStatus,
-    syncStatus,
-    deleteStatus,
+    syncStatus: 200,
+    clearStatus: 200,
+    finalVersion: clearResult.newVersion,
   };
 } finally {
   const syntheticUser = await prisma.user.findUnique({
@@ -245,6 +295,9 @@ try {
   if (syntheticUser) {
     await prisma.$transaction([
       prisma.tree.deleteMany({ where: { ownerId: syntheticUser.id } }),
+      prisma.familyIdentity.deleteMany({
+        where: { createdById: syntheticUser.id },
+      }),
       prisma.user.delete({ where: { email } }),
     ]);
   }

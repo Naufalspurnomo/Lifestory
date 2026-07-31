@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { useLanguage } from "../providers/LanguageProvider";
@@ -16,6 +17,9 @@ import {
 export function Footer() {
   const pathname = usePathname();
   const { locale } = useLanguage();
+  const { status } = useSession();
+  const familyTreesHref =
+    status === "authenticated" ? "/app" : "/auth/login?next=%2Fapp";
 
   if (
     pathname === "/app" ||
@@ -103,12 +107,21 @@ export function Footer() {
             <ul className="space-y-3">
               {copy.links.map((link) => (
                 <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-ink-600 transition-colors hover:text-ink-900"
-                  >
-                    {link.label}
-                  </Link>
+                  {link.href === "/app" ? (
+                    <a
+                      href={link.href === "/app" ? familyTreesHref : link.href}
+                      className="text-sm text-ink-600 transition-colors hover:text-ink-900"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      className="text-sm text-ink-600 transition-colors hover:text-ink-900"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

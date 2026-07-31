@@ -48,6 +48,7 @@ model User {
   emailVerificationTokens      EmailVerificationToken[]
   authoredStories              Story[]                  @relation("StoryAuthor")
   uploadedMedia                MediaAsset[]             @relation("MediaUploader")
+  mediaUploadReservations      MediaUploadReservation[] @relation("MediaUploadReservationUser")
   createdContributionRequests  ContributionRequest[]    @relation("ContributionRequester")
   submittedProposals           ContributionProposal[]   @relation("ProposalSubmitter")
   reviewedProposals            ContributionProposal[]   @relation("ProposalReviewer")
@@ -161,6 +162,7 @@ model Tree {
   entitlement             TreeEntitlement?
   stories                 Story[]
   mediaAssets             MediaAsset[]
+  mediaUploadReservations MediaUploadReservation[]
   contributionRequests    ContributionRequest[]
   contributionProposals   ContributionProposal[]
   auditEvents             TreeAuditEvent[]
@@ -523,6 +525,28 @@ model MediaAsset {
   @@unique([treeId, storageKey])
   @@index([treeId, createdAt])
   @@index([personId])
+}
+
+// A presigned upload reserves quota before the client reaches object storage.
+// The reservation is consumed when the storage key is committed to the tree
+// and expires automatically if the upload is abandoned.
+model MediaUploadReservation {
+  id         String    @id @default(cuid())
+  treeId     String
+  userId     String
+  storageKey String
+  purpose    String
+  sizeBytes  BigInt
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  tree Tree @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  user User @relation("MediaUploadReservationUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([treeId, storageKey])
+  @@index([treeId, expiresAt])
+  @@index([userId, expiresAt])
 }
 
 model StoryAsset {

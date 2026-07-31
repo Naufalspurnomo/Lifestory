@@ -27,7 +27,9 @@ export async function GET(request: Request) {
 
   try {
     const requests = await listFamilyAccessRequests(authResult.session.user.id);
-    return NextResponse.json(requests);
+    return NextResponse.json(requests, {
+      headers: { "Cache-Control": "private, no-store" },
+    });
   } catch (error) {
     console.error("family access request list error", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

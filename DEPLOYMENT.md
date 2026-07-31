@@ -68,10 +68,28 @@ ALLOWED_HOSTS="lifestory.co.id,www.lifestory.co.id"
 HEALTH_DATABASE_CHECK_TOKEN="..."
 RESEND_API_KEY="..."
 PASSWORD_RESET_FROM_EMAIL="Lifestory <no-reply@lifestory.co.id>"
+S3_ENDPOINT="https://..."
+S3_REGION="auto"
+S3_ACCESS_KEY="..."
+S3_SECRET_KEY="..."
+S3_BUCKET="..."
+S3_PUBLIC_BASE_URL="https://..."
+MEDIA_FILE_MAX_BYTES="5242880"
+MEDIA_TREE_QUOTA_BYTES="5368709120"
+MEDIA_UPLOAD_URL_TTL_SECONDS="600"
+MEDIA_READ_URL_TTL_SECONDS="300"
 ```
 
 The password-reset flow and `/api/contact` both use this Resend configuration.
 The contact form sends inquiries to `lifestory.co.id@gmail.com`.
+
+The media variables must point to a real S3-compatible object store. The
+presigned upload flow verifies object size and MIME type before accepting a
+media reference, and its database reservation prevents concurrent uploads from
+exceeding a tree quota. Configure a provider lifecycle rule to remove
+abandoned objects under the `trees/` prefix after at least the upload URL TTL;
+expired reservations are rejected and cleaned from the database on the next
+presign request.
 
 `NEXTAUTH_URL` must not point to localhost in Vercel Production.
 `HEALTH_DATABASE_CHECK_TOKEN` is required only for the deep database health
@@ -124,6 +142,8 @@ into a separate database.
 5. Disable the network, edit a person, re-enable the network, wait for Saved,
    then reload.
 6. Confirm a `TreeSnapshot` row and a `TreeSyncReceipt` row were created.
+7. Upload a small image, confirm it renders after reload, then delete it and
+   confirm the object is removed after the successful tree sync.
 
 ## Authentication smoke test
 
@@ -157,11 +177,23 @@ forgot-password check above.
 When `DIRECT_URL` is set, the smoke script uses it for synthetic setup and
 cleanup while the browser-facing checks still hit the deployed domain.
 
+The object-storage lifecycle and quota path can be checked with:
+
+```bash
+ALLOW_MEDIA_SMOKE=1 MEDIA_SMOKE_BASE_URL=https://lifestory.co.id npm run media:smoke
+```
+
+This requires valid S3-compatible variables in the environment running the
+deployed app. The script uploads one synthetic image, verifies it through the
+media API, then removes the synthetic tree, user, and media metadata in a
+`finally` block. It does not replace the manual browser upload/delete check.
+
 ## Known limitations
 
-- Photos still use compressed base64 in Postgres and the browser cache. Gallery
-  video upload is disabled. Move media uploads to object storage before
-  marketing large photo galleries or video archives.
+- New uploads use S3-compatible object storage with per-tree quotas and
+  server-side object verification. Legacy/imported photos may still contain
+  compressed base64 in Postgres and the browser cache. Gallery video upload is
+  disabled.
 - The legacy wholesale `PUT /api/trees/[id]` path remains for guarded recovery
   writes and conflict resolution. Interactive editor autosave uses incremental
   WAL batches.

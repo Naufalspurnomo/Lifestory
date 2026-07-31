@@ -579,16 +579,12 @@ function SuccessState({
         </div>
         <VerificationResend email={email} locale={locale} />
         <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
-          <Link href="/auth/login" className="w-full sm:w-auto">
-            <Button block size="lg" className="h-12 rounded-pill">
-              {c.signIn}
-            </Button>
-          </Link>
-          <Link href="/" className="w-full sm:w-auto">
-            <Button variant="ghost" size="lg" className="h-12 rounded-pill">
-              {c.backHome}
-            </Button>
-          </Link>
+          <Button href="/auth/login" block size="lg" className="h-12 rounded-pill">
+            {c.signIn}
+          </Button>
+          <Button href="/" variant="ghost" size="lg" className="h-12 rounded-pill">
+            {c.backHome}
+          </Button>
         </div>
       </motion.div>
     </main>
@@ -625,16 +621,12 @@ function ExistingAccountState({ locale, reduce }: { locale: string; reduce: bool
         </h1>
         <p className="mt-4 max-w-[40ch] text-[0.95rem] leading-relaxed text-ink-600">{copy.desc}</p>
         <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
-          <Link href="/auth/login" className="w-full sm:w-auto">
-            <Button block size="lg" className="h-12 rounded-pill">
-              {copy.signIn}
-            </Button>
-          </Link>
-          <Link href="/" className="w-full sm:w-auto">
-            <Button variant="ghost" size="lg" className="h-12 rounded-pill">
-              {copy.home}
-            </Button>
-          </Link>
+          <Button href="/auth/login" block size="lg" className="h-12 rounded-pill">
+            {copy.signIn}
+          </Button>
+          <Button href="/" variant="ghost" size="lg" className="h-12 rounded-pill">
+            {copy.home}
+          </Button>
         </div>
       </motion.div>
     </main>

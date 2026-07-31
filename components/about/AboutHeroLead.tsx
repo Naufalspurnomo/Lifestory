@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpenText } from "lucide-react";
 import { Button } from "../ui/Button";
@@ -100,9 +99,9 @@ export function AboutHeroLead({ copy, isId, reduced, lightMotion }: Props) {
             </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:flex-nowrap">
-              <Link href="/contact" className="w-full sm:w-auto">
-                <MagneticButton strength={0.2} distance={100} className="w-full sm:w-auto">
+              <MagneticButton strength={0.2} distance={100} className="w-full sm:w-auto">
                   <Button
+                    href="/contact"
                     variant="dark"
                     size="lg"
                     block
@@ -112,10 +111,9 @@ export function AboutHeroLead({ copy, isId, reduced, lightMotion }: Props) {
                   >
                     <span className="relative z-10 whitespace-nowrap text-[11px] font-medium uppercase tracking-[0.15em]">{copy.heroPrimary}</span>
                   </Button>
-                </MagneticButton>
-              </Link>
-              <Link href="#process" className="w-full sm:w-auto">
-                <Button
+              </MagneticButton>
+              <Button
+                href="#process"
                   variant="outline"
                   size="lg"
                   block
@@ -123,8 +121,7 @@ export function AboutHeroLead({ copy, isId, reduced, lightMotion }: Props) {
                   className="group !w-auto whitespace-nowrap border-brand-500 bg-cream-50/50 px-7 py-5 text-[11px] font-medium uppercase tracking-[0.15em] !text-brand-700 shadow-none transition-colors duration-500 hover:!bg-brand-700 hover:!text-cream-50 !rounded-pill"
                 >
                   {copy.heroSecondary}
-                </Button>
-              </Link>
+              </Button>
             </div>
           </motion.div>
 

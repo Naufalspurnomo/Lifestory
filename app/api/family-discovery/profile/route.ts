@@ -45,7 +45,10 @@ export async function POST(request: Request) {
       userId,
       validation.data
     );
-    return NextResponse.json({ candidates });
+    return NextResponse.json(
+      { candidates },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (error) {
     if (error instanceof FamilyIdentityError) {
       return NextResponse.json(

@@ -13,6 +13,7 @@ import {
   TreeAccessError,
 } from "../../../../../lib/tree/repository";
 import { prisma } from "../../../../../lib/db";
+import { canViewMediaAsset } from "../../../../../lib/media/access";
 
 function errorResponse(error: unknown) {
   if (error instanceof TreeAccessError) {
@@ -25,27 +26,33 @@ function errorResponse(error: unknown) {
   return NextResponse.json({ error: "Internal error" }, { status: 500 });
 }
 
-function serializeStory(story: Record<string, any>) {
+function serializeStory(story: Record<string, any>, userId: string) {
+  const visibleAssets = Array.isArray(story.assets)
+    ? story.assets.filter(
+        (asset: Record<string, any>) =>
+          asset.mediaAsset && canViewMediaAsset(asset.mediaAsset, userId)
+      )
+    : [];
+
   return {
     ...story,
-    assets: Array.isArray(story.assets)
-      ? story.assets.map((asset: Record<string, any>) => ({
-          ...asset,
-          mediaAsset: asset.mediaAsset
-            ? {
-                ...asset.mediaAsset,
-                sizeBytes: Number(asset.mediaAsset.sizeBytes),
-              }
-            : null,
-        }))
-      : [],
+    assets: visibleAssets.map((asset: Record<string, any>) => ({
+      ...asset,
+      mediaAsset: {
+        ...asset.mediaAsset,
+        sizeBytes: Number(asset.mediaAsset.sizeBytes),
+      },
+    })),
   };
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimitError = await applyRateLimit(request, "story-list", rateLimitConfigs.api);
+  if (rateLimitError) return rateLimitError;
+
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
   const { id } = await params;
@@ -54,7 +61,10 @@ export async function GET(
     const stories = await prisma.story.findMany({
       where: {
         treeId: id,
-        OR: [{ visibility: { not: "private" } }, { authorId: authResult.session.user.id }],
+        OR: [
+          { visibility: "tree" },
+          { visibility: { in: ["private", "selected"] }, authorId: authResult.session.user.id },
+        ],
       },
       include: {
         people: { include: { person: { select: { id: true, label: true, birthYear: true, deathYear: true } } } },
@@ -62,7 +72,10 @@ export async function GET(
       },
       orderBy: [{ approximateYear: "asc" }, { createdAt: "desc" }],
     });
-    return NextResponse.json({ stories: stories.map(serializeStory) });
+    return NextResponse.json(
+      { stories: stories.map((story) => serializeStory(story, authResult.session.user.id)) },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (error) {
     return errorResponse(error);
   }

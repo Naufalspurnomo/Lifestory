@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/db";
 import { jsonBodyLimits, parseJsonBody } from "../../../../lib/request-body";
-import { checkRateLimit, getClientIdentifier } from "../../../../lib/rate-limit";
+import { applyRateLimit, checkRateLimit, getClientIdentifier, rateLimitConfigs } from "../../../../lib/rate-limit";
 import { contributionSubmissionSchema, formatZodErrors, validateBody } from "../../../../lib/validations";
 import { hashContributionToken } from "../../../../lib/contributions";
 import { verifyTurnstileToken } from "../../../../lib/turnstile";
@@ -20,12 +20,18 @@ async function findOpenRequest(token: string) {
   return request;
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ token: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
+  const rateLimitError = await applyRateLimit(request, "guest-contribution-read", rateLimitConfigs.api);
+  if (rateLimitError) return rateLimitError;
+
   const { token } = await params;
   try {
     const request = await findOpenRequest(token);
     if (!request) return invalid();
-    return NextResponse.json({ request: { prompt: request.prompt, treeName: request.tree.name, targetPerson: request.targetPerson } });
+    return NextResponse.json(
+      { request: { prompt: request.prompt, treeName: request.tree.name, targetPerson: request.targetPerson } },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") return NextResponse.json({ error: "archive-tables-not-migrated" }, { status: 503 });
     console.error("contribution public get error", error);

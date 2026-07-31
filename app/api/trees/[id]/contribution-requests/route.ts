@@ -15,7 +15,10 @@ function handleError(error: unknown) {
   return NextResponse.json({ error: "Internal error" }, { status: 500 });
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const rateLimitError = await applyRateLimit(request, "contribution-request-list", rateLimitConfigs.api);
+  if (rateLimitError) return rateLimitError;
+
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
   const { id } = await params;
@@ -27,7 +30,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       include: { targetPerson: { select: { id: true, label: true } }, proposal: true },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json({ requests, canCreate: true });
+    return NextResponse.json(
+      { requests, canCreate: true },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (error) {
     return handleError(error);
   }

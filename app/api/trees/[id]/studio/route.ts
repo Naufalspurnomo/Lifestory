@@ -9,6 +9,7 @@ import {
   requireMediaStorageConfig,
   storageKeyBelongsToTree,
 } from "../../../../../lib/media/storage";
+import { applyRateLimit, rateLimitConfigs } from "../../../../../lib/rate-limit";
 
 function errorResponse(error: unknown) {
   if (error instanceof TreeAccessError) {
@@ -25,9 +26,12 @@ function errorResponse(error: unknown) {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimitError = await applyRateLimit(request, "studio-journey-read", rateLimitConfigs.api);
+  if (rateLimitError) return rateLimitError;
+
   const auth = await requireUser();
   if (!auth.success) return auth.response;
   const { id } = await params;

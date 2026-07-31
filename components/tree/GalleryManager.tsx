@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -41,6 +41,8 @@ export default function GalleryManager({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [showLightbox, setShowLightbox] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lightboxCloseRef = useRef<HTMLButtonElement>(null);
+  const lightboxContentRef = useRef<HTMLDivElement>(null);
   const copy =
     locale === "id"
       ? {
@@ -161,6 +163,40 @@ export default function GalleryManager({
     ? resolveDisplayMediaUrl(selectedMedia.url)
     : "";
 
+  useEffect(() => {
+    if (!showLightbox) return;
+    lightboxCloseRef.current?.focus();
+    const dialog = lightboxContentRef.current;
+    if (!dialog) return;
+    const getFocusable = () =>
+      Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((element) => element.offsetParent !== null);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setShowLightbox(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = getFocusable();
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showLightbox]);
+
   return (
     <div className="space-y-4">
       {media.length > 0 ? (
@@ -170,44 +206,42 @@ export default function GalleryManager({
             return (
               <div
                 key={`${item.url}-${index}`}
-                role="button"
-                tabIndex={0}
                 className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-brand-200 bg-cream-200 text-left shadow-soft transition hover:border-brand-400 hover:shadow-elev"
-                onClick={() => openLightbox(index)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    openLightbox(index);
-                  }
-                }}
               >
-                {item.type === "image" ? (
-                  <img
-                    src={displayUrl}
-                    alt={item.caption || `Media ${index + 1}`}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
-                ) : (
-                  <video
-                    src={displayUrl}
-                    className="h-full w-full object-cover"
-                    muted
-                  />
-                )}
+                <button
+                  type="button"
+                  onClick={() => openLightbox(index)}
+                  className="absolute inset-0 h-full w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
+                  aria-label={item.caption || `${copy.noCaption} ${index + 1}`}
+                >
+                  {item.type === "image" ? (
+                    <img
+                      src={displayUrl}
+                      alt={item.caption || `Media ${index + 1}`}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <video
+                      src={displayUrl}
+                      className="h-full w-full object-cover"
+                      muted
+                    />
+                  )}
 
-                <div className="absolute inset-0 bg-gradient-to-t from-ink-900/70 via-ink-900/10 to-transparent opacity-80 transition group-hover:opacity-100" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink-900/70 via-ink-900/10 to-transparent opacity-80 transition group-hover:opacity-100" />
 
-                <div className="absolute bottom-2 left-2 right-2">
-                  <p className="truncate text-xs font-black text-white">
-                    {item.caption || copy.noCaption}
-                  </p>
-                </div>
+                  <div className="absolute bottom-2 left-2 right-2">
+                    <p className="truncate text-xs font-black text-white">
+                      {item.caption || copy.noCaption}
+                    </p>
+                  </div>
 
-                {item.type === "video" && (
-                  <span className="absolute left-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-ink-900/70 text-white backdrop-blur-md">
-                    <Film className="h-4 w-4" />
-                  </span>
-                )}
+                  {item.type === "video" && (
+                    <span className="absolute left-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-ink-900/70 text-white backdrop-blur-md">
+                      <Film className="h-4 w-4" />
+                    </span>
+                  )}
+                </button>
 
                 {!readOnly && (
                   <button
@@ -273,10 +307,15 @@ export default function GalleryManager({
           onClick={() => setShowLightbox(false)}
         >
           <div
+            ref={lightboxContentRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={copy.close}
             className="relative w-full max-w-5xl"
             onClick={(event) => event.stopPropagation()}
           >
             <button
+              ref={lightboxCloseRef}
               type="button"
               onClick={() => setShowLightbox(false)}
               className="absolute -top-12 right-0 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition hover:bg-white/20"

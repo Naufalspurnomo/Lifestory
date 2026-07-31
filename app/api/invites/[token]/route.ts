@@ -39,13 +39,16 @@ export async function GET(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Invite has expired" }, { status: 410 });
     }
 
-    return NextResponse.json({
-      treeName: invite.treeName,
-      createdByName: invite.createdByName,
-      expiresAt: invite.expiresAt.toISOString(),
-      role: invite.role,
-      accepted: Boolean(invite.acceptedAt),
-    });
+    return NextResponse.json(
+      {
+        treeName: invite.treeName,
+        createdByName: invite.createdByName,
+        expiresAt: invite.expiresAt.toISOString(),
+        role: invite.role,
+        accepted: Boolean(invite.acceptedAt),
+      },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (error) {
     console.error("Error loading invite:", error);
     return NextResponse.json(

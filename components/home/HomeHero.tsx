@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, BookOpenText } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -293,29 +292,27 @@ export function HomeHero({ isId, copy, primaryCtaHref, secondaryCtaHref }: Props
             </motion.p>
 
             <div className="mt-8 flex flex-col gap-4 sm:flex-row md:mt-9 lg:mt-8">
-              <Link href={primaryCtaHref} className="w-full sm:w-auto">
-                <Button
-                  variant="dark"
-                  size="lg"
-                  block
-                  iconRight={<ArrowRight className="h-4 w-4" />}
-                  animateRightIcon
-                  className="group relative overflow-hidden sm:w-auto !bg-brand-700 text-cream-50 hover:!bg-brand-800 transition-all duration-500 border-none px-10 py-6 rounded-none shadow-none"
-                >
-                  <span className="relative z-10 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap">{copy.primaryCta}</span>
-                </Button>
-              </Link>
-              <Link href={secondaryCtaHref} className="w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  block
-                  iconLeft={<BookOpenText className="h-4 w-4 text-brand-700 group-hover:text-cream-50 transition-colors" />}
-                  className="group sm:w-auto !border-brand-700 bg-transparent hover:!bg-brand-700 !text-brand-700 hover:!text-cream-50 shadow-none px-10 py-6 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap rounded-none transition-colors duration-500"
-                >
-                  {copy.secondaryCta}
-                </Button>
-              </Link>
+              <Button
+                href={primaryCtaHref}
+                variant="dark"
+                size="lg"
+                block
+                iconRight={<ArrowRight className="h-4 w-4" />}
+                animateRightIcon
+                className="group relative overflow-hidden sm:w-auto !bg-brand-700 text-cream-50 hover:!bg-brand-800 transition-all duration-500 border-none px-10 py-6 rounded-none shadow-none"
+              >
+                <span className="relative z-10 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap">{copy.primaryCta}</span>
+              </Button>
+              <Button
+                href={secondaryCtaHref}
+                variant="outline"
+                size="lg"
+                block
+                iconLeft={<BookOpenText className="h-4 w-4 text-brand-700 group-hover:text-cream-50 transition-colors" />}
+                className="group sm:w-auto !border-brand-700 bg-transparent hover:!bg-brand-700 !text-brand-700 hover:!text-cream-50 shadow-none px-10 py-6 font-medium tracking-[0.15em] text-[11px] uppercase whitespace-nowrap rounded-none transition-colors duration-500"
+              >
+                {copy.secondaryCta}
+              </Button>
             </div>
 
             {/* Trust badges */}

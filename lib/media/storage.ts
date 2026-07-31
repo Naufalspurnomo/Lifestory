@@ -3,6 +3,7 @@ import {
   derivePublicBaseUrlFromEndpoint,
   resolveDisplayMediaUrl,
 } from "./public-url";
+import type { FamilyNode, MediaItem } from "../types/tree";
 
 export type MediaPurpose = "profile" | "gallery";
 
@@ -253,7 +254,8 @@ export function buildObjectUrl(
 export function createPresignedPutUrl(
   config: MediaStorageConfig,
   storageKey: string,
-  now = new Date()
+  now = new Date(),
+  contentType?: string
 ): PresignedUpload {
   const { amzDate, dateStamp } = amzDates(now);
   const scope = credentialScope(dateStamp, config.region);
@@ -261,20 +263,24 @@ export function createPresignedPutUrl(
   const expiresAt = new Date(
     now.getTime() + config.uploadUrlTtlSeconds * 1000
   ).toISOString();
+  const signedHeaders = contentType ? "content-type;host" : "host";
+  const canonicalHeaders = contentType
+    ? `content-type:${contentType}\nhost:${endpoint.host}\n`
+    : `host:${endpoint.host}\n`;
   const query = new URLSearchParams({
     "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
     "X-Amz-Credential": `${config.accessKeyId}/${scope}`,
     "X-Amz-Date": amzDate,
     "X-Amz-Expires": `${config.uploadUrlTtlSeconds}`,
-    "X-Amz-SignedHeaders": "host",
+    "X-Amz-SignedHeaders": signedHeaders,
   });
 
   const canonicalRequest = [
     "PUT",
     canonicalObjectUri(config, storageKey),
     canonicalQuery(query),
-    `host:${endpoint.host}\n`,
-    "host",
+    canonicalHeaders,
+    signedHeaders,
     "UNSIGNED-PAYLOAD",
   ].join("\n");
   const stringToSign = [
@@ -351,6 +357,89 @@ export function createPresignedGetUrl(
   };
 }
 
+function createPresignedHeadUrl(
+  config: MediaStorageConfig,
+  storageKey: string,
+  now = new Date()
+): PresignedRead {
+  const { amzDate, dateStamp } = amzDates(now);
+  const scope = credentialScope(dateStamp, config.region);
+  const endpoint = objectEndpointUrl(config, storageKey);
+  const expiresAt = new Date(
+    now.getTime() + config.readUrlTtlSeconds * 1000
+  ).toISOString();
+  const query = new URLSearchParams({
+    "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
+    "X-Amz-Credential": `${config.accessKeyId}/${scope}`,
+    "X-Amz-Date": amzDate,
+    "X-Amz-Expires": `${config.readUrlTtlSeconds}`,
+    "X-Amz-SignedHeaders": "host",
+  });
+
+  const canonicalRequest = [
+    "HEAD",
+    canonicalObjectUri(config, storageKey),
+    canonicalQuery(query),
+    `host:${endpoint.host}\n`,
+    "host",
+    "UNSIGNED-PAYLOAD",
+  ].join("\n");
+  const stringToSign = [
+    "AWS4-HMAC-SHA256",
+    amzDate,
+    scope,
+    sha256Hex(canonicalRequest),
+  ].join("\n");
+  const signature = createHmac(
+    "sha256",
+    signingKey(config.secretAccessKey, dateStamp, config.region)
+  )
+    .update(stringToSign)
+    .digest("hex");
+  query.set("X-Amz-Signature", signature);
+  endpoint.search = query.toString();
+
+  return {
+    readUrl: endpoint.toString(),
+    storageKey,
+    expiresAt,
+  };
+}
+
+export type MediaObjectMetadata = {
+  sizeBytes: number;
+  mimeType: string | null;
+};
+
+export async function headMediaObject(
+  config: MediaStorageConfig,
+  storageKey: string
+): Promise<MediaObjectMetadata | null> {
+  const signed = createPresignedHeadUrl(config, storageKey);
+  const response = await fetch(signed.readUrl, {
+    method: "HEAD",
+    cache: "no-store",
+  });
+
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`Object storage HEAD failed with HTTP ${response.status}`);
+  }
+
+  const rawSize = response.headers.get("content-length");
+  const sizeBytes = Number(rawSize);
+  if (!Number.isSafeInteger(sizeBytes) || sizeBytes < 0) {
+    throw new Error("Object storage did not return a valid content length");
+  }
+
+  return {
+    sizeBytes,
+    mimeType:
+      response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() ??
+      null,
+  };
+}
+
 export async function deleteMediaObject(
   config: MediaStorageConfig,
   storageKey: string,
@@ -410,4 +499,71 @@ export function storageKeyBelongsToTree(
   treeId: string
 ): boolean {
   return storageKey.startsWith(`trees/${sanitizeSegment(treeId)}/`);
+}
+
+export function collectReferencedMediaStorageKeys(
+  nodes: FamilyNode[]
+): Set<string> {
+  const keys = new Set<string>();
+  for (const node of nodes) {
+    if (node.imageStorageKey) keys.add(node.imageStorageKey);
+    for (const media of node.content?.media ?? []) {
+      if (media.storageKey) keys.add(media.storageKey);
+    }
+  }
+  return keys;
+}
+
+export type MediaReference = {
+  storageKey: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+};
+
+export function collectMediaReferences(
+  nodes: FamilyNode[]
+): Map<string, MediaReference> {
+  const references = new Map<string, MediaReference>();
+  const add = (
+    storageKey: string | null | undefined,
+    mimeType: string | null | undefined,
+    sizeBytes: number | null | undefined
+  ) => {
+    if (!storageKey || references.has(storageKey)) return;
+    references.set(storageKey, {
+      storageKey,
+      mimeType: mimeType ?? null,
+      sizeBytes: sizeBytes ?? null,
+    });
+  };
+
+  for (const node of nodes) {
+    add(node.imageStorageKey, node.imageMimeType, node.imageSizeBytes);
+    for (const media of node.content?.media ?? []) {
+      const item = media as MediaItem;
+      add(item.storageKey, item.mimeType, item.sizeBytes);
+    }
+  }
+  return references;
+}
+
+export function findRemovedMediaStorageKeys(
+  mutations: Array<{
+    payload: FamilyNode | null;
+    previousPayload?: FamilyNode | null;
+  }>
+): string[] {
+  const removed = new Set<string>();
+  for (const mutation of mutations) {
+    const previous = collectReferencedMediaStorageKeys(
+      mutation.previousPayload ? [mutation.previousPayload] : []
+    );
+    const next = collectReferencedMediaStorageKeys(
+      mutation.payload ? [mutation.payload] : []
+    );
+    for (const key of previous) {
+      if (!next.has(key)) removed.add(key);
+    }
+  }
+  return [...removed];
 }

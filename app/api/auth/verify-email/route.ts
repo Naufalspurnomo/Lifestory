@@ -7,8 +7,16 @@ import {
   enqueueVerifiedAccountWelcome,
   processWhatsAppWelcomeJob,
 } from "../../../../lib/whatsapp";
+import { applyRateLimit, rateLimitConfigs } from "../../../../lib/rate-limit";
 
 export async function POST(request: Request) {
+  const rateLimitError = await applyRateLimit(
+    request,
+    "verify-email",
+    rateLimitConfigs.resendVerification
+  );
+  if (rateLimitError) return rateLimitError;
+
   const bodyResult = await parseJsonBody(request, jsonBodyLimits.auth);
   if (!bodyResult.success) return bodyResult.response;
   const validation = validateBody(verifyEmailSchema, bodyResult.body);
@@ -71,5 +79,8 @@ export async function POST(request: Request) {
       console.error("Verified account WhatsApp welcome dispatch failed", error);
     }
   }
-  return NextResponse.json({ message: "Email berhasil diverifikasi" });
+  return NextResponse.json(
+    { message: "Email berhasil diverifikasi" },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }

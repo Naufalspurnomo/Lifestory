@@ -27,7 +27,10 @@ function isMissingTableError(error: unknown): boolean {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const rateLimitError = await applyRateLimit(request, "tree-list", rateLimitConfigs.api);
+  if (rateLimitError) return rateLimitError;
+
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
   const userId = authResult.session.user.id;
@@ -37,10 +40,13 @@ export async function GET() {
       listTreesForUser(userId),
       getFirstTreeWelcomeTreeIdForUser(userId),
     ]);
-    return NextResponse.json({
-      trees,
-      onboarding: { firstTreeWelcomeTreeId },
-    });
+    return NextResponse.json(
+      {
+        trees,
+        onboarding: { firstTreeWelcomeTreeId },
+      },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (error) {
     if (error instanceof InvalidTreeGraphError) {
       return NextResponse.json({ error: error.message }, { status: 400 });

@@ -2,7 +2,6 @@
 
 import { useSession } from "next-auth/react";
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -140,12 +139,12 @@ export default function ArchivePage() {
               {copy.noTreeTitle}
             </h1>
             <p className="mt-3 text-[#73685f]">{copy.noTreeBody}</p>
-            <Link
+            <a
               href="/app"
               className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#82693c] to-[#604b2d] px-7 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-white shadow-[0_14px_30px_rgba(130,105,60,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(130,105,60,0.4)]"
             >
               {copy.openTree}
-            </Link>
+            </a>
           </div>
         </section>
       </div>
@@ -202,13 +201,13 @@ export default function ArchivePage() {
                 {copy.fromMembers(stats.total, currentTree.nodes.length)}
               </p>
             </div>
-            <Link
+            <a
               href="/app"
               className="inline-flex items-center gap-2 rounded-full border border-[#d7c4a1] bg-white/80 px-5 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#6a584a] backdrop-blur-sm transition hover:bg-white"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               {copy.backToTree}
-            </Link>
+            </a>
           </div>
         </div>
       </header>

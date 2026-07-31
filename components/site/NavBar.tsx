@@ -19,7 +19,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "../providers/LanguageProvider";
 import { LanguageToggle } from "./LanguageToggle";
 import { BrandLogo } from "./BrandLogo";
@@ -152,10 +152,14 @@ function SessionAwareNavBar({
   const { data: session, status } = useSession();
   const { mobileOpen, setMobileOpen, isScrolled } = useNavbarChrome(pathname);
   const [accountOpen, setAccountOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileMenuWasOpenRef = useRef(false);
   const isHome = pathname === "/";
 
   const user = session?.user;
   const isLoggedIn = status === "authenticated";
+  const familyTreesHref = isLoggedIn ? "/app" : "/auth/login?next=%2Fapp";
   const isAdmin = user?.role === "admin";
   const displayName = user?.name?.trim() || copy.accountMember;
   const displayEmail = user?.email || copy.noEmail;
@@ -180,6 +184,50 @@ function SessionAwareNavBar({
   useEffect(() => {
     setAccountOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) {
+      if (mobileMenuWasOpenRef.current) mobileMenuButtonRef.current?.focus();
+      mobileMenuWasOpenRef.current = false;
+      return;
+    }
+
+    mobileMenuWasOpenRef.current = true;
+    const menu = mobileMenuRef.current;
+    if (!menu) return;
+
+    const getFocusable = () =>
+      Array.from(
+        menu.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((element) => element.offsetParent !== null);
+
+    getFocusable()[0]?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMobileOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const focusable = getFocusable();
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileOpen, setMobileOpen]);
 
   function handleSignOut() {
     setAccountOpen(false);
@@ -225,15 +273,27 @@ function SessionAwareNavBar({
           {navLinks.map((link) => {
             const active = isActive(pathname, link.href);
             return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`text-[14px] font-serif tracking-[0.03em] transition-colors duration-300 ${
-                  active ? "text-ink-900" : "text-ink-500 hover:text-ink-900"
-                }`}
-              >
-                {link.label}
-              </Link>
+              link.href === "/app" ? (
+                <a
+                  key={link.href}
+                  href={link.href === "/app" ? familyTreesHref : link.href}
+                  className={`text-[14px] font-serif tracking-[0.03em] transition-colors duration-300 ${
+                    active ? "text-ink-900" : "text-ink-500 hover:text-ink-900"
+                  }`}
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`text-[14px] font-serif tracking-[0.03em] transition-colors duration-300 ${
+                    active ? "text-ink-900" : "text-ink-500 hover:text-ink-900"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              )
             );
           })}
         </nav>
@@ -244,17 +304,16 @@ function SessionAwareNavBar({
           )}
 
           {status === "unauthenticated" && (
-            <Link href="/auth/login">
-              <Button
-                variant="outline"
-                size={isScrolled ? "sm" : "md"}
-                iconRight={<ArrowRight className="h-3.5 w-3.5" />}
-                animateRightIcon
-                className="rounded-none !border-brand-700 !text-brand-700 px-6 text-[10px] font-medium uppercase tracking-[0.15em] transition-colors duration-500 hover:!bg-brand-700 hover:!text-cream-50"
-              >
-                {copy.startStory}
-              </Button>
-            </Link>
+            <Button
+              href="/auth/login"
+              variant="outline"
+              size={isScrolled ? "sm" : "md"}
+              iconRight={<ArrowRight className="h-3.5 w-3.5" />}
+              animateRightIcon
+              className="rounded-none !border-brand-700 !text-brand-700 px-6 text-[10px] font-medium uppercase tracking-[0.15em] transition-colors duration-500 hover:!bg-brand-700 hover:!text-cream-50"
+            >
+              {copy.startStory}
+            </Button>
           )}
 
           {isLoggedIn && (
@@ -310,14 +369,14 @@ function SessionAwareNavBar({
                         {accountLinks.map((item) => {
                           const Icon = item.icon;
                           return (
-                            <Link
+                            <a
                               key={item.href}
-                              href={item.href}
+                              href={item.href === "/app" ? familyTreesHref : item.href}
                               className="group flex items-center gap-3 rounded-[14px] px-3.5 py-2.5 text-[13px] font-medium text-ink-500 transition-all hover:bg-cream-100/80 hover:text-ink-900"
                             >
                               <Icon className="h-4 w-4 text-ink-400 transition-colors group-hover:text-brand-600" />
                               {item.label}
-                            </Link>
+                            </a>
                           );
                         })}
 
@@ -343,9 +402,13 @@ function SessionAwareNavBar({
         </div>
 
         <button
+          ref={mobileMenuButtonRef}
+          type="button"
           onClick={() => setMobileOpen((prev) => !prev)}
           className="relative z-[60] -mr-2 inline-flex h-10 w-10 items-center justify-center rounded-full text-ink-800 transition hover:bg-cream-200/50 lg:hidden"
           aria-label={copy.toggleMenu}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-navigation"
         >
           {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
@@ -354,6 +417,11 @@ function SessionAwareNavBar({
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
+            ref={mobileMenuRef}
+            id="mobile-navigation"
+            role="dialog"
+            aria-modal="true"
+            aria-label={copy.toggleMenu}
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
@@ -370,17 +438,31 @@ function SessionAwareNavBar({
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 + i * 0.05, duration: 0.4 }}
                   >
-                    <Link
-                      href={link.href}
-                      onClick={() => setMobileOpen(false)}
-                      className={`block font-serif text-[2.5rem] leading-tight tracking-tight transition-colors ${
-                        active
-                          ? "text-brand-700"
-                          : "text-ink-800 hover:text-ink-500"
-                      }`}
-                    >
-                      {link.label}
-                    </Link>
+                    {link.href === "/app" ? (
+                      <a
+                        href={link.href === "/app" ? familyTreesHref : link.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={`block font-serif text-[2.5rem] leading-tight tracking-tight transition-colors ${
+                          active
+                            ? "text-brand-700"
+                            : "text-ink-800 hover:text-ink-500"
+                        }`}
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={link.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={`block font-serif text-[2.5rem] leading-tight tracking-tight transition-colors ${
+                          active
+                            ? "text-brand-700"
+                            : "text-ink-800 hover:text-ink-500"
+                        }`}
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </motion.div>
                 );
               })}
@@ -392,18 +474,18 @@ function SessionAwareNavBar({
               )}
 
               {status === "unauthenticated" && (
-                <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
-                  <Button
-                    variant="outline"
-                    block
-                    size="lg"
-                    iconRight={<ArrowRight className="h-4 w-4" />}
-                    animateRightIcon
-                    className="w-full rounded-none py-6 font-sans text-[12px] font-medium uppercase tracking-[0.15em] !border-brand-700 !text-brand-700 hover:!bg-brand-700 hover:!text-cream-50"
-                  >
-                    {copy.startStory}
-                  </Button>
-                </Link>
+                <Button
+                  href="/auth/login"
+                  onClick={() => setMobileOpen(false)}
+                  variant="outline"
+                  block
+                  size="lg"
+                  iconRight={<ArrowRight className="h-4 w-4" />}
+                  animateRightIcon
+                  className="w-full rounded-none py-6 font-sans text-[12px] font-medium uppercase tracking-[0.15em] !border-brand-700 !text-brand-700 hover:!bg-brand-700 hover:!text-cream-50"
+                >
+                  {copy.startStory}
+                </Button>
               )}
 
               {isLoggedIn && (
@@ -427,14 +509,14 @@ function SessionAwareNavBar({
 
                   <div className="flex flex-col gap-5">
                     {accountLinks.map((item) => (
-                      <Link
+                      <a
                         key={item.href}
-                        href={item.href}
+                        href={item.href === "/app" ? familyTreesHref : item.href}
                         onClick={() => setMobileOpen(false)}
                         className="flex items-center gap-4 text-[12px] font-bold uppercase tracking-[0.15em] text-ink-600 transition hover:text-ink-900"
                       >
                         {item.label}
-                      </Link>
+                      </a>
                     ))}
 
                     <button

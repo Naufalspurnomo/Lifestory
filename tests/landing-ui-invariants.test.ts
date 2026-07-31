@@ -15,6 +15,19 @@ function sourceFilesUnder(relativePath: string): string[] {
   });
 }
 
+describe("route content availability", () => {
+  const layout = source("app/layout.tsx");
+
+  it("renders route content directly without a wait-mode opacity transition", () => {
+    expect(layout).toMatch(
+      /<main className="flex-1">\s*{children}\s*<\/main>/
+    );
+    expect(layout).not.toContain("PageTransition");
+    expect(layout).not.toContain("AnimatePresence");
+    expect(layout).not.toContain("opacity: 0");
+  });
+});
+
 describe("landing hero interaction invariants", () => {
   const homeHero = source("components/home/HomeHero.tsx");
   const globals = source("app/globals.css");

@@ -189,9 +189,7 @@ export default function InvitePage() {
           </p>
 
           <div className="mt-6">
-            <Link href={`/auth/login?next=/invite/${token}`}>
-              <Button className="h-11 rounded-xl px-6">{copy.loginToAccept}</Button>
-            </Link>
+            <Button href={`/auth/login?next=/invite/${token}`} className="h-11 rounded-xl px-6">{copy.loginToAccept}</Button>
           </div>
         </div>
       </div>
@@ -229,11 +227,9 @@ export default function InvitePage() {
           >
             {importing ? copy.importing : copy.importToMyAccount}
           </Button>
-          <Link href="/app">
-            <Button variant="secondary" className="h-11 rounded-xl px-6">
-              {copy.cancel}
-            </Button>
-          </Link>
+          <Button href="/app" variant="secondary" className="h-11 rounded-xl px-6">
+            {copy.cancel}
+          </Button>
         </div>
       </div>
     </div>

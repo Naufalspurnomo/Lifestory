@@ -21,7 +21,10 @@ export async function GET(request: Request) {
     const candidates = await getFamilyCandidatesForUser(
       authResult.session.user.id
     );
-    return NextResponse.json({ candidates });
+    return NextResponse.json(
+      { candidates },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (error) {
     if (error instanceof FamilyIdentityError) {
       return NextResponse.json(

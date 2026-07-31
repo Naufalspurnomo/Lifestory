@@ -14,6 +14,16 @@ import {
   derivePublicBaseUrlFromEndpoint,
   resolveDisplayMediaUrl,
 } from "../lib/media/public-url";
+import {
+  collectReferencedMediaStorageKeys,
+  collectMediaReferences,
+  createPresignedPutUrl,
+  findRemovedMediaStorageKeys,
+} from "../lib/media/storage";
+import {
+  calculateStoredMediaUsage,
+  countStoredGalleryItems,
+} from "../lib/media/quota";
 
 function familyNode(id: string, overrides: Partial<FamilyNode> = {}): FamilyNode {
   return {
@@ -107,6 +117,80 @@ describe("sync mutation application", () => {
       "existing",
       "collaborator-added",
       "client-added",
+    ]);
+  });
+});
+
+describe("media lifecycle", () => {
+  it("finds removed profile and gallery objects without deleting shared references", () => {
+    const sharedKey = "trees/tree-1/nodes/a/gallery/2026/01/shared.webp";
+    const removedKey = "trees/tree-1/nodes/a/profile/2026/01/removed.webp";
+    const before = familyNode("a", {
+      imageStorageKey: removedKey,
+      content: {
+        description: "",
+        media: [{ type: "image", url: "/shared.webp", storageKey: sharedKey }],
+      },
+    });
+    const after = familyNode("a", {
+      content: { description: "", media: [] },
+    });
+    const mutationKeys = findRemovedMediaStorageKeys([
+      { payload: after, previousPayload: before },
+    ]);
+
+    expect(mutationKeys).toEqual([removedKey, sharedKey]);
+    expect(
+      [...collectReferencedMediaStorageKeys([before])]
+    ).toEqual([removedKey, sharedKey]);
+    expect(
+      findRemovedMediaStorageKeys([
+        { payload: familyNode("b", { content: { description: "", media: [{ type: "image", url: "/shared.webp", storageKey: sharedKey }] } }), previousPayload: before },
+      ])
+    ).toContain(removedKey);
+  });
+
+  it("counts committed object bytes separately from active upload reservations", () => {
+    const nodes = [
+      {
+        id: "a",
+        imageUrl: null,
+        imageStorageKey: "trees/tree-1/nodes/a/profile/2026/01/a.webp",
+        imageSizeBytes: 100,
+        media: JSON.stringify([
+          {
+            type: "image",
+            url: "/gallery.webp",
+            storageKey: "trees/tree-1/nodes/a/gallery/2026/01/b.webp",
+            sizeBytes: 250,
+          },
+        ]),
+      },
+    ];
+
+    expect(calculateStoredMediaUsage(nodes)).toEqual({
+      inlineBytes: 0,
+      objectBytes: 350,
+      objectCount: 2,
+    });
+    expect(countStoredGalleryItems(nodes, "a")).toBe(1);
+    expect(
+      [...collectMediaReferences([familyNode("a", {
+        imageStorageKey: nodes[0].imageStorageKey,
+        imageSizeBytes: 100,
+        content: {
+          description: "",
+          media: [{
+            type: "image",
+            url: "/gallery.webp",
+            storageKey: "trees/tree-1/nodes/a/gallery/2026/01/b.webp",
+            sizeBytes: 250,
+          }],
+        },
+      })])].map(([key, value]) => [key, value.sizeBytes])
+    ).toEqual([
+      [nodes[0].imageStorageKey, 100],
+      ["trees/tree-1/nodes/a/gallery/2026/01/b.webp", 250],
     ]);
   });
 });
@@ -368,6 +452,30 @@ describe("Supabase media URL normalization", () => {
       )
     ).toBe(
       "https://project-ref.supabase.co/storage/v1/object/public/family-media/trees/root/photo.webp"
+    );
+  });
+
+  it("binds the requested content type into new upload signatures", () => {
+    const upload = createPresignedPutUrl(
+      {
+        endpoint: "https://storage.example.test/s3",
+        region: "auto",
+        bucket: "family-media",
+        accessKeyId: "access-key",
+        secretAccessKey: "secret-key",
+        publicBaseUrl: "https://cdn.example.test/family-media",
+        uploadUrlTtlSeconds: 600,
+        readUrlTtlSeconds: 300,
+        maxFileBytes: 5_000_000,
+        treeQuotaBytes: 250_000_000,
+      },
+      "trees/tree-1/nodes/a/profile/2026/01/photo.webp",
+      new Date("2026-07-31T00:00:00.000Z"),
+      "image/webp"
+    );
+
+    expect(new URL(upload.uploadUrl).searchParams.get("X-Amz-SignedHeaders")).toBe(
+      "content-type;host"
     );
   });
 });

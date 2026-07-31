@@ -36,7 +36,9 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(users);
+    return NextResponse.json(users, {
+      headers: { "Cache-Control": "private, no-store" },
+    });
   } catch (error) {
     // Don't expose internal errors to client
     console.error("Error fetching users:", error);

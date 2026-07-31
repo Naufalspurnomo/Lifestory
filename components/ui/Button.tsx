@@ -1,6 +1,11 @@
 "use client";
 
-import { forwardRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import {
+  forwardRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from "react";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "../../lib/utils";
@@ -17,6 +22,7 @@ type ButtonVariant =
 type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  href?: string;
   variant?: ButtonVariant;
   size?: ButtonSize;
   block?: boolean;
@@ -61,6 +67,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     iconLeft,
     iconRight,
     animateRightIcon,
+    href,
     children,
     disabled,
     onClick,
@@ -70,8 +77,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 ) {
   const [ripples, setRipples] = useState<Array<{ x: number; y: number; id: number }>>([]);
 
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (disabled || loading) return;
+  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
+    if (disabled || loading) {
+      e.preventDefault();
+      return;
+    }
 
     // Create ripple effect
     const button = e.currentTarget;
@@ -85,27 +95,22 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       setRipples((prev) => prev.filter((r) => r.id !== id));
     }, 600);
 
-    onClick?.(e);
+    onClick?.(e as React.MouseEvent<HTMLButtonElement>);
   };
 
-  return (
-    <button
-      ref={ref}
-      disabled={disabled || loading}
-      aria-busy={loading || undefined}
-      onClick={handleClick}
-      className={cn(
-        base,
-        sizeMap[size],
-        variantMap[variant],
-        block && "w-full",
-        // shine sweep on primary on hover
-        variant === "primary" &&
-          "overflow-hidden before:absolute before:inset-0 before:translate-x-[-150%] before:skew-x-[-20deg] before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent before:transition-transform before:duration-700 hover:before:translate-x-[150%]",
-        className
-      )}
-      {...rest}
-    >
+  const classNameValue = cn(
+    base,
+    sizeMap[size],
+    variantMap[variant],
+    block && "w-full",
+    // shine sweep on primary on hover
+    variant === "primary" &&
+      "overflow-hidden before:absolute before:inset-0 before:translate-x-[-150%] before:skew-x-[-20deg] before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent before:transition-transform before:duration-700 hover:before:translate-x-[150%]",
+    className
+  );
+
+  const content = (
+    <>
       {/* Ripple effects */}
       {ripples.map((ripple) => (
         <motion.span
@@ -143,6 +148,35 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
           {iconRight}
         </span>
       )}
+    </>
+  );
+
+  if (href) {
+    return (
+      <a
+        ref={ref as React.Ref<HTMLAnchorElement>}
+        href={href}
+        aria-busy={loading || undefined}
+        aria-disabled={disabled || loading || undefined}
+        onClick={handleClick}
+        className={classNameValue}
+        {...(rest as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <button
+      ref={ref}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      onClick={handleClick}
+      className={classNameValue}
+      {...rest}
+    >
+      {content}
     </button>
   );
 });

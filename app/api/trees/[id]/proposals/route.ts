@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "../../../../../lib/auth-helpers";
 import { prisma } from "../../../../../lib/db";
 import { getTreeAccessContext, TreeAccessError } from "../../../../../lib/tree/repository";
+import { applyRateLimit, rateLimitConfigs } from "../../../../../lib/rate-limit";
 
 function errorResponse(error: unknown) {
   if (error instanceof TreeAccessError) return NextResponse.json({ error: error.message }, { status: error.status });
@@ -11,7 +12,10 @@ function errorResponse(error: unknown) {
   return NextResponse.json({ error: "Internal error" }, { status: 500 });
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const rateLimitError = await applyRateLimit(request, "proposal-list", rateLimitConfigs.api);
+  if (rateLimitError) return rateLimitError;
+
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
   const { id } = await params;
@@ -23,7 +27,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       include: { request: { include: { targetPerson: { select: { id: true, label: true } } } } },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json({ proposals });
+    return NextResponse.json(
+      { proposals },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (error) {
     return errorResponse(error);
   }

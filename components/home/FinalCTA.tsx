@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "../ui/Button";
@@ -50,28 +49,26 @@ export function FinalCTA({ copy, primaryHref, secondaryHref }: Props) {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-              <Link href={primaryHref} className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  variant="dark"
-                  block
-                  iconRight={<ArrowRight className="h-4 w-4" />}
-                  animateRightIcon
-                  className="shadow-none hover:shadow-soft"
-                >
-                  {copy.primaryCta}
-                </Button>
-              </Link>
-              <Link href={secondaryHref} className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  block
-                  className="border-cream-400 bg-cream-50 text-ink-700 hover:border-brand-400 hover:bg-cream-100"
-                >
-                  {copy.secondaryCta}
-                </Button>
-              </Link>
+              <Button
+                href={primaryHref}
+                size="lg"
+                variant="dark"
+                block
+                iconRight={<ArrowRight className="h-4 w-4" />}
+                animateRightIcon
+                className="shadow-none hover:shadow-soft"
+              >
+                {copy.primaryCta}
+              </Button>
+              <Button
+                href={secondaryHref}
+                size="lg"
+                variant="outline"
+                block
+                className="border-cream-400 bg-cream-50 text-ink-700 hover:border-brand-400 hover:bg-cream-100"
+              >
+                {copy.secondaryCta}
+              </Button>
             </div>
           </div>
         </motion.div>

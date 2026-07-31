@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { requireUser } from "../../../../../lib/auth-helpers";
+import { prisma } from "../../../../../lib/db";
 import {
   applyTreeMutations,
   getChangedNodeIdsSince,
@@ -20,6 +21,18 @@ import {
 import type { FamilyNode } from "../../../../../lib/types/tree";
 import { jsonBodyLimits, parseJsonBody } from "../../../../../lib/request-body";
 import { applyRateLimit, rateLimitConfigs } from "../../../../../lib/rate-limit";
+import {
+  collectReferencedMediaStorageKeys,
+  deleteMediaObject,
+  getMediaStorageConfig,
+} from "../../../../../lib/media/storage";
+import {
+  InvalidMediaReferenceError,
+  MediaStorageVerificationError,
+  MediaUploadReservationError,
+  filterUnreferencedMediaStorageKeys,
+  verifyNewMediaReferences,
+} from "../../../../../lib/media/verification";
 
 function isMissingTableError(error: unknown): boolean {
   return (
@@ -67,6 +80,15 @@ function handleError(error: unknown) {
   if (error instanceof InvalidTreeGraphError) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+  if (error instanceof InvalidMediaReferenceError) {
+    return NextResponse.json({ error: error.message }, { status: 422 });
+  }
+  if (error instanceof MediaStorageVerificationError) {
+    return NextResponse.json({ error: "Media object could not be verified" }, { status: 503 });
+  }
+  if (error instanceof MediaUploadReservationError) {
+    return NextResponse.json({ error: error.message }, { status: 422 });
+  }
   if (isForeignKeyError(error)) {
     return NextResponse.json(
       { error: "Invalid tree relationship data" },
@@ -94,6 +116,13 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimitError = await applyRateLimit(
+    request,
+    "tree-sync-read",
+    rateLimitConfigs.treeSync
+  );
+  if (rateLimitError) return rateLimitError;
+
   const { id } = await params;
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
@@ -178,6 +207,10 @@ export async function POST(
         | null
         | undefined,
     }));
+    const previousNodes = mutations.flatMap((mutation) =>
+      mutation.previousPayload ? [mutation.previousPayload] : []
+    );
+    await verifyNewMediaReferences(id, userId, mutations);
 
     const result = await applyTreeMutations(
       id,
@@ -186,6 +219,53 @@ export async function POST(
       validation.data.clientVersion,
       mutations
     );
+
+    const committedMediaKeys = result.nodes
+      ? collectReferencedMediaStorageKeys(result.nodes)
+      : collectReferencedMediaStorageKeys(
+          mutations.flatMap((mutation) =>
+            mutation.payload ? [mutation.payload] : []
+          )
+        );
+    if (committedMediaKeys.size > 0) {
+      await prisma.mediaUploadReservation.updateMany({
+        where: {
+          treeId: id,
+          userId,
+          storageKey: { in: [...committedMediaKeys] },
+          consumedAt: null,
+        },
+        data: { consumedAt: new Date() },
+      });
+    }
+
+    if (result.nodes) {
+      const storageConfig = getMediaStorageConfig();
+      const referencedKeys = collectReferencedMediaStorageKeys(result.nodes);
+      const previousKeys = collectReferencedMediaStorageKeys(previousNodes);
+      const removedMediaKeys = [...previousKeys].filter(
+        (key) => !referencedKeys.has(key)
+      );
+      const cleanupKeys = await filterUnreferencedMediaStorageKeys(
+        id,
+        removedMediaKeys,
+        result.nodes
+      );
+      if (storageConfig && cleanupKeys.length > 0) {
+        const cleanupResults = await Promise.allSettled(
+          cleanupKeys.map((key) => deleteMediaObject(storageConfig, key))
+        );
+        cleanupResults.forEach((cleanupResult, index) => {
+          if (cleanupResult.status === "rejected") {
+            console.error(
+              "orphaned media cleanup failed",
+              cleanupKeys[index],
+              cleanupResult.reason
+            );
+          }
+        });
+      }
+    }
 
     await Promise.all([
       new BackupManager().pruneOldSnapshots(id, 50).catch((error) => {

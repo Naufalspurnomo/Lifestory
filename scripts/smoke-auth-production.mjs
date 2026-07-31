@@ -17,6 +17,7 @@ if (process.env.AUTH_SMOKE_USE_DIRECT_URL !== "0" && process.env.DIRECT_URL) {
 
 const prisma = new PrismaClient();
 const runId = `${Date.now()}-${randomUUID()}`;
+const smokeIp = `smoke-${runId}`;
 const password = "SmokePass123";
 const emails = {
   purchaser: `auth-smoke-purchaser-${runId}@example.com`,
@@ -80,6 +81,7 @@ async function submitLogin(email) {
       method: "POST",
       headers: {
         Origin: baseUrl,
+        "x-forwarded-for": smokeIp,
         "Content-Type": "application/x-www-form-urlencoded",
         Cookie: serializeCookies(jar),
       },
@@ -114,6 +116,7 @@ async function login(email) {
 function authHeaders(jar, extra = {}) {
   return {
     Origin: baseUrl,
+    "x-forwarded-for": smokeIp,
     Cookie: serializeCookies(jar),
     ...extra,
   };
@@ -305,6 +308,9 @@ try {
   ).map((user) => user.id);
   await prisma.$transaction([
     prisma.tree.deleteMany({ where: { ownerId: { in: syntheticUserIds } } }),
+    prisma.familyIdentity.deleteMany({
+      where: { createdById: { in: syntheticUserIds } },
+    }),
     prisma.user.deleteMany({ where: { email: { in: syntheticEmails } } }),
   ]);
   await prisma.$disconnect();

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Accordion } from "../ui/Accordion";
 import { Container } from "../ui/Container";
@@ -38,16 +37,16 @@ export function FAQ({ copy }: Props) {
               <p className="mt-2 text-sm leading-relaxed text-ink-500">
                 {copy.asideBody}
               </p>
-              <Link href="/contact" className="mt-5 inline-block">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  iconRight={<ArrowRight className="h-3.5 w-3.5" />}
-                  animateRightIcon
-                >
-                  {copy.asideCta}
-                </Button>
-              </Link>
+              <Button
+                href="/contact"
+                variant="outline"
+                size="sm"
+                iconRight={<ArrowRight className="h-3.5 w-3.5" />}
+                animateRightIcon
+                className="mt-5"
+              >
+                {copy.asideCta}
+              </Button>
             </div>
           </Reveal>
 

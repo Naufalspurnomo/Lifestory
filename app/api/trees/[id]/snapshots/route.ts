@@ -9,9 +9,12 @@ import {
 import { BackupManager } from "../../../../../lib/sync/BackupManager";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimitError = await applyRateLimit(request, "tree-snapshot-list", rateLimitConfigs.api);
+  if (rateLimitError) return rateLimitError;
+
   const { id } = await params;
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
@@ -20,7 +23,10 @@ export async function GET(
   try {
     await getTreeForUser(id, userId);
     const snapshots = await new BackupManager().listSnapshots(id);
-    return NextResponse.json({ snapshots });
+    return NextResponse.json(
+      { snapshots },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (error) {
     if (error instanceof TreeAccessError) {
       return NextResponse.json({ error: error.message }, { status: error.status });

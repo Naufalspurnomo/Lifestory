@@ -4,14 +4,21 @@ import { requireAdmin, requireUser } from "../../../../../lib/auth-helpers";
 import { prisma } from "../../../../../lib/db";
 import { jsonBodyLimits, parseJsonBody } from "../../../../../lib/request-body";
 import { getTreeAccessContext, TreeAccessError } from "../../../../../lib/tree/repository";
+import { applyRateLimit, rateLimitConfigs } from "../../../../../lib/rate-limit";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const rateLimitError = await applyRateLimit(request, "tree-entitlement-read", rateLimitConfigs.api);
+  if (rateLimitError) return rateLimitError;
+
   const authResult = await requireUser();
   if (!authResult.success) return authResult.response;
   const { id } = await params;
   try {
     const access = await getTreeAccessContext(id, authResult.session.user.id);
-    return NextResponse.json({ entitlement: access.entitlement, myRole: access.myRole, capabilities: access.capabilities });
+    return NextResponse.json(
+      { entitlement: access.entitlement, myRole: access.myRole, capabilities: access.capabilities },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (error) {
     if (error instanceof TreeAccessError) return NextResponse.json({ error: error.message }, { status: error.status });
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") return NextResponse.json({ error: "archive-tables-not-migrated" }, { status: 503 });
@@ -20,6 +27,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const rateLimitError = await applyRateLimit(request, "admin-entitlement-update", rateLimitConfigs.sensitive);
+  if (rateLimitError) return rateLimitError;
+
   const authResult = await requireAdmin();
   if (!authResult.success) return authResult.response;
   const { id } = await params;

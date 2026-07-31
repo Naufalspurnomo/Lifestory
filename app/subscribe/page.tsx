@@ -239,11 +239,9 @@ export default function SubscribePage() {
                       {isSubmitted ? copy.sentCta : copy.cta}
                     </Button>
                   ) : (
-                    <Link href="/auth/register?next=/subscribe">
-                      <Button block size="lg" iconRight={<ArrowRight className="h-4 w-4" />}>
-                        {copy.authCta}
-                      </Button>
-                    </Link>
+                    <Button href="/auth/register?next=/subscribe" block size="lg" iconRight={<ArrowRight className="h-4 w-4" />}>
+                      {copy.authCta}
+                    </Button>
                   )}
                   {isSubmitted && (
                     <p className="mt-3 text-sm leading-relaxed text-success">

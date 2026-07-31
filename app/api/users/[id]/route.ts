@@ -107,7 +107,9 @@ export async function PATCH(request: Request, { params }: Params) {
       },
     });
 
-    return NextResponse.json(user);
+    return NextResponse.json(user, {
+      headers: { "Cache-Control": "private, no-store" },
+    });
   } catch (error) {
     console.error("Error updating user:", error);
     return NextResponse.json(
