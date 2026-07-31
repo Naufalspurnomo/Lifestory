@@ -245,13 +245,13 @@ async function clearProfile(jar, tree, asset, clientVersion) {
   return response.json();
 }
 
-async function deleteObject(jar, treeId, storageKey) {
+async function deleteObject(jar, treeId, storageKey, expectedStatus = 200) {
   const response = await fetch(`${baseUrl}/api/media/delete`, {
     method: "POST",
     headers: authHeaders(jar, { "Content-Type": "application/json" }),
     body: JSON.stringify({ treeId, storageKey }),
   });
-  assertStatus(response, 200, "delete media object");
+  assertStatus(response, expectedStatus, "delete media object");
   return response.status;
 }
 
@@ -270,6 +270,12 @@ try {
   const uploadStatus = await upload(uploadPlan);
   const publicUrlStatus = await verifyPublicUrl(uploadPlan.asset);
   const syncResult = await syncProfile(jar, tree, uploadPlan.asset);
+  const referencedDeleteStatus = await deleteObject(
+    jar,
+    tree.id,
+    uploadPlan.asset.storageKey,
+    422
+  );
   const clearResult = await clearProfile(
     jar,
     tree,
@@ -284,6 +290,7 @@ try {
     uploadStatus,
     publicUrlStatus,
     syncStatus: 200,
+    referencedDeleteStatus,
     clearStatus: 200,
     finalVersion: clearResult.newVersion,
   };
