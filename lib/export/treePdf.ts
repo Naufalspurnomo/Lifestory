@@ -5,7 +5,7 @@ import type { FamilyNode, LayoutGraph, TreeData } from "../types/tree";
 
 export type PdfLocale = "id" | "en";
 export type TreePdfPageKind = "cover" | "overview" | "generation" | "directory";
-export type TreePdfPageFormat = "a0" | "a1" | "a2" | "a3" | "a4";
+export type TreePdfPageFormat = "a0" | "a1" | "a2" | "a3" | "a4" | [number, number];
 export type TreePdfPageOrientation = "landscape" | "portrait";
 
 type PdfMemberGroup = {
@@ -47,6 +47,7 @@ type TreePdfOverviewPage = TreePdfBasePage & {
   minNodeWidth: number;
   minNodeHeight: number;
   minFontSize: number;
+  profileImages: true;
   suppressEmptyMetadata: true;
 };
 type TreePdfGenerationPage = TreePdfBasePage & {
@@ -101,9 +102,9 @@ const CREAM = "#f8f2e7";
 const PAPER = "#fffdf8";
 const LINE = "#c7b488";
 const LOGO_PATH = "/logo/lifestory-logo.png";
-const MAX_IMAGES = 48;
+const PROFILE_IMAGE_CONCURRENCY = 16;
 const A4 = { width: 210, margin: 16 };
-const OVERVIEW_NODE = { width: 56, height: 21, minWidth: 42, minHeight: 18, minFont: 7.8 };
+const OVERVIEW_NODE = { width: 104, height: 54, minWidth: 68, minHeight: 36, minFont: 8 };
 const GENERATION_CARD = { width: 80, height: 44, minFont: 9.1 };
 const GENERATION_PAGE_SIZE = 12;
 const DIRECTORY_PAGE_SIZE = 12;
@@ -112,7 +113,7 @@ const OVERVIEW_PAGE_SIZES = {
   a1: { width: 841, height: 594 },
   a0: { width: 1189, height: 841 },
 } as const;
-const OVERVIEW_MIN_SCALE = 0.34;
+const OVERVIEW_MIN_SCALE = 0.54;
 const LAYOUT_CARD = { width: 154, height: 142 };
 
 function copy(locale: PdfLocale) {
@@ -257,6 +258,7 @@ function planPages(
       minNodeWidth: OVERVIEW_NODE.minWidth,
       minNodeHeight: OVERVIEW_NODE.minHeight,
       minFontSize: OVERVIEW_NODE.minFont,
+      profileImages: true,
       suppressEmptyMetadata: true,
     },
   ];
@@ -433,14 +435,19 @@ async function loadPdfAsset(path: string): Promise<string | null> {
 }
 
 async function loadProfileImages(nodes: FamilyNode[]) {
-  const entries = nodes
-    .filter((node) => node.imageUrl)
-    .slice(0, MAX_IMAGES)
-    .map(async (node) => {
-      const url = resolveDisplayMediaUrl(node.imageUrl!);
-      return [node.id, await imageToDataUrl(url)] as const;
-    });
-  const loaded = await Promise.all(entries);
+  const photoNodes = nodes.filter((node) => node.imageUrl);
+  const loaded: Array<readonly [string, string | null]> = [];
+
+  for (let index = 0; index < photoNodes.length; index += PROFILE_IMAGE_CONCURRENCY) {
+    const batch = await Promise.all(
+      photoNodes.slice(index, index + PROFILE_IMAGE_CONCURRENCY).map(async (node) => {
+        const url = resolveDisplayMediaUrl(node.imageUrl!);
+        return [node.id, await imageToDataUrl(url)] as const;
+      })
+    );
+    loaded.push(...batch);
+  }
+
   return new Map(
     loaded.filter((entry): entry is readonly [string, string] => Boolean(entry[1]))
   );
@@ -660,10 +667,15 @@ function selectOverviewPageFormat(layout: LayoutGraph): TreePdfPageFormat {
   const formats = Object.entries(OVERVIEW_PAGE_SIZES) as Array<
     [keyof typeof OVERVIEW_PAGE_SIZES, (typeof OVERVIEW_PAGE_SIZES)[keyof typeof OVERVIEW_PAGE_SIZES]]
   >;
-  return (
-    formats.find(([, size]) => overviewScale(bounds, size.width, size.height) >= OVERVIEW_MIN_SCALE)?.[0] ??
-    "a0"
-  );
+  const standardFormat = formats.find(
+    ([, size]) => overviewScale(bounds, size.width, size.height) >= OVERVIEW_MIN_SCALE
+  )?.[0];
+  if (standardFormat) return standardFormat;
+
+  const a0 = OVERVIEW_PAGE_SIZES.a0;
+  const a0Scale = overviewScale(bounds, a0.width, a0.height);
+  const growth = OVERVIEW_MIN_SCALE / Math.max(a0Scale, Number.EPSILON);
+  return [Math.ceil(a0.width * growth), Math.ceil(a0.height * growth)];
 }
 
 function buildOverviewMap(model: TreePdfDocumentModel, pageW: number, pageH: number): OverviewMap {
@@ -679,8 +691,14 @@ function buildOverviewMap(model: TreePdfDocumentModel, pageW: number, pageH: num
     model.generations.flatMap((group) => group.members).map((node) => [node.id, node])
   );
   const slots = new Map<string, OverviewSlot>();
-  const cardWidth = Math.max(24, Math.min(78, LAYOUT_CARD.width * scale * 0.82));
-  const cardHeight = Math.max(15, Math.min(34, cardWidth * 0.54));
+  const cardWidth = Math.max(
+    OVERVIEW_NODE.minWidth,
+    Math.min(OVERVIEW_NODE.width, LAYOUT_CARD.width * scale * 0.9)
+  );
+  const cardHeight = Math.max(
+    OVERVIEW_NODE.minHeight,
+    Math.min(OVERVIEW_NODE.height, cardWidth * 0.52)
+  );
   const project = (x: number, y: number) => ({
     x: left + (x - bounds.minX) * scale,
     y: top + (y - bounds.minY) * scale,
@@ -736,11 +754,16 @@ function drawOverviewRowLabels(
   });
 }
 
-function drawOverviewNode(doc: jsPDF, slot: OverviewSlot) {
+function drawOverviewNode(doc: jsPDF, slot: OverviewSlot, images: Map<string, string>) {
   const x = slot.x - slot.width / 2;
   const y = slot.y - slot.height / 2;
   const isRoot = slot.node.line === "self";
-  const statusCount = [slot.node.imageUrl, slot.node.content?.description, slot.node.content?.media?.length].filter(Boolean).length;
+  const portraitSize = Math.min(slot.height - 8, 28);
+  const portraitX = x + 4.5;
+  const portraitY = y + (slot.height - portraitSize) / 2;
+  const textX = portraitX + portraitSize + 5;
+  const textWidth = Math.max(18, x + slot.width - textX - 5);
+  const image = images.get(slot.node.id);
 
   doc.setFillColor(PAPER);
   doc.setDrawColor(isRoot ? BRAND : "#d0bd94");
@@ -751,33 +774,39 @@ function drawOverviewNode(doc: jsPDF, slot: OverviewSlot) {
     doc.rect(x, y, Math.min(2.4, slot.width * 0.07), slot.height, "F");
   }
 
-  const showLifespan = slot.height >= 23;
-  const maxNameLines = showLifespan ? 2 : 1;
-  const nameLines = doc.splitTextToSize(slot.node.label, Math.max(8, slot.width - 7));
+  doc.setFillColor("#f5efe1");
+  doc.roundedRect(portraitX, portraitY, portraitSize, portraitSize, 2.2, 2.2, "F");
+  if (image) {
+    doc.addImage(image, "JPEG", portraitX, portraitY, portraitSize, portraitSize);
+  } else {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(Math.max(9, Math.min(14, portraitSize * 0.5)));
+    doc.setTextColor(BRAND);
+    doc.text(initials(slot.node.label), portraitX + portraitSize / 2, portraitY + portraitSize * 0.63, {
+      align: "center",
+    });
+  }
+
+  const showLifespan = slot.height >= 43 && Boolean(formatTreeLifespan(slot.node));
+  const maxNameLines = showLifespan ? 2 : 3;
+  const nameLines = doc.splitTextToSize(slot.node.label, textWidth);
   if (nameLines.length > maxNameLines) {
     nameLines.splice(maxNameLines);
     nameLines[maxNameLines - 1] = `${String(nameLines[maxNameLines - 1]).replace(/\.{3}$/, "")}...`;
   }
   doc.setTextColor(INK);
   doc.setFont("times", "bold");
-  const nameSize = Math.max(5.7, Math.min(9.4, slot.width * 0.145));
+  const nameSize = Math.max(OVERVIEW_NODE.minFont, Math.min(11, slot.width * 0.12));
   doc.setFontSize(nameSize);
-  const nameY = showLifespan ? y + nameSize + 2.7 : y + slot.height / 2 + nameSize * 0.34;
-  doc.text(nameLines, x + 4.5, nameY);
+  const nameY = y + (showLifespan ? 10.5 : 8.5);
+  doc.text(nameLines, textX, nameY, { lineHeightFactor: 1.05 });
 
   const lifespan = formatTreeLifespan(slot.node);
   if (lifespan && showLifespan) {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(Math.max(5, Math.min(6.2, slot.width * 0.1)));
+    doc.setFontSize(Math.max(6.2, Math.min(7.4, slot.width * 0.08)));
     doc.setTextColor(MUTED);
-    doc.text(lifespan, x + 5, y + slot.height - 3.2);
-  }
-
-  if (statusCount > 0 && slot.height >= 28) {
-    doc.setFillColor(BRAND);
-    for (let index = 0; index < statusCount; index += 1) {
-      doc.circle(x + slot.width - 5 - index * 3.2, y + 4.5, 0.8, "F");
-    }
+    doc.text(lifespan, textX, y + slot.height - 5.2);
   }
 }
 
@@ -785,6 +814,7 @@ function drawOverviewPage(
   doc: jsPDF,
   model: TreePdfDocumentModel,
   locale: PdfLocale,
+  images: Map<string, string>,
   logoDataUrl: string | null
 ) {
   drawPageHeader(doc, model, copy(locale).overview, logoDataUrl);
@@ -796,7 +826,7 @@ function drawOverviewPage(
   drawOverviewRowLabels(doc, model, map, locale);
   drawOverviewConnectors(doc, model, map);
   for (const slot of map.slots.values()) {
-    drawOverviewNode(doc, slot);
+    drawOverviewNode(doc, slot, images);
   }
 }
 
@@ -974,7 +1004,7 @@ function renderPage(
   if (page.kind === "cover") {
     drawCoverPage(doc, model, model.locale, logoDataUrl);
   } else if (page.kind === "overview") {
-    drawOverviewPage(doc, model, model.locale, logoDataUrl);
+    drawOverviewPage(doc, model, model.locale, images, logoDataUrl);
   } else if (page.kind === "generation") {
     drawGenerationPage(doc, model, page, model.locale, images, logoDataUrl);
   } else {

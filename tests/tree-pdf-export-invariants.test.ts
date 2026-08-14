@@ -163,13 +163,32 @@ describe("tree PDF export invariants", () => {
       format: "a2",
       orientation: "landscape",
       logoPath: "/logo/lifestory-logo.png",
-      minNodeWidth: 42,
-      minNodeHeight: 18,
+      minNodeWidth: 68,
+      minNodeHeight: 36,
+      minFontSize: 8,
+      profileImages: true,
     });
     expect(model.pages.find((page) => page.kind === "directory")).toMatchObject({
       format: "a4",
       orientation: "portrait",
     });
+  });
+
+  it("grows the full relationship atlas past A0 before shrinking names or portraits", () => {
+    const children = Array.from({ length: 50 }, (_, index) =>
+      node(`child-${index}`, `Anak Keluarga ${index}`, {
+        parentId: "root",
+        parentIds: ["root"],
+        imageUrl: `/profiles/${index}.jpg`,
+      })
+    );
+    const model = buildTreePdfDocumentModel(
+      tree([node("root", "Pendiri Keluarga", { childrenIds: children.map((child) => child.id) }), ...children])
+    );
+    const overview = model.pages.find((page) => page.kind === "overview");
+
+    expect(overview?.format).toEqual(expect.any(Array));
+    expect(Array.isArray(overview?.format) && overview.format[0]).toBeGreaterThan(1189);
   });
 
   it("keeps the overview tied to the production relationship layout", () => {
